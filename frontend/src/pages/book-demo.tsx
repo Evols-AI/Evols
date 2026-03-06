@@ -1,92 +1,71 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState } from 'react'
-import { Sparkles, Mail, User, Building, MessageSquare, CheckCircle, Calendar } from 'lucide-react'
+import { useEffect } from 'react'
+import { Sparkles, MessageSquare, CheckCircle } from 'lucide-react'
 import { LogoIcon } from '@/components/Logo'
 
+declare global {
+  interface Window {
+    Cal: any
+  }
+}
+
 export default function BookDemo() {
-  const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    company: '',
-    job_title: '',
-    company_size: '',
-    message: '',
-  })
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    // Cal.com inline embed initialization
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (function (C: any, A: string, L: string) {
+      let p = function (a: any, ar: any) { a.q.push(ar); };
+      let d = C.document;
+      C.Cal = C.Cal || function () {
+        let cal = C.Cal;
+        let ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {};
+          cal.q = cal.q || [];
+          d.head.appendChild(d.createElement("script")).src = A;
+          cal.loaded = true;
+        }
+        if (ar[0] === L) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const api: any = function () { p(api, arguments); };
+          const namespace = ar[1];
+          api.q = api.q || [];
+          if (typeof namespace === "string") {
+            cal.ns[namespace] = cal.ns[namespace] || api;
+            p(cal.ns[namespace], ar);
+            p(cal, ["initNamespace", namespace]);
+          } else p(cal, ar);
+          return;
+        }
+        p(cal, ar);
+      };
+    })(window, "https://app.cal.com/embed/embed.js", "init");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+    // Wait for Cal to be loaded, then initialize
+    const initCal = () => {
+      if (window.Cal) {
+        window.Cal("init", "demo", { origin: "https://app.cal.com" });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      setSubmitted(true)
-    }, 1500)
-  }
+        window.Cal.ns.demo("inline", {
+          elementOrSelector: "#my-cal-inline",
+          config: { layout: "month_view", useSlotsViewOnSmallScreen: "true" },
+          calLink: "akshaysaraswat/demo",
+        });
 
-  if (submitted) {
-    return (
-      <>
-        <Head><title>Thank You - Evols</title></Head>
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex items-center justify-center p-6">
-          <div className="w-full max-w-2xl text-center">
-            <div className="mb-8">
-              <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-2">
-                <LogoIcon size={96} />
-              </Link>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12">
-              <svg viewBox="0 0 250 250" className="w-64 mx-auto mb-8 drop-shadow-lg">
-                <defs>
-                  <linearGradient id="successGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{stopColor:'#10b981',stopOpacity:1}} />
-                    <stop offset="100%" style={{stopColor:'#059669',stopOpacity:1}} />
-                  </linearGradient>
-                </defs>
-                <circle cx="125" cy="125" r="100" fill="url(#successGrad)" opacity="0.1"/>
-                <circle cx="125" cy="125" r="75" fill="url(#successGrad)"/>
-                <path d="M 85 125 L 110 150 L 170 95" stroke="white" strokeWidth="12" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Thank You!</h1>
-              <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
-                We've received your demo request. Our team will reach out within 1 business day to schedule a personalized demo.
-              </p>
-              <div className="grid md:grid-cols-3 gap-6 mb-8">
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <Calendar className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <h3 className="font-semibold mb-1 text-gray-900 dark:text-white">30-Min Demo</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Live walkthrough tailored to your needs</p>
-                </div>
-                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <Sparkles className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                  <h3 className="font-semibold mb-1 text-gray-900 dark:text-white">AI Features</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">See personas and clustering in action</p>
-                </div>
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <MessageSquare className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                  <h3 className="font-semibold mb-1 text-gray-900 dark:text-white">Q&A</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Ask questions about your use case</p>
-                </div>
-              </div>
-              <Link href="/" className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce">
-                Back to Homepage
-              </Link>
-            </div>
-          </div>
-        </div>
-      </>
-    )
-  }
+        window.Cal.ns.demo("ui", { hideEventTypeDetails: false, layout: "month_view" });
+      }
+    };
+
+    // Try to initialize, or wait for script to load
+    setTimeout(initCal, 100);
+  }, [])
 
   return (
     <>
-      <Head><title>Book a Demo - Evols</title></Head>
+      <Head>
+        <title>Book a Demo - Evols</title>
+      </Head>
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
         {/* Header */}
         <header className="container mx-auto px-6 py-8">
@@ -105,8 +84,8 @@ export default function BookDemo() {
         </header>
 
         <div className="container mx-auto px-6 py-12">
-          <div className="w-full max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-12">
+          <div className="w-full max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12">
               {/* Left - Info */}
               <div className="flex flex-col justify-center">
                 <svg viewBox="0 0 300 300" className="w-full max-w-sm mx-auto mb-8 drop-shadow-lg">
@@ -162,107 +141,22 @@ export default function BookDemo() {
                 </div>
               </div>
 
-              {/* Right - Form */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Request a Demo</h2>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name *</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                      </div>
-                      <input
-                        id="full_name" name="full_name" type="text" required
-                        value={formData.full_name} onChange={handleChange}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        placeholder="John Doe"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Work Email *</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                      </div>
-                      <input
-                        id="email" name="email" type="email" required
-                        value={formData.email} onChange={handleChange}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        placeholder="john@company.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company *</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Building className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                      </div>
-                      <input
-                        id="company" name="company" type="text" required
-                        value={formData.company} onChange={handleChange}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        placeholder="Acme Inc"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="job_title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Job Title *</label>
-                    <input
-                      id="job_title" name="job_title" type="text" required
-                      value={formData.job_title} onChange={handleChange}
-                      className="block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      placeholder="Product Manager"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="company_size" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Size *</label>
-                    <select
-                      id="company_size" name="company_size" required
-                      value={formData.company_size} onChange={handleChange}
-                      className="block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    >
-                      <option value="">Select company size</option>
-                      <option value="1-10">1-10 employees</option>
-                      <option value="11-50">11-50 employees</option>
-                      <option value="51-200">51-200 employees</option>
-                      <option value="201-500">201-500 employees</option>
-                      <option value="501-1000">501-1000 employees</option>
-                      <option value="1000+">1000+ employees</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tell us about your use case (optional)</label>
-                    <textarea
-                      id="message" name="message" rows={4}
-                      value={formData.message} onChange={handleChange}
-                      className="block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      placeholder="Tell us what you're looking to achieve with Evols..."
-                    />
-                  </div>
-
-                  <button
-                    type="submit" disabled={loading}
-                    className="w-full bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
-                  >
-                    {loading ? 'Submitting...' : 'Book Demo'}
-                  </button>
-
-                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-                    By submitting this form, you agree to receive communications from Evols.
-                  </p>
-                </form>
+              {/* Right - Calendar Embed */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+                <div
+                  id="my-cal-inline"
+                  style={{ width: '100%', height: '100%', overflow: 'auto' }}
+                  className="min-h-[600px]"
+                />
               </div>
             </div>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="container mx-auto px-6 py-12 text-center text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-12">
+          <p>© 2026 Evols. Evolve your product roadmap.</p>
+        </footer>
       </div>
     </>
   )
