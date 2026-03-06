@@ -78,6 +78,16 @@ export default function Docs() {
               description="PM vs Founder mode decision-making guide"
               href="/docs/workbench"
             />
+            <DocCard icon={<Book className="w-6 h-6" />}
+              title="Roadmap"
+              description="Strategic roadmap planning with initiatives and projects"
+              href="/docs/roadmap"
+            />
+            <DocCard icon={<Code className="w-6 h-6" />}
+              title="Knowledge Base"
+              description="Product RAG and capability management"
+              href="/docs/knowledge-base"
+            />
             <DocCard icon={<Server className="w-6 h-6" />}
               title="API Reference"
               description="Complete API documentation with examples"
@@ -88,11 +98,6 @@ export default function Docs() {
               title="Getting Started"
               description="Quick start guide and setup instructions"
               href="#getting-started"
-            />
-            <DocCard icon={<Code className="w-6 h-6" />}
-              title="Core Features"
-              description="VoC clustering, personas, and decisions"
-              href="#features"
             />
             <DocCard icon={<Book className="w-6 h-6" />}
               title="API Usage"
@@ -169,6 +174,30 @@ docker-compose up -d`}</code>
                   ]}
                   link="/docs/workbench"
                   linkText="Learn about PM vs Founder mode →"
+                />
+                <FeatureDoc title="Strategic Roadmap"
+                  description="Plan and visualize your product strategy with initiatives, projects, and AI-powered strategic allocation."
+                  features={[
+                    'Initiative and project hierarchy',
+                    'Priority matrix for strategic planning',
+                    'Strategy Radar: Retention vs Growth vs Infrastructure',
+                    'ARR and retention impact tracking',
+                    'Multi-product roadmap support'
+                  ]}
+                  link="/docs/roadmap"
+                  linkText="Learn about roadmap planning →"
+                />
+                <FeatureDoc title="Knowledge Base (Product RAG)"
+                  description="AI-powered knowledge management with RAG for product capabilities and documentation."
+                  features={[
+                    'Product capability management',
+                    'Semantic search with embeddings',
+                    'RAG integration with personas and workbench',
+                    'External documentation ingestion',
+                    'Multi-product capability scoping'
+                  ]}
+                  link="/docs/knowledge-base"
+                  linkText="Learn about Product RAG →"
                 />
               </div>
             </Section>
