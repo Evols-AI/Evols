@@ -13,9 +13,10 @@ from app.models.base import BaseModel
 class UserRole(str, Enum):
     """User role types"""
 
-    PRODUCT_ADMIN = "product_admin"  # Super admin - can manage all tenants
-    TENANT_ADMIN = "tenant_admin"  # Tenant admin - can manage users in their org
-    USER = "user"  # Regular user - can use features within their tenant
+    SUPER_ADMIN = "SUPER_ADMIN"  # Platform admin - can manage all tenants and cross-tenant operations
+    PRODUCT_ADMIN = "PRODUCT_ADMIN"  # Super admin - can manage all tenants (deprecated, use SUPER_ADMIN)
+    TENANT_ADMIN = "TENANT_ADMIN"  # Tenant admin - can manage users in their org
+    USER = "USER"  # Regular user - can use features within their tenant
 
 
 class User(BaseModel):
@@ -25,8 +26,8 @@ class User(BaseModel):
 
     __tablename__ = "users"
 
-    # Tenant association
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    # Tenant association (nullable for SUPER_ADMIN)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
 
     # Authentication
     email = Column(String(255), unique=True, nullable=False, index=True)
@@ -65,10 +66,20 @@ class User(BaseModel):
 
     @property
     def is_admin(self) -> bool:
-        """Check if user is an admin"""
-        return self.role in [UserRole.PRODUCT_ADMIN, UserRole.TENANT_ADMIN]
+        """Check if user is an admin (any admin role)"""
+        return self.role in [UserRole.SUPER_ADMIN, UserRole.PRODUCT_ADMIN, UserRole.TENANT_ADMIN]
+
+    @property
+    def is_super_admin(self) -> bool:
+        """Check if user is a super admin (platform admin)"""
+        return self.role in [UserRole.SUPER_ADMIN, UserRole.PRODUCT_ADMIN]
+
+    @property
+    def is_tenant_admin(self) -> bool:
+        """Check if user is a tenant admin"""
+        return self.role == UserRole.TENANT_ADMIN
 
     @property
     def is_product_admin(self) -> bool:
-        """Check if user is a product admin"""
+        """Check if user is a product admin (deprecated, use is_super_admin)"""
         return self.role == UserRole.PRODUCT_ADMIN

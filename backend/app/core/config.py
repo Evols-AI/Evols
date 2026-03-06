@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # Field-level encryption for API keys and secrets
     FIELD_ENCRYPTION_KEY: Optional[str] = None  # Generate with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
 
+    # RBAC & Admin
+    SUPER_ADMIN_CREATION_TOKEN: Optional[str] = None  # Token required to create first SUPER_ADMIN user
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
 

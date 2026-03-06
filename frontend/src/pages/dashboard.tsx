@@ -135,7 +135,15 @@ export default function Dashboard() {
         router.replace('/login')
         return
       }
-      setUser(getCurrentUser())
+      const currentUser = getCurrentUser()
+      setUser(currentUser)
+
+      // SUPER_ADMIN users don't have tenant context, redirect to Admin Panel
+      if (currentUser?.role === 'SUPER_ADMIN') {
+        router.replace('/admin/tenants')
+        return
+      }
+
       if (selectedProductIds.length > 0) {
         loadData()
       } else {

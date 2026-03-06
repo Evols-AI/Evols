@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, FlaskConical, Settings, LayoutDashboard, MessageSquare, Rocket, Users, ChevronDown, LogOut, Sparkles, BookOpen } from 'lucide-react'
+import { Moon, Sun, FlaskConical, Settings, LayoutDashboard, MessageSquare, Rocket, Users, ChevronDown, LogOut, Sparkles, BookOpen, Shield } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoIcon } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
 import GlobalAICopilot from '@/components/GlobalAICopilot'
 import { ProductSelector } from '@/components/ProductSelector'
+import { getCurrentUser } from '@/utils/auth'
 
 interface HeaderProps {
   user?: {
@@ -21,6 +22,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isCopilotOpen, setIsCopilotOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const fullUser = getCurrentUser()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -61,8 +63,8 @@ export default function Header({ user, currentPage }: HeaderProps) {
                 Evols
               </span>
             </Link>
-            {user && <ProductSelector />}
-            {user && (
+            {user && fullUser?.role !== 'SUPER_ADMIN' && <ProductSelector />}
+            {user && fullUser?.role !== 'SUPER_ADMIN' && (
               <nav className="flex items-center space-x-6">
                 {navItems.map((item) => {
                   const isActive = currentPage === item.key || router.pathname.startsWith(item.href)
@@ -87,7 +89,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
             )}
           </div>
           <div className="flex items-center space-x-4">
-            {user && (
+            {user && fullUser?.role !== 'SUPER_ADMIN' && (
               <button
                 onClick={() => setIsCopilotOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
@@ -120,6 +122,16 @@ export default function Header({ user, currentPage }: HeaderProps) {
 
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                    {fullUser?.role === 'SUPER_ADMIN' && (
+                      <Link
+                        href="/admin/tenants"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <Shield className="w-4 h-4" />
+                        Admin Panel
+                      </Link>
+                    )}
                     <Link
                       href="/settings"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"

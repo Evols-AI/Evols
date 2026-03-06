@@ -9,9 +9,9 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
-import { User, Palette, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw } from 'lucide-react'
+import { User, Palette, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2 } from 'lucide-react'
 
-type Tab = 'appearance' | 'llm'
+type Tab = 'appearance' | 'llm' | 'team'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -101,18 +101,26 @@ export default function Settings() {
   const [lastKnowledgeRefreshDate, setLastKnowledgeRefreshDate] = useState<string | null>(null)
   const [savingKnowledgeRefresh, setSavingKnowledgeRefresh] = useState(false)
 
+  // Team management state
+  const [teamMembers, setTeamMembers] = useState<any[]>([])
+  const [loadingTeam, setLoadingTeam] = useState(false)
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+
   const tabs = [
     // { id: 'profile' as Tab, label: 'Profile', icon: User },
     { id: 'appearance' as Tab, label: 'Appearance', icon: Palette },
     // { id: 'security' as Tab, label: 'Security', icon: Shield },
     // { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
+    ...(user?.role === 'TENANT_ADMIN' ? [{ id: 'team' as Tab, label: 'Team', icon: Users }] : []),
   ]
 
   useEffect(() => {
     if (activeTab === 'llm') {
       loadCurrentLLMSettings()
       loadModelOptions()
+    } else if (activeTab === 'team') {
+      loadTeamMembers()
     }
   }, [activeTab])
 
@@ -340,6 +348,41 @@ export default function Settings() {
       loadKnowledgeRefreshSettings()
     }
   }, [activeTab])
+
+  // Team management functions
+  const loadTeamMembers = async () => {
+    try {
+      setLoadingTeam(true)
+      const response = await api.getUsers()
+      setTeamMembers(response.data || [])
+    } catch (error) {
+      console.error('Failed to load team members:', error)
+    } finally {
+      setLoadingTeam(false)
+    }
+  }
+
+  const handleAddUser = async (userData: any) => {
+    try {
+      await api.createUser(userData)
+      await loadTeamMembers()
+      setShowAddUserModal(false)
+    } catch (error: any) {
+      alert(`Error: ${error.response?.data?.detail || 'Failed to add user'}`)
+    }
+  }
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm('Are you sure you want to remove this user from your team?')) {
+      return
+    }
+    try {
+      await api.deleteUser(userId)
+      await loadTeamMembers()
+    } catch (error: any) {
+      alert(`Error: ${error.response?.data?.detail || 'Failed to delete user'}`)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -988,8 +1031,207 @@ export default function Settings() {
               </div>
             </div>
           )}
+
+          {/* Team Management Tab */}
+          {activeTab === 'team' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Manage users in your organization</p>
+                </div>
+                <button
+                  onClick={() => setShowAddUserModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add User
+                </button>
+              </div>
+
+              {loadingTeam ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-500 dark:text-gray-400">Loading team members...</div>
+                </div>
+              ) : teamMembers.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No team members yet</p>
+                  <button
+                    onClick={() => setShowAddUserModal(true)}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  >
+                    Add First User
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">User</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Role</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {teamMembers.map((member: any) => (
+                        <tr key={member.id}>
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {member.full_name || 'No name'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            {member.email}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 text-xs rounded ${
+                              member.role === 'TENANT_ADMIN'
+                                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            }`}>
+                              {member.role.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 text-xs rounded ${
+                              member.is_active
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                            }`}>
+                              {member.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {member.id !== user?.id && (
+                              <button
+                                onClick={() => handleDeleteUser(member.id)}
+                                className="text-red-600 dark:text-red-400 hover:text-red-700"
+                                title="Remove user"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Add User Modal */}
+              {showAddUserModal && (
+                <AddUserModal
+                  onClose={() => setShowAddUserModal(false)}
+                  onAdd={handleAddUser}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
+      </div>
+    </div>
+  )
+}
+
+// Add User Modal Component
+function AddUserModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: any) => void }) {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    role: 'USER'
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onAdd(formData)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Add Team Member</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              placeholder="user@company.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Full Name
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              placeholder="John Doe"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              placeholder="Min 8 characters"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Role
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+            >
+              <option value="USER">User</option>
+              <option value="TENANT_ADMIN">Tenant Admin</option>
+            </select>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+            >
+              Add User
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

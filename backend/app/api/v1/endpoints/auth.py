@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.security import verify_password, get_password_hash, create_access_token
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.tenant import Tenant
 from app.schemas.auth import UserLogin, UserRegister, Token
 from app.services.demo_seed_service import seed_demo_product
@@ -21,6 +22,9 @@ router = APIRouter()
 async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     """
     Register a new user and create or join a tenant
+
+    For SUPER_ADMIN creation: Set is_super_admin=true and provide SUPER_ADMIN_CREATION_TOKEN
+    in the tenant_slug field. This can only be done if no other SUPER_ADMIN exists.
     """
     # Check if user already exists
     result = await db.execute(select(User).where(User.email == user_data.email))
@@ -32,23 +36,69 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
             detail="Email already registered",
         )
 
-    # Check if tenant exists or create new one
-    result = await db.execute(select(Tenant).where(Tenant.slug == user_data.tenant_slug))
-    tenant = result.scalar_one_or_none()
-
+    tenant_id = None
+    role = UserRole.USER
     is_new_tenant = False
-    if not tenant:
-        # Create new tenant
-        tenant = Tenant(
-            name=user_data.tenant_slug.replace("-", " ").title(),
-            slug=user_data.tenant_slug,
-            is_active=True,
-            is_trial=True,
-            plan_type="free",
+
+    # Handle SUPER_ADMIN creation
+    if user_data.is_super_admin:
+        # Get admin creation token from settings
+        admin_token = settings.SUPER_ADMIN_CREATION_TOKEN
+
+        if not admin_token:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="SUPER_ADMIN creation is not enabled on this server"
+            )
+
+        # Verify token (provided in tenant_slug field for security)
+        if user_data.tenant_slug != admin_token:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid SUPER_ADMIN creation token"
+            )
+
+        # Check if SUPER_ADMIN already exists
+        result = await db.execute(
+            select(User).where(User.role.in_([UserRole.SUPER_ADMIN, UserRole.PRODUCT_ADMIN]))
         )
-        db.add(tenant)
-        await db.flush()
-        is_new_tenant = True
+        if result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="SUPER_ADMIN already exists. Use admin panel to create additional admins."
+            )
+
+        role = UserRole.SUPER_ADMIN
+        tenant_id = None
+    else:
+        # Regular user registration - requires tenant
+        if not user_data.tenant_slug:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="tenant_slug is required for regular user registration"
+            )
+
+        # Check if tenant exists or create new one
+        result = await db.execute(select(Tenant).where(Tenant.slug == user_data.tenant_slug))
+        tenant = result.scalar_one_or_none()
+
+        if not tenant:
+            # Create new tenant
+            tenant = Tenant(
+                name=user_data.tenant_slug.replace("-", " ").title(),
+                slug=user_data.tenant_slug,
+                is_active=True,
+                is_trial=True,
+                plan_type="free",
+            )
+            db.add(tenant)
+            await db.flush()
+            is_new_tenant = True
+
+            # First user in new tenant becomes TENANT_ADMIN
+            role = UserRole.TENANT_ADMIN
+
+        tenant_id = tenant.id
 
     # Create user
     hashed_password = get_password_hash(user_data.password)
@@ -56,7 +106,8 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
         email=user_data.email,
         hashed_password=hashed_password,
         full_name=user_data.full_name,
-        tenant_id=tenant.id,
+        tenant_id=tenant_id,
+        role=role,
         is_active=True,
         is_verified=True,  # Auto-verify for now
     )
@@ -64,13 +115,13 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(new_user)
 
-    # Create demo product with sample data for new tenants
-    if is_new_tenant:
+    # Create demo product with sample data for new tenants (not for SUPER_ADMIN)
+    if not user_data.is_super_admin and tenant_id and is_new_tenant:
         try:
-            await seed_demo_product(db, tenant.id)
+            await seed_demo_product(db, tenant_id)
         except Exception as e:
             # Log the error but don't fail registration
-            print(f"Warning: Failed to seed demo product for tenant {tenant.id}: {e}")
+            print(f"Warning: Failed to seed demo product for tenant {tenant_id}: {e}")
 
     # Create access token
     access_token = create_access_token(

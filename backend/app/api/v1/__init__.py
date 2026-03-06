@@ -6,11 +6,14 @@ Main router that includes all endpoint routers
 from fastapi import APIRouter
 from app.api.v1.endpoints import auth, feedback, themes, personas, decisions
 from app.api.v1.endpoints import workbench, llm_settings, settings, knowledge_base, projects, jobs, roadmap, products
+from app.api.v1.endpoints import admin, users
 
 api_router = APIRouter()
 
 # Include all endpoint routers
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
+api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(products.router, prefix="/products", tags=["Products"])
 api_router.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
 api_router.include_router(themes.router, prefix="/themes", tags=["Themes"])
