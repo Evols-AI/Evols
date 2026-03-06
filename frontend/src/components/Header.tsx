@@ -55,8 +55,8 @@ export default function Header({ user, currentPage }: HeaderProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <LogoIcon size={32} />
-              <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+              <LogoIcon size={48} />
+              <span className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
                 Evols
               </span>
             </Link>

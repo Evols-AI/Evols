@@ -16,8 +16,8 @@ export default function PersonasDocumentation() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center space-x-2">
-                <LogoIcon size={32} />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">Evols Docs</span>
+                <LogoIcon size={48} />
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">Evols Docs</span>
               </Link>
               <Link href="/docs" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
                 <ArrowLeft className="w-4 h-4" />

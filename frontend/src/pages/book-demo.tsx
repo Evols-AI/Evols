@@ -38,7 +38,7 @@ export default function BookDemo() {
           <div className="w-full max-w-2xl text-center">
             <div className="mb-8">
               <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-2">
-                <LogoIcon size={64} />
+                <LogoIcon size={96} />
               </Link>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12">
@@ -74,7 +74,7 @@ export default function BookDemo() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">Ask questions about your use case</p>
                 </div>
               </div>
-              <Link href="/" className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg hover:opacity-90 transition">
+              <Link href="/" className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce">
                 Back to Homepage
               </Link>
             </div>
@@ -92,12 +92,12 @@ export default function BookDemo() {
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">
             <Link href="/" className="flex items-center space-x-2">
-              <LogoIcon size={40} />
-              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Evols</span>
+              <LogoIcon size={60} />
+              <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">Evols</span>
             </Link>
             <div className="flex items-center space-x-6">
               <Link href="/login" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Login</Link>
-              <Link href="/register" className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-2 rounded-lg hover:opacity-90 transition">
+              <Link href="/register" className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce">
                 Get Started
               </Link>
             </div>
@@ -250,7 +250,7 @@ export default function BookDemo() {
 
                   <button
                     type="submit" disabled={loading}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
                   >
                     {loading ? 'Submitting...' : 'Book Demo'}
                   </button>

@@ -16,8 +16,8 @@ export default function Docs() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/" className="flex items-center space-x-2">
-                <LogoIcon size={32} />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">Evols</span>
+                <LogoIcon size={48} />
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">Evols</span>
               </Link>
               <div className="flex items-center space-x-4">
                 <Link href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
@@ -230,7 +230,7 @@ function DocCard({ icon, title, description, href, external = false }: {
 }) {
   const content = (
     <>
-      <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center text-white mb-4">
+      <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-blue-500 rounded-lg flex items-center justify-center text-white mb-4">
         {icon}
       </div>
       <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">{title}</h3>

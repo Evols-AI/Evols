@@ -28,8 +28,8 @@ export default function Home() {
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <LogoIcon size={40} />
-              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+              <LogoIcon size={60} />
+              <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
                 Evols
               </span>
             </div>
@@ -48,7 +48,7 @@ export default function Home() {
                 Login
               </Link>
               <Link href="/register"
-                className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-2 rounded-lg hover:opacity-90 transition"
+                className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce"
               >
                 Get Started
               </Link>
@@ -83,7 +83,7 @@ export default function Home() {
 
               <div className="flex items-center justify-center lg:justify-start space-x-4">
                 <Link href="/book-demo"
-                  className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:opacity-90 transition flex items-center space-x-2"
+                  className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce flex items-center space-x-2"
                 >
                   <span>Book Demo</span>
                   <ArrowRight className="w-5 h-5" />
@@ -135,10 +135,52 @@ export default function Home() {
                   </filter>
                 </defs>
 
-                {/* Background circles */}
-                <circle cx="450" cy="250" r="280" fill="url(#grad1)" opacity="0.04"/>
-                <circle cx="450" cy="250" r="180" fill="url(#grad1)" opacity="0.06"/>
-                <circle cx="300" cy="250" r="120" fill="url(#grad1)" opacity="0.08"/>
+                {/* Background gears */}
+                <g opacity="0.04">
+                  {/* Large gear with 12 teeth */}
+                  <path d="M 450,-30 L 465,-25 L 465,25 L 450,30 L 435,25 L 435,-25 Z
+                           M 720,235 L 725,250 L 715,265 L 700,265 L 695,250 L 705,235 Z
+                           M 450,530 L 465,525 L 465,475 L 450,470 L 435,475 L 435,525 Z
+                           M 180,265 L 175,250 L 185,235 L 200,235 L 205,250 L 195,265 Z
+                           M 636,96 L 647,103 L 643,118 L 628,123 L 617,116 L 621,101 Z
+                           M 636,404 L 647,397 L 643,382 L 628,377 L 617,384 L 621,399 Z
+                           M 264,96 L 253,103 L 257,118 L 272,123 L 283,116 L 279,101 Z
+                           M 264,404 L 253,397 L 257,382 L 272,377 L 283,384 L 279,399 Z"
+                         fill="url(#grad1)"/>
+                  <circle cx="450" cy="250" r="260" fill="url(#grad1)"/>
+                  <circle cx="450" cy="250" r="200" fill="none" stroke="none"/>
+                  <animateTransform attributeName="transform" type="rotate" from="0 450 250" to="360 450 250" dur="30s" repeatCount="indefinite"/>
+                </g>
+
+                <g opacity="0.06">
+                  {/* Medium gear with 8 teeth */}
+                  <path d="M 450,75 L 460,78 L 460,92 L 450,95 L 440,92 L 440,78 Z
+                           M 615,240 L 618,250 L 612,260 L 605,260 L 598,250 L 602,240 Z
+                           M 450,425 L 460,422 L 460,408 L 450,405 L 440,408 L 440,422 Z
+                           M 285,260 L 282,250 L 288,240 L 295,240 L 302,250 L 298,260 Z
+                           M 577,113 L 584,119 L 581,129 L 571,132 L 564,126 L 567,116 Z
+                           M 577,387 L 584,381 L 581,371 L 571,368 L 564,374 L 567,384 Z
+                           M 323,113 L 316,119 L 319,129 L 329,132 L 336,126 L 333,116 Z
+                           M 323,387 L 316,381 L 319,371 L 329,368 L 336,374 L 333,384 Z"
+                         fill="url(#grad1)"/>
+                  <circle cx="450" cy="250" r="165" fill="url(#grad1)"/>
+                  <animateTransform attributeName="transform" type="rotate" from="360 450 250" to="0 450 250" dur="20s" repeatCount="indefinite"/>
+                </g>
+
+                <g opacity="0.08">
+                  {/* Small gear with 8 teeth */}
+                  <path d="M 300,135 L 308,137 L 308,148 L 300,150 L 292,148 L 292,137 Z
+                           M 410,242 L 412,250 L 408,258 L 403,258 L 398,250 L 401,242 Z
+                           M 300,365 L 308,363 L 308,352 L 300,350 L 292,352 L 292,363 Z
+                           M 190,258 L 188,250 L 192,242 L 197,242 L 202,250 L 199,258 Z
+                           M 384,166 L 390,170 L 388,178 L 380,181 L 374,177 L 376,169 Z
+                           M 384,334 L 390,330 L 388,322 L 380,319 L 374,323 L 376,331 Z
+                           M 216,166 L 210,170 L 212,178 L 220,181 L 226,177 L 224,169 Z
+                           M 216,334 L 210,330 L 212,322 L 220,319 L 226,323 L 224,331 Z"
+                         fill="url(#grad1)"/>
+                  <circle cx="300" cy="250" r="110" fill="url(#grad1)"/>
+                  <animateTransform attributeName="transform" type="rotate" from="0 300 250" to="360 300 250" dur="15s" repeatCount="indefinite"/>
+                </g>
 
                 {/* Central AI Processor */}
                 <rect x="220" y="200" width="160" height="100" rx="12" fill="url(#grad1)" opacity="0.9" filter="url(#glow)"/>
@@ -164,7 +206,7 @@ export default function Home() {
                 {/* Input: Customer Feedback Bubbles */}
                 <g opacity="0.85">
                   {/* Speech bubble shape */}
-                  <path d="M 50 135 Q 50 115 70 115 L 105 115 Q 125 115 125 135 L 125 165 Q 125 185 105 185 L 85 185 L 75 195 L 75 185 L 70 185 Q 50 185 50 165 Z" fill="#6366f1"/>
+                  <path d="M 50 135 Q 50 115 70 115 L 105 115 Q 125 115 125 135 L 125 165 Q 125 185 105 185 L 85 185 L 75 195 L 75 185 L 70 185 Q 50 185 50 165 Z" fill="#ec4899"/>
                   <circle cx="70" cy="145" r="3" fill="white" opacity="0.5"/>
                   <circle cx="85" cy="145" r="3" fill="white" opacity="0.5"/>
                   <circle cx="100" cy="145" r="3" fill="white" opacity="0.5"/>
@@ -176,7 +218,7 @@ export default function Home() {
 
                 <g opacity="0.85">
                   {/* Feature request card */}
-                  <rect x="60" y="225" width="70" height="50" rx="6" fill="#6366f1"/>
+                  <rect x="60" y="225" width="70" height="50" rx="6" fill="#ec4899"/>
                   <circle cx="75" cy="240" r="4" fill="#fbbf24" opacity="0.6"/>
                   <rect x="83" y="237" width="35" height="6" rx="2" fill="white" opacity="0.4"/>
                   <rect x="70" y="252" width="50" height="4" rx="1" fill="white" opacity="0.3"/>
@@ -189,7 +231,7 @@ export default function Home() {
 
                 <g opacity="0.85">
                   {/* User feedback with rating */}
-                  <rect x="55" y="325" width="75" height="50" rx="6" fill="#6366f1"/>
+                  <rect x="55" y="325" width="75" height="50" rx="6" fill="#ec4899"/>
                   <circle cx="70" cy="340" r="5" fill="#fbbf24" opacity="0.8"/>
                   <rect x="80" y="337" width="40" height="6" rx="2" fill="white" opacity="0.4"/>
                   {/* Star rating */}
@@ -200,13 +242,13 @@ export default function Home() {
                 </g>
 
                 {/* Connection lines from inputs to processor */}
-                <path d="M 115 150 Q 170 160 220 220" stroke="#6366f1" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
+                <path d="M 115 150 Q 170 160 220 220" stroke="#ec4899" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
                   <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/>
                 </path>
-                <path d="M 130 250 L 220 250" stroke="#6366f1" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
+                <path d="M 130 250 L 220 250" stroke="#ec4899" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
                   <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/>
                 </path>
-                <path d="M 120 345 Q 170 330 220 280" stroke="#6366f1" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
+                <path d="M 120 345 Q 170 330 220 280" stroke="#ec4899" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
                   <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/>
                 </path>
 
@@ -270,156 +312,58 @@ export default function Home() {
                   <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/>
                 </path>
 
-                {/* Artifact Generation Layer */}
+                {/* Rocket - Ready to Launch */}
                 <g opacity="0.95">
-                  {/* Document 1 */}
-                  <rect x="610" y="115" width="75" height="55" rx="6" fill="url(#grad3)" opacity="0.9"/>
-                  <rect x="620" y="125" width="55" height="5" rx="1.5" fill="white" opacity="0.5"/>
-                  <rect x="620" y="135" width="50" height="3" rx="1" fill="white" opacity="0.4"/>
-                  <rect x="620" y="142" width="45" height="3" rx="1" fill="white" opacity="0.4"/>
-                  <rect x="620" y="149" width="52" height="3" rx="1" fill="white" opacity="0.4"/>
-                  <rect x="620" y="156" width="48" height="3" rx="1" fill="white" opacity="0.3"/>
-                  <circle cx="670" cy="145" r="5" fill="#10b981" opacity="0.9">
-                    <animate attributeName="opacity" from="0.4" to="1" dur="1.5s" repeatCount="indefinite"/>
-                  </circle>
+                  {/* Exhaust flames (animated) */}
+                  <ellipse cx="640" cy="360" rx="12" ry="8" fill="#ef4444" opacity="0.7">
+                    <animate attributeName="ry" values="8;12;8" dur="0.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.7;0.4;0.7" dur="0.5s" repeatCount="indefinite"/>
+                  </ellipse>
+                  <ellipse cx="640" cy="365" rx="10" ry="6" fill="#f59e0b" opacity="0.8">
+                    <animate attributeName="ry" values="6;10;6" dur="0.4s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.8;0.5;0.8" dur="0.4s" repeatCount="indefinite"/>
+                  </ellipse>
+                  <ellipse cx="640" cy="368" rx="8" ry="5" fill="#fbbf24" opacity="0.9">
+                    <animate attributeName="ry" values="5;8;5" dur="0.3s" repeatCount="indefinite"/>
+                  </ellipse>
 
-                  {/* Document 2 */}
-                  <rect x="610" y="190" width="75" height="55" rx="6" fill="url(#grad3)" opacity="0.9"/>
-                  <rect x="620" y="200" width="25" height="25" rx="3" fill="white" opacity="0.3"/>
-                  <circle cx="632" cy="212" r="4" fill="#6366f1" opacity="0.6"/>
-                  <rect x="650" y="205" width="25" height="5" rx="1.5" fill="white" opacity="0.4"/>
-                  <rect x="650" y="215" width="20" height="4" rx="1" fill="white" opacity="0.3"/>
-                  <rect x="650" y="223" width="22" height="4" rx="1" fill="white" opacity="0.3"/>
-                  <circle cx="670" cy="220" r="5" fill="#10b981" opacity="0.9">
-                    <animate attributeName="opacity" from="0.5" to="1" dur="1.6s" repeatCount="indefinite"/>
-                  </circle>
+                  {/* Rocket body */}
+                  <rect x="620" y="200" width="40" height="140" rx="4" fill="url(#grad3)" filter="url(#glow)"/>
 
-                  {/* Document 3 */}
-                  <rect x="610" y="265" width="75" height="55" rx="6" fill="url(#grad3)" opacity="0.9"/>
-                  <text x="620" y="282" fontSize="12" fill="white" opacity="0.6" fontFamily="monospace">&lt;/&gt;</text>
-                  <rect x="640" y="278" width="35" height="4" rx="1" fill="white" opacity="0.4"/>
-                  <rect x="620" y="290" width="55" height="3" rx="1" fill="white" opacity="0.3"/>
-                  <rect x="620" y="297" width="50" height="3" rx="1" fill="white" opacity="0.3"/>
-                  <rect x="620" y="304" width="45" height="3" rx="1" fill="white" opacity="0.3"/>
-                  <circle cx="670" cy="295" r="5" fill="#10b981" opacity="0.9">
-                    <animate attributeName="opacity" from="0.6" to="1" dur="1.7s" repeatCount="indefinite"/>
-                  </circle>
+                  {/* Nose cone */}
+                  <path d="M 620 200 L 640 150 L 660 200 Z" fill="#fbbf24" filter="url(#glow)"/>
+
+                  {/* Window */}
+                  <circle cx="640" cy="220" r="12" fill="#6366f1" opacity="0.6"/>
+                  <circle cx="640" cy="220" r="8" fill="white" opacity="0.8"/>
+
+                  {/* Fins */}
+                  <path d="M 620 320 L 605 350 L 620 340 Z" fill="#d97706"/>
+                  <path d="M 660 320 L 675 350 L 660 340 Z" fill="#d97706"/>
+
+                  {/* Details/stripes */}
+                  <rect x="620" y="260" width="40" height="3" fill="white" opacity="0.3"/>
+                  <rect x="620" y="280" width="40" height="3" fill="white" opacity="0.3"/>
+                  <rect x="620" y="300" width="40" height="3" fill="white" opacity="0.3"/>
+
+                  {/* Booster effect */}
+                  <rect x="625" y="340" width="10" height="10" rx="2" fill="#ef4444" opacity="0.5">
+                    <animate attributeName="opacity" values="0.5;0.2;0.5" dur="0.4s" repeatCount="indefinite"/>
+                  </rect>
+                  <rect x="645" y="340" width="10" height="10" rx="2" fill="#ef4444" opacity="0.5">
+                    <animate attributeName="opacity" values="0.5;0.2;0.5" dur="0.4s" repeatCount="indefinite"/>
+                  </rect>
                 </g>
 
-                {/* Connections from insights to artifacts */}
-                <path d="M 545 152 Q 580 145 610 142" stroke="#f59e0b" strokeWidth="2" fill="none" strokeDasharray="4,4" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.8s" repeatCount="indefinite"/>
+                {/* Connections from green cards to rocket */}
+                <path d="M 545 152 Q 580 160 620 180" stroke="#fbbf24" strokeWidth="3" fill="none" strokeDasharray="6,6" opacity="0.7">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="1s" repeatCount="indefinite"/>
                 </path>
-                <path d="M 550 245 Q 580 225 610 217" stroke="#f59e0b" strokeWidth="2" fill="none" strokeDasharray="4,4" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.8s" repeatCount="indefinite"/>
+                <path d="M 550 245 L 620 245" stroke="#fbbf24" strokeWidth="3" fill="none" strokeDasharray="6,6" opacity="0.7">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="1s" repeatCount="indefinite"/>
                 </path>
-                <path d="M 550 340 Q 580 315 610 292" stroke="#f59e0b" strokeWidth="2" fill="none" strokeDasharray="4,4" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.8s" repeatCount="indefinite"/>
-                </path>
-
-                {/* Vibecoding Agents Layer */}
-                <g opacity="0.95">
-                  {/* Agent 1 */}
-                  <circle cx="755" cy="135" r="22" fill="url(#grad4)" opacity="0.9" filter="url(#pulse)">
-                    <animate attributeName="r" from="22" to="25" dur="2s" repeatCount="indefinite" direction="alternate"/>
-                  </circle>
-                  <text x="747" y="141" fontSize="14" fill="white" fontWeight="bold">⚛️</text>
-
-                  {/* Agent 2 */}
-                  <circle cx="820" cy="180" r="22" fill="url(#grad4)" opacity="0.9" filter="url(#pulse)">
-                    <animate attributeName="r" from="22" to="25" dur="2.1s" repeatCount="indefinite" direction="alternate"/>
-                  </circle>
-                  <text x="813" y="186" fontSize="14" fill="white" fontWeight="bold">⚙️</text>
-
-                  {/* Agent 3 */}
-                  <circle cx="755" cy="240" r="22" fill="url(#grad4)" opacity="0.9" filter="url(#pulse)">
-                    <animate attributeName="r" from="22" to="25" dur="2.2s" repeatCount="indefinite" direction="alternate"/>
-                  </circle>
-                  <text x="748" y="246" fontSize="14" fill="white" fontWeight="bold">🗄️</text>
-
-                  {/* Agent 4 */}
-                  <circle cx="820" cy="280" r="22" fill="url(#grad4)" opacity="0.9" filter="url(#pulse)">
-                    <animate attributeName="r" from="22" to="25" dur="2.3s" repeatCount="indefinite" direction="alternate"/>
-                  </circle>
-                  <text x="813" y="286" fontSize="14" fill="white" fontWeight="bold">🚀</text>
-
-                  {/* Agent connections (collaboration) */}
-                  <path d="M 777 135 L 798 165" stroke="#ec4899" strokeWidth="1.5" fill="none" opacity="0.4">
-                    <animate attributeName="opacity" from="0.2" to="0.6" dur="1.5s" repeatCount="indefinite" direction="alternate"/>
-                  </path>
-                  <path d="M 820 202 L 777 218" stroke="#ec4899" strokeWidth="1.5" fill="none" opacity="0.4">
-                    <animate attributeName="opacity" from="0.2" to="0.6" dur="1.6s" repeatCount="indefinite" direction="alternate"/>
-                  </path>
-                  <path d="M 777 240 L 798 260" stroke="#ec4899" strokeWidth="1.5" fill="none" opacity="0.4">
-                    <animate attributeName="opacity" from="0.2" to="0.6" dur="1.7s" repeatCount="indefinite" direction="alternate"/>
-                  </path>
-                  <path d="M 755 157 L 755 218" stroke="#ec4899" strokeWidth="1.5" fill="none" opacity="0.3" strokeDasharray="3,3"/>
-                  <path d="M 820 202 L 820 258" stroke="#ec4899" strokeWidth="1.5" fill="none" opacity="0.3" strokeDasharray="3,3"/>
-
-                  {/* Working indicators */}
-                  <circle cx="765" cy="145" r="3" fill="#fbbf24">
-                    <animate attributeName="opacity" from="0.3" to="1" dur="0.6s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="830" cy="190" r="3" fill="#fbbf24">
-                    <animate attributeName="opacity" from="0.3" to="1" dur="0.7s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="765" cy="250" r="3" fill="#fbbf24">
-                    <animate attributeName="opacity" from="0.3" to="1" dur="0.8s" repeatCount="indefinite"/>
-                  </circle>
-                  <circle cx="830" cy="290" r="3" fill="#fbbf24">
-                    <animate attributeName="opacity" from="0.3" to="1" dur="0.9s" repeatCount="indefinite"/>
-                  </circle>
-                </g>
-
-                {/* Connections from artifacts to agents */}
-                <path d="M 685 142 Q 720 138 733 135" stroke="#ec4899" strokeWidth="2" fill="none" strokeDasharray="4,4" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.7s" repeatCount="indefinite"/>
-                </path>
-                <path d="M 685 217 Q 755 200 798 180" stroke="#ec4899" strokeWidth="2" fill="none" strokeDasharray="4,4" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.7s" repeatCount="indefinite"/>
-                </path>
-                <path d="M 685 292 Q 720 270 733 253" stroke="#ec4899" strokeWidth="2" fill="none" strokeDasharray="4,4" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.7s" repeatCount="indefinite"/>
-                </path>
-
-                {/* Final Delivery Layer */}
-                <g opacity="0.95">
-                  {/* Deployed Product */}
-                  <rect x="870" y="190" width="90" height="80" rx="10" fill="url(#grad2)" opacity="0.95" filter="url(#glow)"/>
-                  <circle cx="915" cy="218" r="18" fill="white" opacity="0.3"/>
-                  <path d="M 907 218 L 912 223 L 923 209" stroke="#10b981" strokeWidth="4" fill="none" strokeLinecap="round"/>
-                  <rect x="880" y="245" width="70" height="6" rx="2" fill="white" opacity="0.4"/>
-                  <rect x="880" y="255" width="60" height="5" rx="1.5" fill="white" opacity="0.3"/>
-
-                  {/* Status indicators */}
-                  <circle cx="885" cy="262" r="4" fill="#10b981">
-                    <animate attributeName="opacity" from="0.5" to="1" dur="1s" repeatCount="indefinite" direction="alternate"/>
-                  </circle>
-                  <circle cx="895" cy="262" r="4" fill="#10b981">
-                    <animate attributeName="opacity" from="0.5" to="1" dur="1.2s" repeatCount="indefinite" direction="alternate"/>
-                  </circle>
-                  <circle cx="905" cy="262" r="4" fill="#10b981">
-                    <animate attributeName="opacity" from="0.5" to="1" dur="1.4s" repeatCount="indefinite" direction="alternate"/>
-                  </circle>
-
-                  {/* Zero Human badge - simplified */}
-                  <circle cx="935" cy="250" r="12" fill="#ef4444" opacity="0.2"/>
-                  <circle cx="935" cy="250" r="9" stroke="#ef4444" strokeWidth="2" fill="none"/>
-                  <line x1="930" y1="245" x2="940" y2="255" stroke="#ef4444" strokeWidth="2.5"/>
-                </g>
-
-                {/* Connections from agents to delivery */}
-                <path d="M 777 145 Q 825 165 870 210" stroke="#10b981" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/>
-                </path>
-                <path d="M 842 200 L 870 215" stroke="#10b981" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/>
-                </path>
-                <path d="M 777 250 Q 825 240 870 228" stroke="#10b981" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/>
-                </path>
-                <path d="M 842 280 Q 858 265 870 248" stroke="#10b981" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/>
+                <path d="M 550 340 Q 580 330 620 310" stroke="#fbbf24" strokeWidth="3" fill="none" strokeDasharray="6,6" opacity="0.7">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="1s" repeatCount="indefinite"/>
                 </path>
 
                 {/* Floating indicators */}
@@ -515,7 +459,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
     <motion.div whileHover={{ scale: 1.05 }}
       className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition"
     >
-      <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center text-white mb-4">
+      <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-blue-500 rounded-lg flex items-center justify-center text-white mb-4">
         {icon}
       </div>
       <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">{title}</h3>

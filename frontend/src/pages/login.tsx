@@ -81,6 +81,13 @@ export default function Login() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Column - Illustration */}
             <div className="hidden lg:flex flex-col items-center justify-center">
+              {/* Logo */}
+              <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-8">
+                <LogoIcon size={60} />
+                <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                  Evols
+                </span>
+              </Link>
               <svg viewBox="0 0 300 350" className="w-full max-w-md mb-8 drop-shadow-xl">
                 <defs>
                   <linearGradient id="loginGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -111,8 +118,8 @@ export default function Login() {
               {/* Logo */}
               <div className="text-center mb-8 lg:hidden">
                 <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-2">
-                  <LogoIcon size={48} />
-                  <span className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                  <LogoIcon size={60} />
+                  <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
                     Evols
                   </span>
                 </Link>
@@ -172,7 +179,7 @@ export default function Login() {
               {/* Submit Button */}
               <button type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>

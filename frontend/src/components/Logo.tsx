@@ -51,8 +51,8 @@ export function LogoIcon({ size = 32, className = '' }: LogoIconProps) {
       </style>
       <defs>
         <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4f46e5" /> {/* indigo-600 */}
-          <stop offset="100%" stopColor="#7c3aed" /> {/* violet-600 */}
+          <stop offset="0%" stopColor="#c084fc" /> {/* purple-400 */}
+          <stop offset="100%" stopColor="#3b82f6" /> {/* blue-500 */}
         </linearGradient>
         <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="1.5" result="blur" />
@@ -119,7 +119,7 @@ export function LogoWordmark({ iconSize = 32, className = '' }: { iconSize?: num
     <div className={`flex items-center gap-2.5 ${className}`}>
       <LogoIcon size={iconSize} />
       <span
-        className="font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent"
+        className="font-bold tracking-tight bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent"
         style={{ fontSize: iconSize * 0.7 }}
       >
         Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
