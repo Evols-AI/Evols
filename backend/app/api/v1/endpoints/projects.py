@@ -28,6 +28,7 @@ router = APIRouter()
 async def list_projects(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
+    product_ids: Optional[str] = Query(None, description="Comma-separated product IDs to filter by"),
     initiative_id: Optional[int] = Query(None, description="Filter by initiative ID"),
     status: Optional[ProjectStatus] = Query(None, description="Filter by status"),
     effort: Optional[ProjectEffort] = Query(None, description="Filter by effort level"),
@@ -40,6 +41,12 @@ async def list_projects(
     Results are sorted by priority_score descending (highest priority first).
     """
     query = select(Project).where(Project.tenant_id == tenant_id)
+
+    # Filter by product_ids if provided
+    if product_ids:
+        ids = [int(id.strip()) for id in product_ids.split(',') if id.strip()]
+        if ids:
+            query = query.where(Project.product_id.in_(ids))
 
     # Apply filters
     if initiative_id is not None:

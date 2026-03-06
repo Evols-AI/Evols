@@ -47,6 +47,9 @@ class Feedback(TenantScopedModel):
     # Tenant association (from TenantScopedModel)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
 
+    # Product association (nullable for backward compatibility)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
+
     # Source Information
     source = Column(SQLEnum(FeedbackSource), nullable=False, index=True)
     source_id = Column(String(255), nullable=True)  # External ID from source system
@@ -87,6 +90,7 @@ class Feedback(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="feedback_items")
+    product = relationship("Product", back_populates="feedback_items")
     account = relationship("Account", back_populates="feedback_items")
     theme = relationship("Theme", back_populates="feedback_items")
 

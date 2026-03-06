@@ -29,15 +29,21 @@ router = APIRouter()
 
 @router.get("/sources", response_model=List[KnowledgeSourceResponse])
 async def list_knowledge_sources(
+    product_ids: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
 ):
-    """List all Product RAG sources for tenant"""
-    result = await db.execute(
-        select(KnowledgeSource)
-        .where(KnowledgeSource.tenant_id == tenant_id)
-        .order_by(KnowledgeSource.created_at.desc())
-    )
+    """List all Product RAG sources for tenant, optionally filtered by products"""
+    query = select(KnowledgeSource).where(KnowledgeSource.tenant_id == tenant_id)
+
+    # Filter by product_ids if provided
+    if product_ids:
+        ids = [int(id.strip()) for id in product_ids.split(',') if id.strip()]
+        if ids:
+            query = query.where(KnowledgeSource.product_id.in_(ids))
+
+    query = query.order_by(KnowledgeSource.created_at.desc())
+    result = await db.execute(query)
     sources = result.scalars().all()
     return sources
 
@@ -207,6 +213,7 @@ async def refresh_knowledge_source(
 
 @router.get("/capabilities", response_model=List[CapabilityResponse])
 async def list_capabilities(
+    product_ids: Optional[str] = None,
     source_id: Optional[int] = None,
     category: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
@@ -214,6 +221,12 @@ async def list_capabilities(
 ):
     """List all capabilities for tenant"""
     query = select(Capability).where(Capability.tenant_id == tenant_id)
+
+    # Filter by product_ids if provided
+    if product_ids:
+        ids = [int(id.strip()) for id in product_ids.split(',') if id.strip()]
+        if ids:
+            query = query.where(Capability.product_id.in_(ids))
 
     if source_id:
         query = query.where(Capability.source_id == source_id)

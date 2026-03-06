@@ -16,6 +16,7 @@ import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, StatCard, Card, Loading } from '@/components/PageContainer'
+import { useProducts } from '@/hooks/useProducts'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ function DecisionStatusDot({ status }: { status: string }) {
 
 export default function Dashboard() {
   const router = useRouter()
+  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState<DashboardStats>({
     feedbackCount: 0, themeCount: 0, personaCount: 0,
@@ -134,19 +136,26 @@ export default function Dashboard() {
         return
       }
       setUser(getCurrentUser())
-      loadData()
+      if (selectedProductIds.length > 0) {
+        loadData()
+      } else {
+        setLoading(false)
+      }
     }
     checkAuthAndLoad()
-  }, [router])
+  }, [router, selectedProductIds])
 
   const loadData = async () => {
     setLoading(true)
     try {
+      const productIdsParam = selectedProductIds.join(',')
+      console.log('Dashboard loadData - selectedProductIds:', selectedProductIds)
+      console.log('Dashboard loadData - productIdsParam:', productIdsParam)
       const [feedbackRes, themesRes, decisionsRes, personasRes] = await Promise.all([
-        api.getFeedback({ limit: 1 }),
-        api.getThemes({ limit: 5 }),
-        api.getDecisions({ limit: 5 }),
-        api.getPersonas(),
+        api.getFeedback({ limit: 1, product_ids: productIdsParam }),
+        api.getThemes({ limit: 5, product_ids: productIdsParam }),
+        api.getDecisions({ limit: 5, product_ids: productIdsParam }),
+        api.getPersonas({ product_ids: productIdsParam }),
       ])
       const feedbackItems = feedbackRes.data?.items || feedbackRes.data || []
       const themesData    = themesRes.data?.items   || themesRes.data  || []
@@ -219,7 +228,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {loading ? (
+          {selectedProductIds.length === 0 ? (
+            <Card className="text-center py-12">
+              <p className="text-body mb-2">No product selected</p>
+              <p className="text-sm text-muted">Please select a product from the dropdown above to view your dashboard.</p>
+            </Card>
+          ) : loading ? (
             <Loading text="Loading your dashboard..." />
           ) : !hasData ? (
             <div className="space-y-6">

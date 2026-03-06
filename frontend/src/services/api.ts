@@ -58,6 +58,30 @@ export const api = {
   register: (data: any) => apiClient.post('/api/v1/auth/register', data),
   login: (data: any) => apiClient.post('/api/v1/auth/login', data),
 
+  // Products
+  products: {
+    list: async () => {
+      const response = await apiClient.get('/api/v1/products/');
+      return response.data;
+    },
+    get: async (id: number) => {
+      const response = await apiClient.get(`/api/v1/products/${id}`);
+      return response.data;
+    },
+    create: async (data: any) => {
+      const response = await apiClient.post('/api/v1/products/', data);
+      return response.data;
+    },
+    update: async (id: number, data: any) => {
+      const response = await apiClient.put(`/api/v1/products/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number) => {
+      const response = await apiClient.delete(`/api/v1/products/${id}`);
+      return response.data;
+    },
+  },
+
   // Feedback
   getFeedback: (params?: any) => apiClient.get('/api/v1/feedback/', { params }),
   createFeedback: (data: any) => apiClient.post('/api/v1/feedback/', data),
@@ -80,6 +104,7 @@ export const api = {
   // Roadmap (Initiatives)
   getInitiatives: (params?: any) => apiClient.get('/api/v1/roadmap/', { params }),
   getInitiative: (id: number) => apiClient.get(`/api/v1/roadmap/${id}`),
+  updateInitiative: (id: number, data: any) => apiClient.patch(`/api/v1/roadmap/${id}`, data),
 
   // Decisions
   getDecisions: (params?: any) => apiClient.get('/api/v1/decisions/', { params }),
@@ -139,14 +164,14 @@ export const api = {
   refreshModels: (provider: string) => apiClient.post('/api/v1/llm-settings/models/refresh', null, { params: { provider } }),
 
   // Product RAG (Knowledge Base)
-  getKnowledgeSources: () => apiClient.get('/api/v1/knowledge-base/sources'),
+  getKnowledgeSources: (params?: any) => apiClient.get('/api/v1/knowledge-base/sources', { params }),
   addKnowledgeSource: (data: any) => apiClient.post('/api/v1/knowledge-base/sources', data),
   uploadKnowledgeSource: (formData: FormData) => apiClient.post('/api/v1/knowledge-base/sources/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   deleteKnowledgeSource: (sourceId: number) => apiClient.delete(`/api/v1/knowledge-base/sources/${sourceId}`),
   refreshKnowledgeSource: (sourceId: number) => apiClient.post(`/api/v1/knowledge-base/sources/${sourceId}/refresh`),
-  getCapabilities: () => apiClient.get('/api/v1/knowledge-base/capabilities'),
+  getCapabilities: (params?: any) => apiClient.get('/api/v1/knowledge-base/capabilities', { params }),
   getCapability: (capabilityId: number) => apiClient.get(`/api/v1/knowledge-base/capabilities/${capabilityId}`),
   deduplicateCapabilities: () => apiClient.post('/api/v1/knowledge-base/capabilities/deduplicate'),
 

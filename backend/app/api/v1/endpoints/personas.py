@@ -49,6 +49,7 @@ async def create_persona(
 async def list_personas(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
+    product_ids: str = Query(None, description="Comma-separated product IDs to filter by"),
     status_filter: str = Query(None, description="Comma-separated: new,advisor,dismissed"),
     segment: str = Query(None),
     skip: int = Query(0, ge=0),
@@ -56,6 +57,12 @@ async def list_personas(
 ):
     """List personas with optional status filtering"""
     query = select(Persona).where(Persona.tenant_id == tenant_id)
+
+    # Filter by product_ids if provided
+    if product_ids:
+        ids = [int(id.strip()) for id in product_ids.split(',') if id.strip()]
+        if ids:
+            query = query.where(Persona.product_id.in_(ids))
 
     # Filter by status
     if status_filter:

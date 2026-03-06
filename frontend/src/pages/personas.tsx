@@ -8,9 +8,11 @@ import { api } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, PageHeader, Card, EmptyState, Loading } from '@/components/PageContainer'
 import { useJobPolling } from '@/hooks/useJobPolling'
+import { useProducts } from '@/hooks/useProducts'
 
 export default function Personas() {
   const router = useRouter()
+  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [personas, setPersonas] = useState<any[]>([])
   const [totalPersonas, setTotalPersonas] = useState(0)
@@ -57,27 +59,40 @@ export default function Personas() {
     }
 
     setUser(getCurrentUser())
-    loadPersonas()
-    loadLastRefreshTime()
+
+    // Only load data if products are selected
+    if (selectedProductIds.length > 0) {
+      loadPersonas()
+      loadLastRefreshTime()
+    } else {
+      setLoading(false)
+    }
 
     const savedJobId = localStorage.getItem('personas_refresh_job_id')
     if (savedJobId) setRefreshJobId(savedJobId)
-  }, [])
+  }, [selectedProductIds])
 
   useEffect(() => {
-    if (user) {
+    if (user && selectedProductIds.length > 0) {
       loadPersonas()
       setCurrentPage(1) // Reset to page 1 when filter or sort changes
     }
-  }, [tagFilter, sortBy])
+  }, [tagFilter, sortBy, selectedProductIds])
 
   const loadPersonas = async () => {
     try {
       setLoading(true)
-      const response = await api.getPersonas({ status_filter: tagFilter.join(',') })
+      const productIdsParam = selectedProductIds.join(',')
+      const response = await api.getPersonas({
+        status_filter: tagFilter.join(','),
+        product_ids: productIdsParam
+      })
       setPersonas(response.data.items || response.data || [])
 
-      const totalResponse = await api.getPersonas({ status_filter: 'new,advisor,dismissed' })
+      const totalResponse = await api.getPersonas({
+        status_filter: 'new,advisor,dismissed',
+        product_ids: productIdsParam
+      })
       setTotalPersonas((totalResponse.data.items || totalResponse.data || []).length)
     } catch (error) {
       console.error('Error loading personas:', error)
@@ -362,7 +377,14 @@ export default function Personas() {
             </div>
           </div>
 
-          {loading ? (
+          {selectedProductIds.length === 0 ? (
+            <Card className="text-center py-12">
+              <p className="text-body mb-2">No product selected</p>
+              <p className="text-sm text-muted">
+                Please select a product from the dropdown above to view personas.
+              </p>
+            </Card>
+          ) : loading ? (
             <Card>
               <Loading text="Loading personas..." />
             </Card>

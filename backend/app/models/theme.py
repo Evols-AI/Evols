@@ -21,6 +21,9 @@ class Theme(TenantScopedModel):
     # Tenant association
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
 
+    # Product association (nullable for backward compatibility)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
+
     # Basic Information
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
@@ -57,6 +60,7 @@ class Theme(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="themes")
+    product = relationship("Product", back_populates="themes")
     feedback_items = relationship("Feedback", back_populates="theme")
     initiatives = relationship("Initiative", secondary="theme_initiative", back_populates="themes")
 

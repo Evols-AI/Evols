@@ -21,6 +21,9 @@ class Persona(TenantScopedModel):
     # Tenant association
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
 
+    # Product association (nullable for backward compatibility)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
+
     # Basic Information
     name = Column(String(255), nullable=False)  # e.g., "Mid-Market SaaS CFO"
     description = Column(Text, nullable=True)
@@ -73,6 +76,7 @@ class Persona(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="personas")
+    product = relationship("Product", back_populates="personas")
 
     def __repr__(self):
         return f"<Persona(id={self.id}, name='{self.name}', segment='{self.segment}')>"

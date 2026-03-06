@@ -51,6 +51,9 @@ class Initiative(TenantScopedModel):
     # Tenant association
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
 
+    # Product association (nullable for backward compatibility)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
+
     # Basic Information
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
@@ -80,6 +83,7 @@ class Initiative(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="initiatives")
+    product = relationship("Product", back_populates="initiatives")
     themes = relationship("Theme", secondary=theme_initiative, back_populates="initiatives")
     decision_options = relationship("DecisionOption", back_populates="initiative")
     projects = relationship("Project", back_populates="initiative", cascade="all, delete-orphan")

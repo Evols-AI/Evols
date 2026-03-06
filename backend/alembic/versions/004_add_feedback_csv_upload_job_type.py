@@ -1,7 +1,7 @@
 """add feedback_csv_upload job type
 
 Revision ID: 004
-Revises: 003
+Revises: 003_add_prompt_management
 Create Date: 2025-03-03
 
 """
@@ -10,7 +10,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '004'
-down_revision = '003'
+down_revision = '003_add_prompt_management'
 branch_labels = None
 depends_on = None
 

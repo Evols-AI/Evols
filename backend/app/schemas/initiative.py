@@ -34,6 +34,8 @@ class InitiativeUpdate(BaseModel):
     target_segments: Optional[List[str]] = None
     estimated_impact_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     expected_arr_impact: Optional[float] = None
+    expected_retention_impact: Optional[float] = Field(None, ge=0.0, le=1.0)
+    expected_activation_impact: Optional[float] = Field(None, ge=0.0, le=1.0)
     priority_score: Optional[float] = Field(None, ge=0.0, le=100.0)
 
 
@@ -56,6 +58,7 @@ class InitiativeResponse(InitiativeBase):
 
     id: int
     tenant_id: int
+    product_id: Optional[int] = None
     status: InitiativeStatus
     effort: Optional[InitiativeEffort] = None
     estimated_impact_score: Optional[float] = None

@@ -46,6 +46,7 @@ async def create_theme(
 async def list_themes(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
+    product_ids: Optional[str] = Query(None, description="Comma-separated product IDs to filter by"),
     min_arr: Optional[float] = None,
     min_feedback_count: Optional[int] = None,
     skip: int = Query(0, ge=0),
@@ -53,6 +54,12 @@ async def list_themes(
 ):
     """List themes with optional filters"""
     query = select(Theme).where(Theme.tenant_id == tenant_id)
+
+    # Filter by product_ids if provided
+    if product_ids:
+        ids = [int(id.strip()) for id in product_ids.split(',') if id.strip()]
+        if ids:
+            query = query.where(Theme.product_id.in_(ids))
 
     if min_arr is not None:
         query = query.where(Theme.total_arr >= min_arr)

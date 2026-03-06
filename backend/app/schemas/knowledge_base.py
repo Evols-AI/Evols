@@ -39,6 +39,7 @@ class KnowledgeSourceResponse(BaseModel):
     """Knowledge source response"""
     id: int
     tenant_id: int
+    product_id: Optional[int] = None
     name: str
     type: str
     description: Optional[str]
@@ -69,6 +70,7 @@ class CapabilityResponse(BaseModel):
     """Capability response"""
     id: int
     tenant_id: int
+    product_id: Optional[int] = None
     source_id: int
     name: str
     description: str

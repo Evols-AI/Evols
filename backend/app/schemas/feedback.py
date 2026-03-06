@@ -49,6 +49,7 @@ class FeedbackResponse(FeedbackBase):
 
     id: int
     tenant_id: int
+    product_id: Optional[int] = None
     category: Optional[FeedbackCategory] = None
     auto_category: Optional[FeedbackCategory] = None
     account_id: Optional[int] = None

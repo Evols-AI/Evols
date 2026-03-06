@@ -9,9 +9,11 @@ import Header from '@/components/Header'
 import { PageContainer, PageHeader, Card, EmptyState, Loading } from '@/components/PageContainer'
 import { formatCategory, getCategoryColor } from '@/utils/formatters'
 import { useJobPolling } from '@/hooks/useJobPolling'
+import { useProducts } from '@/hooks/useProducts'
 
 export default function Feedback() {
   const router = useRouter()
+  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [feedback, setFeedback] = useState<any[]>([])
@@ -81,13 +83,19 @@ export default function Feedback() {
 
     const currentUser = getCurrentUser()
     setUser(currentUser)
-    loadFeedback()
-    loadSegments()
+
+    // Only load data if products are selected
+    if (selectedProductIds.length > 0) {
+      loadFeedback()
+      loadSegments()
+    } else {
+      setLoading(false)
+    }
 
     const savedJobId = localStorage.getItem('feedback_upload_job_id')
     if (savedJobId) setUploadJobId(savedJobId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage])
+  }, [currentPage, selectedProductIds])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -107,7 +115,12 @@ export default function Feedback() {
     try {
       setLoading(true)
       const skip = (currentPage - 1) * itemsPerPage
-      const response = await api.getFeedback({ skip, limit: itemsPerPage })
+      const productIdsParam = selectedProductIds.join(',')
+      const response = await api.getFeedback({
+        skip,
+        limit: itemsPerPage,
+        product_ids: productIdsParam
+      })
 
       // Handle both old and new response formats
       if (response.data.items) {
@@ -130,7 +143,12 @@ export default function Feedback() {
       setSegments(response.data || [])
 
       // Also extract unique categories from feedback
-      const feedbackResponse = await api.getFeedback({ skip: 0, limit: 1000 })
+      const productIdsParam = selectedProductIds.join(',')
+      const feedbackResponse = await api.getFeedback({
+        skip: 0,
+        limit: 1000,
+        product_ids: productIdsParam
+      })
       const allFeedback = feedbackResponse.data.items || feedbackResponse.data || []
       const uniqueCategories = [...new Set(allFeedback.map((f: any) => f.category).filter(Boolean))] as string[]
       setCategories(uniqueCategories)
@@ -455,7 +473,14 @@ export default function Feedback() {
           </Card>
 
           {/* VoC List */}
-          {loading ? (
+          {selectedProductIds.length === 0 ? (
+            <Card className="text-center py-12">
+              <p className="text-body mb-2">No product selected</p>
+              <p className="text-sm text-muted">
+                Please select a product from the dropdown above to view feedback.
+              </p>
+            </Card>
+          ) : loading ? (
             <Card>
               <Loading text="Loading VoC..." />
             </Card>

@@ -60,6 +60,7 @@ async def create_feedback(
 async def list_feedback(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
+    product_ids: Optional[str] = Query(None, description="Comma-separated product IDs to filter by"),
     category: Optional[FeedbackCategory] = None,
     theme_id: Optional[int] = None,
     skip: int = Query(0, ge=0),
@@ -68,6 +69,12 @@ async def list_feedback(
     """List feedback with optional filters"""
     # Base query for counting
     count_query = select(Feedback).where(Feedback.tenant_id == tenant_id)
+
+    # Filter by product_ids if provided
+    if product_ids:
+        ids = [int(id.strip()) for id in product_ids.split(',') if id.strip()]
+        if ids:
+            count_query = count_query.where(Feedback.product_id.in_(ids))
 
     if category:
         count_query = count_query.where(Feedback.category == category)

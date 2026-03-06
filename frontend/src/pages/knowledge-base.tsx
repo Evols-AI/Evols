@@ -3,26 +3,35 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import {
   BookOpen, Plus, Link as LinkIcon, FileText, Github, Server,
-  Upload, X, Loader2, Network, Search, MessageSquare, ExternalLink, Trash2, RefreshCw
+  Upload, X, Loader2, Network, Search, MessageSquare, ExternalLink, Trash2, RefreshCw, Package
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, Loading } from '@/components/PageContainer'
+import { useProducts } from '@/hooks/useProducts'
 
 export default function KnowledgeBase() {
   const router = useRouter()
+  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sources, setSources] = useState<any[]>([])
   const [capabilities, setCapabilities] = useState<any[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedView, setSelectedView] = useState<'sources' | 'graph'>('sources')
+  const [selectedView, setSelectedView] = useState<'sources' | 'graph' | 'products'>('products')
   const [selectedCapability, setSelectedCapability] = useState<any>(null)
   const [copilotQuestion, setCopilotQuestion] = useState('')
   const [copilotAnswer, setCopilotAnswer] = useState<any>(null)
   const [askingCopilot, setAskingCopilot] = useState(false)
   const [deduplicating, setDeduplicating] = useState(false)
+
+  // Product management state
+  const [products, setProducts] = useState<any[]>([])
+  const [showCreateProduct, setShowCreateProduct] = useState(false)
+  const [newProductName, setNewProductName] = useState('')
+  const [newProductDescription, setNewProductDescription] = useState('')
+  const [creatingProduct, setCreatingProduct] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -32,18 +41,27 @@ export default function KnowledgeBase() {
 
     const currentUser = getCurrentUser()
     setUser(currentUser)
-    loadKnowledgeBase()
-  }, [])
+
+    if (selectedProductIds.length > 0) {
+      loadKnowledgeBase()
+    } else {
+      setLoading(false)
+    }
+  }, [router, selectedProductIds])
 
   const loadKnowledgeBase = async () => {
     try {
       setLoading(true)
-      const [sourcesRes, capabilitiesRes] = await Promise.all([
-        api.getKnowledgeSources(),
-        api.getCapabilities()
+      const productIdsParam = selectedProductIds.join(',')
+
+      const [sourcesRes, capabilitiesRes, productsRes] = await Promise.all([
+        api.getKnowledgeSources({ product_ids: productIdsParam }), // Sources are product-specific
+        api.getCapabilities({ product_ids: productIdsParam }), // Capabilities are product-specific
+        api.products.list()
       ])
       setSources(sourcesRes.data.items || sourcesRes.data || [])
       setCapabilities(capabilitiesRes.data.items || capabilitiesRes.data || [])
+      setProducts(productsRes || [])
     } catch (error) {
       console.error('Error loading Product RAG:', error)
     } finally {
@@ -89,6 +107,45 @@ export default function KnowledgeBase() {
     }
   }
 
+  const handleCreateProduct = async () => {
+    if (!newProductName.trim()) {
+      alert('Please enter a product name')
+      return
+    }
+
+    setCreatingProduct(true)
+    try {
+      await api.products.create({
+        name: newProductName,
+        description: newProductDescription || null,
+        is_demo: false
+      })
+      setNewProductName('')
+      setNewProductDescription('')
+      setShowCreateProduct(false)
+      await loadKnowledgeBase()
+    } catch (error: any) {
+      console.error('Error creating product:', error)
+      alert(error.response?.data?.detail || 'Failed to create product. You may need admin permissions.')
+    } finally {
+      setCreatingProduct(false)
+    }
+  }
+
+  const handleDeleteProduct = async (productId: number, productName: string) => {
+    if (!confirm(`Delete product "${productName}"? This will soft-delete the product.`)) {
+      return
+    }
+
+    try {
+      await api.products.delete(productId)
+      await loadKnowledgeBase()
+    } catch (error: any) {
+      console.error('Error deleting product:', error)
+      alert(error.response?.data?.detail || 'Failed to delete product.')
+    }
+  }
+
   return (
     <>
       <Head>
@@ -102,50 +159,54 @@ export default function KnowledgeBase() {
           {/* Page Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Product RAG
-                </h1>
-              </div>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add Source
-              </button>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Product RAG
+              </h1>
+              {!showCreateProduct && (
+                <button
+                  onClick={() => {
+                    setSelectedView('products')
+                    setShowCreateProduct(true)
+                  }}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Product
+                </button>
+              )}
             </div>
             <p className="text-gray-600 dark:text-gray-400">
               Build a Retrieval-Augmented Generation (RAG) system of your product's capabilities, documentation, and architecture
             </p>
           </div>
 
-          {loading ? (
+          {selectedProductIds.length === 0 ? (
+            <Card className="text-center py-12">
+              <p className="text-body mb-2">No product selected</p>
+              <p className="text-sm text-muted">
+                Please select a product from the dropdown above to view knowledge sources.
+              </p>
+            </Card>
+          ) : loading ? (
             <Card>
               <Loading text="Loading Product RAG..." />
-            </Card>
-          ) : sources.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon={<BookOpen className="w-16 h-16" />}
-                title="No knowledge sources yet"
-                description="Start building your Product RAG by adding documentation, code repositories, or connecting data sources"
-                action={
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="btn-primary inline-flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add First Source
-                  </button>
-                }
-              />
             </Card>
           ) : (
             <>
               {/* View Toggle */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setSelectedView('products')}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      selectedView === 'products'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <Package className="w-4 h-4 inline mr-2" />
+                    Products
+                  </button>
                   <button
                     onClick={() => setSelectedView('sources')}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
@@ -170,6 +231,16 @@ export default function KnowledgeBase() {
                   </button>
                 </div>
 
+                {selectedView === 'sources' && (
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Source
+                  </button>
+                )}
+
                 {selectedView === 'graph' && capabilities.length > 0 && (
                   <button
                     onClick={handleDeduplicateCapabilities}
@@ -188,12 +259,31 @@ export default function KnowledgeBase() {
 
               {selectedView === 'sources' ? (
                 <div className="space-y-6">
-                  {/* Sources List */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {sources.map((source) => (
-                      <SourceCard key={source.id} source={source} onRefresh={loadKnowledgeBase} />
-                    ))}
-                  </div>
+                  {sources.length === 0 ? (
+                    <Card>
+                      <EmptyState
+                        icon={<BookOpen className="w-16 h-16" />}
+                        title="No knowledge sources yet"
+                        description="Start building your Product RAG by adding documentation, code repositories, or connecting data sources"
+                        action={
+                          <button
+                            onClick={() => setShowAddModal(true)}
+                            className="btn-primary inline-flex items-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add First Source
+                          </button>
+                        }
+                      />
+                    </Card>
+                  ) : (
+                    <>
+                      {/* Sources List */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {sources.map((source) => (
+                          <SourceCard key={source.id} source={source} onRefresh={loadKnowledgeBase} />
+                        ))}
+                      </div>
 
                   {/* AI Copilot Q&A Section */}
                   <Card>
@@ -267,12 +357,143 @@ export default function KnowledgeBase() {
                       </div>
                     </div>
                   </Card>
+                    </>
+                  )}
                 </div>
-              ) : (
+              ) : selectedView === 'graph' ? (
                 <CapabilityGraph
                   capabilities={capabilities}
                   onSelectCapability={setSelectedCapability}
                 />
+              ) : (
+                /* Products View */
+                <div className="space-y-6">
+                  {/* Add Product Form */}
+                  {showCreateProduct && (
+                    <Card>
+                      <div className="p-6">
+                        <h3 className="text-lg font-semibold mb-4">Create New Product</h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">
+                              Product Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={newProductName}
+                              onChange={(e) => setNewProductName(e.target.value)}
+                              placeholder="e.g., My Product"
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">
+                              Description (Optional)
+                            </label>
+                            <textarea
+                              value={newProductDescription}
+                              onChange={(e) => setNewProductDescription(e.target.value)}
+                              placeholder="Product description..."
+                              rows={3}
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            />
+                          </div>
+                          <div className="flex gap-3 justify-end">
+                            <button
+                              onClick={() => {
+                                setShowCreateProduct(false)
+                                setNewProductName('')
+                                setNewProductDescription('')
+                              }}
+                              className="btn-secondary"
+                              disabled={creatingProduct}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleCreateProduct}
+                              disabled={creatingProduct || !newProductName.trim()}
+                              className="btn-primary flex items-center gap-2 disabled:opacity-50"
+                            >
+                              {creatingProduct ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Creating...
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4" />
+                                  Add Product
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Products List */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {products.map((product) => (
+                      <Card key={product.id}>
+                        <div className="p-6">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Package className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                              <h3 className="text-lg font-semibold">{product.name}</h3>
+                            </div>
+                            {!product.is_demo && (
+                              <button
+                                onClick={() => handleDeleteProduct(product.id, product.name)}
+                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                title="Delete product"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          {product.description && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                              {product.description}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-2 text-xs">
+                            {product.is_demo && (
+                              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
+                                Demo
+                              </span>
+                            )}
+                            <span className="text-gray-500 dark:text-gray-400">
+                              ID: {product.id}
+                            </span>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {products.length === 0 && (
+                    <Card>
+                      <EmptyState
+                        icon={<Package className="w-16 h-16" />}
+                        title="No products yet"
+                        description="Create your first product to organize your data"
+                        action={
+                          <button
+                            onClick={() => setShowCreateProduct(true)}
+                            className="btn-primary inline-flex items-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Create First Product
+                          </button>
+                        }
+                      />
+                    </Card>
+                  )}
+                </div>
               )}
             </>
           )}

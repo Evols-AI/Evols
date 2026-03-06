@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { LogoIcon } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
 import GlobalAICopilot from '@/components/GlobalAICopilot'
+import { ProductSelector } from '@/components/ProductSelector'
 
 interface HeaderProps {
   user?: {
@@ -60,6 +61,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
                 Evols
               </span>
             </Link>
+            {user && <ProductSelector />}
             {user && (
               <nav className="flex items-center space-x-6">
                 {navItems.map((item) => {

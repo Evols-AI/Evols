@@ -62,15 +62,7 @@ async def refresh_themes_background(job_uuid: str, tenant_id: int):
             theme_result = await auto_generate_themes(tenant_id, db, last_refresh_timestamp)
 
             # Check results
-            if theme_result.get("status") == "up_to_date":
-                await BackgroundTaskService.mark_job_completed(
-                    job_uuid,
-                    result_data={
-                        "status": "up_to_date",
-                        "message": "Themes are already up to date. No new feedback to process."
-                    }
-                )
-                return
+            themes_up_to_date = theme_result.get("status") == "up_to_date"
 
             if theme_result.get("status") == "no_data":
                 await BackgroundTaskService.mark_job_completed(
@@ -82,11 +74,14 @@ async def refresh_themes_background(job_uuid: str, tenant_id: int):
                 )
                 return
 
-            # Step 3: Check if initiatives exist, generate if missing
+            # Continue even if themes are up-to-date to regenerate initiatives with latest AI improvements
+
+            # Step 3: Always regenerate initiatives (even if themes are up-to-date)
+            # This ensures improvements to initiative generation logic are applied
             await BackgroundTaskService.update_job_progress(
                 job_uuid,
                 progress=0.6,
-                message="Checking and generating initiatives...",
+                message="Regenerating initiatives with latest context...",
                 current_step="Initiative generation"
             )
 
@@ -98,9 +93,12 @@ async def refresh_themes_background(job_uuid: str, tenant_id: int):
             result = await db.execute(select(Initiative).where(Initiative.tenant_id == tenant_id))
             existing_initiatives = result.scalars().all()
 
-            logger.info(f"[ThemeWorker] Found {len(existing_initiatives)} existing initiatives for {len(themes)} themes")
+            logger.info(
+                f"[ThemeWorker] Regenerating initiatives for {len(themes)} themes "
+                f"(replacing {len(existing_initiatives)} existing initiatives)"
+            )
 
-            # Always generate initiatives if themes exist but initiatives don't, or if explicitly requested
+            # Always generate initiatives with latest AI improvements and context
             try:
                 initiative_result = await auto_generate_initiatives(tenant_id, db)
                 initiatives_created = initiative_result.get("initiatives_created", 0) if initiative_result else 0
@@ -188,8 +186,8 @@ async def refresh_themes_background(job_uuid: str, tenant_id: int):
                 # Don't fail the whole refresh if project generation fails
                 project_result = {"projects_created": 0, "initiatives_processed": 0}
 
-            # Step 5: Update last refresh timestamp
-            if tenant:
+            # Step 5: Update last refresh timestamp (only if themes were actually updated)
+            if tenant and not themes_up_to_date:
                 settings = tenant.settings or {}
                 settings['theme_last_refresh_date'] = datetime.utcnow().isoformat() + 'Z'
                 tenant.settings = settings
@@ -197,9 +195,14 @@ async def refresh_themes_background(job_uuid: str, tenant_id: int):
                 await db.commit()
 
             # Build result summary with error tracking
+            if themes_up_to_date:
+                message = "Themes are up to date. Initiatives and projects regenerated with latest AI improvements."
+            else:
+                message = "Themes, initiatives, and projects refreshed successfully"
+
             result_data = {
                 "status": "refreshed",
-                "message": "Themes, initiatives, and projects refreshed successfully",
+                "message": message,
                 "themes_created": theme_result.get("themes_created", 0),
                 "themes_updated": theme_result.get("themes_updated", 0),
                 "feedback_processed": theme_result.get("feedback_processed", 0),

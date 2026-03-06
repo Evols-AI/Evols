@@ -2,18 +2,60 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { TrendingUp, Rocket, RefreshCw, Loader2, Mountain, Zap, ChevronRight, ChevronDown, Sparkles, Package, Layers, Target, ArrowUpDown, Check } from 'lucide-react'
+import { TrendingUp, Rocket, RefreshCw, Loader2, Sparkles, Package, Layers, Target, ArrowUpDown, Check, Grid, Calendar, Crosshair, ChevronDown } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, StatCard, Loading } from '@/components/PageContainer'
 import { useJobPolling } from '@/hooks/useJobPolling'
+import { InitiativeCard } from '@/components/roadmap/InitiativeCard'
+import { PriorityMatrixTab } from '@/components/roadmap/PriorityMatrixTab'
+import { InitiativeRoadmapTab } from '@/components/roadmap/InitiativeRoadmapTab'
+import { StrategyRadarTab } from '@/components/roadmap/StrategyRadarTab'
+import { useProducts } from '@/hooks/useProducts'
+
+type TabType = 'projects' | 'matrix' | 'timeline' | 'strategy'
+
+function TabNav({ activeTab, setActiveTab }: { activeTab: TabType; setActiveTab: (tab: TabType) => void }) {
+  const tabs = [
+    { id: 'projects' as TabType, label: 'Projects', icon: Package },
+    { id: 'matrix' as TabType, label: 'Priority Matrix', icon: Grid },
+    { id: 'timeline' as TabType, label: 'Initiative Roadmap', icon: Calendar },
+    { id: 'strategy' as TabType, label: 'Strategy Radar', icon: Crosshair },
+  ]
+
+  return (
+    <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+      {tabs.map(tab => {
+        const Icon = tab.icon
+        const isActive = activeTab === tab.id
+        return (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
+              isActive
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <Icon className="w-5 h-5" />
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function Roadmap() {
   const router = useRouter()
+  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('projects')
   const [initiatives, setInitiatives] = useState<any[]>([])
-  const [projects, setProjects] = useState<Record<number, any[]>>({})
+  const [projects, setProjects] = useState<any[]>([])
+  const [themes, setThemes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshJobId, setRefreshJobId] = useState<string | null>(null)
   const [expandedInitiatives, setExpandedInitiatives] = useState<Set<number>>(new Set())
@@ -47,11 +89,17 @@ export default function Roadmap() {
     }
 
     setUser(getCurrentUser())
-    loadInitiatives()
+
+    // Only load data if products are selected
+    if (selectedProductIds.length > 0) {
+      loadInitiatives()
+    } else {
+      setLoading(false)
+    }
 
     const savedJobId = localStorage.getItem('initiatives_refresh_job_id')
     if (savedJobId) setRefreshJobId(savedJobId)
-  }, [])
+  }, [selectedProductIds])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -100,8 +148,8 @@ export default function Roadmap() {
         })
       case 'projects':
         return sorted.sort((a, b) => {
-          const aCount = (projects[a.id] || []).length
-          const bCount = (projects[b.id] || []).length
+          const aCount = projects.filter(p => p.initiative_id === a.id).length
+          const bCount = projects.filter(p => p.initiative_id === b.id).length
           return bCount - aCount
         })
       case 'feedback':
@@ -135,23 +183,25 @@ export default function Roadmap() {
   const loadInitiatives = async () => {
     try {
       setLoading(true)
-      const initiativesResponse = await api.getInitiatives()
+      const productIdsParam = selectedProductIds.join(',')
+
+      // Fetch all data in parallel
+      const [initiativesResponse, projectsResponse, themesResponse] = await Promise.all([
+        api.getInitiatives({ product_ids: productIdsParam }),
+        api.getProjects({ product_ids: productIdsParam }),
+        api.getThemes({ product_ids: productIdsParam }),
+      ])
+
       const initiativesData = initiativesResponse.data.items || initiativesResponse.data || []
-      setInitiatives(initiativesData)
-
-      const projectsResponse = await api.getProjects()
       const projectsData = projectsResponse.data.items || projectsResponse.data || []
+      const themesData = themesResponse.data.items || themesResponse.data || []
 
-      const projectsByInitiative: Record<number, any[]> = {}
-      projectsData.forEach((project: any) => {
-        if (!projectsByInitiative[project.initiative_id]) {
-          projectsByInitiative[project.initiative_id] = []
-        }
-        projectsByInitiative[project.initiative_id].push(project)
-      })
-      setProjects(projectsByInitiative)
+      // Backend already returns initiatives with their themes, no enrichment needed
+      setInitiatives(initiativesData)
+      setProjects(projectsData)
+      setThemes(themesData)
     } catch (error) {
-      console.error('Error loading initiatives:', error)
+      console.error('Error loading roadmap data:', error)
     } finally {
       setLoading(false)
     }
@@ -180,7 +230,7 @@ export default function Roadmap() {
     setExpandedInitiatives(newExpanded)
   }
 
-  const totalProjects = Object.values(projects).reduce((sum, arr) => sum + arr.length, 0)
+  const totalProjects = projects.length
   const totalThemes = new Set(
     initiatives.flatMap(i => (i.themes || []).map((t: any) => t.id))
   ).size
@@ -228,7 +278,14 @@ export default function Roadmap() {
             </p>
           </div>
 
-          {loading ? (
+          {selectedProductIds.length === 0 ? (
+            <Card className="text-center py-12">
+              <p className="text-body mb-2">No product selected</p>
+              <p className="text-sm text-muted">
+                Please select a product from the dropdown above to view your roadmap.
+              </p>
+            </Card>
+          ) : loading ? (
             <Card>
               <Loading text="Loading initiatives..." />
             </Card>
@@ -304,11 +361,16 @@ export default function Roadmap() {
                 />
               </div>
 
-              {/* Initiatives List Header with Sorting and Pagination */}
-              <div className="flex items-center justify-between mb-6 mt-8">
-                <h2 className="text-2xl font-bold text-heading">
-                  Initiatives ({initiatives.length})
-                </h2>
+              {/* Tab Navigation */}
+              <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+              {/* Initiatives List Header with Sorting and Pagination (Projects Tab) */}
+              {activeTab === 'projects' && (
+                <>
+                  <div className="flex items-center justify-between mb-6 mt-2">
+                    <h2 className="text-2xl font-bold text-heading">
+                      Initiatives ({initiatives.length})
+                    </h2>
 
                 <div className="flex items-center gap-3">
                   {/* Sort Dropdown */}
@@ -386,229 +448,73 @@ export default function Roadmap() {
                 </div>
               </div>
 
-              {/* Initiatives List */}
-              <div className="space-y-6">
-                {getPaginatedInitiatives().map((initiative) => (
-                  <InitiativeCard
-                    key={initiative.id}
-                    initiative={initiative}
-                    projects={projects[initiative.id] || []}
-                    isExpanded={expandedInitiatives.has(initiative.id)}
-                    onToggle={() => toggleInitiative(initiative.id)}
-                  />
-                ))}
-              </div>
+                  {/* Initiatives List */}
+                  <div className="space-y-6">
+                    {getPaginatedInitiatives().map((initiative) => (
+                      <InitiativeCard
+                        key={initiative.id}
+                        initiative={initiative}
+                        projects={projects.filter(p => p.initiative_id === initiative.id)}
+                        isExpanded={expandedInitiatives.has(initiative.id)}
+                        onToggle={() => toggleInitiative(initiative.id)}
+                      />
+                    ))}
+                  </div>
 
-              {/* Pagination Controls (Bottom) */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3 mt-8">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-body font-medium">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages}
-                    className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
+                  {/* Pagination Controls (Bottom) */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-3 mt-8">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-sm text-body font-medium">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Tab 2: Priority Matrix */}
+              {activeTab === 'matrix' && (
+                <PriorityMatrixTab
+                  initiatives={initiatives}
+                  projects={projects}
+                  themes={themes}
+                />
+              )}
+
+              {/* Tab 3: Initiative Roadmap */}
+              {activeTab === 'timeline' && (
+                <InitiativeRoadmapTab
+                  initiatives={initiatives}
+                  projects={projects}
+                  onRefresh={loadInitiatives}
+                />
+              )}
+
+              {/* Tab 4: Strategy Radar */}
+              {activeTab === 'strategy' && (
+                <StrategyRadarTab
+                  initiatives={initiatives}
+                  projects={projects}
+                />
               )}
             </>
           )}
         </PageContainer>
       </div>
     </>
-  )
-}
-
-function InitiativeCard({
-  initiative,
-  projects,
-  isExpanded,
-  onToggle,
-}: {
-  initiative: any
-  projects: any[]
-  isExpanded: boolean
-  onToggle: () => void
-}) {
-  const sortedProjects = [...projects].sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0))
-  const boulders = sortedProjects.filter(p => p.is_boulder)
-  const pebbles = sortedProjects.filter(p => !p.is_boulder)
-
-  // Calculate aggregate metrics from linked themes
-  const themes = initiative.themes || []
-  const totalFeedback = themes.reduce((sum: number, t: any) => sum + (t.feedback_count || 0), 0)
-  const totalAccounts = themes.reduce((sum: number, t: any) => sum + (t.account_count || 0), 0)
-  const avgUrgency = themes.length > 0 
-    ? themes.reduce((sum: number, t: any) => sum + (t.urgency_score || 0), 0) / themes.length 
-    : 0
-  const avgImpact = themes.length > 0
-    ? themes.reduce((sum: number, t: any) => sum + (t.impact_score || 0), 0) / themes.length
-    : 0
-
-  return (
-    <div className="card-hover p-6">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-lg font-semibold text-heading">{initiative.title}</h3>
-          </div>
-          <p className="text-sm text-body mb-4">{initiative.description || 'No description'}</p>
-
-          {/* Linked Themes Section */}
-          {themes.length > 0 && (
-            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-              <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                Addressing {themes.length} Theme{themes.length > 1 ? 's' : ''}:
-              </div>
-              <div className="space-y-1">
-                {themes.map((theme: any) => (
-                  <div key={theme.id} className="text-xs text-body">
-                    • {theme.title}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-6 text-sm">
-            <div>
-              <span className="font-medium">{totalFeedback}</span>
-              <span className="text-body ml-1">feedback items</span>
-            </div>
-            <div>
-              <span className="font-medium">{totalAccounts}</span>
-              <span className="text-body ml-1">accounts</span>
-            </div>
-            <div>
-              <span className="font-medium text-orange-600">
-                {(avgUrgency * 100).toFixed(0)}%
-              </span>
-              <span className="text-body ml-1">urgency</span>
-            </div>
-            <div>
-              <span className="font-medium text-green-600">
-                {(avgImpact * 100).toFixed(0)}%
-              </span>
-              <span className="text-body ml-1">impact</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Projects Section */}
-      {projects.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={onToggle}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-          >
-            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            <span>{projects.length} Projects</span>
-            <span className="text-xs text-gray-500">
-              ({boulders.length} boulders, {pebbles.length} pebbles)
-            </span>
-          </button>
-
-          {isExpanded && (
-            <div className="mt-3 space-y-3">
-              {sortedProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {projects.length === 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No projects yet. Projects will be automatically generated when you refresh.
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-function ProjectCard({ project }: { project: any }) {
-  const [expanded, setExpanded] = useState(false)
-
-  const effortColors = {
-    small: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
-    medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
-    large: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
-    xlarge: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
-  }
-
-  return (
-    <div className="pl-4 py-3 border-l-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            {project.is_boulder ? (
-              <Mountain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            ) : (
-              <Zap className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-            )}
-            <span className="font-medium text-sm text-heading">{project.title}</span>
-          </div>
-          <p className="text-xs text-body mb-2">{project.description}</p>
-
-          {project.acceptance_criteria && project.acceptance_criteria.length > 0 && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-            >
-              {expanded ? 'Hide' : 'Show'} acceptance criteria ({project.acceptance_criteria.length})
-            </button>
-          )}
-
-          {expanded && project.acceptance_criteria && (
-            <div className="mt-2 ml-6">
-              <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                Acceptance Criteria:
-              </div>
-              <ul className="text-xs text-body space-y-0.5 list-disc ml-4">
-                {project.acceptance_criteria.map((criterion: string, idx: number) => (
-                  <li key={idx}>{criterion}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        <div className="ml-4 flex flex-col items-end gap-2">
-          <div className="text-right">
-            <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
-              {project.priority_score?.toFixed(1) || 'N/A'}
-            </div>
-            <div className="text-xs text-gray-500">Priority</div>
-          </div>
-
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${effortColors[project.effort as keyof typeof effortColors]}`}>
-            {project.effort}
-          </span>
-
-          <span
-            className={`px-2 py-0.5 rounded text-xs font-medium ${
-              project.is_boulder
-                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
-                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
-            }`}
-          >
-            {project.is_boulder ? 'Boulder' : 'Pebble'}
-          </span>
-        </div>
-      </div>
-    </div>
   )
 }

@@ -1,7 +1,7 @@
 """add prompt management
 
 Revision ID: 003_add_prompt_management
-Revises: 002_add_async_job_types
+Revises: 002
 Create Date: 2026-03-02
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '003_add_prompt_management'
-down_revision: Union[str, None] = '002_add_async_job_types'
+down_revision: Union[str, None] = '002'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

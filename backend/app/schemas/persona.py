@@ -63,6 +63,7 @@ class PersonaResponse(PersonaBase):
 
     id: int
     tenant_id: int
+    product_id: Optional[int] = None
     persona_summary: str
     company_size_range: Optional[str] = None
     industry: Optional[str] = None

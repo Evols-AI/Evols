@@ -34,6 +34,7 @@ class ThemeResponse(ThemeBase):
 
     id: int
     tenant_id: int
+    product_id: Optional[int] = None
     summary: Optional[str] = None
     primary_category: Optional[str] = None
     feedback_count: int
