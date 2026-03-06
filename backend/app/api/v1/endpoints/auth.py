@@ -11,6 +11,7 @@ from app.core.security import verify_password, get_password_hash, create_access_
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.schemas.auth import UserLogin, UserRegister, Token
+from app.services.demo_seed_service import seed_demo_product
 from sqlalchemy import select
 
 router = APIRouter()
@@ -35,6 +36,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Tenant).where(Tenant.slug == user_data.tenant_slug))
     tenant = result.scalar_one_or_none()
 
+    is_new_tenant = False
     if not tenant:
         # Create new tenant
         tenant = Tenant(
@@ -46,6 +48,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
         )
         db.add(tenant)
         await db.flush()
+        is_new_tenant = True
 
     # Create user
     hashed_password = get_password_hash(user_data.password)
@@ -60,6 +63,14 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+
+    # Create demo product with sample data for new tenants
+    if is_new_tenant:
+        try:
+            await seed_demo_product(db, tenant.id)
+        except Exception as e:
+            # Log the error but don't fail registration
+            print(f"Warning: Failed to seed demo product for tenant {tenant.id}: {e}")
 
     # Create access token
     access_token = create_access_token(
