@@ -10,6 +10,7 @@ from sqlalchemy.orm import attributes
 
 from app.core.database import AsyncSessionLocal
 from app.models.tenant import Tenant
+from app.models.theme import Theme
 from app.services.background_task_service import BackgroundTaskService
 from app.api.v1.endpoints.themes import auto_generate_themes, auto_generate_initiatives
 

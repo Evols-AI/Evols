@@ -385,8 +385,19 @@ async def auto_generate_themes(tenant_id: int, db: AsyncSession, last_refresh_ti
         category_counts = Counter([fb.category.value if fb.category else 'unknown' for fb in cluster_feedback])
         primary_category = category_counts.most_common(1)[0][0] if category_counts else 'unknown'
 
-        # Count unique accounts
-        unique_accounts = len(set(fb.customer_name for fb in cluster_feedback if fb.customer_name))
+        # Count unique accounts and calculate total ARR
+        unique_account_ids = set(fb.account_id for fb in cluster_feedback if fb.account_id)
+        unique_accounts = len(unique_account_ids)
+
+        # Calculate total ARR from linked accounts
+        total_arr = 0.0
+        if unique_account_ids:
+            from app.models.account import Account
+            accounts_result = await db.execute(
+                select(Account).where(Account.id.in_(unique_account_ids))
+            )
+            accounts = accounts_result.scalars().all()
+            total_arr = sum(acc.arr for acc in accounts if acc.arr)
 
         # Calculate urgency score based on category distribution
         # Bugs and complaints are more urgent than feature requests
@@ -471,6 +482,7 @@ Response format (JSON):
 
             matched_existing_theme.feedback_count = new_total
             matched_existing_theme.account_count = matched_existing_theme.account_count or 0 + unique_accounts
+            matched_existing_theme.total_arr = (matched_existing_theme.total_arr or 0.0) + total_arr
 
             # Recalculate scores with weighted average (existing weight + new weight)
             existing_weight = old_count / (old_count + len(cluster_feedback))
@@ -492,8 +504,12 @@ Response format (JSON):
             else:
                 matched_existing_theme.summary = summary
 
+            # Link feedback to this theme
+            for fb in cluster_feedback:
+                fb.theme_id = matched_existing_theme.id
+
             themes_updated += 1
-            print(f"[Theme Generation] Updated theme: '{matched_existing_theme.title}' ({old_count} -> {new_total} feedback items)")
+            print(f"[Theme Generation] Updated theme: '{matched_existing_theme.title}' ({old_count} -> {new_total} feedback items, ${matched_existing_theme.total_arr:,.0f} ARR)")
         else:
             # Create new theme
             theme = Theme(
@@ -504,13 +520,20 @@ Response format (JSON):
                 primary_category=primary_category,
                 feedback_count=len(cluster_feedback),
                 account_count=unique_accounts,
+                total_arr=total_arr,
                 urgency_score=urgency_score,
                 impact_score=impact_score,
                 confidence_score=min(0.5 + (len(cluster_feedback) / 20), 0.95),
             )
             db.add(theme)
+            await db.flush()  # Flush to get theme.id before linking feedback
+
+            # Link feedback to this theme
+            for fb in cluster_feedback:
+                fb.theme_id = theme.id
+
             themes_created += 1
-            print(f"[Theme Generation] Created new theme: '{title}' ({len(cluster_feedback)} feedback items)")
+            print(f"[Theme Generation] Created new theme: '{title}' ({len(cluster_feedback)} feedback items, ${total_arr:,.0f} ARR)")
 
     await db.commit()
     print(f"[Theme Generation] Theme generation complete: {themes_created} created, {themes_updated} updated")
