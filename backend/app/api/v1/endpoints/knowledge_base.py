@@ -22,6 +22,7 @@ from app.schemas.knowledge_base import (
     SourceStatus
 )
 from app.services.knowledge_extraction import KnowledgeExtractionService
+from app.services.storage_service import check_storage_quota, get_file_size, update_storage_usage
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -109,6 +110,10 @@ async def upload_knowledge_source(
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
+    # Check storage quota before processing
+    file_size = await get_file_size(file)
+    await check_storage_quota(db, tenant_id, file_size)
+
     # TODO: Save file to storage (S3, local, etc.)
     # For now, just create the record
     file_path = f"uploads/tenant_{tenant_id}/{file.filename}"
@@ -125,6 +130,9 @@ async def upload_knowledge_source(
     db.add(new_source)
     await db.commit()
     await db.refresh(new_source)
+
+    # Update storage usage
+    await update_storage_usage(db, tenant_id, file_size)
 
     logger.info(f"Uploaded PDF knowledge source {new_source.id} for tenant {tenant_id}")
 

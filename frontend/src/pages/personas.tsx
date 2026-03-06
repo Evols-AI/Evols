@@ -9,12 +9,14 @@ import Header from '@/components/Header'
 import { PageContainer, PageHeader, Card, EmptyState, Loading } from '@/components/PageContainer'
 import { useJobPolling } from '@/hooks/useJobPolling'
 import { useProducts } from '@/hooks/useProducts'
+import { confirmDemoOperation } from '@/utils/demoWarning'
 
 export default function Personas() {
   const router = useRouter()
   const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [personas, setPersonas] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const [totalPersonas, setTotalPersonas] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -57,6 +59,7 @@ export default function Personas() {
     }
 
     setUser(getCurrentUser())
+    loadProducts()
 
     // Only load data if products are selected
     if (selectedProductIds.length > 0) {
@@ -69,6 +72,15 @@ export default function Personas() {
     const savedJobId = localStorage.getItem('personas_refresh_job_id')
     if (savedJobId) setRefreshJobId(savedJobId)
   }, [selectedProductIds])
+
+  const loadProducts = async () => {
+    try {
+      const data = await api.products.list()
+      setProducts(data)
+    } catch (error) {
+      console.error('Failed to load products:', error)
+    }
+  }
 
   useEffect(() => {
     if (user && selectedProductIds.length > 0) {
@@ -198,6 +210,17 @@ export default function Personas() {
   const totalPages = Math.ceil(personas.length / itemsPerPage)
 
   const handleRefreshPersonas = async () => {
+    // Check if user is operating on demo products and show warning
+    const confirmed = await confirmDemoOperation(
+      selectedProductIds,
+      products,
+      'refresh personas'
+    )
+
+    if (!confirmed) {
+      return // User cancelled
+    }
+
     try {
       const response = await api.refreshPersonasAsync()
       const { job_id } = response.data

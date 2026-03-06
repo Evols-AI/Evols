@@ -21,6 +21,7 @@ from app.schemas.feedback import (
     FeedbackResponse,
     FeedbackFilter,
 )
+from app.services.storage_service import check_storage_quota, get_file_size, update_storage_usage
 
 router = APIRouter()
 
@@ -162,6 +163,10 @@ async def upload_feedback_csv(
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
 
+    # Check storage quota before processing
+    file_size = await get_file_size(file)
+    await check_storage_quota(db, tenant_id, file_size)
+
     try:
         # Read file content
         contents = await file.read()
@@ -252,6 +257,9 @@ async def upload_feedback_csv(
             db.add_all(feedback_items)
             await db.commit()
 
+            # Update storage usage
+            await update_storage_usage(db, tenant_id, file_size)
+
             # Auto-generate themes and personas from the new feedback
             themes_generated = False
             personas_generated = False
@@ -317,10 +325,17 @@ async def upload_feedback_csv_async(
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
 
+    # Check storage quota before processing
+    file_size = await get_file_size(file)
+    await check_storage_quota(db, tenant_id, file_size)
+
     try:
         # Read file content
         contents = await file.read()
         csv_content = contents.decode('utf-8')
+
+        # Update storage usage immediately (file will be processed async)
+        await update_storage_usage(db, tenant_id, file_size)
 
         # Create background job
         job = await BackgroundTaskService.create_job(
@@ -374,7 +389,7 @@ async def parse_document(
     Uses LLM to intelligently detect and separate individual feedback items.
     """
     import logging
-    from app.services.llm_service import get_llm_service
+    from app.services.llm_service import get_llm_service_for_tenant
     from app.schemas.feedback_bulk import ExtractedFeedbackItem, FeedbackExtractionResponse
 
     logger = logging.getLogger(__name__)
@@ -388,6 +403,10 @@ async def parse_document(
             status_code=400,
             detail=f"File type not supported. Please upload: {', '.join(allowed_extensions)}"
         )
+
+    # Check storage quota before processing
+    file_size = await get_file_size(file)
+    await check_storage_quota(db, tenant_id, file_size)
 
     try:
         # Read file content
@@ -423,7 +442,15 @@ async def parse_document(
         # Use LLM to parse and extract feedback items
         logger.info(f"[Feedback API] Parsing document with {len(text_content)} characters")
 
-        llm = get_llm_service()
+        # Get LLM service for tenant
+        try:
+            llm = await get_llm_service_for_tenant(tenant_id, db)
+        except ValueError as e:
+            logger.error(f"[Feedback API] Cannot parse document: {e}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"LLM service not configured. {e}"
+            )
 
         prompt = f"""Analyze this document and extract individual customer feedback items.
 

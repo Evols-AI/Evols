@@ -131,6 +131,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             product_id=product_id,
             title=theme_data["title"],
             description=theme_data["description"],
+            summary=theme_data["description"],  # Set summary field for ThemeSummary schema
             feedback_count=theme_data["feedback_count"],
             account_count=theme_data["account_count"],
             total_arr=theme_data["total_arr"],
@@ -141,6 +142,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
         themes.append(theme)
 
     await db.flush()  # Get theme IDs
+    await db.commit()  # Commit themes before linking
 
     # 4. Create Personas (3 personas with proper counts and metrics)
     personas_data = [
@@ -262,6 +264,9 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
         if init_data["theme_index"] is not None:
             theme_idx = init_data["theme_index"]
             initiatives[i].themes.append(themes[theme_idx])
+
+    await db.flush()  # Persist theme-initiative relationships
+    await db.commit()  # Commit to ensure relationships are saved
 
     # 6. Create Projects (4 projects with priority scores for matrix)
     projects_data = [

@@ -549,34 +549,122 @@ class LLMService:
                 raise ValueError(f"Structured generation failed: {e}")
 
 
+async def get_llm_service_for_tenant(
+    tenant_id: int,
+    db
+) -> LLMService:
+    """
+    Get LLM service configured for a specific tenant.
+
+    Args:
+        tenant_id: Tenant ID
+        db: Database session
+
+    Returns:
+        Configured LLMService instance
+
+    Raises:
+        ValueError: If tenant has no LLM configuration
+    """
+    from sqlalchemy import select
+    from app.models.tenant import Tenant
+
+    # Fetch tenant configuration
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == tenant_id)
+    )
+    tenant = result.scalar_one_or_none()
+
+    if not tenant:
+        raise ValueError(f"Tenant {tenant_id} not found")
+
+    # Get tenant's LLM config
+    tenant_config = tenant.llm_config if tenant else None
+
+    return get_llm_service(tenant_config=tenant_config)
+
+
 def get_llm_service(
     tenant_config: Optional[Dict[str, Any]] = None,
     user_config: Optional[Dict[str, Any]] = None
 ) -> LLMService:
     """
     Factory function to get LLM service based on tenant/user configuration
-    Supports BYOK (Bring Your Own Keys)
-    
+    Strict BYOK (Bring Your Own Keys) - no environment variable fallbacks
+
     Args:
-        tenant_config: Tenant LLM configuration
+        tenant_config: Tenant LLM configuration (required)
         user_config: User LLM configuration (overrides tenant)
-        
+
     Returns:
         Configured LLMService instance
+
+    Raises:
+        ValueError: If no tenant or user config is provided
     """
-    # Priority: user config > tenant config > env variables
-    config_source = user_config or tenant_config or {}
-    
-    provider = config_source.get("provider", os.getenv("LLM_PROVIDER", "aws_bedrock"))
-    
-    # Set default model based on provider
+    # Priority: user config > tenant config (NO env var fallback)
+    config_source = user_config or tenant_config
+
+    # Require explicit configuration - no fallbacks
+    if not config_source:
+        raise ValueError(
+            "LLM credentials not configured. Please configure your LLM provider credentials "
+            "in Settings → LLM Settings to use AI-powered features."
+        )
+
+    # Validate required fields
+    provider = config_source.get("provider")
+    if not provider:
+        raise ValueError(
+            "LLM provider not configured. Please specify a provider (openai, anthropic, azure_openai, or aws_bedrock) "
+            "in Settings → LLM Settings."
+        )
+
+    model = config_source.get("model")
+    if not model:
+        raise ValueError(
+            f"LLM model not configured for provider '{provider}'. "
+            "Please specify a model in Settings → LLM Settings."
+        )
+
+    # Validate provider-specific credentials
     if provider == "aws_bedrock":
-        model = config_source.get("model", os.getenv("LLM_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0"))
         api_key = None  # AWS uses credentials, not API key
+        aws_access_key = config_source.get("aws_access_key_id")
+        aws_secret_key = config_source.get("aws_secret_access_key")
+        aws_region = config_source.get("aws_region")
+
+        if not aws_access_key or not aws_secret_key:
+            raise ValueError(
+                "AWS credentials not configured. Please provide aws_access_key_id and aws_secret_access_key "
+                "in Settings → LLM Settings to use AWS Bedrock."
+            )
+        if not aws_region:
+            raise ValueError(
+                "AWS region not configured. Please specify aws_region in Settings → LLM Settings."
+            )
+    elif provider == "azure_openai":
+        api_key = config_source.get("api_key")
+        azure_endpoint = config_source.get("azure_endpoint")
+        azure_deployment = config_source.get("azure_deployment")
+
+        if not api_key:
+            raise ValueError(
+                "Azure OpenAI API key not configured. Please provide api_key in Settings → LLM Settings."
+            )
+        if not azure_endpoint or not azure_deployment:
+            raise ValueError(
+                "Azure OpenAI configuration incomplete. Please provide azure_endpoint and azure_deployment "
+                "in Settings → LLM Settings."
+            )
     else:
-        api_key = config_source.get("api_key", os.getenv("OPENAI_API_KEY"))
-        model = config_source.get("model", os.getenv("LLM_MODEL", "gpt-4"))
-    
+        # OpenAI or Anthropic
+        api_key = config_source.get("api_key")
+        if not api_key:
+            raise ValueError(
+                f"{provider.title()} API key not configured. Please provide api_key in Settings → LLM Settings."
+            )
+
     config = LLMConfig(
         provider=provider,
         api_key=api_key,
@@ -586,13 +674,13 @@ def get_llm_service(
         # Azure-specific
         azure_endpoint=config_source.get("azure_endpoint"),
         azure_deployment=config_source.get("azure_deployment"),
-        # AWS Bedrock-specific
-        aws_region=config_source.get("aws_region", os.getenv("AWS_REGION")),
-        aws_access_key_id=config_source.get("aws_access_key_id", os.getenv("AWS_ACCESS_KEY_ID")),
-        aws_secret_access_key=config_source.get("aws_secret_access_key", os.getenv("AWS_SECRET_ACCESS_KEY")),
-        aws_session_token=config_source.get("aws_session_token", os.getenv("AWS_SESSION_TOKEN")),
+        # AWS Bedrock-specific (no env fallbacks)
+        aws_region=config_source.get("aws_region"),
+        aws_access_key_id=config_source.get("aws_access_key_id"),
+        aws_secret_access_key=config_source.get("aws_secret_access_key"),
+        aws_session_token=config_source.get("aws_session_token"),
     )
-    
+
     return LLMService(config)
 
 

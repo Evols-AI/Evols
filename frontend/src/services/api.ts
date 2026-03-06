@@ -197,6 +197,11 @@ export const api = {
   deleteProject: (id: number) => apiClient.delete(`/api/v1/projects/${id}`),
   recalculatePriorities: () => apiClient.post('/api/v1/projects/recalculate-priorities'),
 
+  // User Management (for TENANT_ADMIN)
+  getUsers: () => apiClient.get('/api/v1/users/'),
+  createUser: (data: any) => apiClient.post('/api/v1/users/', data),
+  deleteUser: (userId: number) => apiClient.delete(`/api/v1/users/${userId}`),
+
   // Generic post helper for workbench
   post: (path: string, data: any) => apiClient.post(`/api/v1${path}`, data),
 }

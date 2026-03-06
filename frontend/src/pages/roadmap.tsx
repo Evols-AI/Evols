@@ -13,6 +13,7 @@ import { PriorityMatrixTab } from '@/components/roadmap/PriorityMatrixTab'
 import { InitiativeRoadmapTab } from '@/components/roadmap/InitiativeRoadmapTab'
 import { StrategyRadarTab } from '@/components/roadmap/StrategyRadarTab'
 import { useProducts } from '@/hooks/useProducts'
+import { confirmDemoOperation } from '@/utils/demoWarning'
 
 type TabType = 'projects' | 'matrix' | 'timeline' | 'strategy'
 
@@ -56,6 +57,7 @@ export default function Roadmap() {
   const [initiatives, setInitiatives] = useState<any[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [themes, setThemes] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshJobId, setRefreshJobId] = useState<string | null>(null)
   const [expandedInitiatives, setExpandedInitiatives] = useState<Set<number>>(new Set())
@@ -89,6 +91,7 @@ export default function Roadmap() {
     }
 
     setUser(getCurrentUser())
+    loadProducts()
 
     // Only load data if products are selected
     if (selectedProductIds.length > 0) {
@@ -100,6 +103,15 @@ export default function Roadmap() {
     const savedJobId = localStorage.getItem('initiatives_refresh_job_id')
     if (savedJobId) setRefreshJobId(savedJobId)
   }, [selectedProductIds])
+
+  const loadProducts = async () => {
+    try {
+      const data = await api.products.list()
+      setProducts(data)
+    } catch (error) {
+      console.error('Failed to load products:', error)
+    }
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -208,6 +220,17 @@ export default function Roadmap() {
   }
 
   const handleRefreshInitiatives = async () => {
+    // Check if user is operating on demo products and show warning
+    const confirmed = await confirmDemoOperation(
+      selectedProductIds,
+      products,
+      'refresh themes, initiatives, and projects'
+    )
+
+    if (!confirmed) {
+      return // User cancelled
+    }
+
     try {
       const response = await api.refreshThemesAsync()
       const { job_id } = response.data

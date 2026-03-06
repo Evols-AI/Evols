@@ -10,11 +10,13 @@ import { PageContainer, PageHeader, Card, EmptyState, Loading } from '@/componen
 import { formatCategory, getCategoryColor } from '@/utils/formatters'
 import { useJobPolling } from '@/hooks/useJobPolling'
 import { useProducts } from '@/hooks/useProducts'
+import { confirmDemoOperation } from '@/utils/demoWarning'
 
 export default function Feedback() {
   const router = useRouter()
   const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
+  const [products, setProducts] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [feedback, setFeedback] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -83,6 +85,7 @@ export default function Feedback() {
 
     const currentUser = getCurrentUser()
     setUser(currentUser)
+    loadProducts()
 
     // Only load data if products are selected
     if (selectedProductIds.length > 0) {
@@ -96,6 +99,15 @@ export default function Feedback() {
     if (savedJobId) setUploadJobId(savedJobId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, selectedProductIds])
+
+  const loadProducts = async () => {
+    try {
+      const data = await api.products.list()
+      setProducts(data)
+    } catch (error) {
+      console.error('Failed to load products:', error)
+    }
+  }
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -200,6 +212,19 @@ export default function Feedback() {
       return
     }
 
+    // Check if user is operating on demo products and show warning
+    const confirmed = await confirmDemoOperation(
+      selectedProductIds,
+      products,
+      'upload and process feedback CSV (includes AI theme and persona generation)'
+    )
+
+    if (!confirmed) {
+      // Reset file input
+      if (e.target) e.target.value = ''
+      return // User cancelled
+    }
+
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -221,6 +246,17 @@ export default function Feedback() {
   }
 
   const handleAddFeedback = async (feedbackData: any) => {
+    // Check if user is operating on demo products and show warning
+    const confirmed = await confirmDemoOperation(
+      selectedProductIds,
+      products,
+      'add feedback (includes AI theme and persona generation)'
+    )
+
+    if (!confirmed) {
+      return // User cancelled
+    }
+
     try {
       await api.createFeedback(feedbackData)
       setCurrentPage(1)

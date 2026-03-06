@@ -10,6 +10,7 @@ import { api } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, Loading } from '@/components/PageContainer'
 import { useProducts } from '@/hooks/useProducts'
+import { confirmDemoOperation } from '@/utils/demoWarning'
 
 export default function KnowledgeBase() {
   const router = useRouter()
@@ -502,6 +503,8 @@ export default function KnowledgeBase() {
         {/* Add Source Modal */}
         {showAddModal && (
           <AddSourceModal
+            selectedProductIds={selectedProductIds}
+            products={products}
             onClose={() => setShowAddModal(false)}
             onSuccess={() => {
               setShowAddModal(false)
@@ -641,7 +644,17 @@ function SourceCard({ source, onRefresh }: { source: any; onRefresh: () => void 
   )
 }
 
-function AddSourceModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function AddSourceModal({
+  selectedProductIds,
+  products,
+  onClose,
+  onSuccess
+}: {
+  selectedProductIds: number[]
+  products: any[]
+  onClose: () => void
+  onSuccess: () => void
+}) {
   const [sourceType, setSourceType] = useState<'url' | 'pdf' | 'github' | 'mcp'>('url')
   const [formData, setFormData] = useState({
     name: '',
@@ -655,6 +668,18 @@ function AddSourceModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Check if user is operating on demo products and show warning
+    const confirmed = await confirmDemoOperation(
+      selectedProductIds,
+      products,
+      'add knowledge source (includes AI capability extraction)'
+    )
+
+    if (!confirmed) {
+      return // User cancelled
+    }
+
     setUploading(true)
 
     try {

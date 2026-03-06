@@ -95,6 +95,7 @@ async def _filter_feedback_by_capabilities(
     feedback_items: List[Any],
     capabilities: List[Any],
     tenant_id: int,
+    db: AsyncSession,
 ) -> List[Any]:
     """
     Filter feedback against existing product capabilities.
@@ -115,11 +116,16 @@ async def _filter_feedback_by_capabilities(
     if not capabilities:
         return feedback_items
 
-    from app.services.llm_service import get_llm_service
+    from app.services.llm_service import get_llm_service_for_tenant
     import json
     import re
 
-    llm_service = get_llm_service(tenant_config=None)
+    # Get LLM service for tenant (will raise ValueError if not configured)
+    try:
+        llm_service = await get_llm_service_for_tenant(tenant_id, db)
+    except ValueError as e:
+        logger.warning(f"[Capability Filter] Cannot filter feedback: {e}. Returning all feedback.")
+        return feedback_items  # Return all feedback if no LLM configured
 
     # Build capability context for LLM
     capability_list = []
@@ -279,7 +285,7 @@ async def auto_generate_themes(tenant_id: int, db: AsyncSession, last_refresh_ti
 
         # Filter feedback against existing capabilities
         all_feedback = await _filter_feedback_by_capabilities(
-            all_feedback, existing_capabilities, tenant_id
+            all_feedback, existing_capabilities, tenant_id, db
         )
 
         logger.info(f"[Theme Generation] After capability filtering: {len(all_feedback)} feedback items remain")
@@ -370,8 +376,20 @@ async def auto_generate_themes(tenant_id: int, db: AsyncSession, last_refresh_ti
         print(f"[Theme Generation] Deleted {len(old_themes)} old themes (full regeneration)")
 
     # Generate theme for each cluster
-    from app.services.llm_service import get_llm_service
-    llm_service = get_llm_service(tenant_config=None)
+    from app.services.llm_service import get_llm_service_for_tenant
+
+    # Get LLM service for tenant (will raise ValueError if not configured)
+    try:
+        llm_service = await get_llm_service_for_tenant(tenant_id, db)
+    except ValueError as e:
+        logger.error(f"[Theme Generation] Cannot generate themes: {e}")
+        return {
+            "status": "no_llm_config",
+            "message": str(e),
+            "themes_created": 0,
+            "themes_updated": 0,
+            "themes_deleted": 0
+        }
 
     themes_created = 0
     themes_updated = 0
@@ -659,8 +677,18 @@ async def auto_generate_initiatives(tenant_id: int, db: AsyncSession):
     await db.commit()
     logger.info(f"[Initiative Generation] Deleted {len(old_initiatives)} old initiatives")
 
-    from app.services.llm_service import get_llm_service
-    llm_service = get_llm_service(tenant_config=None)
+    from app.services.llm_service import get_llm_service_for_tenant
+
+    # Get LLM service for tenant (will raise ValueError if not configured)
+    try:
+        llm_service = await get_llm_service_for_tenant(tenant_id, db)
+    except ValueError as e:
+        logger.error(f"[Initiative Generation] Cannot generate initiatives: {e}")
+        return {
+            "initiatives_created": 0,
+            "initiatives_failed": len(themes),
+            "error": str(e)
+        }
 
     for theme in themes:
         # Generate initiatives for this theme using LLM
