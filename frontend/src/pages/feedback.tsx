@@ -284,10 +284,17 @@ export default function Feedback() {
                 <div>
                   <h4 className="text-sm font-semibold text-heading mb-2">Required Columns</h4>
                   <ul className="text-sm text-body space-y-1 ml-4 list-disc">
-                    <li><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">source</code> - Source of feedback (e.g., intercom, zendesk, salesforce, manual)</li>
-                    <li><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">customer_name</code> - Customer or company name</li>
-                    <li><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">customer_segment</code> - Customer segment (Enterprise, Mid-Market, SMB, etc.)</li>
                     <li><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">content</code> - Feedback content/description</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-heading mb-2">Recommended Columns</h4>
+                  <ul className="text-sm text-body space-y-1 ml-4 list-disc">
+                    <li><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">account_name</code> or <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">customer</code> - Company/account name (used for Account records & priority scoring)</li>
+                    <li><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">segment</code> or <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">customer_segment</code> - Customer segment (Enterprise, Mid-Market, SMB)</li>
+                    <li><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">title</code> - Short title for the feedback</li>
+                    <li><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">category</code> - Feedback category (feature_request, bug, improvement, etc.)</li>
                   </ul>
                 </div>
 
@@ -337,9 +344,12 @@ export default function Feedback() {
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 space-y-2">
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    💡 <strong>Tip:</strong> Including revenue and usage data helps generate more accurate personas with revenue_contribution and usage_frequency metrics for priority scoring.
+                    💡 <strong>Tip:</strong> Including <strong>account_name</strong> is crucial for priority scoring. Without it, project priorities will be 0.
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    📊 <strong>Enhanced Personas:</strong> Including revenue (mrr/arr) and usage_frequency data helps generate personas with accurate revenue_contribution and usage_frequency metrics for weighted priority calculations.
                   </p>
                 </div>
               </div>
@@ -509,6 +519,29 @@ export default function Feedback() {
                   />
                 ))}
               </div>
+
+              {/* Pagination Controls (Bottom) */}
+              {total > itemsPerPage && (
+                <div className="p-6 pt-0 flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-body font-medium">
+                    Page {currentPage} of {Math.ceil(total / itemsPerPage)}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(total / itemsPerPage), p + 1))}
+                    disabled={currentPage >= Math.ceil(total / itemsPerPage)}
+                    className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </Card>
           )}
         </PageContainer>

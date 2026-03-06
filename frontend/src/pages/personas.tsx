@@ -2,7 +2,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { Sparkles, Users, MessageSquare, Scale, RefreshCw, Loader2, Edit2, X, ChevronDown, Check } from 'lucide-react'
+import { Sparkles, Users, MessageSquare, Scale, RefreshCw, Loader2, Edit2, X, ChevronDown, Check, ArrowUpDown } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -23,9 +23,14 @@ export default function Personas() {
   const [selectedForMerge, setSelectedForMerge] = useState<number[]>([])
   const [tagFilter, setTagFilter] = useState<string[]>(['new', 'advisor'])
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const [sortBy, setSortBy] = useState<'confidence' | 'name' | 'revenue' | 'usage'>('confidence')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(12)
   const [refreshJobId, setRefreshJobId] = useState<string | null>(null)
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
   const statusDropdownRef = useRef<HTMLDivElement>(null)
+  const sortDropdownRef = useRef<HTMLDivElement>(null)
 
   const { jobStatus: refreshJobStatus, isPolling: isRefreshing } = useJobPolling({
     jobId: refreshJobId,
@@ -62,8 +67,9 @@ export default function Personas() {
   useEffect(() => {
     if (user) {
       loadPersonas()
+      setCurrentPage(1) // Reset to page 1 when filter or sort changes
     }
-  }, [tagFilter])
+  }, [tagFilter, sortBy])
 
   const loadPersonas = async () => {
     try {
@@ -120,10 +126,63 @@ export default function Personas() {
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
         setShowStatusDropdown(false)
       }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const getSortDisplayText = () => {
+    switch (sortBy) {
+      case 'confidence':
+        return 'Confidence Score'
+      case 'name':
+        return 'A-Z'
+      case 'revenue':
+        return 'Revenue'
+      case 'usage':
+        return 'Usage Frequency'
+      default:
+        return 'Sort By'
+    }
+  }
+
+  const sortPersonas = (personasList: any[]) => {
+    const sorted = [...personasList]
+
+    switch (sortBy) {
+      case 'confidence':
+        return sorted.sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0))
+      case 'name':
+        return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      case 'revenue':
+        return sorted.sort((a, b) => {
+          const aRevenue = a.extra_data?.revenue_contribution || 0
+          const bRevenue = b.extra_data?.revenue_contribution || 0
+          return bRevenue - aRevenue
+        })
+      case 'usage':
+        return sorted.sort((a, b) => {
+          const usageOrder = { 'Daily': 3, 'Weekly': 2, 'Monthly': 1 }
+          const aUsage = usageOrder[a.extra_data?.usage_frequency as keyof typeof usageOrder] || 0
+          const bUsage = usageOrder[b.extra_data?.usage_frequency as keyof typeof usageOrder] || 0
+          return bUsage - aUsage
+        })
+      default:
+        return sorted
+    }
+  }
+
+  const getPaginatedPersonas = () => {
+    const sorted = sortPersonas(personas)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return sorted.slice(startIndex, endIndex)
+  }
+
+  const totalPages = Math.ceil(personas.length / itemsPerPage)
 
   const handleRefreshPersonas = async () => {
     try {
@@ -410,65 +469,22 @@ export default function Personas() {
           ) : (
             <>
               {/* Action Buttons Row */}
-              <div className="flex items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowAskModal(true)}
-                    className="btn-primary flex items-center gap-2"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Ask Personas
-                  </button>
+              <div className="flex items-center gap-3 mb-6">
+                <button
+                  onClick={() => setShowAskModal(true)}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Ask Personas
+                </button>
 
-                  <button
-                    onClick={() => setShowVoteModal(true)}
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    <Scale className="w-4 h-4" />
-                    Trade-off Voting
-                  </button>
-                </div>
-
-                {/* Status Filter Multi-Select */}
-                <div className="relative" ref={statusDropdownRef}>
-                  <button
-                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    className="px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[160px]"
-                  >
-                    <span className="text-sm font-medium">{getFilterDisplayText()}</span>
-                    <ChevronDown className="absolute right-3 w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  </button>
-
-                  {showStatusDropdown && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
-                      <div className="p-2">
-                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
-                          Filter by Status
-                        </div>
-                        {[
-                          { value: 'new', label: 'New', color: 'text-blue-600 dark:text-blue-400' },
-                          { value: 'advisor', label: 'Active', color: 'text-green-600 dark:text-green-400' },
-                          { value: 'dismissed', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
-                        ].map((status) => (
-                          <button
-                            key={status.value}
-                            onClick={() => toggleStatusFilter(status.value)}
-                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
-                          >
-                            <div className="w-4 h-4 flex items-center justify-center border-2 border-gray-300 dark:border-gray-500 rounded">
-                              {tagFilter.includes(status.value) && (
-                                <Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                              )}
-                            </div>
-                            <span className={`text-sm font-medium ${status.color}`}>
-                              {status.label}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => setShowVoteModal(true)}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <Scale className="w-4 h-4" />
+                  Trade-off Voting
+                </button>
               </div>
 
               {/* Merge Selection Info */}
@@ -489,15 +505,130 @@ export default function Personas() {
                 </div>
               )}
 
-              {/* Personas Grid */}
-              <div id="personas-list" className="mb-6">
+              {/* Personas Grid Header with Filters, Sorting, and Pagination */}
+              <div id="personas-list" className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-heading">
                   {getFilterDisplayText()} Personas ({personas.length})
                 </h2>
+
+                <div className="flex items-center gap-3">
+                  {/* Status Filter Multi-Select */}
+                  <div className="relative" ref={statusDropdownRef}>
+                    <button
+                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                      className="px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[160px]"
+                    >
+                      <span className="text-sm font-medium">{getFilterDisplayText()}</span>
+                      <ChevronDown className="absolute right-3 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    </button>
+
+                    {showStatusDropdown && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
+                        <div className="p-2">
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                            Filter by Status
+                          </div>
+                          {[
+                            { value: 'new', label: 'New', color: 'text-blue-600 dark:text-blue-400' },
+                            { value: 'advisor', label: 'Active', color: 'text-green-600 dark:text-green-400' },
+                            { value: 'dismissed', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
+                          ].map((status) => (
+                            <button
+                              key={status.value}
+                              onClick={() => toggleStatusFilter(status.value)}
+                              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                            >
+                              <div className="w-4 h-4 flex items-center justify-center border-2 border-gray-300 dark:border-gray-500 rounded">
+                                {tagFilter.includes(status.value) && (
+                                  <Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                )}
+                              </div>
+                              <span className={`text-sm font-medium ${status.color}`}>
+                                {status.label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sort Dropdown */}
+                  <div className="relative" ref={sortDropdownRef}>
+                    <button
+                      onClick={() => setShowSortDropdown(!showSortDropdown)}
+                      className="px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[180px]"
+                    >
+                      <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm font-medium">{getSortDisplayText()}</span>
+                      <ChevronDown className="absolute right-3 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    </button>
+
+                    {showSortDropdown && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
+                        <div className="p-2">
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                            Sort By
+                          </div>
+                          {[
+                            { value: 'confidence', label: 'Confidence Score', icon: '📊' },
+                            { value: 'name', label: 'A-Z', icon: '🔤' },
+                            { value: 'revenue', label: 'Revenue Contribution', icon: '💰' },
+                            { value: 'usage', label: 'Usage Frequency', icon: '⚡' },
+                          ].map((option) => (
+                            <button
+                              key={option.value}
+                              onClick={() => {
+                                setSortBy(option.value as any)
+                                setShowSortDropdown(false)
+                              }}
+                              className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors ${
+                                sortBy === option.value ? 'bg-gray-100 dark:bg-gray-600' : ''
+                              }`}
+                            >
+                              <span className="text-base">{option.icon}</span>
+                              <span className={`text-sm font-medium ${
+                                sortBy === option.value ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
+                              }`}>
+                                {option.label}
+                              </span>
+                              {sortBy === option.value && (
+                                <Check className="ml-auto w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pagination Controls (Top) */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-sm text-body font-medium whitespace-nowrap">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {personas.map((persona: any) => (
+                {getPaginatedPersonas().map((persona: any) => (
                   <PersonaCard
                     key={persona.id}
                     persona={persona}
@@ -510,6 +641,29 @@ export default function Personas() {
                   />
                 ))}
               </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-8">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-body font-medium">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </>
           )}
         </PageContainer>

@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { TrendingUp, Rocket, RefreshCw, Loader2, Mountain, Zap, ChevronRight, ChevronDown, Sparkles, Package, Layers, Target } from 'lucide-react'
+import { TrendingUp, Rocket, RefreshCw, Loader2, Mountain, Zap, ChevronRight, ChevronDown, Sparkles, Package, Layers, Target, ArrowUpDown, Check } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -17,6 +17,11 @@ export default function Roadmap() {
   const [loading, setLoading] = useState(true)
   const [refreshJobId, setRefreshJobId] = useState<string | null>(null)
   const [expandedInitiatives, setExpandedInitiatives] = useState<Set<number>>(new Set())
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const [sortBy, setSortBy] = useState<'urgency' | 'projects' | 'feedback' | 'accounts' | 'name'>('urgency')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
+  const sortDropdownRef = useRef<HTMLDivElement>(null)
 
   const { jobStatus: refreshJobStatus, isPolling: isRefreshing } = useJobPolling({
     jobId: refreshJobId,
@@ -47,6 +52,85 @@ export default function Roadmap() {
     const savedJobId = localStorage.getItem('initiatives_refresh_job_id')
     if (savedJobId) setRefreshJobId(savedJobId)
   }, [])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Reset to page 1 when sort changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [sortBy])
+
+  const getSortDisplayText = () => {
+    switch (sortBy) {
+      case 'urgency':
+        return 'Urgency & Impact'
+      case 'projects':
+        return 'Project Count'
+      case 'feedback':
+        return 'Feedback Count'
+      case 'accounts':
+        return 'Account Count'
+      case 'name':
+        return 'A-Z'
+      default:
+        return 'Sort By'
+    }
+  }
+
+  const sortInitiatives = (initiativesList: any[]) => {
+    const sorted = [...initiativesList]
+
+    switch (sortBy) {
+      case 'urgency':
+        return sorted.sort((a, b) => {
+          const aScore = (a.themes || []).reduce((sum: number, t: any) =>
+            sum + (t.urgency_score || 0) + (t.impact_score || 0), 0) / Math.max((a.themes || []).length, 1)
+          const bScore = (b.themes || []).reduce((sum: number, t: any) =>
+            sum + (t.urgency_score || 0) + (t.impact_score || 0), 0) / Math.max((b.themes || []).length, 1)
+          return bScore - aScore
+        })
+      case 'projects':
+        return sorted.sort((a, b) => {
+          const aCount = (projects[a.id] || []).length
+          const bCount = (projects[b.id] || []).length
+          return bCount - aCount
+        })
+      case 'feedback':
+        return sorted.sort((a, b) => {
+          const aCount = (a.themes || []).reduce((sum: number, t: any) => sum + (t.feedback_count || 0), 0)
+          const bCount = (b.themes || []).reduce((sum: number, t: any) => sum + (t.feedback_count || 0), 0)
+          return bCount - aCount
+        })
+      case 'accounts':
+        return sorted.sort((a, b) => {
+          const aCount = (a.themes || []).reduce((sum: number, t: any) => sum + (t.account_count || 0), 0)
+          const bCount = (b.themes || []).reduce((sum: number, t: any) => sum + (t.account_count || 0), 0)
+          return bCount - aCount
+        })
+      case 'name':
+        return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''))
+      default:
+        return sorted
+    }
+  }
+
+  const getPaginatedInitiatives = () => {
+    const sorted = sortInitiatives(initiatives)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return sorted.slice(startIndex, endIndex)
+  }
+
+  const totalPages = Math.ceil(initiatives.length / itemsPerPage)
 
   const loadInitiatives = async () => {
     try {
@@ -220,9 +304,91 @@ export default function Roadmap() {
                 />
               </div>
 
+              {/* Initiatives List Header with Sorting and Pagination */}
+              <div className="flex items-center justify-between mb-6 mt-8">
+                <h2 className="text-2xl font-bold text-heading">
+                  Initiatives ({initiatives.length})
+                </h2>
+
+                <div className="flex items-center gap-3">
+                  {/* Sort Dropdown */}
+                  <div className="relative" ref={sortDropdownRef}>
+                    <button
+                      onClick={() => setShowSortDropdown(!showSortDropdown)}
+                      className="px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[200px]"
+                    >
+                      <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm font-medium">{getSortDisplayText()}</span>
+                      <ChevronDown className="absolute right-3 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    </button>
+
+                    {showSortDropdown && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
+                        <div className="p-2">
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                            Sort By
+                          </div>
+                          {[
+                            { value: 'urgency', label: 'Urgency & Impact', icon: '🔥' },
+                            { value: 'projects', label: 'Project Count', icon: '📦' },
+                            { value: 'feedback', label: 'Feedback Count', icon: '💬' },
+                            { value: 'accounts', label: 'Account Count', icon: '👥' },
+                            { value: 'name', label: 'A-Z', icon: '🔤' },
+                          ].map((option) => (
+                            <button
+                              key={option.value}
+                              onClick={() => {
+                                setSortBy(option.value as any)
+                                setShowSortDropdown(false)
+                              }}
+                              className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors ${
+                                sortBy === option.value ? 'bg-gray-100 dark:bg-gray-600' : ''
+                              }`}
+                            >
+                              <span className="text-base">{option.icon}</span>
+                              <span className={`text-sm font-medium ${
+                                sortBy === option.value ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
+                              }`}>
+                                {option.label}
+                              </span>
+                              {sortBy === option.value && (
+                                <Check className="ml-auto w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pagination Controls (Top) */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-sm text-body font-medium whitespace-nowrap">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Initiatives List */}
               <div className="space-y-6">
-                {initiatives.map((initiative) => (
+                {getPaginatedInitiatives().map((initiative) => (
                   <InitiativeCard
                     key={initiative.id}
                     initiative={initiative}
@@ -232,6 +398,29 @@ export default function Roadmap() {
                   />
                 ))}
               </div>
+
+              {/* Pagination Controls (Bottom) */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-8">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-body font-medium">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </>
           )}
         </PageContainer>
