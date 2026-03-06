@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { ChevronDown, Check, Plus } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
 import { api } from '../services/api';
+import { getCurrentUser } from '@/utils/auth';
 
 interface Product {
   id: number;
@@ -48,11 +49,14 @@ export const ProductSelector: React.FC = () => {
       const data = await api.products.list();
       setProducts(data);
 
-      // Auto-select Demo product ONLY on first-ever load (localStorage is null)
+      // Auto-select Demo product ONLY on first-ever load for this tenant (localStorage is null)
       // Don't auto-select if user has explicitly cleared selection (localStorage is "[]")
       // Only check localStorage on client-side
       if (typeof window !== 'undefined') {
-        const hasEverSelectedProducts = localStorage.getItem('selected_product_ids') !== null;
+        const user = getCurrentUser();
+        const tenantId = user?.tenant_id || 'global';
+        const storageKey = `selected_product_ids_tenant_${tenantId}`;
+        const hasEverSelectedProducts = localStorage.getItem(storageKey) !== null;
 
         if (!hasEverSelectedProducts && data.length > 0) {
           const demoProduct = data.find((p) => p.is_demo);

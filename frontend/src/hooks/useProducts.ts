@@ -1,11 +1,11 @@
 /**
  * useProducts Hook
  * Manages selected product IDs for multi-product filtering
+ * Storage is tenant-specific to avoid conflicts between tenants
  */
 
 import { useState, useEffect } from 'react';
-
-const STORAGE_KEY = 'selected_product_ids';
+import { getCurrentUser } from '@/utils/auth';
 
 interface UseProductsReturn {
   selectedProductIds: number[];
@@ -13,6 +13,13 @@ interface UseProductsReturn {
   toggleProduct: (productId: number) => void;
   clearSelection: () => void;
 }
+
+// Get tenant-specific storage key
+const getStorageKey = (): string => {
+  const user = getCurrentUser();
+  const tenantId = user?.tenant_id || 'global';
+  return `selected_product_ids_tenant_${tenantId}`;
+};
 
 export const useProducts = (): UseProductsReturn => {
   // Initialize with empty array for SSR, then hydrate from localStorage on client
@@ -23,7 +30,8 @@ export const useProducts = (): UseProductsReturn => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const storageKey = getStorageKey();
+        const stored = localStorage.getItem(storageKey);
         if (stored) {
           setSelectedProductIds(JSON.parse(stored));
         }
@@ -38,7 +46,8 @@ export const useProducts = (): UseProductsReturn => {
   useEffect(() => {
     if (isHydrated && typeof window !== 'undefined') {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedProductIds));
+        const storageKey = getStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(selectedProductIds));
       } catch (error) {
         console.error('Failed to save product IDs to localStorage:', error);
       }
