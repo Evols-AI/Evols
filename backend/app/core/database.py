@@ -18,7 +18,7 @@ if database_url.startswith("postgresql://"):
 # Create async engine
 engine = create_async_engine(
     database_url,
-    echo=settings.DEBUG,
+    echo=False,  # Disabled SQL query logging to reduce noise
     pool_size=settings.DATABASE_POOL_SIZE,
     max_overflow=settings.DATABASE_MAX_OVERFLOW,
     pool_pre_ping=True,

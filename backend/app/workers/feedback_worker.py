@@ -117,18 +117,37 @@ async def upload_feedback_csv_background(
                         'job_role': row.get('job_role', ''),
                         'subscription_plan': row.get('subscription_plan', ''),
                         'mrr': row.get('mrr', ''),
+                        'arr': row.get('arr', ''),
                         'usage_frequency': row.get('usage_frequency', ''),
                     }
                     # Clean empty values
                     extra_data = {k: v for k, v in extra_data.items() if v}
 
-                    # Calculate ARR from MRR for persona revenue contribution
+                    # Convert MRR to float (remove if invalid)
                     if 'mrr' in extra_data:
                         try:
-                            mrr_value = float(extra_data['mrr'])
-                            extra_data['arr'] = mrr_value * 12
+                            extra_data['mrr'] = float(extra_data['mrr'])
                         except (ValueError, TypeError):
-                            pass
+                            del extra_data['mrr']  # Remove invalid values
+
+                    # Convert ARR to float (remove if invalid)
+                    if 'arr' in extra_data:
+                        try:
+                            extra_data['arr'] = float(extra_data['arr'])
+                        except (ValueError, TypeError):
+                            del extra_data['arr']  # Remove invalid values
+
+                    # Calculate ARR from MRR if ARR not provided
+                    if 'arr' not in extra_data and 'mrr' in extra_data:
+                        extra_data['arr'] = extra_data['mrr'] * 12
+
+                    # Validate usage_frequency (must be Daily/Weekly/Monthly)
+                    if 'usage_frequency' in extra_data:
+                        usage_val = extra_data['usage_frequency'].strip().capitalize()
+                        if usage_val in ['Daily', 'Weekly', 'Monthly']:
+                            extra_data['usage_frequency'] = usage_val
+                        else:
+                            del extra_data['usage_frequency']  # Remove invalid values
 
                     # Get or create Account for this customer
                     account_id = None
@@ -150,10 +169,18 @@ async def upload_feedback_csv_background(
                                 # Create new account
                                 mrr_value = None
                                 arr_value = None
+
+                                # Get MRR value
                                 if 'mrr' in extra_data and extra_data['mrr']:
                                     try:
                                         mrr_value = float(extra_data['mrr'])
-                                        arr_value = mrr_value * 12
+                                    except (ValueError, TypeError):
+                                        pass
+
+                                # Get ARR value (prefer direct value over calculated)
+                                if 'arr' in extra_data and extra_data['arr']:
+                                    try:
+                                        arr_value = float(extra_data['arr'])
                                     except (ValueError, TypeError):
                                         pass
 

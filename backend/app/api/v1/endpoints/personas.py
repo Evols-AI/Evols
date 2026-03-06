@@ -265,16 +265,26 @@ async def auto_generate_personas(tenant_id: int, db: AsyncSession, last_refresh_
                     plans[extra['subscription_plan']] += 1
 
                 # Extract revenue/ARR data for revenue contribution calculation
-                if extra.get('arr'):
-                    revenue_values.append(extra['arr'])
-                elif extra.get('revenue'):
-                    revenue_values.append(extra['revenue'])
-                elif extra.get('account_value'):
-                    revenue_values.append(extra['account_value'])
+                # Safely convert to float in case it's stored as string
+                arr_value = extra.get('arr')
+                if arr_value is not None:
+                    try:
+                        revenue_values.append(float(arr_value))
+                    except (ValueError, TypeError):
+                        pass  # Skip invalid values
+                else:
+                    # Try alternate fields
+                    revenue_value = extra.get('revenue') or extra.get('account_value')
+                    if revenue_value is not None:
+                        try:
+                            revenue_values.append(float(revenue_value))
+                        except (ValueError, TypeError):
+                            pass
 
                 # Extract usage frequency data
-                if extra.get('usage_frequency'):
-                    usage_patterns.append(extra['usage_frequency'])
+                usage_freq = extra.get('usage_frequency')
+                if usage_freq and isinstance(usage_freq, str) and usage_freq in ['Daily', 'Weekly', 'Monthly']:
+                    usage_patterns.append(usage_freq)
                 elif extra.get('login_frequency'):
                     usage_patterns.append(extra['login_frequency'])
                 elif extra.get('daily_active'):

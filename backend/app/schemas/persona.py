@@ -78,6 +78,7 @@ class PersonaResponse(PersonaBase):
     confidence_score: Optional[float] = None
     data_freshness_days: Optional[int] = None
     status: PersonaStatus
+    extra_data: Optional[Dict[str, Any]] = None  # Includes revenue_contribution, usage_frequency
     created_at: datetime
     updated_at: datetime
 
