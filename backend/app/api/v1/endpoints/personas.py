@@ -331,7 +331,7 @@ async def auto_generate_personas(tenant_id: int, db: AsyncSession, last_refresh_
             if duplicates:
                 # Found similar existing persona - UPDATE it with new feedback data
                 existing_persona, similarity = duplicates[0]
-                logger.info(
+                logger.debug(
                     f"[Persona Generation] Updating '{existing_persona.name}' with new feedback "
                     f"(matched '{persona_name}' at {similarity:.2%} similarity)"
                 )

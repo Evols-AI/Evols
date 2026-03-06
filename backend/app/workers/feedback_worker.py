@@ -11,6 +11,8 @@ from typing import Optional
 from app.core.database import AsyncSessionLocal
 from app.services.background_task_service import BackgroundTaskService
 from app.models.feedback import Feedback, FeedbackCategory, FeedbackSource
+from app.models.account import Account
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,7 @@ async def upload_feedback_csv_background(
             csv_reader = csv.DictReader(io.StringIO(csv_content))
             feedback_items = []
             errors = []
+            account_cache = {}  # Cache for created/retrieved accounts
 
             # Step 2: Process rows
             row_count = 0
@@ -66,7 +69,13 @@ async def upload_feedback_csv_background(
                         continue
 
                     title = row.get('title', '').strip()
-                    account_name = row.get('account_name', '') or row.get('customer', '') or row.get('company_name', '')
+                    account_name = (
+                        row.get('account_name', '').strip() or
+                        row.get('customer', '').strip() or
+                        row.get('company_name', '').strip() or
+                        row.get('customer_name', '').strip() or
+                        'Unknown Account'
+                    )
                     segment = row.get('segment', '') or row.get('customer_segment', '')
 
                     # Auto-map company_size to segment if segment is not provided
@@ -108,9 +117,62 @@ async def upload_feedback_csv_background(
                         'job_role': row.get('job_role', ''),
                         'subscription_plan': row.get('subscription_plan', ''),
                         'mrr': row.get('mrr', ''),
+                        'usage_frequency': row.get('usage_frequency', ''),
                     }
                     # Clean empty values
                     extra_data = {k: v for k, v in extra_data.items() if v}
+
+                    # Calculate ARR from MRR for persona revenue contribution
+                    if 'mrr' in extra_data:
+                        try:
+                            mrr_value = float(extra_data['mrr'])
+                            extra_data['arr'] = mrr_value * 12
+                        except (ValueError, TypeError):
+                            pass
+
+                    # Get or create Account for this customer
+                    account_id = None
+                    if account_name:
+                        # Check cache first
+                        if account_name in account_cache:
+                            account_id = account_cache[account_name]
+                        else:
+                            # Check if account exists in DB
+                            result = await db.execute(
+                                select(Account).where(
+                                    Account.tenant_id == tenant_id,
+                                    Account.name == account_name
+                                )
+                            )
+                            account = result.scalar_one_or_none()
+
+                            if not account:
+                                # Create new account
+                                mrr_value = None
+                                arr_value = None
+                                if 'mrr' in extra_data and extra_data['mrr']:
+                                    try:
+                                        mrr_value = float(extra_data['mrr'])
+                                        arr_value = mrr_value * 12
+                                    except (ValueError, TypeError):
+                                        pass
+
+                                account = Account(
+                                    tenant_id=tenant_id,
+                                    name=account_name,
+                                    segment=segment or None,
+                                    industry=extra_data.get('industry') or None,
+                                    company_size=extra_data.get('company_size') or None,
+                                    mrr=mrr_value,
+                                    arr=arr_value,
+                                    extra_data={'region': extra_data.get('region')} if extra_data.get('region') else None,
+                                )
+                                db.add(account)
+                                await db.flush()  # Get the ID without committing
+                                logger.debug(f"[FeedbackWorker] Created account '{account_name}' (ID: {account.id})")
+
+                            account_id = account.id
+                            account_cache[account_name] = account_id
 
                     # Create feedback item
                     feedback = Feedback(
@@ -118,6 +180,7 @@ async def upload_feedback_csv_background(
                         source=FeedbackSource.MANUAL_UPLOAD,
                         content=content,
                         title=title or None,
+                        account_id=account_id,
                         customer_name=account_name or None,
                         customer_segment=segment or None,
                         category=category,
@@ -144,7 +207,7 @@ async def upload_feedback_csv_background(
 
                 logger.info(
                     f"[FeedbackWorker] Saved {len(feedback_items)} feedback items "
-                    f"for tenant {tenant_id}"
+                    f"and {len(account_cache)} accounts for tenant {tenant_id}"
                 )
 
                 # Step 4: Auto-generate themes
@@ -230,7 +293,7 @@ async def upload_feedback_csv_background(
                     logger.warning(f"Failed to auto-generate personas: {e}")
 
             # Mark as completed
-            result_message = f"Successfully imported {len(feedback_items)} feedback items"
+            result_message = f"Successfully imported {len(feedback_items)} feedback items from {len(account_cache)} accounts"
             if errors:
                 result_message += f" ({len(errors)} errors)"
 
@@ -241,6 +304,7 @@ async def upload_feedback_csv_background(
                     "message": result_message,
                     "total_rows": row_count,
                     "imported": len(feedback_items),
+                    "accounts_created": len(account_cache),
                     "errors": errors if errors else None,
                     "themes_generated": themes_generated,
                     "initiatives_generated": initiatives_generated,

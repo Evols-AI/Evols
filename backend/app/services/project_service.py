@@ -86,7 +86,7 @@ class ProjectService:
 
         # Log initiative details
         for init in initiatives:
-            logger.info(
+            logger.debug(
                 f"[ProjectService] Initiative: '{init.title}' "
                 f"(ID: {init.id}, Themes: {len(init.themes)})"
             )
@@ -108,7 +108,7 @@ class ProjectService:
                 )
 
                 projects_created += len(generated_projects)
-                logger.info(
+                logger.debug(
                     f"[ProjectService] Generated {len(generated_projects)} projects "
                     f"for initiative '{initiative.title}'"
                 )
@@ -183,7 +183,7 @@ Respond with JSON array:
 ]"""
 
         try:
-            logger.info(
+            logger.debug(
                 f"[ProjectService] Calling LLM for initiative '{initiative.title}' "
                 f"(themes: {len(initiative.themes)}, personas: {len(personas)}, "
                 f"capabilities: {len(capabilities)})"
@@ -196,7 +196,7 @@ Respond with JSON array:
                 max_tokens=2500,
             )
 
-            logger.info(f"[ProjectService] LLM response length: {len(response.content)} chars")
+            logger.debug(f"[ProjectService] LLM response length: {len(response.content)} chars")
             logger.debug(f"[ProjectService] LLM response: {response.content[:500]}...")
 
             # Parse JSON response
@@ -209,7 +209,7 @@ Respond with JSON array:
                 return []
 
             projects_data = json.loads(json_match.group())
-            logger.info(f"[ProjectService] Parsed {len(projects_data)} projects from LLM")
+            logger.debug(f"[ProjectService] Parsed {len(projects_data)} projects from LLM")
 
             # Create Project instances
             projects = []

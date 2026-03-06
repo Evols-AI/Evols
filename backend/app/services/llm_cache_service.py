@@ -107,7 +107,7 @@ class LLMCacheService:
             cached_value = await self.redis_client.get(cache_key)
 
             if cached_value:
-                logger.info(f"[LLMCache] Cache HIT: {cache_key[:16]}...")
+                logger.debug(f"[LLMCache] Cache HIT: {cache_key[:16]}...")
                 return json.loads(cached_value)
 
             logger.debug(f"[LLMCache] Cache MISS: {cache_key[:16]}...")

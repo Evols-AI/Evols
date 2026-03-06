@@ -161,7 +161,7 @@ class PriorityService:
                 project.extra_data['learning_metadata'] = learning_metadata
                 project.extra_data['base_confidence'] = base_confidence
 
-                logger.info(
+                logger.debug(
                     f"[PriorityService] Project '{project.title}': "
                     f"Base confidence {base_confidence:.2f} → "
                     f"Learned confidence {confidence:.2f}"
