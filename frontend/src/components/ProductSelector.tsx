@@ -22,10 +22,12 @@ export const ProductSelector: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const { selectedProductIds, toggleProduct, setProductIds } = useProducts();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setIsMounted(true);
     loadProducts();
   }, []);
 
@@ -48,12 +50,15 @@ export const ProductSelector: React.FC = () => {
 
       // Auto-select Demo product ONLY on first-ever load (localStorage is null)
       // Don't auto-select if user has explicitly cleared selection (localStorage is "[]")
-      const hasEverSelectedProducts = localStorage.getItem('selected_product_ids') !== null;
+      // Only check localStorage on client-side
+      if (typeof window !== 'undefined') {
+        const hasEverSelectedProducts = localStorage.getItem('selected_product_ids') !== null;
 
-      if (!hasEverSelectedProducts && data.length > 0) {
-        const demoProduct = data.find((p) => p.is_demo);
-        if (demoProduct) {
-          setProductIds([demoProduct.id]);
+        if (!hasEverSelectedProducts && data.length > 0) {
+          const demoProduct = data.find((p) => p.is_demo);
+          if (demoProduct) {
+            setProductIds([demoProduct.id]);
+          }
         }
       }
     } catch (error) {
@@ -94,7 +99,8 @@ export const ProductSelector: React.FC = () => {
     return `${selectedProductIds.length} Products`;
   };
 
-  if (isLoading) {
+  // Prevent hydration mismatch by not rendering until mounted on client
+  if (!isMounted || isLoading) {
     return (
       <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md">
         <span className="text-sm text-gray-500">Loading...</span>

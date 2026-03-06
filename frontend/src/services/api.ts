@@ -111,12 +111,16 @@ export const api = {
   createDecision: (data: any) => apiClient.post('/api/v1/decisions/', data),
 
   // Personas
-  getPersonas: (params?: any) => apiClient.get('/api/v1/personas/', { params }),
+  getPersonas: (productIds?: string, params?: any) => {
+    const queryParams = productIds ? { ...params, product_ids: productIds } : params
+    return apiClient.get('/api/v1/personas/', { params: queryParams })
+  },
   getSegments: () => apiClient.get('/api/v1/personas/segments/list'),
   generatePersonas: (data: any) => apiClient.post('/api/v1/personas/generate', data),
   refreshPersonas: () => apiClient.post('/api/v1/personas/refresh'),
   refreshPersonasAsync: () => apiClient.post('/api/v1/personas/refresh-async'),
   simulatePersona: (data: any) => apiClient.post('/api/v1/personas/simulate', data),
+  askPersona: (data: any) => apiClient.post('/api/v1/personas/simulate', data), // Alias for simulate
   personaVote: (data: any) => apiClient.post('/api/v1/personas/vote', data),
   updatePersona: (id: number, data: any) => apiClient.patch(`/api/v1/personas/${id}`, data),
   updatePersonaStatus: (id: number, status: string) => apiClient.patch(`/api/v1/personas/${id}/status`, { status }),
@@ -133,6 +137,11 @@ export const api = {
   generateOptions: (data: any) => apiClient.post('/api/v1/workbench/generate-options', data),
   getPersonaVotes: (data: any) => apiClient.post('/api/v1/workbench/persona-votes', data),
   regenerateOptions: (data: any) => apiClient.post('/api/v1/workbench/regenerate-options', data),
+  saveGeneratedPersonas: (data: any) => apiClient.post('/api/v1/workbench/save-personas', data),
+  validateIdea: (data: any) => apiClient.post('/api/v1/workbench/validate-idea', data),
+  saveDecision: (data: any) => apiClient.post('/api/v1/workbench/decisions', data),
+  getDecision: (id: number) => apiClient.get(`/api/v1/workbench/decisions/${id}`),
+  listWorkbenchDecisions: () => apiClient.get('/api/v1/workbench/decisions'),
 
   // Jobs (progress tracking)
   getJob: (jobId: string) => apiClient.get(`/api/v1/jobs/${jobId}`),

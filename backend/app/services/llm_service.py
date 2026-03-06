@@ -457,69 +457,96 @@ class LLMService:
     async def generate_structured(
         self,
         prompt: str,
-        response_model: Any,  # Pydantic BaseModel class
+        response_model: Any,  # Pydantic BaseModel class or dict schema
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
         max_retries: int = 3,
     ) -> Any:
         """
-        Generate structured output with Pydantic schema validation (using Instructor)
+        Generate structured output with schema validation
+
+        For OpenAI/Azure: Uses Instructor for Pydantic validation
+        For Bedrock/Anthropic: Uses JSON mode with manual parsing
 
         Args:
             prompt: User prompt
-            response_model: Pydantic BaseModel class defining the expected schema
+            response_model: Pydantic BaseModel class or dict schema defining expected structure
             system_prompt: System prompt
             temperature: Override default temperature (default: 0.3 for structured outputs)
             max_retries: Number of retries on validation failure (default: 3)
 
         Returns:
-            Instance of response_model with validated data
+            Instance of response_model with validated data (or dict if response_model is dict)
 
         Raises:
             ValueError: If response doesn't match schema after retries
-            ImportError: If instructor is not available for this provider
         """
-        if self.provider not in ["openai", "azure_openai"]:
-            raise ImportError(
-                f"Structured generation with Instructor only supports OpenAI/Azure OpenAI. "
-                f"Current provider: {self.provider}"
-            )
-
-        if instructor is None:
-            raise ImportError("instructor package is required. Install with: pip install instructor")
+        import json
+        import re
 
         temp = temperature if temperature is not None else 0.3  # Lower temp for structured outputs
-        max_tok = self.config.max_tokens
 
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        # For OpenAI/Azure with Pydantic models, use Instructor
+        if self.provider in ["openai", "azure_openai"] and not isinstance(response_model, dict):
+            if instructor is None:
+                raise ImportError("instructor package is required. Install with: pip install instructor")
 
-        try:
-            # Instructor automatically handles retries and validation
-            response = await self.client.chat.completions.create(
-                model=self.config.model,
-                response_model=response_model,
-                messages=messages,
-                temperature=temp,
-                max_tokens=max_tok,
-                max_retries=max_retries,
-            )
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
 
-            logger.debug(
-                f"[LLMService] Structured generation successful: "
-                f"model={response_model.__name__}"
-            )
+            try:
+                response = await self.client.chat.completions.create(
+                    model=self.config.model,
+                    response_model=response_model,
+                    messages=messages,
+                    temperature=temp,
+                    max_tokens=self.config.max_tokens,
+                    max_retries=max_retries,
+                )
+                logger.debug(f"[LLMService] Structured generation successful (Instructor)")
+                return response
+            except Exception as e:
+                logger.error(f"[LLMService] Instructor generation failed: {e}")
+                raise ValueError(f"LLM did not return valid structured response: {e}")
 
-            return response
+        # For Bedrock/Anthropic or dict schemas, use JSON mode with manual parsing
+        else:
+            # Build enhanced prompt requesting JSON output
+            json_prompt = prompt + "\n\nIMPORTANT: Return your response as valid JSON only, with no additional text or markdown formatting."
 
-        except Exception as e:
-            logger.error(
-                f"[LLMService] Structured generation failed: {e}",
-                exc_info=True
-            )
-            raise ValueError(f"LLM did not return valid structured response: {e}")
+            if isinstance(response_model, dict):
+                json_prompt += f"\n\nExpected JSON structure:\n```json\n{json.dumps(response_model, indent=2)}\n```"
+
+            try:
+                # Use regular generate method
+                response = await self.generate(
+                    prompt=json_prompt,
+                    system_prompt=system_prompt,
+                    temperature=temp,
+                )
+
+                # Extract JSON from response
+                content = response.content.strip()
+
+                # Try to extract JSON from markdown code blocks if present
+                json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', content, re.DOTALL)
+                if json_match:
+                    content = json_match.group(1).strip()
+
+                # Parse JSON
+                try:
+                    result = json.loads(content)
+                    logger.debug(f"[LLMService] Structured generation successful (JSON parsing)")
+                    return result
+                except json.JSONDecodeError as e:
+                    logger.error(f"[LLMService] JSON parsing failed: {e}\nContent: {content[:500]}")
+                    raise ValueError(f"LLM did not return valid JSON: {e}")
+
+            except Exception as e:
+                logger.error(f"[LLMService] Structured generation failed: {e}")
+                raise ValueError(f"Structured generation failed: {e}")
 
 
 def get_llm_service(
@@ -590,22 +617,44 @@ Your task is to create concise summaries of feedback themes that:
 
 Always maintain transparency by referencing specific feedback items."""
 
-DECISION_OPTIONS_SYSTEM_PROMPT = """You are a strategic product advisor helping a PM make a roadmap decision.
+DECISION_OPTIONS_SYSTEM_PROMPT_PM = """You are a strategic product advisor helping a PM make a roadmap decision for an existing product.
 Your task is to generate 2-4 distinct strategic options that:
 - Address the stated objective
-- Have clear tradeoffs
-- Consider different stakeholder priorities
-- Are realistic given constraints
+- Have clear tradeoffs between different customer segments
+- Leverage existing customer themes and feedback data
+- Are realistic given team constraints and time horizon
+- Focus on feature prioritization and product direction
 
 For each option, provide:
 - Clear title (3-5 words)
-- Description (2-3 sentences)
-- Pros (3-5 bullet points)
-- Cons (3-5 bullet points)
-- Expected impact (qualitative)
+- Description (2-3 sentences focusing on product features/initiatives)
+- Pros (3-5 bullet points with ARR/customer impact)
+- Cons (3-5 bullet points with risks/tradeoffs)
+- Expected ARR impact (quantified)
 - Risk level (low/medium/high)
 
 Always cite supporting evidence from themes, feedback, and metrics."""
+
+DECISION_OPTIONS_SYSTEM_PROMPT_FOUNDER = """You are a strategic advisor helping a founder make critical startup decisions.
+Your task is to generate 2-4 distinct strategic options that:
+- Address the stated decision objective
+- Have clear strategic tradeoffs
+- Consider market dynamics, competition, and customer validation
+- Are realistic given startup stage and resources
+- Could include product direction, market positioning, GTM strategy, or pivot decisions
+
+For each option, provide:
+- Clear title (3-5 words)
+- Description (2-3 sentences explaining the strategic direction)
+- Pros (3-5 bullet points with market validation, competitive advantages)
+- Cons (3-5 bullet points with execution risks, resource requirements)
+- Expected business impact (ARR potential or market validation)
+- Risk level (low/medium/high)
+
+Ground recommendations in real market data and customer signals."""
+
+# Legacy prompt for backward compatibility
+DECISION_OPTIONS_SYSTEM_PROMPT = DECISION_OPTIONS_SYSTEM_PROMPT_PM
 
 PERSONA_GENERATION_SYSTEM_PROMPT = """You are an expert user researcher creating data-driven customer personas.
 Your task is to synthesize customer data into realistic persona profiles that:

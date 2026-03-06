@@ -12,8 +12,11 @@ import { InlineSpinner } from '@/components/ProgressIndicator'
 interface ContextRailProps {
   themes: any[]
   feedback: any[]
+  marketData?: any
   isLoading: boolean
   step: number
+  decisions?: any[]
+  onDecisionClick?: (decisionId: number) => void
 }
 
 function SectionHeader({
@@ -36,8 +39,8 @@ function SectionHeader({
   )
 }
 
-export default function ContextRail({ themes, feedback, isLoading, step }: ContextRailProps) {
-  const [sectionsOpen, setSectionsOpen] = useState({ themes: true, feedback: true, past: false })
+export default function ContextRail({ themes, feedback, marketData, isLoading, step, decisions = [], onDecisionClick }: ContextRailProps) {
+  const [sectionsOpen, setSectionsOpen] = useState({ themes: true, feedback: true, market: true, past: true })
   const toggle = (key: keyof typeof sectionsOpen) =>
     setSectionsOpen(s => ({ ...s, [key]: !s[key] }))
 
@@ -154,18 +157,112 @@ export default function ContextRail({ themes, feedback, isLoading, step }: Conte
           </div>
         )}
 
-        {/* Past decisions (placeholder for future) */}
+        {/* Market Data section (external context) */}
+        {marketData && (marketData.customer_pain_points?.length > 0 || marketData.market_trends?.length > 0) && (
+          <div>
+            <SectionHeader
+              icon={<Lightbulb className="w-3 h-3" />}
+              title="Market Data"
+              count={(marketData.customer_pain_points?.length || 0) + (marketData.market_trends?.length || 0)}
+              expanded={sectionsOpen.market}
+              onToggle={() => toggle('market')}
+            />
+            {sectionsOpen.market && (
+              <div className="space-y-1 mt-1">
+                {/* Pain Points */}
+                {marketData.customer_pain_points?.slice(0, 5).map((pain: any, i: number) => (
+                  <div
+                    key={i}
+                    className="mx-1 px-3 py-2.5 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-900 dark:text-white line-clamp-2">
+                          {pain.pain_point}
+                        </p>
+                        {pain.description && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
+                            {pain.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            pain.frequency === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            pain.frequency === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                          }`}>
+                            {pain.frequency || 'unknown'} frequency
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Market Trends */}
+                {marketData.market_trends?.slice(0, 3).map((trend: any, i: number) => (
+                  <div
+                    key={i}
+                    className="mx-1 px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30"
+                  >
+                    <p className="text-xs font-medium text-indigo-700 dark:text-indigo-400">
+                      {trend.trend}
+                    </p>
+                    {trend.description && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
+                        {trend.description}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Past decisions */}
         <div>
           <SectionHeader
             icon={<History className="w-3 h-3" />}
             title="Past Decisions"
-            count={0}
+            count={decisions.length}
             expanded={sectionsOpen.past}
             onToggle={() => toggle('past')}
           />
           {sectionsOpen.past && (
-            <div className="mx-1 px-3 py-3 text-xs text-gray-400 dark:text-gray-500 italic">
-              No similar past decisions found
+            <div className="space-y-1 mt-1">
+              {decisions.length === 0 ? (
+                <div className="mx-1 px-3 py-3 text-xs text-gray-400 dark:text-gray-500 italic">
+                  No past decisions yet
+                </div>
+              ) : (
+                decisions.slice(0, 10).map((decision: any) => (
+                  <button
+                    key={decision.id}
+                    onClick={() => onDecisionClick?.(decision.id)}
+                    className="w-full mx-1 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors text-left"
+                  >
+                    <div className="text-xs font-medium text-gray-900 dark:text-white line-clamp-2 mb-1">
+                      {decision.objective || 'Untitled Decision'}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      {decision.created_at && (
+                        <span>{new Date(decision.created_at).toLocaleDateString()}</span>
+                      )}
+                      {(decision.use_internal_context || decision.use_external_context) && (
+                        <span className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">
+                          {decision.use_internal_context && decision.use_external_context
+                            ? 'Internal + External'
+                            : decision.use_internal_context
+                            ? 'Internal'
+                            : 'External'}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { Sparkles, Book, Code, Zap, Server, Users, ArrowLeft } from 'lucide-react'
+import { Sparkles, Book, Code, Zap, Server, Users, ArrowLeft, Briefcase } from 'lucide-react'
 import { LogoIcon } from '@/components/Logo'
 
 export default function Docs() {
@@ -72,6 +72,11 @@ export default function Docs() {
               title="Personas"
               description="Learn about digital twin personas and metrics"
               href="/docs/personas"
+            />
+            <DocCard icon={<Briefcase className="w-6 h-6" />}
+              title="Decision Workbench"
+              description="PM vs Founder mode decision-making guide"
+              href="/docs/workbench"
             />
             <DocCard icon={<Server className="w-6 h-6" />}
               title="API Reference"
@@ -153,14 +158,17 @@ docker-compose up -d`}</code>
                   link="/docs/personas"
                   linkText="Learn about persona metrics →"
                 />
-                <FeatureDoc title="Decision Brief Generator"
-                  description="AI-generated evidence-backed decision briefs with options and recommendations."
+                <FeatureDoc title="Decision Workbench"
+                  description="AI-powered decision-making tool with PM and Founder modes for different decision contexts."
                   features={[
-                    'Multiple roadmap options with pros/cons',
-                    'Segment impact analysis',
-                    'Citations to VoC and accounts',
-                    'Markdown/PDF export'
+                    'PM Mode: Roadmap decisions using VoC data',
+                    'Founder Mode: Strategic decisions with market data',
+                    'AI-generated options with pros/cons',
+                    'Persona voting and validation',
+                    'Decision briefs with charts and recommendations'
                   ]}
+                  link="/docs/workbench"
+                  linkText="Learn about PM vs Founder mode →"
                 />
               </div>
             </Section>

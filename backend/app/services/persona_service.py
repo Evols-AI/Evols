@@ -207,7 +207,7 @@ Respond with JSON:
         try:
             result = await self.llm.generate_structured(
                 prompt=prompt,
-                response_format={
+                response_model={
                     "name": "string",
                     "role": "string",
                     "segment": "string",
@@ -343,7 +343,7 @@ Respond with JSON:
         try:
             result = await self.llm.generate_structured(
                 prompt=prompt,
-                response_format={"response": "string", "reasoning": "string", "confidence": 0.0},
+                response_model={"response": "string", "reasoning": "string", "confidence": 0.0},
             )
             return PersonaSimulationResult(
                 persona_name=name,
@@ -414,7 +414,7 @@ Respond with JSON:
         try:
             result = await self.llm.generate_structured(
                 prompt=prompt,
-                response_format={
+                response_model={
                     "votes": [{"option_id": "", "option_title": "", "score": 0.0, "reasoning": ""}],
                     "top_choice": "",
                     "confidence": 0.0,

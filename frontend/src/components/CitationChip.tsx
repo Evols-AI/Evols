@@ -5,11 +5,11 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { ExternalLink, FileText, Users, TrendingUp, MessageSquare } from 'lucide-react'
+import { ExternalLink, FileText, Users, TrendingUp, MessageSquare, Globe } from 'lucide-react'
 
 export interface Citation {
-  source_type: 'feedback' | 'theme' | 'account' | 'interview' | 'metric' | 'decision'
-  source_id: number
+  source_type: 'feedback' | 'theme' | 'account' | 'interview' | 'metric' | 'decision' | 'market_data'
+  source_id: number | string
   quote?: string
   confidence: number
   metadata?: Record<string, any>
@@ -28,6 +28,7 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
   interview: <MessageSquare className="w-3 h-3" />,
   metric: <TrendingUp className="w-3 h-3" />,
   decision: <FileText className="w-3 h-3" />,
+  market_data: <Globe className="w-3 h-3" />,
 }
 
 function buildAutoLabel(citations: Citation[]): string {
@@ -35,11 +36,14 @@ function buildAutoLabel(citations: Citation[]): string {
   const accountCitations = citations.filter(c => c.source_type === 'account')
   const totalArr = accountCitations.reduce((sum, c) => sum + (c.metadata?.arr || 0), 0)
   const interviewCount = citations.filter(c => c.source_type === 'interview').length
+  const marketDataCitations = citations.filter(c => c.source_type === 'market_data')
+  const totalDataPoints = marketDataCitations.reduce((sum, c) => sum + (c.metadata?.data_points || 0), 0)
 
   const parts: string[] = []
   if (feedbackCount > 0) parts.push(`${feedbackCount} item${feedbackCount !== 1 ? 's' : ''}`)
   if (totalArr > 0) parts.push(`$${(totalArr / 1000).toFixed(0)}K ARR`)
   if (interviewCount > 0) parts.push(`${interviewCount} interview${interviewCount !== 1 ? 's' : ''}`)
+  if (totalDataPoints > 0) parts.push(`${totalDataPoints} data points`)
   return parts.join(' | ')
 }
 
@@ -87,32 +91,52 @@ export default function CitationChip({ citations, label, className = '' }: Citat
           </div>
 
           <div className="space-y-3 max-h-64 overflow-y-auto">
-            {citations.slice(0, 8).map((c, i) => (
-              <div key={i} className="text-xs border-l-2 border-blue-400 pl-2">
-                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 mb-1">
-                  {SOURCE_ICONS[c.source_type]}
-                  <span className="capitalize font-medium">{c.source_type} #{c.source_id}</span>
-                  {c.metadata?.account_name && (
-                    <span className="text-gray-400">— {c.metadata.account_name}</span>
+            {citations.slice(0, 8).map((c, i) => {
+              // Special handling for market_data citations
+              const isMarketData = c.source_type === 'market_data'
+              const displayTitle = isMarketData && c.metadata?.title
+                ? c.metadata.title
+                : `${c.source_type.replace('_', ' ')} #${c.source_id}`
+
+              return (
+                <div key={i} className="text-xs border-l-2 border-blue-400 pl-2">
+                  <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 mb-1">
+                    {SOURCE_ICONS[c.source_type]}
+                    <span className="capitalize font-medium">{displayTitle}</span>
+                    {c.metadata?.account_name && (
+                      <span className="text-gray-400">— {c.metadata.account_name}</span>
+                    )}
+                    {c.metadata?.arr && (
+                      <span className="ml-auto text-green-600 font-medium">
+                        ${(c.metadata.arr / 1000).toFixed(0)}K
+                      </span>
+                    )}
+                  </div>
+                  {/* Market data sources */}
+                  {isMarketData && c.metadata?.sources && (
+                    <p className="text-gray-600 dark:text-gray-300 text-xs mb-1">
+                      Sources: {c.metadata.sources.join(', ')}
+                    </p>
                   )}
-                  {c.metadata?.arr && (
-                    <span className="ml-auto text-green-600 font-medium">
-                      ${(c.metadata.arr / 1000).toFixed(0)}K
+                  {/* Data points count */}
+                  {isMarketData && c.metadata?.data_points && (
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">
+                      {c.metadata.data_points} data points collected
+                    </p>
+                  )}
+                  {c.quote && (
+                    <p className="text-gray-600 dark:text-gray-300 italic line-clamp-2">
+                      "{c.quote}"
+                    </p>
+                  )}
+                  {c.metadata?.segment && (
+                    <span className="mt-1 inline-block px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded text-xs">
+                      {c.metadata.segment}
                     </span>
                   )}
                 </div>
-                {c.quote && (
-                  <p className="text-gray-600 dark:text-gray-300 italic line-clamp-2">
-                    "{c.quote}"
-                  </p>
-                )}
-                {c.metadata?.segment && (
-                  <span className="mt-1 inline-block px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded text-xs">
-                    {c.metadata.segment}
-                  </span>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {citations.length > 8 && (

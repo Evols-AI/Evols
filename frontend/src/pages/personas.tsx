@@ -2,7 +2,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { Sparkles, Users, MessageSquare, Scale, RefreshCw, Loader2, Edit2, X, ChevronDown, Check, ArrowUpDown } from 'lucide-react'
+import { Sparkles, Users, RefreshCw, Loader2, Edit2, X, ChevronDown, Check, ArrowUpDown } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -17,8 +17,6 @@ export default function Personas() {
   const [personas, setPersonas] = useState<any[]>([])
   const [totalPersonas, setTotalPersonas] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [showAskModal, setShowAskModal] = useState(false)
-  const [showVoteModal, setShowVoteModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [editingPersona, setEditingPersona] = useState<any>(null)
@@ -406,25 +404,11 @@ export default function Personas() {
             </Card>
           ) : personas.length === 0 ? (
             <>
-              {/* Action Buttons Row */}
-              <div className="flex items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowAskModal(true)}
-                    className="btn-primary flex items-center gap-2"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Ask Personas
-                  </button>
-
-                  <button
-                    onClick={() => setShowVoteModal(true)}
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    <Scale className="w-4 h-4" />
-                    Trade-off Voting
-                  </button>
-                </div>
+              {/* Personas Grid Header */}
+              <div id="personas-list" className="mb-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-heading">
+                  {getFilterDisplayText()} Personas (0)
+                </h2>
 
                 {/* Status Filter Multi-Select */}
                 <div className="relative" ref={statusDropdownRef}>
@@ -468,13 +452,6 @@ export default function Personas() {
                 </div>
               </div>
 
-              {/* Personas Grid Header */}
-              <div id="personas-list" className="mb-6">
-                <h2 className="text-2xl font-bold text-heading">
-                  {getFilterDisplayText()} Personas (0)
-                </h2>
-              </div>
-
               {/* No Results Message */}
               <Card>
                 <div className="text-center py-12">
@@ -490,24 +467,6 @@ export default function Personas() {
             </>
           ) : (
             <>
-              {/* Action Buttons Row */}
-              <div className="flex items-center gap-3 mb-6">
-                <button
-                  onClick={() => setShowAskModal(true)}
-                  className="btn-primary flex items-center gap-2"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Ask Personas
-                </button>
-
-                <button
-                  onClick={() => setShowVoteModal(true)}
-                  className="btn-secondary flex items-center gap-2"
-                >
-                  <Scale className="w-4 h-4" />
-                  Trade-off Voting
-                </button>
-              </div>
 
               {/* Merge Selection Info */}
               {selectedForMerge.length >= 2 && (
@@ -689,12 +648,6 @@ export default function Personas() {
             </>
           )}
         </PageContainer>
-
-        {/* Ask Personas Modal */}
-        {showAskModal && <AskPersonasModal personas={personas.filter(p => p.status === 'advisor')} onClose={() => setShowAskModal(false)} />}
-
-        {/* Trade-off Voting Modal */}
-        {showVoteModal && <TradeOffVotingModal personas={personas.filter(p => p.status === 'advisor')} onClose={() => setShowVoteModal(false)} />}
 
         {/* Edit Persona Modal */}
         {showEditModal && editingPersona && (
@@ -903,422 +856,6 @@ function PersonaCard({
   )
 }
 
-function AskPersonasModal({ personas, onClose }: { personas: any[]; onClose: () => void }) {
-  const [question, setQuestion] = useState('')
-  const [selectedPersonas, setSelectedPersonas] = useState<number[]>([])
-  const [responses, setResponses] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [askingProgress, setAskingProgress] = useState<{ current: number; total: number } | null>(null)
-
-  const handleAsk = async () => {
-    if (!question.trim() || selectedPersonas.length === 0) {
-      alert('Please enter a question and select at least one persona')
-      return
-    }
-
-    setLoading(true)
-    setAskingProgress({ current: 0, total: selectedPersonas.length })
-
-    try {
-      const personaResponses: any[] = []
-      let completed = 0
-
-      // Use backend LLM-powered API to get persona responses
-      // Track real progress as each persona responds
-      const responsePromises = selectedPersonas.map(async (personaId) => {
-        try {
-          const result = await api.simulatePersona({
-            persona_id: personaId,
-            question: question,
-          })
-
-          const response = {
-            personaName: result.data.persona_name,
-            response: result.data.response,
-            reasoning: result.data.reasoning,
-            confidence: result.data.confidence,
-          }
-
-          // Update progress in real-time as each response completes
-          completed++
-          setAskingProgress({ current: completed, total: selectedPersonas.length })
-
-          return response
-        } catch (error) {
-          const persona = personas.find(p => p.id === personaId)
-
-          // Update progress even on error
-          completed++
-          setAskingProgress({ current: completed, total: selectedPersonas.length })
-
-          return {
-            personaName: persona?.name || 'Unknown',
-            response: 'Unable to generate response. Please try again.',
-            reasoning: 'Error contacting AI service',
-            confidence: 0,
-          }
-        }
-      })
-
-      const results = await Promise.all(responsePromises)
-
-      // Show completion briefly before hiding
-      setTimeout(() => setAskingProgress(null), 500)
-
-      setResponses(results)
-    } catch (error) {
-      setAskingProgress(null)
-      console.error('Error asking personas:', error)
-      alert('Failed to get responses from personas')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const togglePersona = (personaId: number) => {
-    setSelectedPersonas(prev =>
-      prev.includes(personaId)
-        ? prev.filter(id => id !== personaId)
-        : [...prev, personaId]
-    )
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-heading">Ask Personas</h2>
-          <button onClick={onClose} className="text-muted hover:text-heading transition">
-            ✕
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Question Input */}
-          <div>
-            <label className="block text-sm font-medium text-heading mb-2">Your Question</label>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask your personas anything about features, priorities, pain points..."
-              rows={4}
-              className="input"
-            />
-          </div>
-
-          {/* Persona Selection */}
-          <div>
-            <label className="block text-sm font-medium text-heading mb-2">Select Personas to Ask</label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {personas.map(persona => (
-                <button
-                  key={persona.id}
-                  onClick={() => togglePersona(persona.id)}
-                  className={`p-3 rounded-lg border-2 transition ${
-                    selectedPersonas.includes(persona.id)
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <div className="text-sm font-medium text-heading">{persona.name}</div>
-                  <div className="text-xs text-body">{persona.segment}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Ask Button / Progress */}
-          {askingProgress ? (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-blue-600 animate-pulse" />
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Asking Personas...
-                  </h3>
-                </div>
-                <span className="text-sm font-medium text-blue-600">
-                  {askingProgress.current}/{askingProgress.total}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                <div
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(askingProgress.current / askingProgress.total) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                Receiving responses in real-time as personas respond...
-              </p>
-            </div>
-          ) : (
-            <button
-              onClick={handleAsk}
-              disabled={loading || !question.trim() || selectedPersonas.length === 0}
-              className="btn-primary w-full disabled:opacity-50"
-            >
-              {loading ? 'Asking Personas...' : 'Ask Personas'}
-            </button>
-          )}
-
-          {/* Responses */}
-          {responses.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-heading">Responses (AI-Powered Digital Twins)</h3>
-              {responses.map((response, idx) => (
-                <div key={idx} className="card p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="font-semibold text-heading">{response.personaName}</div>
-                    {response.confidence !== undefined && (
-                      <div className="text-xs text-body">
-                        Confidence: {(response.confidence * 100).toFixed(0)}%
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-body mb-2">{response.response}</p>
-                  {response.reasoning && (
-                    <div className="text-xs text-muted mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <span className="font-medium">Based on:</span> {response.reasoning}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function TradeOffVotingModal({ personas, onClose }: { personas: any[]; onClose: () => void }) {
-  const [question, setQuestion] = useState('')
-  const [options, setOptions] = useState(['', ''])
-  const [votes, setVotes] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [votingProgress, setVotingProgress] = useState<{ current: number; total: number } | null>(null)
-
-  const addOption = () => setOptions([...options, ''])
-  const removeOption = (index: number) => setOptions(options.filter((_, i) => i !== index))
-  const updateOption = (index: number, value: string) => {
-    const newOptions = [...options]
-    newOptions[index] = value
-    setOptions(newOptions)
-  }
-
-  const handleVote = async () => {
-    const validOptions = options.filter(o => o.trim())
-    if (!question.trim() || validOptions.length < 2) {
-      alert('Please enter a question and at least 2 options')
-      return
-    }
-
-    setLoading(true)
-    setVotingProgress({ current: 0, total: personas.length })
-
-    try {
-      // Use backend LLM-powered API for voting
-      // Make individual calls per persona to track real progress
-      const formattedOptions = validOptions.map((opt, idx) => ({
-        id: String.fromCharCode(65 + idx), // A, B, C, D...
-        description: opt
-      }))
-
-      let completed = 0
-      const allVotes: any[] = []
-
-      // Call backend once per persona to get real-time progress
-      const votePromises = personas.map(async (persona) => {
-        try {
-          const result = await api.personaVote({
-            persona_ids: [persona.id], // Single persona per call
-            question: question,
-            options: formattedOptions,
-          })
-
-          // Extract the vote for this persona
-          const votes = result.data.votes || []
-
-          // Update progress in real-time
-          completed++
-          setVotingProgress({ current: completed, total: personas.length })
-
-          return votes
-        } catch (error) {
-          console.error(`Error getting vote from persona ${persona.name}:`, error)
-
-          // Update progress even on error
-          completed++
-          setVotingProgress({ current: completed, total: personas.length })
-
-          return []
-        }
-      })
-
-      const voteResultsArray = await Promise.all(votePromises)
-
-      // Flatten all votes into single array
-      const votesData = voteResultsArray.flat()
-
-      // Show completion briefly before hiding
-      setTimeout(() => setVotingProgress(null), 500)
-
-      console.log('All votes received:', votesData)
-      console.log('Choices received:', votesData.map((v: any) => v.choice))
-
-      const voteResults = validOptions.map((option, idx) => {
-        const optionId = String.fromCharCode(65 + idx)
-        console.log(`Filtering for option ${optionId}:`, option)
-
-        // Handle both 'choice' and 'selected_option_id' field names
-        const votesForOption = votesData.filter((v: any) =>
-          v.choice === optionId || v.selected_option_id === optionId
-        )
-
-        console.log(`  Matched votes:`, votesForOption.length)
-
-        return {
-          option,
-          votes: votesForOption.length,
-          percentage: Math.round((votesForOption.length / personas.length) * 100),
-          personas: votesForOption.map((v: any) => v.persona_name),
-          reasoning: votesForOption.map((v: any) => ({
-            persona: v.persona_name,
-            reason: v.reasoning
-          }))
-        }
-      })
-
-      // Sort by votes descending
-      voteResults.sort((a, b) => b.votes - a.votes)
-
-      setVotes(voteResults)
-    } catch (error: any) {
-      console.error('Error getting votes:', error)
-      setVotingProgress(null)
-      const errorMsg = error.response?.data?.detail || error.message || 'Unknown error'
-      alert(`Failed to get persona votes: ${errorMsg}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-heading">Trade-off Voting</h2>
-          <button onClick={onClose} className="text-muted hover:text-heading transition">
-            ✕
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Question Input */}
-          <div>
-            <label className="block text-sm font-medium text-heading mb-2">Trade-off Question</label>
-            <input
-              type="text"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="E.g., What should we prioritize next quarter?"
-              className="input"
-            />
-          </div>
-
-          {/* Options */}
-          <div>
-            <label className="block text-sm font-medium text-heading mb-2">Options</label>
-            <div className="space-y-3">
-              {options.map((option, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={option}
-                    onChange={(e) => updateOption(idx, e.target.value)}
-                    placeholder={`Option ${idx + 1}`}
-                    className="input flex-1"
-                  />
-                  {options.length > 2 && (
-                    <button
-                      onClick={() => removeOption(idx)}
-                      className="btn-secondary px-3"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button onClick={addOption} className="btn-secondary">
-                + Add Option
-              </button>
-            </div>
-          </div>
-
-          {/* Get Votes Button / Progress */}
-          {votingProgress ? (
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-purple-600 animate-pulse" />
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Collecting Persona Votes...
-                  </h3>
-                </div>
-                <span className="text-sm font-medium text-purple-600">
-                  {votingProgress.current}/{votingProgress.total}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                <div
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(votingProgress.current / votingProgress.total) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                Receiving votes in real-time as personas respond...
-              </p>
-            </div>
-          ) : (
-            <button
-              onClick={handleVote}
-              disabled={loading || !question.trim() || options.filter(o => o.trim()).length < 2}
-              className="btn-primary w-full disabled:opacity-50"
-            >
-              {loading ? 'Getting Votes...' : 'Get Persona Votes'}
-            </button>
-          )}
-
-          {/* Vote Results */}
-          {votes && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-heading">Voting Results</h3>
-              {votes.map((result: any, idx: number) => (
-                <div key={idx} className="card p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold text-heading">{result.option}</div>
-                    <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                      {result.percentage}%
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
-                    <div
-                      className="bg-indigo-600 dark:bg-indigo-500 h-2 rounded-full transition-all"
-                      style={{ width: `${result.percentage}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-body">
-                    Voted by: {result.personas.join(', ')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
 function EditPersonaModal({ persona, onClose, onSave }: {
   persona: any
   onClose: () => void

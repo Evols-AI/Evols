@@ -397,7 +397,7 @@ Respond with JSON in exactly this structure:
         try:
             result = await self.llm.generate_structured(
                 prompt=prompt,
-                response_format={
+                response_model={
                     "title": "string",
                     "description": "string",
                     "suggested_solutions": ["string"],
