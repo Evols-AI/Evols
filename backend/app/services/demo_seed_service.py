@@ -12,6 +12,7 @@ from app.models.theme import Theme
 from app.models.persona import Persona
 from app.models.initiative import Initiative, InitiativeStatus, InitiativeEffort
 from app.models.project import Project, ProjectStatus, ProjectEffort
+from app.models.knowledge_base import KnowledgeSource, Capability
 
 
 async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
@@ -141,25 +142,40 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
 
     await db.flush()  # Get theme IDs
 
-    # 4. Create Personas (3 personas with proper counts)
+    # 4. Create Personas (3 personas with proper counts and metrics)
     personas_data = [
         {
             "name": "Product Manager Paula",
             "segment": "Product Management",
             "persona_summary": "Senior Product Manager with 5+ years experience leading cross-functional teams to deliver customer-focused products",
             "status": "advisor",
+            "confidence_score": 0.85,  # 85% confidence
+            "extra_data": {
+                "revenue_contribution": 150000,  # $150K annual revenue
+                "usage_frequency": "Daily",
+            },
         },
         {
             "name": "Developer Dave",
             "segment": "Engineering",
             "persona_summary": "Senior Full-Stack Developer specializing in performance optimization and scalable architecture",
             "status": "advisor",
+            "confidence_score": 0.78,  # 78% confidence
+            "extra_data": {
+                "revenue_contribution": 120000,  # $120K annual revenue
+                "usage_frequency": "Weekly",
+            },
         },
         {
             "name": "Designer Diana",
             "segment": "Design",
             "persona_summary": "Lead UX/UI Designer with expertise in user research and interaction design",
             "status": "advisor",
+            "confidence_score": 0.72,  # 72% confidence
+            "extra_data": {
+                "revenue_contribution": 90000,  # $90K annual revenue
+                "usage_frequency": "Weekly",
+            },
         },
     ]
 
@@ -174,10 +190,12 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             based_on_feedback_count=2,
             based_on_interview_count=0,
             based_on_deal_count=0,
+            confidence_score=persona_data["confidence_score"],
+            extra_data=persona_data["extra_data"],
         )
         db.add(persona)
 
-    # 5. Create Initiatives (4 initiatives)
+    # 5. Create Initiatives (4 initiatives with strategic impact)
     initiatives_data = [
         {
             "title": "Implement Progressive Web App (PWA)",
@@ -185,6 +203,9 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "status": InitiativeStatus.PLANNED,
             "effort": InitiativeEffort.LARGE,
             "theme_index": 1,  # Mobile Experience
+            "expected_retention_impact": 0.15,  # 15% retention lift -> RETENTION category
+            "expected_arr_impact": 25000.0,
+            "priority_score": 85.0,
         },
         {
             "title": "Optimize Database Queries",
@@ -192,6 +213,9 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "status": InitiativeStatus.IN_PROGRESS,
             "effort": InitiativeEffort.MEDIUM,
             "theme_index": 0,  # Performance Optimization
+            "expected_retention_impact": 0.10,  # 10% retention lift -> RETENTION category
+            "expected_arr_impact": 0.0,
+            "priority_score": 75.0,
         },
         {
             "title": "Build Slack Integration",
@@ -199,6 +223,9 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "status": InitiativeStatus.PLANNED,
             "effort": InitiativeEffort.MEDIUM,
             "theme_index": 2,  # Integrations
+            "expected_retention_impact": 0.0,
+            "expected_arr_impact": 75000.0,  # $75k ARR impact -> GROWTH category
+            "priority_score": 65.0,
         },
         {
             "title": "Add Dark Mode Theme",
@@ -206,6 +233,9 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "status": InitiativeStatus.PLANNED,
             "effort": InitiativeEffort.SMALL,
             "theme_index": None,  # No theme link
+            "expected_retention_impact": 0.0,
+            "expected_arr_impact": 0.0,  # No direct impact -> INFRASTRUCTURE category
+            "priority_score": 45.0,
         },
     ]
 
@@ -218,6 +248,9 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             description=init_data["description"],
             status=init_data["status"],
             effort=init_data["effort"],
+            expected_retention_impact=init_data["expected_retention_impact"],
+            expected_arr_impact=init_data["expected_arr_impact"],
+            priority_score=init_data["priority_score"],
         )
         db.add(initiative)
         initiatives.append(initiative)
@@ -230,7 +263,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             theme_idx = init_data["theme_index"]
             initiatives[i].themes.append(themes[theme_idx])
 
-    # 6. Create Projects (4 projects)
+    # 6. Create Projects (4 projects with priority scores for matrix)
     projects_data = [
         {
             "title": "PWA Service Worker Implementation",
@@ -239,6 +272,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "effort": ProjectEffort.LARGE,
             "status": ProjectStatus.BACKLOG,
             "is_boulder": True,
+            "priority_score": 80.0,  # High priority (Y-axis on matrix)
         },
         {
             "title": "Query Performance Audit",
@@ -247,6 +281,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "effort": ProjectEffort.MEDIUM,
             "status": ProjectStatus.IN_PROGRESS,
             "is_boulder": False,
+            "priority_score": 90.0,  # Highest priority
         },
         {
             "title": "Slack OAuth Setup",
@@ -255,6 +290,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "effort": ProjectEffort.MEDIUM,
             "status": ProjectStatus.BACKLOG,
             "is_boulder": False,
+            "priority_score": 60.0,  # Medium priority
         },
         {
             "title": "Dark Mode UI Design",
@@ -263,6 +299,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "effort": ProjectEffort.SMALL,
             "status": ProjectStatus.BACKLOG,
             "is_boulder": False,
+            "priority_score": 40.0,  # Lower priority
         },
     ]
 
@@ -276,8 +313,94 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             effort=proj_data["effort"],
             status=proj_data["status"],
             is_boulder=proj_data["is_boulder"],
+            priority_score=proj_data["priority_score"],
         )
         db.add(project)
+
+    # 7. Create Knowledge Sources (2 sources)
+    sources_data = [
+        {
+            "name": "Product Documentation",
+            "type": "url",
+            "description": "Official product documentation and user guides",
+            "url": "https://docs.example.com",
+            "status": "completed",
+            "capabilities_extracted": 3,
+        },
+        {
+            "name": "API Reference",
+            "type": "url",
+            "description": "REST API documentation and endpoints",
+            "url": "https://api.example.com/docs",
+            "status": "completed",
+            "capabilities_extracted": 2,
+        },
+    ]
+
+    sources = []
+    for source_data in sources_data:
+        source = KnowledgeSource(
+            tenant_id=tenant_id,
+            product_id=product_id,
+            name=source_data["name"],
+            type=source_data["type"],
+            description=source_data["description"],
+            url=source_data["url"],
+            status=source_data["status"],
+            capabilities_extracted=source_data["capabilities_extracted"],
+        )
+        db.add(source)
+        sources.append(source)
+
+    await db.flush()  # Get source IDs
+
+    # 8. Create Capabilities (5 capabilities linked to sources)
+    capabilities_data = [
+        {
+            "source_index": 0,  # Product Documentation
+            "name": "User Authentication",
+            "description": "OAuth 2.0 and JWT-based user authentication system with support for SSO",
+            "category": "feature",
+        },
+        {
+            "source_index": 0,  # Product Documentation
+            "name": "Real-time Notifications",
+            "description": "WebSocket-based notification system for instant updates",
+            "category": "feature",
+        },
+        {
+            "source_index": 0,  # Product Documentation
+            "name": "Data Export Engine",
+            "description": "Export data to CSV, Excel, PDF formats with customizable templates",
+            "category": "feature",
+        },
+        {
+            "source_index": 1,  # API Reference
+            "name": "REST API v2",
+            "description": "RESTful API endpoints for CRUD operations on all resources",
+            "category": "api",
+            "endpoints": ["/api/v2/users", "/api/v2/projects", "/api/v2/reports"],
+        },
+        {
+            "source_index": 1,  # API Reference
+            "name": "Webhook Events",
+            "description": "Configurable webhooks for real-time event notifications",
+            "category": "api",
+            "endpoints": ["/api/v2/webhooks"],
+        },
+    ]
+
+    for cap_data in capabilities_data:
+        capability = Capability(
+            tenant_id=tenant_id,
+            product_id=product_id,
+            source_id=sources[cap_data["source_index"]].id,
+            name=cap_data["name"],
+            description=cap_data["description"],
+            category=cap_data["category"],
+            endpoints=cap_data.get("endpoints"),
+        )
+        db.add(capability)
 
     # Commit all changes
     await db.commit()

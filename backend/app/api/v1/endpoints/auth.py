@@ -100,6 +100,15 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
 
         tenant_id = tenant.id
 
+    # Create demo product with sample data for new tenants (BEFORE user creation)
+    # This must happen before commit so everything is in same transaction
+    if not user_data.is_super_admin and tenant_id and is_new_tenant:
+        try:
+            await seed_demo_product(db, tenant_id)
+        except Exception as e:
+            # Log the error but don't fail registration
+            print(f"Warning: Failed to seed demo product for tenant {tenant_id}: {e}")
+
     # Create user
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
@@ -114,14 +123,6 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-
-    # Create demo product with sample data for new tenants (not for SUPER_ADMIN)
-    if not user_data.is_super_admin and tenant_id and is_new_tenant:
-        try:
-            await seed_demo_product(db, tenant_id)
-        except Exception as e:
-            # Log the error but don't fail registration
-            print(f"Warning: Failed to seed demo product for tenant {tenant_id}: {e}")
 
     # Create access token
     access_token = create_access_token(
