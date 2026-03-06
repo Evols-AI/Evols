@@ -548,14 +548,51 @@ Response format (JSON):
     }
 
 
+def _build_persona_context(personas: List[Any]) -> str:
+    """Build persona context string for LLM prompt"""
+    if not personas:
+        return "No active personas defined (consider all user segments equally)"
+
+    lines = []
+    for persona in personas[:10]:  # Limit to 10 most important
+        pain_points = persona.key_pain_points or []
+        priorities = persona.feature_priorities or []
+        lines.append(
+            f"- {persona.name} ({persona.segment})\n"
+            f"  Pain points: {', '.join(pain_points[:3]) if pain_points else 'None'}\n"
+            f"  Priorities: {', '.join(priorities[:3]) if priorities else 'None'}"
+        )
+    return "\n".join(lines)
+
+
+def _build_capability_context(capabilities: List[Any]) -> str:
+    """Build capability context string for LLM prompt"""
+    if not capabilities:
+        return "No capabilities documented yet (all features are new)"
+
+    lines = []
+    for cap in capabilities[:30]:  # Limit to 30 most relevant
+        description = cap.description[:100] if cap.description else "No description"
+        category = f" [{cap.category}]" if cap.category else ""
+        lines.append(f"- {cap.name}{category}: {description}")
+
+    if len(capabilities) > 30:
+        lines.append(f"... and {len(capabilities) - 30} more capabilities")
+
+    return "\n".join(lines)
+
+
 async def auto_generate_initiatives(tenant_id: int, db: AsyncSession):
     """
     Generate specific initiatives from themes.
     Breaks down each theme into 2-4 actionable initiatives.
+    Context-aware: considers existing product capabilities and active personas.
     Returns dict with initiatives_created and initiatives_failed counts.
     """
     import logging
     from app.models.initiative import Initiative, InitiativeStatus, InitiativeEffort
+    from app.models.persona import Persona
+    from app.models.knowledge_base import Capability
 
     logger = logging.getLogger(__name__)
     logger.info(f"[Initiative Generation] Starting initiative generation for tenant {tenant_id}")
@@ -575,6 +612,30 @@ async def auto_generate_initiatives(tenant_id: int, db: AsyncSession):
         return {"initiatives_created": 0, "initiatives_failed": 0, "themes_processed": 0}
 
     logger.info(f"[Initiative Generation] Processing {len(themes)} themes")
+
+    # Load active personas for context
+    persona_result = await db.execute(
+        select(Persona).where(
+            Persona.tenant_id == tenant_id,
+            Persona.status == 'advisor'  # Only active/prioritized personas
+        )
+    )
+    active_personas = persona_result.scalars().all()
+    logger.info(f"[Initiative Generation] Found {len(active_personas)} active personas")
+
+    # Load existing product capabilities to avoid duplicates
+    capability_result = await db.execute(
+        select(Capability).where(Capability.tenant_id == tenant_id)
+    )
+    existing_capabilities = capability_result.scalars().all()
+    logger.info(f"[Initiative Generation] Found {len(existing_capabilities)} existing capabilities")
+
+    # Build context strings for LLM
+    persona_context = _build_persona_context(active_personas)
+    capability_context = _build_capability_context(existing_capabilities)
+
+    logger.debug(f"[Initiative Generation] Persona context: {persona_context[:200]}...")
+    logger.debug(f"[Initiative Generation] Capability context: {capability_context[:200]}...")
 
     # Delete old auto-generated initiatives (those in 'idea' status)
     delete_result = await db.execute(
@@ -598,32 +659,142 @@ async def auto_generate_initiatives(tenant_id: int, db: AsyncSession):
         # Generate initiatives for this theme using LLM
         prompt = f"""Break down this customer feedback theme into 2-4 specific, actionable product initiatives.
 
+IMPORTANT: Thoughtfully analyze each initiative's PRIMARY business impact. Don't default to retention just because customers requested it - consider whether it truly prevents churn (retention), drives new revenue (growth), or has no direct user benefit (infrastructure).
+
 Theme: {theme.title}
 Description: {theme.description}
 Based on: {theme.feedback_count} feedback items from {theme.account_count} customers
+Urgency: {theme.urgency_score:.0%}, Impact: {theme.impact_score:.0%}
 
-Generate 2-4 specific initiatives that address this theme. Each initiative should be:
-- Specific and actionable (not vague)
-- Estimated effort: small (<2 weeks), medium (2-6 weeks), or large (6-12 weeks)
-- Have a clear description of what will be built
+IMPORTANT CONTEXT:
+
+Active Personas (prioritized user segments):
+{persona_context}
+
+Existing Product Capabilities (already released):
+{capability_context}
+
+INSTRUCTIONS:
+- Do NOT generate initiatives for features that already exist in the capabilities list above
+- If a requested feature already exists, you can suggest enhancements/improvements instead
+- Prioritize initiatives that serve active personas listed above
+- If an initiative would primarily benefit deactivated personas, set lower priority (backlog)
+- If a capability matching this theme was recently released, consider marking status as "launched" instead of creating new initiatives
+
+Generate 2-4 specific initiatives that address this theme. For EACH initiative, analyze:
+
+1. **Status**: Based on urgency, existing capabilities, and business context, classify as:
+   - "launched" - Feature already exists in capabilities list (check before creating new initiatives)
+   - "in_progress" - Critical/urgent (urgency > 70%), should start immediately
+   - "planned" - Important (urgency 40-70%), should be next quarter
+   - "backlog" - Lower priority (urgency < 40%), future consideration
+   - "cancelled" - If this addresses deactivated personas only or is no longer relevant
+
+2. **Expected Outcomes**: Analyze the PRIMARY business impact carefully and choose the MOST APPROPRIATE category:
+
+   A) **Retention Focus** - Set expected_retention_impact (0.01-0.20):
+      - Fixes EXISTING customer pain points that cause churn
+      - Improves satisfaction/stickiness for CURRENT users
+      - Addresses complaints from users who already bought
+      - Reduces frustration with existing workflows
+      - Examples: Bug fixes, UX improvements, performance issues, missing features current users need
+      - Values: 0.03-0.05 (small), 0.05-0.10 (medium), 0.10-0.20 (high)
+
+   B) **Growth Focus** - Set expected_arr_impact (dollar estimate):
+      - Unlocks NEW customer segments or markets (not existing users)
+      - Enables enterprise deals or upsells
+      - Drives new customer acquisition
+      - Expansion revenue (premium tiers, add-ons)
+      - Examples: Enterprise SSO, API access, white-labeling, integrations with popular platforms
+      - Values: 25000-50000 (small), 50000-150000 (medium), 150000+ (large)
+
+   C) **Infrastructure** - Set both to null:
+      - Pure technical debt with NO direct user benefit
+      - Backend optimizations that users don't notice
+      - Developer tooling, CI/CD improvements
+      - Database migrations, code refactoring
+      - Examples: Test coverage, build system, code cleanup
+
+   **DECISION RULES:**
+   - Existing customers frustrated and might leave → RETENTION
+   - Feature unlocks revenue from NEW customers → GROWTH
+   - No direct user-facing benefit → INFRASTRUCTURE
+   - Ask: "Who benefits most - existing users (retention) or new/upgrading customers (growth)?"
+   - Don't default to retention just because customers requested it - consider if it's truly about keeping them vs acquiring new ones
 
 Response format (JSON array):
 [
   {{
     "title": "Initiative title (5-8 words)",
     "description": "What will be built and why (1-2 sentences)",
-    "effort": "small|medium|large"
+    "effort": "small|medium|large",
+    "status": "launched|in_progress|planned|backlog|cancelled",
+    "expected_retention_impact": 0.0-1.0 or null,
+    "expected_arr_impact": estimated_dollars or null,
+    "reasoning": "Brief explanation of status and outcome classification"
   }}
-]"""
+]
+
+Examples:
+
+RETENTION EXAMPLE:
+{{
+  "title": "Implement Advanced Search Filters",
+  "description": "Add filtering by date, category, and status to improve user productivity.",
+  "effort": "medium",
+  "status": "planned",
+  "expected_retention_impact": 0.08,
+  "expected_arr_impact": null,
+  "reasoning": "Retention focus: users frustrated by lack of search. 8% retention improvement expected."
+}}
+
+GROWTH EXAMPLE:
+{{
+  "title": "Enterprise SSO Integration",
+  "description": "Add SAML/OAuth support for enterprise authentication.",
+  "effort": "large",
+  "status": "planned",
+  "expected_retention_impact": null,
+  "expected_arr_impact": 150000,
+  "reasoning": "Growth focus: unlocks enterprise segment. $150k ARR from enterprise deals."
+}}
+
+INFRASTRUCTURE EXAMPLE:
+{{
+  "title": "Migrate to Microservices Architecture",
+  "description": "Refactor monolith into microservices for better scalability.",
+  "effort": "xlarge",
+  "status": "backlog",
+  "expected_retention_impact": null,
+  "expected_arr_impact": null,
+  "reasoning": "Infrastructure: technical architecture improvement with no immediate user benefit."
+}}
+
+MIXED EXAMPLE (appears to be retention but is actually growth):
+{{
+  "title": "Advanced Analytics Dashboard",
+  "description": "Add custom reports and data export for power users.",
+  "effort": "large",
+  "status": "planned",
+  "expected_retention_impact": null,
+  "expected_arr_impact": 75000,
+  "reasoning": "Growth focus: enterprise-requested feature that unlocks $75k in pending deals. While existing customers want it, primary benefit is closing new enterprise sales."
+}}
+
+IMPORTANT: Return empty array [] if all requested features already exist in capabilities.
+Be thoughtful about retention vs growth - don't automatically default to retention!
+"""
 
         try:
             llm_response = await llm_service.generate(
                 prompt=prompt,
                 temperature=0.4,
-                max_tokens=500,
+                max_tokens=1000,  # Increased for full JSON with reasoning
                 use_cheaper_model=True,  # Cost optimization: initiative generation is structured task
             )
             response = llm_response.content
+
+            logger.debug(f"[Initiative Generation] LLM raw response for theme '{theme.title}': {response[:500]}...")
 
             # Parse JSON response
             import json
@@ -631,6 +802,10 @@ Response format (JSON array):
             json_match = re.search(r'\[[\s\S]*\]', response)
             if json_match:
                 initiatives_data = json.loads(json_match.group())
+                logger.info(
+                    f"[Initiative Generation] Parsed {len(initiatives_data)} initiatives "
+                    f"from LLM for theme '{theme.title}'"
+                )
 
                 for init_data in initiatives_data[:4]:  # Limit to 4 initiatives per theme
                     title = init_data.get('title', f'Initiative for {theme.title}')
@@ -646,15 +821,63 @@ Response format (JSON array):
                     }
                     effort = effort_map.get(effort_str, InitiativeEffort.MEDIUM)
 
+                    # Map status string to enum (with fallback based on urgency)
+                    status_str = init_data.get('status', '').lower()
+                    status_map = {
+                        'launched': InitiativeStatus.LAUNCHED,
+                        'in_progress': InitiativeStatus.IN_PROGRESS,
+                        'planned': InitiativeStatus.PLANNED,
+                        'backlog': InitiativeStatus.BACKLOG,
+                        'idea': InitiativeStatus.IDEA,
+                        'cancelled': InitiativeStatus.CANCELLED,
+                        'paused': InitiativeStatus.PAUSED,
+                    }
+
+                    # Default status based on theme urgency if not provided
+                    if status_str in status_map:
+                        status = status_map[status_str]
+                    else:
+                        urgency = theme.urgency_score or 0
+                        if urgency > 0.7:
+                            status = InitiativeStatus.IN_PROGRESS
+                        elif urgency > 0.4:
+                            status = InitiativeStatus.PLANNED
+                        else:
+                            status = InitiativeStatus.BACKLOG
+
+                    # Skip creating initiatives that are already launched or cancelled
+                    if status in [InitiativeStatus.LAUNCHED, InitiativeStatus.CANCELLED]:
+                        logger.info(
+                            f"[Initiative Generation] Skipping '{title}' - status={status.value} "
+                            f"(feature exists or not relevant)"
+                        )
+                        continue
+
+                    # Parse expected outcomes
+                    expected_retention_impact = init_data.get('expected_retention_impact')
+                    expected_arr_impact = init_data.get('expected_arr_impact')
+
+                    # Log the AI reasoning for debugging
+                    reasoning = init_data.get('reasoning', 'No reasoning provided')
+                    logger.info(
+                        f"[Initiative Generation] Creating '{title}' - "
+                        f"Status: {status.value}, "
+                        f"Retention: {expected_retention_impact}, "
+                        f"ARR: {expected_arr_impact}, "
+                        f"Reasoning: {reasoning}"
+                    )
+
                     # Create initiative
                     initiative = Initiative(
                         tenant_id=tenant_id,
                         title=title,
                         description=description,
-                        status=InitiativeStatus.IDEA,
+                        status=status,
                         effort=effort,
                         estimated_impact_score=theme.impact_score,
-                        priority_score=theme.urgency_score * 100 if theme.urgency_score else 50
+                        priority_score=theme.urgency_score * 100 if theme.urgency_score else 50,
+                        expected_retention_impact=expected_retention_impact,
+                        expected_arr_impact=expected_arr_impact,
                     )
                     db.add(initiative)
 
@@ -665,9 +888,19 @@ Response format (JSON array):
                     logger.debug(f"[Initiative Generation] Created initiative: '{title}' for theme '{theme.title}'")
 
             else:
-                logger.warning(f"[Initiative Generation] No JSON found in LLM response for theme '{theme.title}'")
+                logger.warning(
+                    f"[Initiative Generation] No JSON found in LLM response for theme '{theme.title}'. "
+                    f"Response was: {response[:300]}"
+                )
                 initiatives_failed += 1
 
+        except json.JSONDecodeError as e:
+            logger.error(
+                f"[Initiative Generation] JSON parsing failed for theme '{theme.title}': {e}. "
+                f"Raw response: {response[:500]}"
+            )
+            initiatives_failed += 1
+            continue
         except Exception as e:
             logger.error(f"[Initiative Generation] Failed to generate initiatives for theme '{theme.title}': {e}", exc_info=True)
             initiatives_failed += 1
@@ -684,6 +917,61 @@ Response format (JSON array):
         "initiatives_created": initiatives_created,
         "initiatives_failed": initiatives_failed,
         "themes_processed": len(themes)
+    }
+
+
+@router.get("/initiative-context-preview")
+async def preview_initiative_context(
+    db: AsyncSession = Depends(get_db),
+    tenant_id: int = Depends(get_current_tenant_id),
+):
+    """
+    Preview the context that will be used for initiative generation.
+    Useful for debugging why initiatives aren't being generated correctly.
+    """
+    from app.models.persona import Persona
+    from app.models.knowledge_base import Capability
+
+    # Load active personas
+    persona_result = await db.execute(
+        select(Persona).where(
+            Persona.tenant_id == tenant_id,
+            Persona.status == 'advisor'
+        )
+    )
+    active_personas = persona_result.scalars().all()
+
+    # Load existing capabilities
+    capability_result = await db.execute(
+        select(Capability).where(Capability.tenant_id == tenant_id)
+    )
+    existing_capabilities = capability_result.scalars().all()
+
+    persona_context = _build_persona_context(active_personas)
+    capability_context = _build_capability_context(existing_capabilities)
+
+    return {
+        "active_personas_count": len(active_personas),
+        "capabilities_count": len(existing_capabilities),
+        "persona_context": persona_context,
+        "capability_context": capability_context,
+        "personas": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "segment": p.segment,
+                "status": p.status,
+            }
+            for p in active_personas
+        ],
+        "capabilities": [
+            {
+                "id": c.id,
+                "name": c.name,
+                "category": c.category,
+            }
+            for c in existing_capabilities
+        ],
     }
 
 
@@ -757,12 +1045,7 @@ async def refresh_themes(
         theme_result = await auto_generate_themes(tenant_id, db, last_refresh_timestamp)
 
         # Check if there was new data to process
-        if theme_result.get("status") == "up_to_date":
-            return {
-                "success": True,
-                "status": "up_to_date",
-                "message": "Themes are already up to date. No new feedback to process.",
-            }
+        themes_up_to_date = theme_result.get("status") == "up_to_date"
 
         if theme_result.get("status") == "no_data":
             return {
@@ -771,12 +1054,14 @@ async def refresh_themes(
                 "message": theme_result.get("message", "Not enough feedback data"),
             }
 
-        # Generate initiatives from themes
+        # Always regenerate initiatives from themes (even if themes are up-to-date)
+        # This ensures improvements to initiative generation logic are applied
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[Theme Refresh] Regenerating initiatives for tenant {tenant_id}")
         await auto_generate_initiatives(tenant_id, db)
 
         # Generate projects from initiatives
-        import logging
-        logger = logging.getLogger(__name__)
         logger.info(f"[Theme Refresh] Generating projects for tenant {tenant_id}")
 
         try:
@@ -803,18 +1088,24 @@ async def refresh_themes(
             logger.error(f"[Theme Refresh] Project generation failed: {e}", exc_info=True)
             # Don't fail the whole refresh if project generation fails
 
-        # Update last refresh timestamp
-        if tenant:
+        # Update last refresh timestamp (only if themes were actually updated)
+        if tenant and not themes_up_to_date:
             settings = tenant.settings or {}
             settings['theme_last_refresh_date'] = datetime.utcnow().isoformat() + 'Z'
             tenant.settings = settings
             attributes.flag_modified(tenant, 'settings')
             await db.commit()
 
+        # Prepare response message
+        if themes_up_to_date:
+            message = "Themes are up to date. Initiatives and projects regenerated with latest AI improvements."
+        else:
+            message = theme_result.get("message", "Themes, initiatives, and projects refreshed successfully")
+
         return {
             "success": True,
             "status": "refreshed",
-            "message": theme_result.get("message", "Themes, initiatives, and projects refreshed successfully"),
+            "message": message,
             "themes_created": theme_result.get("themes_created", 0),
             "themes_updated": theme_result.get("themes_updated", 0),
             "feedback_processed": theme_result.get("feedback_processed", 0),
