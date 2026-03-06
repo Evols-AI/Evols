@@ -35,7 +35,7 @@ function TabNav({ activeTab, setActiveTab }: { activeTab: TabType; setActiveTab:
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
               isActive
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
@@ -409,12 +409,12 @@ export default function Roadmap() {
                             >
                               <span className="text-base">{option.icon}</span>
                               <span className={`text-sm font-medium ${
-                                sortBy === option.value ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
+                                sortBy === option.value ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-gray-100'
                               }`}>
                                 {option.label}
                               </span>
                               {sortBy === option.value && (
-                                <Check className="ml-auto w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <Check className="ml-auto w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                               )}
                             </button>
                           ))}
