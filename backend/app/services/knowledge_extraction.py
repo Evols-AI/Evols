@@ -193,7 +193,7 @@ Extract EVERY capability mentioned. Be comprehensive and thorough - aim for comp
         async with httpx.AsyncClient(
             timeout=self.REQUEST_TIMEOUT,
             follow_redirects=True,
-            headers={'User-Agent': 'ProductOS-KnowledgeBot/1.0'}
+            headers={'User-Agent': 'Evols-KnowledgeBot/1.0'}
         ) as client:
 
             while to_visit and len(pages_content) < self.MAX_PAGES_TO_CRAWL:
@@ -438,7 +438,7 @@ Extract EVERY capability mentioned in README, API endpoints, major components, a
             follow_redirects=True,
             headers={
                 'Accept': 'application/vnd.github.v3+json',
-                'User-Agent': 'ProductOS-KnowledgeBot/1.0'
+                'User-Agent': 'Evols-KnowledgeBot/1.0'
             }
         ) as client:
 

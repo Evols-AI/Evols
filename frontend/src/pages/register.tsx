@@ -109,7 +109,7 @@ export default function Register() {
   return (
     <>
       <Head>
-        <title>Sign Up - ProductOS</title>
+        <title>Sign Up - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex items-center justify-center p-6">
@@ -137,7 +137,7 @@ export default function Register() {
               </svg>
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                  Join ProductOS Today
+                  Join Evols Today
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 max-w-md">
                   Start making confident product decisions backed by AI-powered insights and customer feedback analysis.
@@ -152,7 +152,7 @@ export default function Register() {
                 <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-2">
                   <LogoIcon size={48} />
                   <span className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                    ProductOS
+                    Evols
                   </span>
                 </Link>
                 <p className="text-gray-600 dark:text-gray-300">Create your account</p>

@@ -20,7 +20,7 @@ from app.models.initiative import Initiative, theme_initiative
 from app.models.project import Project
 
 # Get database URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/productos")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/evols")
 
 # Convert to async URL if needed
 if DATABASE_URL.startswith("postgresql://"):

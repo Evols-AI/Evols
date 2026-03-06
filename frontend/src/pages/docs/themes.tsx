@@ -7,7 +7,7 @@ export default function ThemesDocumentation() {
   return (
     <>
       <Head>
-        <title>Themes Documentation - ProductOS</title>
+        <title>Themes Documentation - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -17,7 +17,7 @@ export default function ThemesDocumentation() {
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center space-x-2">
                 <LogoIcon size={32} />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">ProductOS Docs</span>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">Evols Docs</span>
               </Link>
               <Link href="/docs" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
                 <ArrowLeft className="w-4 h-4" />
@@ -50,7 +50,7 @@ export default function ThemesDocumentation() {
           </svg>
           <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">Feedback Themes</h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-            Learn how ProductOS automatically clusters feedback into themes and calculates urgency and impact scores.
+            Learn how Evols automatically clusters feedback into themes and calculates urgency and impact scores.
           </p>
 
           {/* Overview */}
@@ -70,7 +70,7 @@ export default function ThemesDocumentation() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">1. Semantic Clustering</h3>
               <p>
-                ProductOS generates embeddings for each feedback item and groups similar feedback using cosine similarity.
+                Evols generates embeddings for each feedback item and groups similar feedback using cosine similarity.
                 Feedback items with <strong>≥75% similarity</strong> are clustered together into the same theme.
               </p>
 

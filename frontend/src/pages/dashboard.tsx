@@ -204,7 +204,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <Head><title>Dashboard — ProductOS</title></Head>
+      <Head><title>Dashboard — Evols</title></Head>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <Header user={user} currentPage="dashboard" />
 
@@ -226,7 +226,7 @@ export default function Dashboard() {
               <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 rounded-lg p-8 border border-indigo-200 dark:border-indigo-800">
                 <h2 className="card-header mb-2">🚀 Let's get started</h2>
                 <p className="text-body mb-6 max-w-xl">
-                  Upload your first VoC or connect a data source and ProductOS will auto-cluster themes, build persona twins, and help you make your first evidence-backed decision.
+                  Upload your first VoC or connect a data source and Evols will auto-cluster themes, build persona twins, and help you make your first evidence-backed decision.
                 </p>
                 <div className="grid sm:grid-cols-3 gap-4">
                   {[

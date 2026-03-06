@@ -193,7 +193,7 @@ export default function WorkbenchPage() {
   return (
     <>
       <Head>
-        <title>Decision Workbench — ProductOS</title>
+        <title>Decision Workbench — Evols</title>
       </Head>
 
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">

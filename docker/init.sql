@@ -5,4 +5,4 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- (Alembic migrations will handle the full schema)
 
 -- Grant permissions
-GRANT ALL PRIVILEGES ON DATABASE productos TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE evols TO postgres;

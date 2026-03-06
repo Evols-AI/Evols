@@ -2,11 +2,11 @@
 
 ## Overview
 
-ProductOS uses AI (Large Language Models) to automatically generate themes, initiatives, and projects from customer feedback. This document provides a detailed breakdown of LLM usage and associated costs.
+Evols uses AI (Large Language Models) to automatically generate themes, initiatives, and projects from customer feedback. This document provides a detailed breakdown of LLM usage and associated costs.
 
 ## ⚡ Cost Optimizations (Implemented)
 
-ProductOS implements several transparent cost optimizations that reduce LLM costs without affecting functionality:
+Evols implements several transparent cost optimizations that reduce LLM costs without affecting functionality:
 
 ### 1. **Model Cascading** (17% savings)
 - **Theme & Initiative Generation**: Automatically uses cheaper model tier (e.g., Claude Haiku instead of Sonnet)
@@ -222,7 +222,7 @@ For 1,000 VoC items, you get:
 
 ## Implemented Cost Optimizations
 
-The following optimizations are **already implemented** in ProductOS:
+The following optimizations are **already implemented** in Evols:
 
 ### ✅ 1. Model Cascading (Implemented)
 - **What**: Automatically use cheaper model tiers for simple tasks

@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    APP_NAME: str = "ProductOS"
+    APP_NAME: str = "Evols"
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # Database
     # Note: Use plain postgresql:// format - it will be auto-converted to postgresql+asyncpg:// for async operations
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/productos"
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/evols"
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 10
 
@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    EMAIL_FROM: str = "noreply@productos.ai"
+    EMAIL_FROM: str = "noreply@evols.ai"
 
     # File Upload
     MAX_UPLOAD_SIZE_MB: int = 100

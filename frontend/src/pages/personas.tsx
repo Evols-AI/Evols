@@ -317,7 +317,7 @@ export default function Personas() {
   return (
     <>
       <Head>
-        <title>Personas - ProductOS</title>
+        <title>Personas - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

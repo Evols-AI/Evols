@@ -33,7 +33,7 @@ export default function BookDemo() {
   if (submitted) {
     return (
       <>
-        <Head><title>Thank You - ProductOS</title></Head>
+        <Head><title>Thank You - Evols</title></Head>
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex items-center justify-center p-6">
           <div className="w-full max-w-2xl text-center">
             <div className="mb-8">
@@ -86,14 +86,14 @@ export default function BookDemo() {
 
   return (
     <>
-      <Head><title>Book a Demo - ProductOS</title></Head>
+      <Head><title>Book a Demo - Evols</title></Head>
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
         {/* Header */}
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">
             <Link href="/" className="flex items-center space-x-2">
               <LogoIcon size={40} />
-              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">ProductOS</span>
+              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Evols</span>
             </Link>
             <div className="flex items-center space-x-6">
               <Link href="/login" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Login</Link>
@@ -127,9 +127,9 @@ export default function BookDemo() {
                   <circle cx="260" cy="220" r="25" fill="#10b981"/>
                   <path d="M 250 220 L 257 227 L 270 212" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round"/>
                 </svg>
-                <h1 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">See ProductOS in Action</h1>
+                <h1 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">See Evols in Action</h1>
                 <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                  Book a 30-minute personalized demo to see how ProductOS can transform your product decision-making.
+                  Book a 30-minute personalized demo to see how Evols can transform your product decision-making.
                 </p>
                 <div className="space-y-6">
                   <div className="flex items-start space-x-4">
@@ -244,7 +244,7 @@ export default function BookDemo() {
                       id="message" name="message" rows={4}
                       value={formData.message} onChange={handleChange}
                       className="block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      placeholder="Tell us what you're looking to achieve with ProductOS..."
+                      placeholder="Tell us what you're looking to achieve with Evols..."
                     />
                   </div>
 
@@ -256,7 +256,7 @@ export default function BookDemo() {
                   </button>
 
                   <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-                    By submitting this form, you agree to receive communications from ProductOS.
+                    By submitting this form, you agree to receive communications from Evols.
                   </p>
                 </form>
               </div>

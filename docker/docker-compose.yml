@@ -2,11 +2,11 @@ services:
   # PostgreSQL Database with pgvector
   postgres:
     image: ankane/pgvector:v0.5.1
-    container_name: productos-postgres
+    container_name: evols-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: productos
+      POSTGRES_DB: evols
     ports:
       - "5432:5432"
     volumes:
@@ -21,7 +21,7 @@ services:
   # Redis (for caching and sessions)
   redis:
     image: redis:7-alpine
-    container_name: productos-redis
+    container_name: evols-redis
     ports:
       - "6379:6379"
     volumes:
@@ -37,9 +37,9 @@ services:
     build:
       context: ../backend
       dockerfile: ../docker/backend.Dockerfile
-    container_name: productos-backend
+    container_name: evols-backend
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/productos
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/evols
       REDIS_URL: redis://redis:6379/0
       DEBUG: "True"
     ports:
@@ -58,7 +58,7 @@ services:
     build:
       context: ../frontend
       dockerfile: ../docker/frontend.Dockerfile
-    container_name: productos-frontend
+    container_name: evols-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:

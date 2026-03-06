@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>ProductOS - Product Decision Operating System</title>
+        <title>Evols - Evolve your product roadmap</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
@@ -30,7 +30,7 @@ export default function Home() {
             <div className="flex items-center space-x-2">
               <LogoIcon size={40} />
               <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                ProductOS
+                Evols
               </span>
             </div>
             <div className="flex items-center space-x-6">
@@ -66,7 +66,7 @@ export default function Home() {
             >
               <div className="inline-flex items-center space-x-2 bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full text-sm text-blue-600 dark:text-blue-400 mb-6">
                 <Sparkles className="w-4 h-4" />
-                <span>AI-Native Product Decision OS</span>
+                <span>AI-Powered Roadmap Evolution</span>
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
@@ -468,7 +468,7 @@ export default function Home() {
             <div className="grid md:grid-cols-2 gap-12 p-12">
               <div>
                 <h2 className="text-4xl font-bold mb-8 text-gray-900 dark:text-white">
-                  Why ProductOS?
+                  Why Evols?
                 </h2>
                 <div className="space-y-6">
                   <ValueProp text="Consolidate fragmented evidence from feedback tools, CRM, and analytics" />
@@ -503,7 +503,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="container mx-auto px-6 py-12 text-center text-gray-600 dark:text-gray-400">
-          <p>© 2026 ProductOS. All rights reserved.</p>
+          <p>© 2026 Evols. Evolve your product roadmap.</p>
         </footer>
       </div>
     </>

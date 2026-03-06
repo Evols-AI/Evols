@@ -1,10 +1,12 @@
-# ProductOS - Product Decision Operating System
+# Evols
 
-**Mission:** Help senior PMs at scaling B2B SaaS companies turn all their customer and product data into fast, explainable product decisions they can confidently defend and execute.
+**Evolve your product roadmap**
+
+Turn customer feedback into prioritized roadmaps automatically. Help senior PMs at scaling B2B SaaS companies turn all their customer and product data into fast, explainable product decisions they can confidently defend and execute.
 
 ## Overview
 
-ProductOS is an AI-native Product Decision OS that helps product managers:
+Evols is an AI-native Product Decision OS that helps product managers:
 - **Consolidate fragmented evidence** from feedback tools, CRM, analytics, and support tickets
 - **Auto-cluster feedback** into themes with revenue impact and urgency
 - **Generate evidence-backed decision briefs** with clear options, tradeoffs, and recommendations
@@ -55,7 +57,7 @@ ProductOS is an AI-native Product Decision OS that helps product managers:
 ## Architecture
 
 ```
-ProductOS/
+Evols/
 ├── backend/          # Python FastAPI backend
 │   ├── app/
 │   │   ├── api/      # API endpoints
@@ -116,7 +118,7 @@ ProductOS/
 1. **Clone the repository**
 ```bash
 git clone <repo-url>
-cd ProductOS
+cd evols
 ```
 
 2. **Set up environment variables**
@@ -161,7 +163,7 @@ npm run dev
 ## Key Features Spotlight
 
 ### ⚡ Automatic End-to-End Generation
-ProductOS automatically generates your entire product roadmap from customer feedback with a single button:
+Evols automatically generates your entire product roadmap from customer feedback with a single button:
 
 - **One-Click Workflow**: Upload feedback → Click "Refresh All" → Get prioritized projects
 - **Fully Automated Pipeline**: Themes → Initiatives → Projects all generated automatically
@@ -217,7 +219,7 @@ JWT token validation with automatic expiration detection:
 
 ### 🏗️ Three-Tier Product Hierarchy
 
-ProductOS implements a clear three-tier hierarchy that connects customer feedback to concrete execution:
+Evols implements a clear three-tier hierarchy that connects customer feedback to concrete execution:
 
 ```
 Theme (Feedback Clusters) → Initiative (Strategic Bets) → Project (Work Items)
@@ -335,10 +337,10 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ## License
 
-Copyright © 2026 ProductOS. All rights reserved.
+Copyright © 2026 Evols. All rights reserved.
 
 ## Support
 
-- Documentation: [docs.productos.ai](https://docs.productos.ai)
-- Issues: [GitHub Issues](https://github.com/productos/issues)
-- Email: support@productos.ai
+- Documentation: [docs.evols.ai](https://docs.evols.ai)
+- Issues: [GitHub Issues](https://github.com/evols/issues)
+- Email: support@evols.ai

@@ -13,7 +13,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # Create Celery app
 celery_app = Celery(
-    "productos",
+    "evols",
     broker=REDIS_URL,
     backend=REDIS_URL,
     include=[

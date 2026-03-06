@@ -218,7 +218,7 @@ export default function Feedback() {
   return (
     <>
       <Head>
-        <title>Voice of Customer - ProductOS</title>
+        <title>Voice of Customer - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

@@ -1,6 +1,6 @@
 # Development Guide
 
-Quick reference for running ProductOS in development mode.
+Quick reference for running Evols in development mode.
 
 ---
 
@@ -110,7 +110,7 @@ USE_CELERY=True                          # Enable Celery (default: True)
 REDIS_URL=redis://localhost:6379/0      # Redis connection (only needed if USE_CELERY=True)
 
 # Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/productos
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/evols
 
 # LLM Configuration (required for AI features)
 OPENAI_API_KEY=sk-...

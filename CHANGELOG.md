@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to ProductOS will be documented in this file.
+All notable changes to Evols will be documented in this file.
 
 ## [Unreleased] - 2026-03-02
 
@@ -498,7 +498,7 @@ None reported.
 ## [1.0.0] - 2026-02-25
 
 ### Initial Release
-- Core ProductOS functionality
+- Core Evols functionality
 - Feedback ingestion and clustering
 - Theme generation
 - Persona digital twins

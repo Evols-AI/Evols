@@ -1,6 +1,6 @@
 /**
  * CheckpointApproval
- * The core transparency primitive in ProductOS.
+ * The core transparency primitive in Evols.
  * Every major auto-step shows a checkpoint: "Here's what we did → Approve / Edit"
  * PMs never feel surprised; they always have a review gate before continuing.
  */

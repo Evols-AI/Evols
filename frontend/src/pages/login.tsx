@@ -73,7 +73,7 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>Login - ProductOS</title>
+        <title>Login - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex items-center justify-center p-6">
@@ -113,7 +113,7 @@ export default function Login() {
                 <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-2">
                   <LogoIcon size={48} />
                   <span className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                    ProductOS
+                    Evols
                   </span>
                 </Link>
                 <p className="text-gray-600 dark:text-gray-300">Sign in to your account</p>

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    container_name: productos-redis
+    container_name: evols-redis
     ports:
       - "6379:6379"
     volumes:
@@ -19,11 +19,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: productos-celery-worker
+    container_name: evols-celery-worker
     command: celery -A app.core.celery_app worker --loglevel=info --concurrency=4
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/productos
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/evols
       - PYTHONUNBUFFERED=1
     depends_on:
       redis:
@@ -39,11 +39,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: productos-celery-beat
+    container_name: evols-celery-beat
     command: celery -A app.core.celery_app beat --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/productos
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/evols
       - PYTHONUNBUFFERED=1
     depends_on:
       redis:
@@ -59,7 +59,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: productos-flower
+    container_name: evols-flower
     command: celery -A app.core.celery_app flower --port=5555
     ports:
       - "5555:5555"

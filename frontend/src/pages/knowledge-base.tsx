@@ -92,7 +92,7 @@ export default function KnowledgeBase() {
   return (
     <>
       <Head>
-        <title>Product RAG - ProductOS</title>
+        <title>Product RAG - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

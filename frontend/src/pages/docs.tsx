@@ -7,7 +7,7 @@ export default function Docs() {
   return (
     <>
       <Head>
-        <title>Documentation - ProductOS</title>
+        <title>Documentation - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
@@ -17,7 +17,7 @@ export default function Docs() {
             <div className="flex items-center justify-between">
               <Link href="/" className="flex items-center space-x-2">
                 <LogoIcon size={32} />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">ProductOS</span>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">Evols</span>
               </Link>
               <div className="flex items-center space-x-4">
                 <Link href="/" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
@@ -36,28 +36,28 @@ export default function Docs() {
             <svg viewBox="0 0 400 300" className="w-80 mx-auto mb-8 drop-shadow-lg">
               <defs>
                 <linearGradient id="docsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{stopColor:'#6366f1',stopOpacity:1}} />
-                  <stop offset="100%" style={{stopColor:'#8b5cf6',stopOpacity:1}} />
+                  <stop offset="0%" style={{ stopColor: '#6366f1', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: '#8b5cf6', stopOpacity: 1 }} />
                 </linearGradient>
               </defs>
-              <rect x="80" y="60" width="240" height="180" rx="8" fill="url(#docsGrad)" opacity="0.9"/>
-              <rect x="100" y="90" width="200" height="12" rx="3" fill="white" opacity="0.3"/>
-              <rect x="100" y="115" width="180" height="8" rx="2" fill="white" opacity="0.25"/>
-              <rect x="100" y="130" width="190" height="8" rx="2" fill="white" opacity="0.25"/>
-              <rect x="100" y="145" width="170" height="8" rx="2" fill="white" opacity="0.25"/>
-              <rect x="100" y="170" width="200" height="12" rx="3" fill="white" opacity="0.3"/>
-              <rect x="100" y="195" width="160" height="8" rx="2" fill="white" opacity="0.25"/>
-              <rect x="100" y="210" width="180" height="8" rx="2" fill="white" opacity="0.25"/>
-              <circle cx="340" cy="100" r="35" fill="#10b981" opacity="0.8"/>
-              <path d="M 330 100 L 337 107 L 350 92" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round"/>
+              <rect x="80" y="60" width="240" height="180" rx="8" fill="url(#docsGrad)" opacity="0.9" />
+              <rect x="100" y="90" width="200" height="12" rx="3" fill="white" opacity="0.3" />
+              <rect x="100" y="115" width="180" height="8" rx="2" fill="white" opacity="0.25" />
+              <rect x="100" y="130" width="190" height="8" rx="2" fill="white" opacity="0.25" />
+              <rect x="100" y="145" width="170" height="8" rx="2" fill="white" opacity="0.25" />
+              <rect x="100" y="170" width="200" height="12" rx="3" fill="white" opacity="0.3" />
+              <rect x="100" y="195" width="160" height="8" rx="2" fill="white" opacity="0.25" />
+              <rect x="100" y="210" width="180" height="8" rx="2" fill="white" opacity="0.25" />
+              <circle cx="340" cy="100" r="35" fill="#10b981" opacity="0.8" />
+              <path d="M 330 100 L 337 107 L 350 92" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
             </svg>
             <div className="inline-flex items-center space-x-2 bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full text-sm text-blue-600 dark:text-blue-400 mb-6">
               <Book className="w-4 h-4" />
               <span>Documentation</span>
             </div>
-            <h1 className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">ProductOS Documentation</h1>
+            <h1 className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">Evols Documentation</h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Everything you need to know to get started with ProductOS
+              Everything you need to know to get started with Evols
             </p>
           </div>
 
@@ -102,9 +102,9 @@ export default function Docs() {
             <Section id="getting-started" title="Getting Started">
               <div className="prose dark:prose-invert max-w-none">
                 <h3>Installation</h3>
-                <p>ProductOS can be run with Docker Compose for the easiest setup:</p>
+                <p>Evols can be run with Docker Compose for the easiest setup:</p>
                 <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
-                  <code>{`cd /Users/akshay/Desktop/workspace/ProductOS/docker
+                  <code>{`cd /Users/akshay/Desktop/workspace/Evols/docker
 docker-compose up -d`}</code>
                 </pre>
 
@@ -207,8 +207,8 @@ docker-compose up -d`}</code>
               <div className="prose dark:prose-invert max-w-none">
                 <p>Need help? We're here for you:</p>
                 <ul>
-                  <li><strong>GitHub Issues:</strong> <a href="https://github.com/productos/issues" target="_blank" rel="noopener">Report bugs or request features</a></li>
-                  <li><strong>Email:</strong> support@productos.ai</li>
+                  <li><strong>GitHub Issues:</strong> <a href="https://github.com/evols/issues" target="_blank" rel="noopener">Report bugs or request features</a></li>
+                  <li><strong>Email:</strong> support@evols.ai</li>
                   <li><strong>Documentation:</strong> Read our comprehensive guides in the repository</li>
                 </ul>
               </div>
@@ -218,7 +218,7 @@ docker-compose up -d`}</code>
 
         {/* Footer */}
         <footer className="container mx-auto px-6 py-12 text-center text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-12">
-          <p>© 2026 ProductOS. All rights reserved.</p>
+          <p>© 2026 Evols. All rights reserved.</p>
         </footer>
       </div>
     </>

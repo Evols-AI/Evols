@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 from app.services.prompt_service import PromptService
 
 # Get database URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/productos")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/evols")
 
 # Convert to async URL if needed
 if DATABASE_URL.startswith("postgresql://"):

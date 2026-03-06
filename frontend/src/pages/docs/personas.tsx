@@ -7,7 +7,7 @@ export default function PersonasDocumentation() {
   return (
     <>
       <Head>
-        <title>Personas Documentation - ProductOS</title>
+        <title>Personas Documentation - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -17,7 +17,7 @@ export default function PersonasDocumentation() {
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center space-x-2">
                 <LogoIcon size={32} />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">ProductOS Docs</span>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">Evols Docs</span>
               </Link>
               <Link href="/docs" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
                 <ArrowLeft className="w-4 h-4" />
@@ -48,7 +48,7 @@ export default function PersonasDocumentation() {
           </svg>
           <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">Customer Personas</h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-            Learn how ProductOS automatically generates customer personas from VoC data and calculates product metrics.
+            Learn how Evols automatically generates customer personas from VoC data and calculates product metrics.
           </p>
 
           {/* Overview */}
@@ -59,7 +59,7 @@ export default function PersonasDocumentation() {
               with specific needs, behaviors, and product usage patterns.
             </p>
             <p className="mt-4">
-              ProductOS calculates dynamic metrics for each persona including <strong>revenue contribution</strong> and
+              Evols calculates dynamic metrics for each persona including <strong>revenue contribution</strong> and
               <strong> usage frequency</strong> from the VoC data.
             </p>
           </Section>
@@ -138,7 +138,7 @@ export default function PersonasDocumentation() {
 
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Data Sources</h3>
             <p className="mb-3">
-              ProductOS extracts revenue data from the following fields in your feedback data:
+              Evols extracts revenue data from the following fields in your feedback data:
             </p>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm mb-4">
               <div className="text-gray-400">// Feedback extra_data fields:</div>
@@ -186,7 +186,7 @@ export default function PersonasDocumentation() {
 
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Data Sources</h3>
             <p className="mb-3">
-              ProductOS extracts usage patterns from these fields:
+              Evols extracts usage patterns from these fields:
             </p>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm mb-4">
               <div className="text-gray-400">// Feedback extra_data fields:</div>

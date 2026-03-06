@@ -5,7 +5,7 @@ import os
 
 # Configuration
 RECORD_COUNT = 310
-OUTPUT_FILE = '/Users/akshay/Desktop/workspace/ProductOS/backend/data/dogfood_feedback.csv'
+OUTPUT_FILE = '/Users/akshay/Desktop/workspace/Evols/backend/data/dogfood_feedback.csv'
 
 FEATURE_AREAS = [
     "Decision Workbench", "Persona Digital Twins", "Knowledge Graph", 

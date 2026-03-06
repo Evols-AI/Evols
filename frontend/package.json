@@ -1,7 +1,7 @@
 {
-  "name": "productos-frontend",
+  "name": "evols-frontend",
   "version": "1.0.0",
-  "description": "Product Decision OS - Frontend",
+  "description": "Evols.ai - Product Decision OS",
   "scripts": {
     "dev": "next dev",
     "dev:clean": "npm run clean && next dev",

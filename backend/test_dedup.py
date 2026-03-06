@@ -1,6 +1,6 @@
 import asyncio
 import sys
-sys.path.insert(0, '/Users/akshay/Desktop/workspace/ProductOS/backend')
+sys.path.insert(0, '/Users/akshay/Desktop/workspace/Evols/backend')
 
 from app.core.database import AsyncSessionLocal
 from app.services.persona_deduplication import PersonaDeduplicationService
