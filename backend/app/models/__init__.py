@@ -2,6 +2,7 @@
 
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.models.product import Product
 from app.models.feedback import Feedback, FeedbackCategory
 from app.models.theme import Theme
 from app.models.initiative import Initiative
@@ -18,6 +19,7 @@ from app.models.prompt import Prompt, PromptExecution
 __all__ = [
     "Tenant",
     "User",
+    "Product",
     "Feedback",
     "FeedbackCategory",
     "Theme",
