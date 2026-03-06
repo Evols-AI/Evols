@@ -1,0 +1,864 @@
+"""
+Theme Endpoints
+Theme clustering, analysis, and management
+Enhanced with capability-aware filtering
+"""
+
+from typing import List, Optional, Any
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
+
+from app.core.database import get_db
+from app.core.dependencies import get_current_tenant_id
+from app.models.theme import Theme
+from app.models.feedback import Feedback, FeedbackCategory
+from app.models.knowledge_base import Capability
+from app.schemas.theme import (
+    ThemeCreate,
+    ThemeUpdate,
+    ThemeResponse,
+    ThemeFilter,
+    ThemeClusterRequest,
+)
+
+router = APIRouter()
+
+
+@router.post("/", response_model=ThemeResponse, status_code=201)
+async def create_theme(
+    theme_data: ThemeCreate,
+    db: AsyncSession = Depends(get_db),
+    tenant_id: int = Depends(get_current_tenant_id),
+):
+    """Create a new theme manually"""
+    theme = Theme(
+        **theme_data.model_dump(),
+        tenant_id=tenant_id,
+    )
+    db.add(theme)
+    await db.commit()
+    await db.refresh(theme)
+    return theme
+
+
+@router.get("/", response_model=List[ThemeResponse])
+async def list_themes(
+    db: AsyncSession = Depends(get_db),
+    tenant_id: int = Depends(get_current_tenant_id),
+    min_arr: Optional[float] = None,
+    min_feedback_count: Optional[int] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+):
+    """List themes with optional filters"""
+    query = select(Theme).where(Theme.tenant_id == tenant_id)
+
+    if min_arr is not None:
+        query = query.where(Theme.total_arr >= min_arr)
+    if min_feedback_count is not None:
+        query = query.where(Theme.feedback_count >= min_feedback_count)
+
+    query = query.offset(skip).limit(limit).order_by(Theme.total_arr.desc())
+
+    result = await db.execute(query)
+    themes = result.scalars().all()
+    return themes
+
+
+@router.get("/{theme_id}", response_model=ThemeResponse)
+async def get_theme(
+    theme_id: int,
+    db: AsyncSession = Depends(get_db),
+    tenant_id: int = Depends(get_current_tenant_id),
+):
+    """Get a specific theme"""
+    result = await db.execute(
+        select(Theme).where(and_(Theme.id == theme_id, Theme.tenant_id == tenant_id))
+    )
+    theme = result.scalar_one_or_none()
+
+    if not theme:
+        raise HTTPException(status_code=404, detail="Theme not found")
+
+    return theme
+
+
+async def _filter_feedback_by_capabilities(
+    feedback_items: List[Any],
+    capabilities: List[Any],
+    tenant_id: int,
+) -> List[Any]:
+    """
+    Filter feedback against existing product capabilities.
+
+    Logic:
+    - If feedback requests a feature that already exists → EXCLUDE (duplicate)
+    - If feedback requests an enhancement to existing feature → INCLUDE (valid theme)
+    - If feedback requests a completely new feature → INCLUDE (valid theme)
+
+    Args:
+        feedback_items: List of Feedback ORM instances
+        capabilities: List of Capability ORM instances
+        tenant_id: Tenant ID for logging
+
+    Returns:
+        Filtered list of feedback items (excluding duplicates of existing features)
+    """
+    if not capabilities:
+        return feedback_items
+
+    from app.services.llm_service import get_llm_service
+    import json
+    import re
+
+    llm_service = get_llm_service(tenant_config=None)
+
+    # Build capability context for LLM
+    capability_list = []
+    for cap in capabilities[:50]:  # Limit to first 50 to avoid token limits
+        capability_list.append(f"- {cap.name}: {cap.description} (Category: {cap.category})")
+
+    capability_context = "\n".join(capability_list)
+
+    filtered_feedback = []
+
+    # Batch process feedback in groups
+    batch_size = 10
+    for i in range(0, len(feedback_items), batch_size):
+        batch = feedback_items[i:i+batch_size]
+
+        # Build feedback batch text
+        feedback_texts = []
+        for idx, fb in enumerate(batch):
+            feedback_texts.append(
+                f"{idx + 1}. [{fb.category.value if fb.category else 'unknown'}] {fb.title}\n"
+                f"   Content: {fb.content[:200] if fb.content else 'No description'}"
+            )
+
+        feedback_batch_text = "\n\n".join(feedback_texts)
+
+        # Ask LLM to classify each feedback item
+        prompt = f"""You are analyzing customer feedback for a product with these existing capabilities:
+
+EXISTING CAPABILITIES:
+{capability_context}
+
+CUSTOMER FEEDBACK TO ANALYZE:
+{feedback_batch_text}
+
+For each feedback item, classify as:
+- "duplicate" - requests a feature that ALREADY EXISTS
+- "enhancement" - requests improvement to an existing capability
+- "new" - requests a completely new feature
+
+Return ONLY a JSON array:
+[
+  {{"id": 1, "classification": "duplicate", "reason": "Video conferencing exists"}},
+  {{"id": 2, "classification": "enhancement", "reason": "Better screen sharing quality"}},
+  {{"id": 3, "classification": "new", "reason": "AI transcription not in capabilities"}}
+]
+
+Be strict: only "duplicate" if feature fully exists. "enhancement" if improving existing. "new" for genuinely new features."""
+
+        try:
+            result = await llm_service.generate(
+                prompt=prompt,
+                temperature=0.2,
+                max_tokens=1000,
+                use_cheaper_model=True,  # Cost optimization: classification is simple task
+            )
+
+            # Parse JSON response
+            json_match = re.search(r'\[.*\]', result.content, re.DOTALL)
+            if json_match:
+                classifications = json.loads(json_match.group(0))
+
+                # Keep "enhancement" and "new", exclude "duplicate"
+                for idx, classification in enumerate(classifications):
+                    if idx < len(batch):
+                        fb = batch[idx]
+                        classification_type = classification.get('classification', 'new')
+                        reason = classification.get('reason', '')
+
+                        if classification_type in ['enhancement', 'new']:
+                            filtered_feedback.append(fb)
+                            print(
+                                f"[Theme Generation] ✓ KEEPING feedback #{fb.id}: "
+                                f"{classification_type} - {reason}"
+                            )
+                        else:
+                            print(
+                                f"[Theme Generation] ✗ EXCLUDING feedback #{fb.id}: "
+                                f"duplicate - {reason}"
+                            )
+            else:
+                print(f"[Theme Generation] Failed to parse classification, keeping batch {i}-{i+len(batch)}")
+                filtered_feedback.extend(batch)
+
+        except Exception as e:
+            print(f"[Theme Generation] Error classifying feedback batch: {e}")
+            filtered_feedback.extend(batch)
+
+    return filtered_feedback
+
+
+async def auto_generate_themes(tenant_id: int, db: AsyncSession, last_refresh_timestamp=None):
+    """
+    Automatically generate/update themes from feedback using semantic clustering.
+    Themes represent what feedback is about (e.g., "Mobile Performance", "Authentication"),
+    not just the category (bug, feature_request, etc.)
+
+    Enhanced with capability-aware filtering: feedback requesting existing features
+    will be filtered out, but enhancement requests will be kept.
+
+    Args:
+        tenant_id: The tenant ID
+        db: Database session
+        last_refresh_timestamp: Optional datetime - if provided, only process feedback created after this time
+
+    Returns:
+        dict with 'status' and 'message' keys
+    """
+    import logging
+    from app.services.embedding_service import EmbeddingService, cosine_similarity
+    from collections import Counter
+    from sqlalchemy import func
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"[Theme Generation] Starting theme generation for tenant {tenant_id}")
+
+    # Build base query for feedback
+    feedback_query = select(Feedback).where(Feedback.tenant_id == tenant_id)
+
+    # If incremental refresh, only get feedback created after last refresh
+    if last_refresh_timestamp:
+        feedback_query = feedback_query.where(Feedback.created_at > last_refresh_timestamp)
+        logger.info(f"[Theme Generation] Incremental refresh: processing feedback after {last_refresh_timestamp}")
+
+        # Check if there's any new feedback
+        count_result = await db.execute(
+            select(func.count(Feedback.id))
+            .where(Feedback.tenant_id == tenant_id)
+            .where(Feedback.created_at > last_refresh_timestamp)
+        )
+        new_feedback_count = count_result.scalar()
+
+        if new_feedback_count == 0:
+            logger.info(f"[Theme Generation] No new feedback since last refresh")
+            return {"status": "up_to_date", "message": "No new feedback to process"}
+
+    # Get feedback for clustering
+    result = await db.execute(feedback_query)
+    all_feedback = result.scalars().all()
+
+    if len(all_feedback) < 3:
+        logger.warning(f"[Theme Generation] Not enough feedback ({len(all_feedback)}) to generate themes")
+        if last_refresh_timestamp:
+            return {"status": "up_to_date", "message": "Not enough new feedback for theme generation"}
+        return {"status": "no_data", "message": "Not enough feedback data available"}
+
+    logger.info(f"[Theme Generation] Processing {len(all_feedback)} feedback items")
+
+    # Fetch existing capabilities from knowledge base
+    from app.models.knowledge_base import Capability
+    capability_result = await db.execute(
+        select(Capability).where(Capability.tenant_id == tenant_id)
+    )
+    existing_capabilities = capability_result.scalars().all()
+
+    if existing_capabilities:
+        logger.info(f"[Theme Generation] Found {len(existing_capabilities)} existing capabilities - will filter duplicates")
+
+        # Filter feedback against existing capabilities
+        all_feedback = await _filter_feedback_by_capabilities(
+            all_feedback, existing_capabilities, tenant_id
+        )
+
+        logger.info(f"[Theme Generation] After capability filtering: {len(all_feedback)} feedback items remain")
+
+        if len(all_feedback) < 3:
+            logger.warning(f"[Theme Generation] Not enough feedback after filtering ({len(all_feedback)})")
+            return {"status": "no_data", "message": "Not enough feedback after filtering against existing capabilities"}
+
+    # Generate embeddings for all feedback
+    embedding_service = EmbeddingService()
+    feedback_embeddings = []
+    feedback_items = []
+
+    for fb in all_feedback:
+        text = f"{fb.title} {fb.content or ''}"
+        try:
+            embedding = await embedding_service.embed_text(text)
+            feedback_embeddings.append(embedding)
+            feedback_items.append(fb)
+        except Exception as e:
+            print(f"[Theme Generation] Failed to embed feedback {fb.id}: {e}")
+            continue
+
+    if len(feedback_embeddings) < 3:
+        print(f"[Theme Generation] Not enough valid embeddings ({len(feedback_embeddings)})")
+        return
+
+    # Simple clustering: group feedback with >75% similarity
+    SIMILARITY_THRESHOLD = 0.75
+    clusters = []
+    assigned = set()
+
+    for i, fb in enumerate(feedback_items):
+        if i in assigned:
+            continue
+
+        # Start new cluster
+        cluster = [i]
+        assigned.add(i)
+
+        # Find similar feedback
+        for j in range(i + 1, len(feedback_items)):
+            if j in assigned:
+                continue
+
+            similarity = cosine_similarity(feedback_embeddings[i], feedback_embeddings[j])
+            if similarity >= SIMILARITY_THRESHOLD:
+                cluster.append(j)
+                assigned.add(j)
+
+        # Only keep clusters with at least 2 items
+        if len(cluster) >= 2:
+            clusters.append(cluster)
+
+    print(f"[Theme Generation] Found {len(clusters)} clusters")
+
+    # Get existing themes for similarity matching (when doing incremental refresh)
+    existing_themes = []
+    existing_theme_embeddings = []
+    if last_refresh_timestamp:
+        # Don't delete themes during incremental refresh - we'll update them
+        theme_result = await db.execute(
+            select(Theme).where(Theme.tenant_id == tenant_id)
+        )
+        existing_themes = theme_result.scalars().all()
+
+        # Generate embeddings for existing themes to check similarity
+        embedding_service_for_themes = EmbeddingService()
+        for theme in existing_themes:
+            theme_text = f"{theme.title} {theme.summary or ''}"
+            try:
+                theme_embedding = await embedding_service_for_themes.embed_text(theme_text)
+                existing_theme_embeddings.append(theme_embedding)
+            except Exception as e:
+                print(f"[Theme Generation] Failed to embed existing theme {theme.id}: {e}")
+                existing_theme_embeddings.append(None)
+
+        print(f"[Theme Generation] Will check against {len(existing_themes)} existing themes")
+    else:
+        # Full regeneration - delete old themes
+        delete_result = await db.execute(
+            select(Theme).where(Theme.tenant_id == tenant_id)
+        )
+        old_themes = delete_result.scalars().all()
+        for theme in old_themes:
+            await db.delete(theme)
+        await db.commit()
+        print(f"[Theme Generation] Deleted {len(old_themes)} old themes (full regeneration)")
+
+    # Generate theme for each cluster
+    from app.services.llm_service import get_llm_service
+    llm_service = get_llm_service(tenant_config=None)
+
+    themes_created = 0
+    themes_updated = 0
+    THEME_SIMILARITY_THRESHOLD = 0.85  # High threshold for matching themes
+
+    for cluster_idx, cluster_indices in enumerate(clusters):
+        cluster_feedback = [feedback_items[i] for i in cluster_indices]
+
+        # Collect feedback titles and content
+        feedback_texts = []
+        for fb in cluster_feedback:
+            text = f"- {fb.title}"
+            if fb.content:
+                text += f": {fb.content[:100]}"  # Truncate long content
+            feedback_texts.append(text)
+
+        # Extract category distribution
+        category_counts = Counter([fb.category.value if fb.category else 'unknown' for fb in cluster_feedback])
+        primary_category = category_counts.most_common(1)[0][0] if category_counts else 'unknown'
+
+        # Count unique accounts
+        unique_accounts = len(set(fb.customer_name for fb in cluster_feedback if fb.customer_name))
+
+        # Calculate urgency score based on category distribution
+        # Bugs and complaints are more urgent than feature requests
+        urgency_weights = {'bug': 1.0, 'complaint': 0.9, 'feature_request': 0.6, 'question': 0.4, 'unknown': 0.5}
+        total_weight = sum(urgency_weights.get(cat, 0.5) * count for cat, count in category_counts.items())
+        urgency_score = min(total_weight / len(cluster_feedback), 1.0)
+
+        # Calculate impact score based on number of accounts and feedback volume
+        # More accounts + more feedback = higher impact
+        impact_from_accounts = min(unique_accounts / 10.0, 0.6)  # Up to 0.6 from account count
+        impact_from_volume = min(len(cluster_feedback) / 20.0, 0.4)  # Up to 0.4 from feedback count
+        impact_score = min(impact_from_accounts + impact_from_volume, 1.0)
+
+        # Generate theme title and summary using LLM
+        prompt = f"""Analyze this cluster of related customer feedback and generate a concise theme.
+
+Feedback items ({len(cluster_feedback)} total):
+{chr(10).join(feedback_texts[:10])}
+
+Generate:
+1. A short theme title (2-4 words, e.g., "Mobile Performance", "Authentication Issues", "Pricing Concerns")
+2. A one-sentence summary describing what customers want
+
+Response format (JSON):
+{{"title": "Theme Title", "summary": "One sentence summary of what customers need"}}"""
+
+        try:
+            llm_response = await llm_service.generate(
+                prompt=prompt,
+                temperature=0.3,
+                max_tokens=200,
+                use_cheaper_model=True,  # Cost optimization: theme labeling is simple task
+            )
+            response = llm_response.content
+
+            # Parse JSON response
+            import json
+            import re
+            print(f"[Theme Generation] LLM response: {response[:200]}")
+            json_match = re.search(r'\{[^}]+\}', response)
+            if json_match:
+                theme_data = json.loads(json_match.group())
+                title = theme_data.get('title', f'Theme {cluster_idx + 1}')
+                summary = theme_data.get('summary', f'Cluster of {len(cluster_feedback)} related feedback items')
+                print(f"[Theme Generation] Parsed theme: {title}")
+            else:
+                print(f"[Theme Generation] No JSON found in response, using defaults")
+                title = f'Theme {cluster_idx + 1}'
+                summary = f'Cluster of {len(cluster_feedback)} related feedback items'
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"[Theme Generation] LLM generation failed: {e}, using defaults")
+            title = f'Theme {cluster_idx + 1}'
+            summary = f'Cluster of {len(cluster_feedback)} related feedback items'
+
+        # Check if this cluster matches an existing theme (during incremental refresh)
+        matched_existing_theme = None
+        if last_refresh_timestamp and existing_themes:
+            # Generate embedding for new cluster's theme
+            cluster_theme_text = f"{title} {summary}"
+            try:
+                cluster_embedding = await embedding_service.embed_text(cluster_theme_text)
+
+                # Check similarity against existing themes
+                for idx, existing_theme in enumerate(existing_themes):
+                    if existing_theme_embeddings[idx] is None:
+                        continue
+
+                    similarity = cosine_similarity(cluster_embedding, existing_theme_embeddings[idx])
+                    if similarity >= THEME_SIMILARITY_THRESHOLD:
+                        matched_existing_theme = existing_theme
+                        print(f"[Theme Generation] Matched to existing theme '{existing_theme.title}' (similarity: {similarity:.2%})")
+                        break
+            except Exception as e:
+                print(f"[Theme Generation] Failed to check theme similarity: {e}")
+
+        if matched_existing_theme:
+            # Update existing theme with new feedback data
+            old_count = matched_existing_theme.feedback_count or 0
+            new_total = old_count + len(cluster_feedback)
+
+            matched_existing_theme.feedback_count = new_total
+            matched_existing_theme.account_count = matched_existing_theme.account_count or 0 + unique_accounts
+
+            # Recalculate scores with weighted average (existing weight + new weight)
+            existing_weight = old_count / (old_count + len(cluster_feedback))
+            new_weight = len(cluster_feedback) / (old_count + len(cluster_feedback))
+
+            matched_existing_theme.urgency_score = (
+                (matched_existing_theme.urgency_score or 0) * existing_weight +
+                urgency_score * new_weight
+            )
+            matched_existing_theme.impact_score = (
+                (matched_existing_theme.impact_score or 0) * existing_weight +
+                impact_score * new_weight
+            )
+            matched_existing_theme.confidence_score = min(0.5 + (new_total / 20), 0.95)
+
+            # Append to summary
+            if matched_existing_theme.summary:
+                matched_existing_theme.summary = matched_existing_theme.summary + f" Updated with {len(cluster_feedback)} new feedback items."
+            else:
+                matched_existing_theme.summary = summary
+
+            themes_updated += 1
+            print(f"[Theme Generation] Updated theme: '{matched_existing_theme.title}' ({old_count} -> {new_total} feedback items)")
+        else:
+            # Create new theme
+            theme = Theme(
+                tenant_id=tenant_id,
+                title=title,
+                description=summary,
+                summary=summary,
+                primary_category=primary_category,
+                feedback_count=len(cluster_feedback),
+                account_count=unique_accounts,
+                urgency_score=urgency_score,
+                impact_score=impact_score,
+                confidence_score=min(0.5 + (len(cluster_feedback) / 20), 0.95),
+            )
+            db.add(theme)
+            themes_created += 1
+            print(f"[Theme Generation] Created new theme: '{title}' ({len(cluster_feedback)} feedback items)")
+
+    await db.commit()
+    print(f"[Theme Generation] Theme generation complete: {themes_created} created, {themes_updated} updated")
+
+    return {
+        "status": "success",
+        "message": f"Generated {themes_created} new themes, updated {themes_updated} existing themes from {len(clusters)} clusters",
+        "themes_created": themes_created,
+        "themes_updated": themes_updated,
+        "clusters_processed": len(clusters),
+        "feedback_processed": len(all_feedback)
+    }
+
+
+async def auto_generate_initiatives(tenant_id: int, db: AsyncSession):
+    """
+    Generate specific initiatives from themes.
+    Breaks down each theme into 2-4 actionable initiatives.
+    Returns dict with initiatives_created and initiatives_failed counts.
+    """
+    import logging
+    from app.models.initiative import Initiative, InitiativeStatus, InitiativeEffort
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"[Initiative Generation] Starting initiative generation for tenant {tenant_id}")
+
+    # Track statistics
+    initiatives_created = 0
+    initiatives_failed = 0
+
+    # Get all themes
+    result = await db.execute(
+        select(Theme).where(Theme.tenant_id == tenant_id)
+    )
+    themes = result.scalars().all()
+
+    if not themes:
+        logger.warning(f"[Initiative Generation] No themes found for tenant {tenant_id}")
+        return {"initiatives_created": 0, "initiatives_failed": 0, "themes_processed": 0}
+
+    logger.info(f"[Initiative Generation] Processing {len(themes)} themes")
+
+    # Delete old auto-generated initiatives (those in 'idea' status)
+    delete_result = await db.execute(
+        select(Initiative).where(
+            and_(
+                Initiative.tenant_id == tenant_id,
+                Initiative.status == InitiativeStatus.IDEA
+            )
+        )
+    )
+    old_initiatives = delete_result.scalars().all()
+    for init in old_initiatives:
+        await db.delete(init)
+    await db.commit()
+    logger.info(f"[Initiative Generation] Deleted {len(old_initiatives)} old initiatives")
+
+    from app.services.llm_service import get_llm_service
+    llm_service = get_llm_service(tenant_config=None)
+
+    for theme in themes:
+        # Generate initiatives for this theme using LLM
+        prompt = f"""Break down this customer feedback theme into 2-4 specific, actionable product initiatives.
+
+Theme: {theme.title}
+Description: {theme.description}
+Based on: {theme.feedback_count} feedback items from {theme.account_count} customers
+
+Generate 2-4 specific initiatives that address this theme. Each initiative should be:
+- Specific and actionable (not vague)
+- Estimated effort: small (<2 weeks), medium (2-6 weeks), or large (6-12 weeks)
+- Have a clear description of what will be built
+
+Response format (JSON array):
+[
+  {{
+    "title": "Initiative title (5-8 words)",
+    "description": "What will be built and why (1-2 sentences)",
+    "effort": "small|medium|large"
+  }}
+]"""
+
+        try:
+            llm_response = await llm_service.generate(
+                prompt=prompt,
+                temperature=0.4,
+                max_tokens=500,
+                use_cheaper_model=True,  # Cost optimization: initiative generation is structured task
+            )
+            response = llm_response.content
+
+            # Parse JSON response
+            import json
+            import re
+            json_match = re.search(r'\[[\s\S]*\]', response)
+            if json_match:
+                initiatives_data = json.loads(json_match.group())
+
+                for init_data in initiatives_data[:4]:  # Limit to 4 initiatives per theme
+                    title = init_data.get('title', f'Initiative for {theme.title}')
+                    description = init_data.get('description', '')
+                    effort_str = init_data.get('effort', 'medium').lower()
+
+                    # Map effort string to enum
+                    effort_map = {
+                        'small': InitiativeEffort.SMALL,
+                        'medium': InitiativeEffort.MEDIUM,
+                        'large': InitiativeEffort.LARGE,
+                        'xlarge': InitiativeEffort.XLARGE
+                    }
+                    effort = effort_map.get(effort_str, InitiativeEffort.MEDIUM)
+
+                    # Create initiative
+                    initiative = Initiative(
+                        tenant_id=tenant_id,
+                        title=title,
+                        description=description,
+                        status=InitiativeStatus.IDEA,
+                        effort=effort,
+                        estimated_impact_score=theme.impact_score,
+                        priority_score=theme.urgency_score * 100 if theme.urgency_score else 50
+                    )
+                    db.add(initiative)
+
+                    # Link initiative to theme
+                    initiative.themes.append(theme)
+                    initiatives_created += 1
+
+                    logger.debug(f"[Initiative Generation] Created initiative: '{title}' for theme '{theme.title}'")
+
+            else:
+                logger.warning(f"[Initiative Generation] No JSON found in LLM response for theme '{theme.title}'")
+                initiatives_failed += 1
+
+        except Exception as e:
+            logger.error(f"[Initiative Generation] Failed to generate initiatives for theme '{theme.title}': {e}", exc_info=True)
+            initiatives_failed += 1
+            continue
+
+    await db.commit()
+
+    logger.info(
+        f"[Initiative Generation] Complete: {initiatives_created} created, "
+        f"{initiatives_failed} failed out of {len(themes)} themes"
+    )
+
+    return {
+        "initiatives_created": initiatives_created,
+        "initiatives_failed": initiatives_failed,
+        "themes_processed": len(themes)
+    }
+
+
+@router.post("/cluster")
+async def cluster_feedback(
+    request: ThemeClusterRequest,
+    db: AsyncSession = Depends(get_db),
+    tenant_id: int = Depends(get_current_tenant_id),
+):
+    """
+    Trigger theme generation from feedback
+    Automatically groups feedback by category
+    """
+    try:
+        await auto_generate_themes(tenant_id, db)
+
+        # Update last refresh timestamp
+        from app.models.tenant import Tenant
+        from sqlalchemy.orm import attributes
+        from datetime import datetime
+
+        result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+        tenant = result.scalar_one_or_none()
+
+        if tenant:
+            settings = tenant.settings or {}
+            settings['theme_last_refresh_date'] = datetime.utcnow().isoformat() + 'Z'
+            tenant.settings = settings
+            attributes.flag_modified(tenant, 'settings')
+            await db.commit()
+
+        return {
+            "success": True,
+            "message": "Themes generated successfully from feedback",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
+
+
+@router.post("/refresh")
+async def refresh_themes(
+    db: AsyncSession = Depends(get_db),
+    tenant_id: int = Depends(get_current_tenant_id),
+):
+    """
+    Refresh themes by regenerating from latest feedback (incremental refresh supported)
+    Only processes new feedback since last refresh to optimize performance.
+    """
+    try:
+        from app.models.tenant import Tenant
+        from sqlalchemy.orm import attributes
+        from datetime import datetime
+
+        # Get tenant settings to check last refresh timestamp
+        result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+        tenant = result.scalar_one_or_none()
+
+        last_refresh_timestamp = None
+        if tenant and tenant.settings:
+            last_refresh_str = tenant.settings.get('theme_last_refresh_date')
+            if last_refresh_str:
+                try:
+                    # Parse ISO format timestamp and convert to naive datetime
+                    # (database column is TIMESTAMP WITHOUT TIME ZONE)
+                    last_refresh_timestamp = datetime.fromisoformat(last_refresh_str.replace('Z', '+00:00')).replace(tzinfo=None)
+                    print(f"[Theme Refresh] Using incremental refresh from {last_refresh_timestamp}")
+                except Exception as e:
+                    print(f"[Theme Refresh] Could not parse last refresh timestamp: {e}")
+
+        # Regenerate themes from feedback (incremental refresh)
+        theme_result = await auto_generate_themes(tenant_id, db, last_refresh_timestamp)
+
+        # Check if there was new data to process
+        if theme_result.get("status") == "up_to_date":
+            return {
+                "success": True,
+                "status": "up_to_date",
+                "message": "Themes are already up to date. No new feedback to process.",
+            }
+
+        if theme_result.get("status") == "no_data":
+            return {
+                "success": False,
+                "status": "no_data",
+                "message": theme_result.get("message", "Not enough feedback data"),
+            }
+
+        # Generate initiatives from themes
+        await auto_generate_initiatives(tenant_id, db)
+
+        # Generate projects from initiatives
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[Theme Refresh] Generating projects for tenant {tenant_id}")
+
+        try:
+            from app.services.project_service import ProjectService
+            from app.services.priority_service import PriorityService
+
+            project_service = ProjectService()
+            priority_service = PriorityService()
+
+            # Generate projects
+            project_result = await project_service.generate_projects_for_initiatives(
+                tenant_id=tenant_id,
+                db=db,
+            )
+
+            # Calculate priorities
+            await priority_service.calculate_priorities_for_tenant(tenant_id, db)
+
+            logger.info(
+                f"[Theme Refresh] Generated {project_result['projects_created']} projects "
+                f"for {project_result['initiatives_processed']} initiatives"
+            )
+        except Exception as e:
+            logger.error(f"[Theme Refresh] Project generation failed: {e}", exc_info=True)
+            # Don't fail the whole refresh if project generation fails
+
+        # Update last refresh timestamp
+        if tenant:
+            settings = tenant.settings or {}
+            settings['theme_last_refresh_date'] = datetime.utcnow().isoformat() + 'Z'
+            tenant.settings = settings
+            attributes.flag_modified(tenant, 'settings')
+            await db.commit()
+
+        return {
+            "success": True,
+            "status": "refreshed",
+            "message": theme_result.get("message", "Themes, initiatives, and projects refreshed successfully"),
+            "themes_created": theme_result.get("themes_created", 0),
+            "themes_updated": theme_result.get("themes_updated", 0),
+            "feedback_processed": theme_result.get("feedback_processed", 0),
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"[Theme Refresh Error] {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Theme refresh failed: {str(e)}")
+
+
+@router.post("/refresh-async")
+async def refresh_themes_async(
+    db: AsyncSession = Depends(get_db),
+    tenant_id: int = Depends(get_current_tenant_id),
+):
+    """
+    Refresh themes asynchronously - returns immediately with job_id
+
+    This endpoint starts a background job for theme refresh and returns
+    immediately. Use GET /api/v1/jobs/{job_id} to check status.
+
+    Suitable for large datasets (100s-1000s of feedback items) that
+    may take minutes to process.
+    """
+    import logging
+    from app.models.job import JobType
+    from app.services.background_task_service import BackgroundTaskService
+    from app.core.config import settings
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Create background job
+        job = await BackgroundTaskService.create_job(
+            tenant_id=tenant_id,
+            user_id=None,  # Could get from JWT if available
+            job_type=JobType.THEME_REFRESH,
+            input_params={},
+            db=db
+        )
+
+        logger.info(f"[Themes API] Created async refresh job {job.job_uuid} for tenant {tenant_id}")
+
+        # Choose task queue based on configuration
+        if settings.USE_CELERY:
+            # Production: Use Celery (durable, survives restarts)
+            from app.workers.theme_tasks import refresh_themes_task
+            refresh_themes_task.delay(str(job.job_uuid), tenant_id)
+            logger.info(f"[Themes API] Dispatched to Celery: {job.job_uuid}")
+        else:
+            # Development: Use asyncio (non-durable, simpler)
+            from app.workers.theme_worker import refresh_themes_background
+            BackgroundTaskService.run_in_background(
+                refresh_themes_background(str(job.job_uuid), tenant_id)
+            )
+            logger.info(f"[Themes API] Running with asyncio (dev mode): {job.job_uuid}")
+
+        return {
+            "success": True,
+            "job_id": str(job.job_uuid),
+            "message": "Theme refresh started in background. Use GET /api/v1/jobs/{job_id} to check status.",
+        }
+
+    except Exception as e:
+        logger.error(f"[Themes API] Failed to start async refresh: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start theme refresh: {str(e)}"
+        )
