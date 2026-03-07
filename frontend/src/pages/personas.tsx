@@ -93,15 +93,13 @@ export default function Personas() {
     try {
       setLoading(true)
       const productIdsParam = selectedProductIds.join(',')
-      const response = await api.getPersonas({
-        status_filter: tagFilter.join(','),
-        product_ids: productIdsParam
+      const response = await api.getPersonas(productIdsParam, {
+        status_filter: tagFilter.join(',')
       })
       setPersonas(response.data.items || response.data || [])
 
-      const totalResponse = await api.getPersonas({
-        status_filter: 'new,advisor,dismissed',
-        product_ids: productIdsParam
+      const totalResponse = await api.getPersonas(productIdsParam, {
+        status_filter: 'new,advisor,dismissed'
       })
       setTotalPersonas((totalResponse.data.items || totalResponse.data || []).length)
     } catch (error) {

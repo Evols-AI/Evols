@@ -47,17 +47,17 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
   onInvestigate: () => void
 }) {
   const typeConfig: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-    emerging_theme:        { icon: <TrendingUp className="w-4 h-4" />,    color: 'blue',   label: 'Emerging Theme' },
-    anomaly:               { icon: <AlertTriangle className="w-4 h-4" />, color: 'orange', label: 'Anomaly' },
-    assumption_challenged: { icon: <Zap className="w-4 h-4" />,          color: 'purple', label: 'Assumption Challenged' },
-    new_feedback:          { icon: <Bell className="w-4 h-4" />,         color: 'green',  label: 'New Feedback' },
+    emerging_theme: { icon: <TrendingUp className="w-4 h-4" />, color: 'blue', label: 'Emerging Theme' },
+    anomaly: { icon: <AlertTriangle className="w-4 h-4" />, color: 'orange', label: 'Anomaly' },
+    assumption_challenged: { icon: <Zap className="w-4 h-4" />, color: 'purple', label: 'Assumption Challenged' },
+    new_feedback: { icon: <Bell className="w-4 h-4" />, color: 'green', label: 'New Feedback' },
   }
   const cfg = typeConfig[signal.signal_type] || typeConfig.new_feedback
   const colorMap: Record<string, string> = {
-    blue:   'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
     orange: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
     purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-    green:  'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400',
+    green: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400',
   }
   return (
     <div className="card p-4">
@@ -96,11 +96,11 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
 
 function DecisionStatusDot({ status }: { status: string }) {
   const cfg: Record<string, { color: string; label: string }> = {
-    active:    { color: 'bg-blue-500 dark:bg-blue-400',   label: 'Active' },
-    completed: { color: 'bg-green-500 dark:bg-green-400',  label: 'Done' },
-    on_track:  { color: 'bg-green-500 dark:bg-green-400',  label: 'On Track' },
-    at_risk:   { color: 'bg-yellow-500 dark:bg-yellow-400', label: 'At Risk' },
-    off_track: { color: 'bg-red-500 dark:bg-red-400',    label: 'Off Track' },
+    active: { color: 'bg-blue-500 dark:bg-blue-400', label: 'Active' },
+    completed: { color: 'bg-green-500 dark:bg-green-400', label: 'Done' },
+    on_track: { color: 'bg-green-500 dark:bg-green-400', label: 'On Track' },
+    at_risk: { color: 'bg-yellow-500 dark:bg-yellow-400', label: 'At Risk' },
+    off_track: { color: 'bg-red-500 dark:bg-red-400', label: 'Off Track' },
   }
   const c = cfg[status] || cfg.active
   return (
@@ -163,12 +163,12 @@ export default function Dashboard() {
         api.getFeedback({ limit: 1, product_ids: productIdsParam }),
         api.getThemes({ limit: 5, product_ids: productIdsParam }),
         api.getDecisions({ limit: 5, product_ids: productIdsParam }),
-        api.getPersonas({ product_ids: productIdsParam }),
+        api.getPersonas(productIdsParam),
       ])
       const feedbackItems = feedbackRes.data?.items || feedbackRes.data || []
-      const themesData    = themesRes.data?.items   || themesRes.data  || []
+      const themesData = themesRes.data?.items || themesRes.data || []
       const decisionsData = decisionsRes.data?.items || decisionsRes.data || []
-      const personasData  = personasRes.data?.items  || personasRes.data  || []
+      const personasData = personasRes.data?.items || personasRes.data || []
       const totalArr = themesData.reduce((s: number, t: any) => s + (t.total_arr || 0), 0)
 
       // Filter only advisor personas for modals
@@ -176,8 +176,8 @@ export default function Dashboard() {
 
       setStats({
         feedbackCount: feedbackRes.data?.total || feedbackItems.length,
-        themeCount:    themesRes.data?.total   || themesData.length,
-        personaCount:  personasRes.data?.total || personasData.length,
+        themeCount: themesRes.data?.total || themesData.length,
+        personaCount: personasRes.data?.total || personasData.length,
         decisionCount: decisionsRes.data?.total || decisionsData.length,
         totalArr,
         feedbackTrend: 'up',
@@ -253,8 +253,8 @@ export default function Dashboard() {
                 <div className="grid sm:grid-cols-3 gap-4">
                   {[
                     { href: '/feedback', icon: <Upload className="w-6 h-6 text-blue-600" />, title: 'Upload VoC', desc: 'CSV from Intercom, Zendesk, or manual input' },
-                    { href: '/roadmap',   icon: <BarChart3 className="w-6 h-6 text-purple-600" />, title: 'View Roadmap', desc: 'AI-powered prioritized product roadmap' },
-                    { href: '/workbench',icon: <FlaskConical className="w-6 h-6 text-indigo-600" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
+                    { href: '/roadmap', icon: <BarChart3 className="w-6 h-6 text-purple-600" />, title: 'View Roadmap', desc: 'AI-powered prioritized product roadmap' },
+                    { href: '/workbench', icon: <FlaskConical className="w-6 h-6 text-indigo-600" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
                   ].map(item => (
                     <Link key={item.href} href={item.href}
                       className="card-hover p-5"
@@ -310,11 +310,10 @@ export default function Dashboard() {
                                 </p>
                               )}
                               {theme.urgency_score != null && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  theme.urgency_score > 0.7 ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
-                                  theme.urgency_score > 0.4 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
-                                  'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                }`}>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${theme.urgency_score > 0.7 ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                                    theme.urgency_score > 0.4 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
+                                      'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                  }`}>
                                   {theme.urgency_score > 0.7 ? 'High' : theme.urgency_score > 0.4 ? 'Med' : 'Low'}
                                 </span>
                               )}
@@ -548,11 +547,10 @@ function AskPersonasModal({ personas, onClose }: { personas: any[]; onClose: () 
                 <button
                   key={persona.id}
                   onClick={() => togglePersona(persona.id)}
-                  className={`p-3 rounded-lg border-2 transition ${
-                    selectedPersonas.includes(persona.id)
+                  className={`p-3 rounded-lg border-2 transition ${selectedPersonas.includes(persona.id)
                       ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
+                    }`}
                 >
                   <div className="text-sm font-medium text-heading">{persona.name}</div>
                   <div className="text-xs text-body">{persona.segment}</div>

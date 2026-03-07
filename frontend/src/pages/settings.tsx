@@ -11,7 +11,7 @@ import { useRouter } from 'next/router'
 import Header from '@/components/Header'
 import { User, Palette, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2 } from 'lucide-react'
 
-type Tab = 'appearance' | 'llm' | 'team'
+type Tab = 'profile' | 'appearance' | 'security' | 'notifications' | 'llm' | 'team'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock'
 type AWSAuthMethod = 'api_key' | 'credentials'
 

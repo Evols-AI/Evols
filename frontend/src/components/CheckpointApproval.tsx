@@ -14,8 +14,8 @@ interface CheckpointApprovalProps {
   details?: React.ReactNode      // Expandable detail view
   onApprove: () => void
   onEdit?: () => void
-  approveLabel?: string
-  editLabel?: string
+  approveLabel?: React.ReactNode
+  editLabel?: React.ReactNode
   isApproved?: boolean
   isLoading?: boolean
   className?: string

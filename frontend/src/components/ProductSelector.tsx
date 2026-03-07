@@ -59,7 +59,7 @@ export const ProductSelector: React.FC = () => {
         const hasEverSelectedProducts = localStorage.getItem(storageKey) !== null;
 
         if (!hasEverSelectedProducts && data.length > 0) {
-          const demoProduct = data.find((p) => p.is_demo);
+          const demoProduct = data.find((p: Product) => p.is_demo);
           if (demoProduct) {
             setProductIds([demoProduct.id]);
           }
