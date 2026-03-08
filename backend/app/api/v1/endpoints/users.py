@@ -12,9 +12,10 @@ from pydantic import BaseModel, EmailStr
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_tenant_id
 from app.core.permissions import require_tenant_admin, require_same_tenant
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 from app.models.user import User, UserRole
 from app.models.tenant import Tenant
+from app.schemas.auth import PasswordChange, ProfileUpdate
 
 router = APIRouter()
 
@@ -301,6 +302,71 @@ async def update_user(
         tenant_id=user.tenant_id,
         created_at=user.created_at.isoformat(),
     )
+
+
+@router.put("/me/profile", response_model=UserResponse)
+async def update_my_profile(
+    profile_data: ProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update current user's profile information
+
+    Users can update their own full_name and job_title.
+    """
+    # Update fields
+    if profile_data.full_name is not None:
+        current_user.full_name = profile_data.full_name
+    if profile_data.job_title is not None:
+        current_user.job_title = profile_data.job_title
+
+    await db.commit()
+    await db.refresh(current_user)
+
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        job_title=current_user.job_title,
+        role=current_user.role.value,
+        is_active=current_user.is_active,
+        is_verified=current_user.is_verified,
+        tenant_id=current_user.tenant_id,
+        created_at=current_user.created_at.isoformat(),
+    )
+
+
+@router.post("/me/change-password", status_code=status.HTTP_200_OK)
+async def change_my_password(
+    password_data: PasswordChange,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Change current user's password
+
+    Requires current password for verification.
+    """
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+
+    # Check new password is different
+    if verify_password(password_data.new_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from current password"
+        )
+
+    # Update password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    await db.commit()
+
+    return {"message": "Password changed successfully"}
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

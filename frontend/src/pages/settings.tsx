@@ -49,7 +49,16 @@ export default function Settings() {
       router.push('/login')
       return
     }
-    setUser(getCurrentUser())
+    const currentUser = getCurrentUser()
+    setUser(currentUser)
+
+    // Initialize profile data
+    if (currentUser) {
+      setProfileData({
+        full_name: currentUser.full_name || '',
+        email: currentUser.email || '',
+      })
+    }
   }, [])
 
   // LLM Settings state
@@ -107,9 +116,9 @@ export default function Settings() {
   const [showAddUserModal, setShowAddUserModal] = useState(false)
 
   const tabs = [
-    // { id: 'profile' as Tab, label: 'Profile', icon: User },
+    { id: 'profile' as Tab, label: 'Profile', icon: User },
     { id: 'appearance' as Tab, label: 'Appearance', icon: Palette },
-    // { id: 'security' as Tab, label: 'Security', icon: Shield },
+    { id: 'security' as Tab, label: 'Security', icon: Shield },
     // { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
     ...(user?.role === 'TENANT_ADMIN' ? [{ id: 'team' as Tab, label: 'Team', icon: Users }] : []),
@@ -254,6 +263,59 @@ export default function Settings() {
       setRefreshing(false)
       // Auto-hide result after 5 seconds
       setTimeout(() => setRefreshResult(null), 5000)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      const response = await api.updateMyProfile({
+        full_name: profileData.full_name,
+      })
+
+      // Update local user data
+      const updatedUser = {
+        ...user,
+        full_name: response.data.full_name,
+      }
+      setUser(updatedUser)
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+
+      alert('Profile updated successfully!')
+    } catch (error: any) {
+      console.error('Failed to update profile:', error)
+      alert(`Failed to update profile: ${error.response?.data?.detail || error.message}`)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    // Validation
+    if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
+      alert('Please fill in all password fields')
+      return
+    }
+
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      alert('New passwords do not match')
+      return
+    }
+
+    if (passwordData.new_password.length < 8) {
+      alert('New password must be at least 8 characters')
+      return
+    }
+
+    try {
+      await api.changeMyPassword({
+        current_password: passwordData.current_password,
+        new_password: passwordData.new_password,
+      })
+
+      // Clear password fields
+      setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
+      alert('Password changed successfully!')
+    } catch (error: any) {
+      console.error('Failed to change password:', error)
+      alert(`Failed to change password: ${error.response?.data?.detail || error.message}`)
     }
   }
 
@@ -435,11 +497,17 @@ export default function Settings() {
                 <input
                   type="email"
                   value={profileData.email}
-                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Email cannot be changed</p>
               </div>
-              <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Save Profile</button>
+              <button
+                onClick={handleSaveProfile}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              >
+                Save Profile
+              </button>
             </div>
           )}
 
@@ -484,9 +552,15 @@ export default function Settings() {
                     onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
-                  <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Update Password</button>
+                  <button
+                    onClick={handleChangePassword}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  >
+                    Update Password
+                  </button>
                 </div>
               </div>
+              {/* Two-Factor Authentication - Coming soon
               <div>
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Two-Factor Authentication</h3>
                 <div className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
@@ -499,6 +573,7 @@ export default function Settings() {
                   </button>
                 </div>
               </div>
+              */}
             </div>
           )}
 

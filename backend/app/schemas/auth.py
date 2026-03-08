@@ -41,3 +41,17 @@ class TokenData(BaseModel):
     email: str
     tenant_id: int | None  # None for SUPER_ADMIN
     role: str
+
+
+class PasswordChange(BaseModel):
+    """Password change request"""
+
+    current_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=8)
+
+
+class ProfileUpdate(BaseModel):
+    """Profile update request"""
+
+    full_name: str | None = Field(None, min_length=1, max_length=255)
+    job_title: str | None = Field(None, max_length=255)

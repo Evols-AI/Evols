@@ -202,6 +202,12 @@ export const api = {
   createUser: (data: any) => apiClient.post('/api/v1/users/', data),
   deleteUser: (userId: number) => apiClient.delete(`/api/v1/users/${userId}`),
 
+  // User Profile Management
+  updateMyProfile: (data: { full_name?: string; job_title?: string }) =>
+    apiClient.put('/api/v1/users/me/profile', data),
+  changeMyPassword: (data: { current_password: string; new_password: string }) =>
+    apiClient.post('/api/v1/users/me/change-password', data),
+
   // Generic post helper for workbench
   post: (path: string, data: any) => apiClient.post(`/api/v1${path}`, data),
 }
