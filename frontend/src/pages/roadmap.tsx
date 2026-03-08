@@ -2,7 +2,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { TrendingUp, Rocket, RefreshCw, Loader2, Sparkles, Package, Layers, Target, ArrowUpDown, Check, Grid, Calendar, Crosshair, ChevronDown } from 'lucide-react'
+import { TrendingUp, Rocket, RefreshCw, Loader2, Sparkles, Package, Layers, Target, ArrowUpDown, Check, Grid, Calendar, ChevronDown } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -11,18 +11,16 @@ import { useJobPolling } from '@/hooks/useJobPolling'
 import { InitiativeCard } from '@/components/roadmap/InitiativeCard'
 import { PriorityMatrixTab } from '@/components/roadmap/PriorityMatrixTab'
 import { InitiativeRoadmapTab } from '@/components/roadmap/InitiativeRoadmapTab'
-import { StrategyRadarTab } from '@/components/roadmap/StrategyRadarTab'
 import { useProducts } from '@/hooks/useProducts'
 import { confirmDemoOperation } from '@/utils/demoWarning'
 
-type TabType = 'projects' | 'matrix' | 'timeline' | 'strategy'
+type TabType = 'projects' | 'matrix' | 'timeline'
 
 function TabNav({ activeTab, setActiveTab }: { activeTab: TabType; setActiveTab: (tab: TabType) => void }) {
   const tabs = [
     { id: 'projects' as TabType, label: 'Projects', icon: Package },
     { id: 'matrix' as TabType, label: 'Priority Matrix', icon: Grid },
     { id: 'timeline' as TabType, label: 'Initiative Roadmap', icon: Calendar },
-    { id: 'strategy' as TabType, label: 'Strategy Radar', icon: Crosshair },
   ]
 
   return (
@@ -524,14 +522,6 @@ export default function Roadmap() {
                   initiatives={initiatives}
                   projects={projects}
                   onRefresh={loadInitiatives}
-                />
-              )}
-
-              {/* Tab 4: Strategy Radar */}
-              {activeTab === 'strategy' && (
-                <StrategyRadarTab
-                  initiatives={initiatives}
-                  projects={projects}
                 />
               )}
             </>
