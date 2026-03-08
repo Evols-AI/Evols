@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, FlaskConical, Settings, LayoutDashboard, MessageSquare, Rocket, Users, ChevronDown, LogOut, Sparkles, BookOpen, Shield } from 'lucide-react'
+import { Moon, Sun, FlaskConical, Settings, LayoutDashboard, MessageSquare, Rocket, Users, ChevronDown, LogOut, BookOpen, Shield } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoIcon } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
-import GlobalAICopilot from '@/components/GlobalAICopilot'
+// import GlobalAICopilot from '@/components/GlobalAICopilot'
 import { ProductSelector } from '@/components/ProductSelector'
 import { getCurrentUser } from '@/utils/auth'
 
@@ -20,7 +20,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
   const router = useRouter()
   const { theme, toggleTheme } = useTheme()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isCopilotOpen, setIsCopilotOpen] = useState(false)
+  // const [isCopilotOpen, setIsCopilotOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const fullUser = getCurrentUser()
 
@@ -89,6 +89,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
             )}
           </div>
           <div className="flex items-center space-x-4">
+            {/* AI Copilot - Temporarily hidden
             {user && fullUser?.role !== 'SUPER_ADMIN' && (
               <button
                 onClick={() => setIsCopilotOpen(true)}
@@ -99,6 +100,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
                 <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </button>
             )}
+            */}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
@@ -155,8 +157,9 @@ export default function Header({ user, currentPage }: HeaderProps) {
         </div>
       </div>
 
-      {/* Global AI Copilot */}
+      {/* Global AI Copilot - Temporarily hidden
       {isCopilotOpen && <GlobalAICopilot onClose={() => setIsCopilotOpen(false)} />}
+      */}
     </header>
   )
 }

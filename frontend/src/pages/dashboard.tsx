@@ -8,9 +8,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import {
-  TrendingUp, Bell, XCircle,
+  TrendingUp,
   ArrowRight, Plus, Upload, FlaskConical, BarChart3,
-  FileText, AlertTriangle, Eye, Users, Zap, Scale, MessageSquare, X
+  FileText, Users, Scale, MessageSquare, X
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
@@ -20,6 +20,7 @@ import { useProducts } from '@/hooks/useProducts'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/* Signal Feed types - temporarily disabled
 interface Signal {
   id: number
   signal_type: 'emerging_theme' | 'anomaly' | 'assumption_challenged' | 'new_feedback'
@@ -29,6 +30,7 @@ interface Signal {
   status: 'active' | 'dismissed' | 'investigating'
   created_at: string
 }
+*/
 
 interface DashboardStats {
   feedbackCount: number
@@ -41,6 +43,7 @@ interface DashboardStats {
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
+/* Signal Feed components - Temporarily disabled
 function SignalCard({ signal, onDismiss, onInvestigate }: {
   signal: Signal
   onDismiss: () => void
@@ -93,6 +96,7 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
     </div>
   )
 }
+*/
 
 function DecisionStatusDot({ status }: { status: string }) {
   const cfg: Record<string, { color: string; label: string }> = {
@@ -123,7 +127,7 @@ export default function Dashboard() {
   })
   const [themes, setThemes] = useState<any[]>([])
   const [decisions, setDecisions] = useState<any[]>([])
-  const [signals, setSignals] = useState<Signal[]>([])
+  // const [signals, setSignals] = useState<Signal[]>([])
   const [personas, setPersonas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showAskModal, setShowAskModal] = useState(false)
@@ -186,27 +190,27 @@ export default function Dashboard() {
       setDecisions(decisionsData)
       setPersonas(advisorPersonas)
 
-      // Mock signals until signal endpoint is implemented
-      setSignals([
-        {
-          id: 1,
-          signal_type: 'emerging_theme',
-          title: 'New theme: Onboarding friction increasing',
-          description: '12 new feedback items in the last 7 days mention onboarding difficulty, up 40% from previous week.',
-          confidence: 0.87,
-          status: 'active',
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          signal_type: 'assumption_challenged',
-          title: 'Enterprise segment more price-sensitive than assumed',
-          description: '3 recent interviews and 8 feedback items suggest enterprise buyers are citing price as a blocker.',
-          confidence: 0.72,
-          status: 'active',
-          created_at: new Date().toISOString(),
-        },
-      ])
+      // Mock signals - temporarily disabled
+      // setSignals([
+      //   {
+      //     id: 1,
+      //     signal_type: 'emerging_theme',
+      //     title: 'New theme: Onboarding friction increasing',
+      //     description: '12 new feedback items in the last 7 days mention onboarding difficulty, up 40% from previous week.',
+      //     confidence: 0.87,
+      //     status: 'active',
+      //     created_at: new Date().toISOString(),
+      //   },
+      //   {
+      //     id: 2,
+      //     signal_type: 'assumption_challenged',
+      //     title: 'Enterprise segment more price-sensitive than assumed',
+      //     description: '3 recent interviews and 8 feedback items suggest enterprise buyers are citing price as a blocker.',
+      //     confidence: 0.72,
+      //     status: 'active',
+      //     created_at: new Date().toISOString(),
+      //   },
+      // ])
     } catch (e) {
       console.error('Dashboard load error:', e)
     } finally {
@@ -214,8 +218,8 @@ export default function Dashboard() {
     }
   }
 
-  const dismissSignal = (id: number) =>
-    setSignals(prev => prev.filter(s => s.id !== id))
+  // const dismissSignal = (id: number) =>
+  //   setSignals(prev => prev.filter(s => s.id !== id))
 
   const hasData = stats.feedbackCount > 0
 
@@ -407,6 +411,7 @@ export default function Dashboard() {
                     </div>
                   </Card>
 
+                  {/* Signal Feed - Temporarily hidden
                   {signals.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-3">
@@ -425,6 +430,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   )}
+                  */}
                 </div>
               </div>
             </div>
