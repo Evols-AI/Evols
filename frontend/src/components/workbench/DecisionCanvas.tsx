@@ -57,7 +57,7 @@ function StepBar({ current }: { current: number }) {
         <div key={s.n} className="flex items-center gap-1">
           <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
             s.n < current ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-            s.n === current ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
+            s.n === current ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300' :
             'bg-gray-100 text-gray-400 dark:bg-gray-800'
           }`}>
             {s.n < current ? <CheckCircle className="w-3 h-3" /> : <span>{s.n}</span>}
@@ -128,7 +128,7 @@ function OptionCard({
       {option.segments_served?.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {option.segments_served.map(s => (
-            <span key={s} className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-full text-xs">
+            <span key={s} className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-full text-xs">
               {s}
             </span>
           ))}
@@ -138,7 +138,7 @@ function OptionCard({
       {/* Pros / Cons toggle */}
       <button
         onClick={e => { e.stopPropagation(); setExpanded(x => !x) }}
-        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline mb-2"
+        className="text-xs text-blue-500 dark:text-blue-300 hover:underline mb-2"
       >
         {expanded ? 'Hide' : 'Show'} pros & cons
       </button>
@@ -210,7 +210,7 @@ function PersonaVoteRow({ vote }: { vote: any }) {
         ))}
       </div>
       <div className="w-20 flex-shrink-0 text-right">
-        <span className="text-xs px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-full font-medium">
+        <span className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-full font-medium">
           Votes {vote.top_choice}
         </span>
       </div>
@@ -278,7 +278,7 @@ export default function DecisionCanvas({
                 onChange={e => onObjectiveChange(e.target.value)}
                 placeholder="e.g. What should we prioritize for Q3? Should we build feature X or Y?"
                 rows={2}
-                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white resize-none"
+                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:text-white resize-none"
               />
             </div>
 
@@ -297,7 +297,7 @@ export default function DecisionCanvas({
                       }}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                         state.segments.includes(seg)
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-blue-500 text-white'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -317,7 +317,7 @@ export default function DecisionCanvas({
                       onClick={() => onTimeHorizonChange(horizon)}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                         state.time_horizon === horizon
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-blue-500 text-white'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -337,7 +337,7 @@ export default function DecisionCanvas({
                 onChange={e => onConstraintsChange(e.target.value)}
                 placeholder="e.g. Must ship by end of quarter, Limited to 2 engineers, No external dependencies"
                 rows={2}
-                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white resize-none"
+                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:text-white resize-none"
               />
             </div>
           </div>
@@ -356,13 +356,13 @@ export default function DecisionCanvas({
               </p>
 
               {/* Internal Context Checkbox */}
-              <div className="flex items-start gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+              <div className="flex items-start gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
                 <input
                   type="checkbox"
                   id="use-internal"
                   checked={state.use_internal_context}
                   onChange={e => onUseInternalContextChange(e.target.checked)}
-                  className="w-5 h-5 mt-0.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  className="w-5 h-5 mt-0.5 text-blue-500 border-gray-300 rounded focus:ring-blue-400"
                 />
                 <div className="flex-1">
                   <label htmlFor="use-internal" className="block text-sm font-semibold text-gray-900 dark:text-white cursor-pointer">
@@ -376,13 +376,13 @@ export default function DecisionCanvas({
               </div>
 
               {/* External Context Checkbox */}
-              <div className="flex items-start gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+              <div className="flex items-start gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
                 <input
                   type="checkbox"
                   id="use-external"
                   checked={state.use_external_context}
                   onChange={e => onUseExternalContextChange(e.target.checked)}
-                  className="w-5 h-5 mt-0.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  className="w-5 h-5 mt-0.5 text-blue-500 border-gray-300 rounded focus:ring-blue-400"
                 />
                 <div className="flex-1">
                   <label htmlFor="use-external" className="block text-sm font-semibold text-gray-900 dark:text-white cursor-pointer">
@@ -411,7 +411,7 @@ export default function DecisionCanvas({
                         value={state.product_name}
                         onChange={e => onProductNameChange(e.target.value)}
                         placeholder="e.g. Acme SaaS (leave blank if pre-launch)"
-                        className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                        className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:text-white"
                       />
                     </div>
                     <div>
@@ -422,7 +422,7 @@ export default function DecisionCanvas({
                         value={state.product_description}
                         onChange={e => onProductDescriptionChange(e.target.value)}
                         placeholder="e.g. Meeting automation tool"
-                        className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                        className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:text-white"
                       />
                     </div>
                   </div>
@@ -437,11 +437,11 @@ export default function DecisionCanvas({
                         onChange={e => setCompetitorInput(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCompetitor())}
                         placeholder="Add competitor name"
-                        className="flex-1 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                        className="flex-1 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:text-white"
                       />
                       <button
                         onClick={handleAddCompetitor}
-                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                        className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
                       >
                         <Plus className="w-4 h-4" />
                       </button>
@@ -451,12 +451,12 @@ export default function DecisionCanvas({
                         {state.competitors.map(comp => (
                           <span
                             key={comp}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-medium"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-full text-xs font-medium"
                           >
                             {comp}
                             <button
                               onClick={() => handleRemoveCompetitor(comp)}
-                              className="hover:text-indigo-900 dark:hover:text-indigo-100"
+                              className="hover:text-blue-900 dark:hover:text-blue-100"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -472,7 +472,7 @@ export default function DecisionCanvas({
                       id="beyond-idea"
                       checked={state.is_beyond_idea_phase}
                       onChange={e => onIsBeyondIdeaPhaseChange(e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-400"
                     />
                     <label htmlFor="beyond-idea" className="text-sm text-gray-700 dark:text-gray-300">
                       My product is already launched (include product reviews in research)
@@ -488,7 +488,7 @@ export default function DecisionCanvas({
                     <button
                       onClick={onPullContext}
                       disabled={state.is_loading}
-                      className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
+                      className="w-full px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
                     >
                       {state.is_loading ? 'Pulling Internal Context...' : 'Pull Internal Context →'}
                     </button>
@@ -498,7 +498,7 @@ export default function DecisionCanvas({
                     <button
                       onClick={onPullInternetData}
                       disabled={state.is_loading}
-                      className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {state.is_loading ? 'Researching Market...' : (
                         <>
@@ -538,7 +538,7 @@ export default function DecisionCanvas({
                 <div className="space-y-1 text-xs">
                   {state.context_themes.slice(0, 3).map((t: any) => (
                     <div key={t.id} className="flex items-center gap-2 py-1">
-                      <span className="text-indigo-600 dark:text-indigo-400 font-medium">{t.title}</span>
+                      <span className="text-blue-500 dark:text-blue-300 font-medium">{t.title}</span>
                       <span className="text-gray-400">{t.feedback_count} items</span>
                     </div>
                   ))}
@@ -612,7 +612,7 @@ export default function DecisionCanvas({
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-600" />
+                <Users className="w-5 h-5 text-blue-500" />
                 Generated Personas
               </h2>
               <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -629,7 +629,7 @@ export default function DecisionCanvas({
                       <p className="text-xs text-gray-500 dark:text-gray-400">{persona.segment}</p>
                     </div>
                     {persona.company_size_range && (
-                      <span className="text-xs px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded">
+                      <span className="text-xs px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded">
                         {persona.company_size_range}
                       </span>
                     )}
@@ -653,7 +653,7 @@ export default function DecisionCanvas({
               <button
                 onClick={onSavePersonas}
                 disabled={state.is_loading}
-                className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {state.is_loading ? (
                   <>
@@ -711,7 +711,7 @@ export default function DecisionCanvas({
               <button
                 onClick={() => onRegenerate(localConstraints)}
                 disabled={state.is_loading || !localConstraints.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Apply
               </button>
@@ -738,12 +738,12 @@ export default function DecisionCanvas({
                   <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-indigo-600 animate-pulse" />
+                        <Users className="w-5 h-5 text-blue-500 animate-pulse" />
                         <h3 className="font-semibold text-gray-900 dark:text-white">
                           Collecting Persona Votes...
                         </h3>
                       </div>
-                      <span className="text-sm font-medium text-indigo-600">
+                      <span className="text-sm font-medium text-blue-500">
                         {votingProgress.current}%
                       </span>
                     </div>
@@ -778,7 +778,7 @@ export default function DecisionCanvas({
         {state.step >= 5 && state.persona_votes.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-indigo-600" />
+              <Users className="w-5 h-5 text-blue-500" />
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                 Persona Validation
               </h2>
@@ -807,7 +807,7 @@ export default function DecisionCanvas({
             <div className="mt-4 flex gap-3">
               <button
                 onClick={() => setShowDecisionBrief(true)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors"
               >
                 <FileText className="w-4 h-4" />
                 Generate Decision Brief
@@ -822,7 +822,7 @@ export default function DecisionCanvas({
               </button>
               <button
                 onClick={onFrameNewDecision}
-                className="flex items-center gap-2 px-4 py-3 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                className="flex items-center gap-2 px-4 py-3 border border-blue-200 dark:border-blue-600 text-blue-500 dark:text-blue-300 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Frame New Decision
@@ -833,9 +833,9 @@ export default function DecisionCanvas({
 
           {/* Loading overlay */}
           {state.is_loading && (
-            <div className="flex items-center gap-3 py-4 px-5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
-              <Loader2 className="w-4 h-4 text-indigo-600 animate-spin flex-shrink-0" />
-              <span className="text-sm text-indigo-700 dark:text-indigo-300">
+            <div className="flex items-center gap-3 py-4 px-5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+              <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" />
+              <span className="text-sm text-blue-600 dark:text-blue-300">
                 {state.step === 2 ? 'Pulling relevant context from knowledge graph…' :
                  state.step === 3 ? 'Generating roadmap options with evidence…' :
                  state.step === 5 ? 'Asking persona twins to vote…' :
@@ -853,7 +853,7 @@ export default function DecisionCanvas({
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <BarChart3 className="w-5 h-5 text-indigo-600" />
+                <BarChart3 className="w-5 h-5 text-blue-500" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Persona Voting Results</h2>
               </div>
               <button onClick={() => setShowVoteChart(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
@@ -878,7 +878,7 @@ export default function DecisionCanvas({
                         </div>
                         <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-end px-2 transition-all"
+                            className="h-full bg-gradient-to-r from-blue-400 to-blue-500 flex items-center justify-end px-2 transition-all"
                             style={{ width: `${percentage}%` }}
                           >
                             {percentage > 15 && <span className="text-xs font-medium text-white">{votesForOption}</span>}
@@ -904,7 +904,7 @@ export default function DecisionCanvas({
                             <div className="text-sm text-gray-600 dark:text-gray-400">{vote.segment}</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                            <div className="text-sm font-semibold text-blue-500 dark:text-blue-300">
                               Top Choice: {topOption?.title}
                             </div>
                             <div className="text-xs text-gray-500">Confidence: {(vote.confidence * 100).toFixed(0)}%</div>
@@ -936,7 +936,7 @@ export default function DecisionCanvas({
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-indigo-600" />
+                <FileText className="w-5 h-5 text-blue-500" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Decision Brief</h2>
               </div>
               <button onClick={() => setShowDecisionBrief(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
@@ -981,9 +981,9 @@ export default function DecisionCanvas({
                 const topOption = voteCounts.reduce((max, curr) => curr.votes > max.votes ? curr : max, voteCounts[0])
 
                 return (
-                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg p-6 border border-indigo-200 dark:border-indigo-800">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
                     <div className="flex items-start gap-3 mb-3">
-                      <CheckCircle className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-1" />
+                      <CheckCircle className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
                       <div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Recommended: {topOption.option.title}</h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{topOption.votes} out of {state.persona_votes.length} personas ({((topOption.votes / state.persona_votes.length) * 100).toFixed(0)}%) chose this option</p>
@@ -1016,7 +1016,7 @@ export default function DecisionCanvas({
               {state.persona_votes.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <BarChart3 className="w-5 h-5 text-indigo-600" />
+                    <BarChart3 className="w-5 h-5 text-blue-500" />
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Voting Results</h3>
                   </div>
                   <div className="space-y-3">
@@ -1032,7 +1032,7 @@ export default function DecisionCanvas({
                           </div>
                           <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-end px-2 transition-all"
+                              className="h-full bg-gradient-to-r from-blue-400 to-blue-500 flex items-center justify-end px-2 transition-all"
                               style={{ width: `${percentage}%` }}
                             >
                               {percentage > 15 && <span className="text-xs font-medium text-white">{votesForOption}</span>}
@@ -1055,7 +1055,7 @@ export default function DecisionCanvas({
                       <div key={option.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="font-semibold text-gray-900 dark:text-white">{option.title}</h4>
-                          <span className="text-xs px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-full">
+                          <span className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-full">
                             {votesForOption} votes
                           </span>
                         </div>

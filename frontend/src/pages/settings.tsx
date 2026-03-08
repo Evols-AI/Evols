@@ -405,7 +405,7 @@ export default function Settings() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-medium whitespace-nowrap ${
-                    isActive ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-600 hover:text-gray-900 dark:hover:text-gray-200'
+                    isActive ? 'border-blue-500 text-blue-500 dark:text-blue-300' : 'border-transparent text-gray-600 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -427,7 +427,7 @@ export default function Settings() {
                   type="text"
                   value={profileData.full_name}
                   onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 />
               </div>
               <div>
@@ -436,10 +436,10 @@ export default function Settings() {
                   type="email"
                   value={profileData.email}
                   onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 />
               </div>
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Save Profile</button>
+              <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Save Profile</button>
             </div>
           )}
 
@@ -451,7 +451,7 @@ export default function Settings() {
                   <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Toggle between light and dark theme</p>
                 </div>
-                <button onClick={toggleTheme} className={`relative inline-flex h-6 w-11 items-center rounded-full ${theme === 'dark' ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                <button onClick={toggleTheme} className={`relative inline-flex h-6 w-11 items-center rounded-full ${theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'}`}>
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
@@ -468,23 +468,23 @@ export default function Settings() {
                     placeholder="Current Password"
                     value={passwordData.current_password}
                     onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                   <input
                     type="password"
                     placeholder="New Password"
                     value={passwordData.new_password}
                     onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                   <input
                     type="password"
                     placeholder="Confirm Password"
                     value={passwordData.confirm_password}
                     onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
-                  <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Update Password</button>
+                  <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Update Password</button>
                 </div>
               </div>
               <div>
@@ -494,7 +494,7 @@ export default function Settings() {
                     <p className="font-medium text-gray-900 dark:text-white">Enable 2FA</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Add extra security layer to your account</p>
                   </div>
-                  <button onClick={() => setTwoFactorEnabled(!twoFactorEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full ${twoFactorEnabled ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                  <button onClick={() => setTwoFactorEnabled(!twoFactorEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full ${twoFactorEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
@@ -509,12 +509,12 @@ export default function Settings() {
                 {Object.entries({ email_notifications: 'Email Notifications', push_notifications: 'Push Notifications', feedback_alerts: 'Feedback Alerts', theme_updates: 'Theme Updates', decision_reminders: 'Decision Reminders', weekly_digest: 'Weekly Digest' }).map(([key, label]) => (
                   <div key={key} className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
                     <p className="text-gray-900 dark:text-white">{label}</p>
-                    <button onClick={() => setNotificationSettings({ ...notificationSettings, [key]: !notificationSettings[key as keyof typeof notificationSettings] })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings[key as keyof typeof notificationSettings] ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                    <button onClick={() => setNotificationSettings({ ...notificationSettings, [key]: !notificationSettings[key as keyof typeof notificationSettings] })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings[key as keyof typeof notificationSettings] ? 'bg-blue-500' : 'bg-gray-300'}`}>
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${notificationSettings[key as keyof typeof notificationSettings] ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
                 ))}
-                <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors mt-4">Save Preferences</button>
+                <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors mt-4">Save Preferences</button>
               </div>
             </div>
           )}
@@ -545,7 +545,7 @@ export default function Settings() {
                   <button
                     onClick={handleRefreshModels}
                     disabled={refreshing || !currentLLMSettings}
-                    className="ml-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm"
+                    className="ml-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm"
                   >
                     <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                     {refreshing ? 'Refreshing...' : 'Refresh Models'}
@@ -564,7 +564,7 @@ export default function Settings() {
                   <select
                     value={llmProvider}
                     onChange={(e) => handleLLMProviderChange(e.target.value as LLMProvider)}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   >
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
@@ -584,7 +584,7 @@ export default function Settings() {
                         type={showApiKey ? 'text' : 'password'}
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
@@ -600,7 +600,7 @@ export default function Settings() {
                       <select
                         value={llmConfig.model}
                         onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       >
                         {modelOptions?.openai_models.map((m) => <option key={m} value={m}>{m}</option>)}
                       </select>
@@ -619,7 +619,7 @@ export default function Settings() {
                         type={showApiKey ? 'text' : 'password'}
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
@@ -635,7 +635,7 @@ export default function Settings() {
                       <select
                         value={llmConfig.model}
                         onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       >
                         {modelOptions?.anthropic_models.map((m) => <option key={m} value={m}>{m}</option>)}
                       </select>
@@ -655,7 +655,7 @@ export default function Settings() {
                         placeholder="API Key"
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
@@ -672,7 +672,7 @@ export default function Settings() {
                       placeholder="https://your-resource.openai.azure.com"
                       value={llmConfig.endpoint}
                       onChange={(e) => setLLMConfig({ ...llmConfig, endpoint: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   </div>
                   <div>
@@ -682,7 +682,7 @@ export default function Settings() {
                       placeholder="gpt-4"
                       value={llmConfig.deployment_name}
                       onChange={(e) => setLLMConfig({ ...llmConfig, deployment_name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   </div>
                 </div>
@@ -729,7 +729,7 @@ export default function Settings() {
                           placeholder="Enter your AWS Bedrock API key"
                           value={llmConfig.api_key}
                           onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                          className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                         />
                         <button
                           onClick={() => setShowApiKey(!showApiKey)}
@@ -751,7 +751,7 @@ export default function Settings() {
                           placeholder="AKIAIOSFODNN7EXAMPLE"
                           value={llmConfig.access_key_id}
                           onChange={(e) => setLLMConfig({ ...llmConfig, access_key_id: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                         />
                       </div>
                       <div>
@@ -762,7 +762,7 @@ export default function Settings() {
                             placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
                             value={llmConfig.secret_access_key}
                             onChange={(e) => setLLMConfig({ ...llmConfig, secret_access_key: e.target.value })}
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                           />
                           <button
                             onClick={() => setShowSecretKey(!showSecretKey)}
@@ -782,7 +782,7 @@ export default function Settings() {
                       <select
                         value={llmConfig.region}
                         onChange={(e) => setLLMConfig({ ...llmConfig, region: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       >
                         {modelOptions?.aws_regions.map((r) => <option key={r} value={r}>{r}</option>)}
                       </select>
@@ -795,7 +795,7 @@ export default function Settings() {
                       <select
                         value={llmConfig.model_id}
                         onChange={(e) => setLLMConfig({ ...llmConfig, model_id: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       >
                         {modelOptions?.aws_bedrock_models.map((m) => <option key={m} value={m}>{m}</option>)}
                       </select>
@@ -832,7 +832,7 @@ export default function Settings() {
                 <button
                   onClick={handleSaveLLMSettings}
                   disabled={saving || !isConfigValid()}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:cursor-not-allowed transition-colors"
                 >
                   {saving ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -871,7 +871,7 @@ export default function Settings() {
                         onChange={(e) => setPersonaRefreshEnabled(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
                     </label>
                   </div>
 
@@ -886,7 +886,7 @@ export default function Settings() {
                         max="365"
                         value={personaRefreshDays}
                         onChange={(e) => setPersonaRefreshDays(Number(e.target.value))}
-                        className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                         Personas will be refreshed every {personaRefreshDays} day(s)
@@ -897,7 +897,7 @@ export default function Settings() {
                   <button
                     onClick={handleSavePersonaRefreshSettings}
                     disabled={savingPersonaRefresh}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:cursor-not-allowed transition-colors"
                   >
                     {savingPersonaRefresh ? 'Saving...' : 'Save Refresh Settings'}
                   </button>
@@ -1042,7 +1042,7 @@ export default function Settings() {
                 </div>
                 <button
                   onClick={() => setShowAddUserModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   Add User
@@ -1059,7 +1059,7 @@ export default function Settings() {
                   <p className="text-gray-600 dark:text-gray-400 mb-4">No team members yet</p>
                   <button
                     onClick={() => setShowAddUserModal(true)}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                   >
                     Add First User
                   </button>
@@ -1226,7 +1226,7 @@ function AddUserModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: a
             </button>
             <button
               type="submit"
-              className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+              className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               Add User
             </button>

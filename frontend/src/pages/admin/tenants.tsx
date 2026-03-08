@@ -128,7 +128,7 @@ export default function TenantsAdmin() {
           <p className="text-gray-700 dark:text-gray-300 mb-4">{error}</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700"
+            className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
           >
             Go to Dashboard
           </button>
@@ -159,7 +159,7 @@ export default function TenantsAdmin() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+              className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               <Plus className="w-5 h-5" />
               Create Tenant
@@ -175,8 +175,8 @@ export default function TenantsAdmin() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-blue-500 dark:text-blue-300" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white">{tenant.name}</h3>
@@ -247,7 +247,7 @@ export default function TenantsAdmin() {
               <p className="text-gray-600 dark:text-gray-400 mb-4">Create your first tenant to get started</p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
               >
                 Create Tenant
               </button>
@@ -383,7 +383,7 @@ function CreateTenantModal({ onClose, onCreate }: { onClose: () => void, onCreat
             </button>
             <button
               type="submit"
-              className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+              className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               Create Tenant
             </button>

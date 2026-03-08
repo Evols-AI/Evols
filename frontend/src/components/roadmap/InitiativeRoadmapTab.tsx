@@ -215,7 +215,7 @@ function InitiativeSwimCard({ initiative, projects, onDragStart, isDisabled, onE
       draggable={!isDisabled}
       onDragStart={onDragStart}
       className={`bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 transition-all ${
-        isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-move hover:shadow-md hover:border-indigo-500'
+        isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-move hover:shadow-md hover:border-blue-400'
       }`}
     >
       <div className="flex items-start gap-2">

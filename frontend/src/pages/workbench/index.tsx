@@ -429,7 +429,7 @@ export default function WorkbenchPage() {
               onClick={() => setActiveTab('decision')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
                 activeTab === 'decision'
-                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-medium'
+                  ? 'border-blue-500 text-blue-500 dark:text-blue-300 font-medium'
                   : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
@@ -440,7 +440,7 @@ export default function WorkbenchPage() {
               onClick={() => setActiveTab('ask')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
                 activeTab === 'ask'
-                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-medium'
+                  ? 'border-blue-500 text-blue-500 dark:text-blue-300 font-medium'
                   : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
@@ -451,7 +451,7 @@ export default function WorkbenchPage() {
               onClick={() => setActiveTab('vote')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
                 activeTab === 'vote'
-                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-medium'
+                  ? 'border-blue-500 text-blue-500 dark:text-blue-300 font-medium'
                   : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >

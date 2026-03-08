@@ -505,7 +505,7 @@ function ProjectDetailModal({ project, initiative, onClose }: { project: any; in
             </div>
             <div className="col-span-2">
               <span className="text-gray-600 dark:text-gray-400">Priority Score:</span>
-              <span className="ml-2 font-bold text-lg text-indigo-600 dark:text-indigo-400">
+              <span className="ml-2 font-bold text-lg text-blue-500 dark:text-blue-300">
                 {project.priority_score?.toFixed(2) || 'N/A'}
               </span>
             </div>

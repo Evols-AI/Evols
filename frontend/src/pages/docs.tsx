@@ -322,7 +322,7 @@ function FeatureDoc({ title, description, features, link, linkText }: {
       </ul>
       {link && linkText && (
         <div className="mt-4">
-          <Link href={link} className="inline-flex items-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+          <Link href={link} className="inline-flex items-center text-sm text-blue-500 dark:text-blue-300 hover:text-blue-600">
             {linkText}
           </Link>
         </div>

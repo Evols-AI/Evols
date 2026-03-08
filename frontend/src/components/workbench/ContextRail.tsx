@@ -206,7 +206,7 @@ export default function ContextRail({ themes, feedback, marketData, isLoading, s
                     key={i}
                     className="mx-1 px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30"
                   >
-                    <p className="text-xs font-medium text-indigo-700 dark:text-indigo-400">
+                    <p className="text-xs font-medium text-blue-600 dark:text-blue-300">
                       {trend.trend}
                     </p>
                     {trend.description && (
@@ -241,7 +241,7 @@ export default function ContextRail({ themes, feedback, marketData, isLoading, s
                   <button
                     key={decision.id}
                     onClick={() => onDecisionClick?.(decision.id)}
-                    className="w-full mx-1 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors text-left"
+                    className="w-full mx-1 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left"
                   >
                     <div className="text-xs font-medium text-gray-900 dark:text-white line-clamp-2 mb-1">
                       {decision.objective || 'Untitled Decision'}

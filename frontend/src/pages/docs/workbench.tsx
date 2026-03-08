@@ -75,12 +75,12 @@ export default function WorkbenchDocumentation() {
               tailored to different decision contexts:
             </p>
             <div className="grid md:grid-cols-2 gap-4 mt-6 not-prose">
-              <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-5">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Briefcase className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                  <h3 className="font-semibold text-indigo-900 dark:text-indigo-100">PM Mode</h3>
+                  <Briefcase className="w-5 h-5 text-blue-500 dark:text-blue-300" />
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">PM Mode</h3>
                 </div>
-                <p className="text-sm text-indigo-800 dark:text-indigo-200">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
                   For product managers making roadmap decisions based on existing customer feedback and themes.
                 </p>
               </div>
@@ -112,7 +112,7 @@ export default function WorkbenchDocumentation() {
 
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-indigo-600" />
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
                   How PM Mode Works
                 </h3>
                 <ol className="space-y-4">
@@ -164,7 +164,7 @@ export default function WorkbenchDocumentation() {
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <Sparkles className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-gray-900 dark:text-white">AI-Powered:</strong>
                       <p className="text-sm">Strategic options generated from patterns in your data</p>
@@ -245,7 +245,7 @@ export default function WorkbenchDocumentation() {
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <Sparkles className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-gray-900 dark:text-white">Pre-Launch Ready:</strong>
                       <p className="text-sm">Works even without a product name (use description only)</p>
@@ -321,9 +321,9 @@ export default function WorkbenchDocumentation() {
           {/* Getting Started */}
           <Section title="Getting Started">
             <div className="space-y-6">
-              <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-5">
-                <h3 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-3">🚀 First Time Using the Workbench?</h3>
-                <ol className="space-y-2 text-sm text-indigo-800 dark:text-indigo-200">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-5">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">🚀 First Time Using the Workbench?</h3>
+                <ol className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
                   <li>1. <strong>Choose your mode:</strong> PM Mode for roadmap decisions, Founder Mode for strategic startup decisions</li>
                   <li>2. <strong>Frame your decision:</strong> Be specific about what you're trying to decide</li>
                   <li>3. <strong>Pull context:</strong> Let the system gather relevant data automatically</li>
@@ -392,14 +392,14 @@ export default function WorkbenchDocumentation() {
           </Section>
 
           {/* Footer CTA */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-6 text-center">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 text-center">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Ready to Make Better Decisions?</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-4">
               Start using the Decision Workbench to validate your product decisions with real data and customer insights.
             </p>
             <Link
               href="/workbench"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
             >
               <Sparkles className="w-5 h-5" />
               Open Workbench

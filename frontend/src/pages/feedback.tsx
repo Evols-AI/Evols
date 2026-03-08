@@ -809,7 +809,7 @@ function AddFeedbackModal({ segments: feedbackSegments, onClose, onSubmit }: { s
               onClick={() => setMode('manual')}
               className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                 mode === 'manual'
-                  ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                  ? 'border-blue-500 text-blue-500 dark:border-blue-300 dark:text-blue-300'
                   : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
@@ -820,7 +820,7 @@ function AddFeedbackModal({ segments: feedbackSegments, onClose, onSubmit }: { s
               onClick={() => setMode('document')}
               className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                 mode === 'document'
-                  ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                  ? 'border-blue-500 text-blue-500 dark:border-blue-300 dark:text-blue-300'
                   : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >

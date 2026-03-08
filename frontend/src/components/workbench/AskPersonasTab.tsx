@@ -141,7 +141,7 @@ export default function AskPersonasTab({ personas }: AskPersonasTabProps) {
                 onClick={() => togglePersona(persona.id)}
                 className={`p-3 rounded-lg border-2 transition ${
                   selectedPersonas.includes(persona.id)
-                    ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
@@ -155,7 +155,7 @@ export default function AskPersonasTab({ personas }: AskPersonasTabProps) {
 
       {/* Ask Button / Progress */}
       {askingProgress ? (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-5">
+        <div className="bg-gradient-to-r from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-blue-600 animate-pulse" />
@@ -169,7 +169,7 @@ export default function AskPersonasTab({ personas }: AskPersonasTabProps) {
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
             <div
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2.5 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-blue-600 to-blue-500 h-2.5 rounded-full transition-all duration-300"
               style={{ width: `${(askingProgress.current / askingProgress.total) * 100}%` }}
             />
           </div>

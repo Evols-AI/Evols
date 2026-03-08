@@ -242,14 +242,14 @@ export default function ThemesDocumentation() {
 
           {/* Incremental Updates */}
           <Section title="How Scores Update">
-            <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-6">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
               <div className="flex items-start space-x-3">
-                <RefreshCw className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mt-1" />
+                <RefreshCw className="w-6 h-6 text-blue-500 dark:text-blue-300 mt-1" />
                 <div>
-                  <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100 mb-2">
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
                     Incremental Refresh
                   </h3>
-                  <p className="text-indigo-800 dark:text-indigo-200 mb-3">
+                  <p className="text-blue-800 dark:text-blue-200 mb-3">
                     When new feedback arrives, theme scores are updated using weighted averages rather than full recalculation.
                   </p>
                 </div>
@@ -319,7 +319,7 @@ export default function ThemesDocumentation() {
 
           {/* Back Link */}
           <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <Link href="/docs" className="inline-flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+            <Link href="/docs" className="inline-flex items-center space-x-2 text-blue-500 dark:text-blue-300 hover:text-blue-600">
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Documentation</span>
             </Link>

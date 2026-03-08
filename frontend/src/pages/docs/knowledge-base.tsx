@@ -52,7 +52,7 @@ export default function KnowledgeBaseDocs() {
                   capabilities, documentation, and domain knowledge. It combines traditional data storage with AI-powered
                   semantic search and generation.
                 </p>
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
                   <p className="text-sm text-gray-700 dark:text-gray-300">
                     <strong>💡 Use Case:</strong> When personas ask questions or when generating decision options,
                     the AI can reference your product capabilities to provide accurate, context-aware responses.
@@ -152,7 +152,7 @@ export default function KnowledgeBaseDocs() {
             <Section title="RAG (Retrieval Augmented Generation)">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl">
                 <div className="flex items-start space-x-3 mb-4">
-                  <Brain className="w-6 h-6 text-indigo-600 mt-1" />
+                  <Brain className="w-6 h-6 text-blue-500 mt-1" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">How RAG Works</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -163,7 +163,7 @@ export default function KnowledgeBaseDocs() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="border-l-4 border-indigo-500 pl-4">
+                  <div className="border-l-4 border-blue-400 pl-4">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">1. Retrieval Phase</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       When a question is asked, the system uses semantic search to find the most relevant capabilities
@@ -188,19 +188,19 @@ export default function KnowledgeBaseDocs() {
                   </div>
                 </div>
 
-                <div className="mt-6 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <div className="mt-6 bg-gradient-to-r from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Integration Points:</h4>
                   <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
                     <li className="flex items-center space-x-2">
-                      <span className="text-indigo-600">▶</span>
+                      <span className="text-blue-500">▶</span>
                       <span><strong>Ask Personas:</strong> Personas reference capabilities when answering questions</span>
                     </li>
                     <li className="flex items-center space-x-2">
-                      <span className="text-indigo-600">▶</span>
+                      <span className="text-blue-500">▶</span>
                       <span><strong>Decision Workbench:</strong> Options are generated based on available capabilities</span>
                     </li>
                     <li className="flex items-center space-x-2">
-                      <span className="text-indigo-600">▶</span>
+                      <span className="text-blue-500">▶</span>
                       <span><strong>Roadmap Planning:</strong> Initiatives can be validated against existing capabilities</span>
                     </li>
                   </ul>
@@ -272,25 +272,25 @@ export default function KnowledgeBaseDocs() {
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Product Features:</h4>
                 <ul className="space-y-2">
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Create Products:</strong> Add new products to your workspace (admin only)
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Demo Product:</strong> Auto-created with sample data for onboarding
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Product Deletion:</strong> Archive products (cannot delete demo product)
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Capabilities per Product:</strong> Each product has its own capability set
                     </span>
@@ -301,7 +301,7 @@ export default function KnowledgeBaseDocs() {
 
             {/* Back Link */}
             <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-              <Link href="/docs" className="inline-flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+              <Link href="/docs" className="inline-flex items-center text-blue-500 dark:text-blue-300 hover:text-blue-600">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Documentation
               </Link>

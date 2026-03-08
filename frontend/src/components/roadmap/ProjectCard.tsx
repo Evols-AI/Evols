@@ -10,7 +10,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="pl-4 py-3 border-l-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors">
+    <div className="pl-4 py-3 border-l-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-300 transition-colors">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
@@ -26,7 +26,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           {project.acceptance_criteria && project.acceptance_criteria.length > 0 && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="text-xs text-blue-500 dark:text-blue-300 hover:underline"
             >
               {expanded ? 'Hide' : 'Show'} acceptance criteria ({project.acceptance_criteria.length})
             </button>
@@ -48,7 +48,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
         <div className="ml-4 flex flex-col items-end gap-2">
           <div className="text-right">
-            <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+            <div className="text-xl font-bold text-blue-500 dark:text-blue-300">
               {project.priority_score?.toFixed(1) || 'N/A'}
             </div>
             <div className="text-xs text-gray-500">Priority</div>

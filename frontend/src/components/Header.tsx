@@ -76,7 +76,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
                       href={item.href}
                       className={`flex items-center gap-1.5 text-sm transition-colors ${
                         isActive
-                          ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+                          ? 'text-blue-500 dark:text-blue-300 font-semibold'
                           : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
                       }`}
                     >
@@ -125,7 +125,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
                     {fullUser?.role === 'SUPER_ADMIN' && (
                       <Link
                         href="/admin/tenants"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-blue-500 dark:text-blue-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
                         onClick={() => setIsDropdownOpen(false)}
                       >
                         <Shield className="w-4 h-4" />

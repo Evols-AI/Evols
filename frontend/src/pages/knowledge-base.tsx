@@ -202,7 +202,7 @@ export default function KnowledgeBase() {
                     onClick={() => setSelectedView('products')}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
                       selectedView === 'products'
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-blue-500 text-white'
                         : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
@@ -213,7 +213,7 @@ export default function KnowledgeBase() {
                     onClick={() => setSelectedView('sources')}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
                       selectedView === 'sources'
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-blue-500 text-white'
                         : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
@@ -224,7 +224,7 @@ export default function KnowledgeBase() {
                     onClick={() => setSelectedView('graph')}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
                       selectedView === 'graph'
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-blue-500 text-white'
                         : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
@@ -442,7 +442,7 @@ export default function KnowledgeBase() {
                         <div className="p-6">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <Package className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                              <Package className="w-5 h-5 text-blue-500 dark:text-blue-300" />
                               <h3 className="text-lg font-semibold">{product.name}</h3>
                             </div>
                             {!product.is_demo && (
@@ -736,7 +736,7 @@ function AddSourceModal({
                   onClick={() => setSourceType(option.type as any)}
                   className={`p-4 rounded-lg border-2 transition ${
                     sourceType === option.type
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                   }`}
                 >
@@ -789,7 +789,7 @@ function AddSourceModal({
                   required
                 />
                 <label htmlFor="pdf-upload" className="cursor-pointer">
-                  <span className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                  <span className="text-sm text-blue-500 dark:text-blue-300 font-medium">
                     Choose file
                   </span>
                   <span className="text-sm text-gray-600 dark:text-gray-400"> or drag and drop</span>
@@ -890,7 +890,7 @@ function CapabilityGraph({ capabilities, onSelectCapability }: {
                 <button
                   key={capability.id}
                   onClick={() => onSelectCapability(capability)}
-                  className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-600 dark:hover:border-indigo-400 transition text-left"
+                  className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-300 transition text-left"
                 >
                   <h3 className="font-semibold text-heading mb-1">{capability.name}</h3>
                   <p className="text-sm text-body line-clamp-2">{capability.description}</p>
@@ -936,7 +936,7 @@ function CapabilityDetailModal({ capability, onClose }: {
                 {capability.dependencies.map((dep: string, idx: number) => (
                   <span
                     key={idx}
-                    className="px-3 py-1 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 rounded-full text-sm"
+                    className="px-3 py-1 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-sm"
                   >
                     {dep}
                   </span>
@@ -969,7 +969,7 @@ function CapabilityDetailModal({ capability, onClose }: {
                 href={capability.source.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="inline-flex items-center gap-2 text-sm text-blue-500 dark:text-blue-300 hover:underline"
               >
                 {capability.source.name}
                 <ExternalLink className="w-4 h-4" />

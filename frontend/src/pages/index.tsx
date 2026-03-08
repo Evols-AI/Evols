@@ -23,7 +23,7 @@ export default function Home() {
         <title>Evols - Evolve your product roadmap</title>
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
         {/* Header */}
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">

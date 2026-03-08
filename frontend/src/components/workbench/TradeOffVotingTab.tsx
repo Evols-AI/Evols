@@ -236,13 +236,13 @@ export default function TradeOffVotingTab({ personas }: TradeOffVotingTabProps) 
             <div key={idx} className="card p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="font-semibold text-heading">{result.option}</div>
-                <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                <div className="text-lg font-bold text-blue-500 dark:text-blue-300">
                   {result.percentage}%
                 </div>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
                 <div
-                  className="bg-indigo-600 dark:bg-indigo-500 h-2 rounded-full transition-all"
+                  className="bg-blue-500 dark:bg-blue-400 h-2 rounded-full transition-all"
                   style={{ width: `${result.percentage}%` }}
                 />
               </div>
@@ -255,7 +255,7 @@ export default function TradeOffVotingTab({ personas }: TradeOffVotingTabProps) 
                 <div className="mt-3 space-y-2">
                   {result.reasoning.map((r: any, ridx: number) => (
                     r.reason && (
-                      <div key={ridx} className="text-xs text-muted border-l-2 border-indigo-300 dark:border-indigo-700 pl-2">
+                      <div key={ridx} className="text-xs text-muted border-l-2 border-blue-300 dark:border-blue-600 pl-2">
                         <span className="font-medium">{r.persona}:</span> {r.reason}
                       </div>
                     )

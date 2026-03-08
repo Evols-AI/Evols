@@ -245,7 +245,7 @@ export default function Dashboard() {
             <Loading text="Loading your dashboard..." />
           ) : !hasData ? (
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 rounded-lg p-8 border border-indigo-200 dark:border-indigo-800">
+              <div className="bg-gradient-to-br from-blue-50 to-violet-50 dark:from-blue-900/20 dark:to-violet-900/20 rounded-lg p-8 border border-blue-200 dark:border-blue-800">
                 <h2 className="card-header mb-2">🚀 Let's get started</h2>
                 <p className="text-body mb-6 max-w-xl">
                   Upload your first VoC or connect a data source and Evols will auto-cluster themes, build persona twins, and help you make your first evidence-backed decision.
@@ -254,7 +254,7 @@ export default function Dashboard() {
                   {[
                     { href: '/feedback', icon: <Upload className="w-6 h-6 text-blue-600" />, title: 'Upload VoC', desc: 'CSV from Intercom, Zendesk, or manual input' },
                     { href: '/roadmap', icon: <BarChart3 className="w-6 h-6 text-purple-600" />, title: 'View Roadmap', desc: 'AI-powered prioritized product roadmap' },
-                    { href: '/workbench', icon: <FlaskConical className="w-6 h-6 text-indigo-600" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
+                    { href: '/workbench', icon: <FlaskConical className="w-6 h-6 text-blue-500" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
                   ].map(item => (
                     <Link key={item.href} href={item.href}
                       className="card-hover p-5"
@@ -298,7 +298,7 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         {themes.map((theme: any) => (
                           <div key={theme.id} className="flex items-center gap-3 p-3 rounded-lg hover-lift">
-                            <div className="flex-shrink-0 w-1 h-10 rounded-full bg-indigo-600 dark:bg-indigo-500" />
+                            <div className="flex-shrink-0 w-1 h-10 rounded-full bg-blue-500 dark:bg-blue-400" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-heading line-clamp-1">{theme.title}</p>
                               <p className="text-xs text-body">{theme.feedback_count || 0} items</p>
@@ -395,8 +395,8 @@ export default function Dashboard() {
                       </button>
 
                       <Link href="/workbench" className="flex items-center gap-3 p-2.5 rounded-lg hover-lift">
-                        <div className="p-2 rounded-lg flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/20">
-                          <FlaskConical className="w-4 h-4 text-indigo-600" />
+                        <div className="p-2 rounded-lg flex-shrink-0 bg-blue-50 dark:bg-blue-900/20">
+                          <FlaskConical className="w-4 h-4 text-blue-500" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-heading">New Decision</div>
@@ -548,7 +548,7 @@ function AskPersonasModal({ personas, onClose }: { personas: any[]; onClose: () 
                   key={persona.id}
                   onClick={() => togglePersona(persona.id)}
                   className={`p-3 rounded-lg border-2 transition ${selectedPersonas.includes(persona.id)
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                 >
@@ -560,7 +560,7 @@ function AskPersonasModal({ personas, onClose }: { personas: any[]; onClose: () 
           </div>
 
           {askingProgress ? (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-5">
+            <div className="bg-gradient-to-r from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-blue-600 animate-pulse" />
@@ -574,7 +574,7 @@ function AskPersonasModal({ personas, onClose }: { personas: any[]; onClose: () 
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                 <div
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2.5 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-blue-600 to-blue-500 h-2.5 rounded-full transition-all duration-300"
                   style={{ width: `${(askingProgress.current / askingProgress.total) * 100}%` }}
                 />
               </div>
@@ -800,13 +800,13 @@ function TradeOffVotingModal({ personas, onClose }: { personas: any[]; onClose: 
                 <div key={idx} className="card p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="font-semibold text-heading">{result.option}</div>
-                    <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                    <div className="text-lg font-bold text-blue-500 dark:text-blue-300">
                       {result.percentage}%
                     </div>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
                     <div
-                      className="bg-indigo-600 dark:bg-indigo-500 h-2 rounded-full transition-all"
+                      className="bg-blue-500 dark:bg-blue-400 h-2 rounded-full transition-all"
                       style={{ width: `${result.percentage}%` }}
                     />
                   </div>

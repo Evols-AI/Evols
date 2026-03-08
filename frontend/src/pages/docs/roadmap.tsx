@@ -57,7 +57,7 @@ export default function RoadmapDocs() {
             <Section title="Initiative Roadmap">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl mb-6">
                 <div className="flex items-start space-x-3 mb-4">
-                  <Target className="w-6 h-6 text-indigo-600 mt-1" />
+                  <Target className="w-6 h-6 text-blue-500 mt-1" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Initiatives</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -70,25 +70,25 @@ export default function RoadmapDocs() {
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Key Metrics:</h4>
                 <ul className="space-y-2 mb-4">
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Expected ARR Impact:</strong> Projected annual recurring revenue increase
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Expected Retention Impact:</strong> Projected improvement in customer retention (%)
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Linked Themes:</strong> Connected customer feedback themes and requests
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Project Count:</strong> Number of projects grouped under this initiative
                     </span>
@@ -126,25 +126,25 @@ export default function RoadmapDocs() {
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Project Attributes:</h4>
                 <ul className="space-y-2">
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Effort:</strong> Estimated development effort (Small/Medium/Large/XL)
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Difficulty:</strong> Technical complexity and risk level
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Business Value:</strong> Expected impact on business metrics (1-10)
                     </span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       <strong>Status:</strong> Same lifecycle as initiatives (Planned → In Progress → Completed)
                     </span>
@@ -167,7 +167,7 @@ export default function RoadmapDocs() {
                       Revenue potential - higher initiatives appear at the top
                     </p>
                   </div>
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Project Count (X-axis)</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Complexity/effort - more projects means more implementation work
@@ -201,7 +201,7 @@ export default function RoadmapDocs() {
             <Section title="Strategy Radar">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl">
                 <div className="flex items-start space-x-3 mb-4">
-                  <Radar className="w-6 h-6 text-indigo-600 mt-1" />
+                  <Radar className="w-6 h-6 text-blue-500 mt-1" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Strategic Allocation</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -243,15 +243,15 @@ export default function RoadmapDocs() {
                   </div>
                 </div>
 
-                <div className="mt-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">View Options:</h4>
                   <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
                     <li className="flex items-center space-x-2">
-                      <span className="text-indigo-600">▶</span>
+                      <span className="text-blue-500">▶</span>
                       <span><strong>By Initiatives:</strong> Shows initiative count in each category</span>
                     </li>
                     <li className="flex items-center space-x-2">
-                      <span className="text-indigo-600">▶</span>
+                      <span className="text-blue-500">▶</span>
                       <span><strong>By Projects:</strong> Shows total project count per category</span>
                     </li>
                   </ul>
@@ -270,7 +270,7 @@ export default function RoadmapDocs() {
 
                 <div className="space-y-3">
                   <div className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <div>
                       <strong className="text-gray-900 dark:text-white">Product Filter:</strong>
                       <span className="text-gray-600 dark:text-gray-400 ml-2">
@@ -279,7 +279,7 @@ export default function RoadmapDocs() {
                     </div>
                   </div>
                   <div className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <div>
                       <strong className="text-gray-900 dark:text-white">Sort By:</strong>
                       <span className="text-gray-600 dark:text-gray-400 ml-2">
@@ -288,7 +288,7 @@ export default function RoadmapDocs() {
                     </div>
                   </div>
                   <div className="flex items-start space-x-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-blue-500 mt-1">•</span>
                     <div>
                       <strong className="text-gray-900 dark:text-white">Status Filter:</strong>
                       <span className="text-gray-600 dark:text-gray-400 ml-2">
@@ -302,7 +302,7 @@ export default function RoadmapDocs() {
 
             {/* Back Link */}
             <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-              <Link href="/docs" className="inline-flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+              <Link href="/docs" className="inline-flex items-center text-blue-500 dark:text-blue-300 hover:text-blue-600">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Documentation
               </Link>

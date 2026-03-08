@@ -491,7 +491,7 @@ export default function Personas() {
 
               {/* Merge Selection Info */}
               {selectedForMerge.length >= 2 && (
-                <div className="mb-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-between">
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
                   <div>
                     <p className="font-medium">{selectedForMerge.length} personas selected</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -756,7 +756,7 @@ function PersonaCard({
           type="checkbox"
           checked={isSelectedForMerge}
           onChange={() => onToggleMerge(persona.id)}
-          className="w-4 h-4 text-indigo-600 rounded"
+          className="w-4 h-4 text-blue-500 rounded"
         />
       </div>
 
@@ -1030,7 +1030,7 @@ function MergePersonasModal({ personaIds, personas, onClose, onMerge }: {
                 onClick={() => setPrimaryId(persona.id)}
                 className={`w-full text-left p-4 rounded-lg border-2 transition ${
                   primaryId === persona.id
-                    ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -1040,7 +1040,7 @@ function MergePersonasModal({ personaIds, personas, onClose, onMerge }: {
                     <p className="text-sm text-gray-600 dark:text-gray-400">{persona.segment}</p>
                   </div>
                   {primaryId === persona.id && (
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-600">
                       Primary
                     </span>
                   )}

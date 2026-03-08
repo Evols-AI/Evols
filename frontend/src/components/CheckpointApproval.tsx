@@ -45,11 +45,11 @@ export default function CheckpointApproval({
   }
 
   return (
-    <div className={`rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/10 overflow-hidden ${className}`}>
+    <div className={`rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 overflow-hidden ${className}`}>
       {/* Header */}
       <div className="px-4 py-3 flex items-start gap-3">
-        <div className="mt-0.5 p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
-          <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+        <div className="mt-0.5 p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/40">
+          <Sparkles className="w-4 h-4 text-blue-500 dark:text-blue-300" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
@@ -64,13 +64,13 @@ export default function CheckpointApproval({
         <>
           <button
             onClick={() => setExpanded(e => !e)}
-            className="w-full px-4 py-2 flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20 transition-colors border-t border-indigo-100 dark:border-indigo-900"
+            className="w-full px-4 py-2 flex items-center gap-1 text-xs text-blue-500 dark:text-blue-300 hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors border-t border-blue-100 dark:border-blue-900"
           >
             {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {expanded ? 'Hide details' : 'View details'}
           </button>
           {expanded && (
-            <div className="px-4 pb-3 pt-1 border-t border-indigo-100 dark:border-indigo-900">
+            <div className="px-4 pb-3 pt-1 border-t border-blue-100 dark:border-blue-900">
               {details}
             </div>
           )}
@@ -78,11 +78,11 @@ export default function CheckpointApproval({
       )}
 
       {/* Action buttons */}
-      <div className="px-4 py-3 flex items-center gap-2 border-t border-indigo-100 dark:border-indigo-900 bg-white/50 dark:bg-gray-900/30">
+      <div className="px-4 py-3 flex items-center gap-2 border-t border-blue-100 dark:border-blue-900 bg-white/50 dark:bg-gray-900/30">
         <button
           onClick={onApprove}
           disabled={isLoading}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <CheckCircle className="w-4 h-4" />
           {isLoading ? 'Processing…' : approveLabel}
