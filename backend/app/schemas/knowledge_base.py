@@ -75,7 +75,7 @@ class CapabilityResponse(BaseModel):
     name: str
     description: str
     category: Optional[str]
-    endpoints: Optional[List[Dict[str, Any]]]
+    endpoints: Optional[List[str]]  # List of endpoint URLs as strings
     dependencies: Optional[List[str]]
     dependents: Optional[List[str]]
     source_url: Optional[str]

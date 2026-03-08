@@ -60,8 +60,9 @@ export default function KnowledgeBase() {
         api.getCapabilities({ product_ids: productIdsParam }), // Capabilities are product-specific
         api.products.list()
       ])
-      setSources(sourcesRes.data.items || sourcesRes.data || [])
-      setCapabilities(capabilitiesRes.data.items || capabilitiesRes.data || [])
+      // API returns AxiosResponse, so extract .data which contains the array
+      setSources(Array.isArray(sourcesRes?.data) ? sourcesRes.data : [])
+      setCapabilities(Array.isArray(capabilitiesRes?.data) ? capabilitiesRes.data : [])
       setProducts(productsRes || [])
     } catch (error) {
       console.error('Error loading Product RAG:', error)

@@ -141,8 +141,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
         db.add(theme)
         themes.append(theme)
 
-    await db.flush()  # Get theme IDs
-    await db.commit()  # Commit themes before linking
+    await db.flush()  # Get theme IDs but keep them in session
 
     # 4. Create Personas (3 personas with proper counts and metrics)
     personas_data = [
@@ -265,8 +264,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             theme_idx = init_data["theme_index"]
             initiatives[i].themes.append(themes[theme_idx])
 
-    await db.flush()  # Persist theme-initiative relationships
-    await db.commit()  # Commit to ensure relationships are saved
+    await db.flush()  # Flush to persist theme-initiative relationships
 
     # 6. Create Projects (4 projects with priority scores for matrix)
     projects_data = [
@@ -321,6 +319,8 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             priority_score=proj_data["priority_score"],
         )
         db.add(project)
+
+    await db.flush()  # Flush to persist projects
 
     # 7. Create Knowledge Sources (2 sources)
     sources_data = [

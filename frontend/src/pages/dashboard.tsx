@@ -130,35 +130,35 @@ export default function Dashboard() {
   const [showVoteModal, setShowVoteModal] = useState(false)
 
   useEffect(() => {
-    const checkAuthAndLoad = () => {
-      if (!isAuthenticated()) {
-        router.replace('/login')
-        return
-      }
-      const currentUser = getCurrentUser()
-      setUser(currentUser)
-
-      // SUPER_ADMIN users don't have tenant context, redirect to Admin Panel
-      if (currentUser?.role === 'SUPER_ADMIN') {
-        router.replace('/admin/tenants')
-        return
-      }
-
-      if (selectedProductIds.length > 0) {
-        loadData()
-      } else {
-        setLoading(false)
-      }
+    if (!isAuthenticated()) {
+      router.replace('/login')
+      return
     }
-    checkAuthAndLoad()
+    const currentUser = getCurrentUser()
+    setUser(currentUser)
+
+    // SUPER_ADMIN users don't have tenant context, redirect to Admin Panel
+    if (currentUser?.role === 'SUPER_ADMIN') {
+      router.replace('/admin/tenants')
+      return
+    }
+
+    if (selectedProductIds.length > 0) {
+      loadData()
+    } else {
+      // Delay showing "No product selected" to give ProductSelector time to auto-select demo product
+      // This prevents showing the message briefly on first load before auto-select completes
+      const timer = setTimeout(() => {
+        setLoading(false)
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
   }, [router, selectedProductIds])
 
   const loadData = async () => {
     setLoading(true)
     try {
       const productIdsParam = selectedProductIds.join(',')
-      console.log('Dashboard loadData - selectedProductIds:', selectedProductIds)
-      console.log('Dashboard loadData - productIdsParam:', productIdsParam)
       const [feedbackRes, themesRes, decisionsRes, personasRes] = await Promise.all([
         api.getFeedback({ limit: 1, product_ids: productIdsParam }),
         api.getThemes({ limit: 5, product_ids: productIdsParam }),

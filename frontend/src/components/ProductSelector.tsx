@@ -56,12 +56,17 @@ export const ProductSelector: React.FC = () => {
         const user = getCurrentUser();
         const tenantId = user?.tenant_id || 'global';
         const storageKey = `selected_product_ids_tenant_${tenantId}`;
-        const hasEverSelectedProducts = localStorage.getItem(storageKey) !== null;
+        const stored = localStorage.getItem(storageKey);
+        const hasEverSelectedProducts = stored !== null;
 
         if (!hasEverSelectedProducts && data.length > 0) {
           const demoProduct = data.find((p: Product) => p.is_demo);
           if (demoProduct) {
             setProductIds([demoProduct.id]);
+            // Reload page to ensure all components see the selected product
+            setTimeout(() => {
+              window.location.reload();
+            }, 100);
           }
         }
       }
