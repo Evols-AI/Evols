@@ -11,7 +11,7 @@ import { useRouter } from 'next/router'
 import Header from '@/components/Header'
 import { User, Palette, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2 } from 'lucide-react'
 
-type Tab = 'profile' | 'appearance' | 'security' | 'notifications' | 'llm' | 'team'
+type Tab = 'profile' | 'appearance' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -121,6 +121,7 @@ export default function Settings() {
     { id: 'security' as Tab, label: 'Security', icon: Shield },
     // { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
+    { id: 'data_refresh' as Tab, label: 'Data Refresh', icon: RefreshCw },
     ...(user?.role === 'TENANT_ADMIN' ? [{ id: 'team' as Tab, label: 'Team', icon: Users }] : []),
   ]
 
@@ -128,6 +129,10 @@ export default function Settings() {
     if (activeTab === 'llm') {
       loadCurrentLLMSettings()
       loadModelOptions()
+    } else if (activeTab === 'data_refresh') {
+      loadPersonaRefreshSettings()
+      loadThemeRefreshSettings()
+      loadKnowledgeRefreshSettings()
     } else if (activeTab === 'team') {
       loadTeamMembers()
     }
@@ -924,9 +929,17 @@ export default function Settings() {
               <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-300"><strong>ℹ️ About Authentication Methods:</strong> AWS Bedrock supports two authentication methods: (1) <strong>API Key</strong> - simpler authentication with a single key, or (2) <strong>AWS Credentials (IAM)</strong> - traditional AWS authentication using Access Key ID + Secret Access Key. Other providers (OpenAI, Anthropic, Azure) use single API keys specific to their platforms.</p>
               </div>
+            </div>
+          )}
+
+          {/* Data Refresh Tab */}
+          {activeTab === 'data_refresh' && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Automated Data Refresh</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">Configure automatic refresh schedules for personas, roadmap themes, and knowledge sources</p>
 
               {/* Persona Auto-Refresh Settings */}
-              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Persona Auto-Refresh</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">Automatically refresh personas with latest VoC data on a schedule</p>
 
