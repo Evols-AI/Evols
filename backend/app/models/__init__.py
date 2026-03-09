@@ -15,6 +15,7 @@ from app.models.preference import UserPreference
 from app.models.knowledge_base import KnowledgeSource, Capability
 from app.models.project import Project, ProjectEffort, ProjectStatus
 from app.models.prompt import Prompt, PromptExecution
+from app.models.support import SupportTicket
 
 __all__ = [
     "Tenant",
@@ -41,4 +42,5 @@ __all__ = [
     "ProjectStatus",
     "Prompt",
     "PromptExecution",
+    "SupportTicket",
 ]

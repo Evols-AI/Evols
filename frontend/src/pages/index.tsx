@@ -388,7 +388,12 @@ export default function Home() {
         </section>
 
         {/* Footer */}
-        <footer className="container mx-auto px-6 py-12 text-center text-gray-600 dark:text-gray-400">
+        <footer className="container mx-auto px-6 py-12 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400">
+          <div className="flex items-center space-x-6">
+            <Link href="/docs" className="hover:text-blue-500 transition">Documentation</Link>
+            <Link href="/support" className="hover:text-blue-500 transition">Contact Support</Link>
+            <Link href="/register" className="hover:text-blue-500 transition">Sign Up</Link>
+          </div>
           <p>© 2026 Evols. Evolve your product roadmap.</p>
         </footer>
       </div>
