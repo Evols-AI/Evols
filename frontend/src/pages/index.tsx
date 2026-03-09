@@ -77,7 +77,7 @@ export default function Home() {
             >
               <div className="inline-flex items-center space-x-2 bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full text-sm text-blue-600 dark:text-blue-400 mb-6">
                 <Sparkles className="w-4 h-4" />
-                <span>AI-Powered Roadmap Evolution</span>
+                <span>AI-Native Roadmap Evolution</span>
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent leading-tight pb-2">
@@ -112,284 +112,153 @@ export default function Home() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="hidden lg:flex justify-center"
             >
-              <svg viewBox="0 0 900 500" className="w-full max-w-4xl drop-shadow-2xl" style={{ overflow: 'visible' }}>
+              <svg viewBox="0 0 900 500" className="w-full max-w-4xl drop-shadow-lg overflow-visible">
                 <defs>
-                  <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{ stopColor: '#6366f1', stopOpacity: 1 }} />
-                    <stop offset="100%" style={{ stopColor: '#8b5cf6', stopOpacity: 1 }} />
+                  <linearGradient id="heroPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#8b5cf6" />
                   </linearGradient>
-                  <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
-                    <stop offset="100%" style={{ stopColor: '#059669', stopOpacity: 1 }} />
+                  <linearGradient id="heroSecondary" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#2dd4bf" />
                   </linearGradient>
-                  <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{ stopColor: '#f59e0b', stopOpacity: 1 }} />
-                    <stop offset="100%" style={{ stopColor: '#d97706', stopOpacity: 1 }} />
+                  <linearGradient id="heroAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#f59e0b" />
+                    <stop offset="100%" stopColor="#ef4444" />
                   </linearGradient>
-                  <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{ stopColor: '#ec4899', stopOpacity: 1 }} />
-                    <stop offset="100%" style={{ stopColor: '#be185d', stopOpacity: 1 }} />
-                  </linearGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                    <feMerge>
-                      <feMergeNode in="coloredBlur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
+                  <filter id="heroGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="15" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
                   </filter>
-                  <filter id="pulse">
-                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-                    <feMerge>
-                      <feMergeNode in="coloredBlur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
+                  <filter id="heroDropShadow" x="-10%" y="-10%" width="120%" height="120%">
+                    <feDropShadow dx="0" dy="6" stdDeviation="6" floodOpacity="0.08" />
                   </filter>
                 </defs>
 
-                {/* Background gears */}
-                <g opacity="0.04">
-                  {/* Large gear with 12 teeth */}
-                  <path d="M 450,-30 L 465,-25 L 465,25 L 450,30 L 435,25 L 435,-25 Z
-                           M 720,235 L 725,250 L 715,265 L 700,265 L 695,250 L 705,235 Z
-                           M 450,530 L 465,525 L 465,475 L 450,470 L 435,475 L 435,525 Z
-                           M 180,265 L 175,250 L 185,235 L 200,235 L 205,250 L 195,265 Z
-                           M 636,96 L 647,103 L 643,118 L 628,123 L 617,116 L 621,101 Z
-                           M 636,404 L 647,397 L 643,382 L 628,377 L 617,384 L 621,399 Z
-                           M 264,96 L 253,103 L 257,118 L 272,123 L 283,116 L 279,101 Z
-                           M 264,404 L 253,397 L 257,382 L 272,377 L 283,384 L 279,399 Z"
-                    fill="url(#grad1)" />
-                  <circle cx="450" cy="250" r="260" fill="url(#grad1)" />
-                  <circle cx="450" cy="250" r="200" fill="none" stroke="none" />
-                  <animateTransform attributeName="transform" type="rotate" from="0 450 250" to="360 450 250" dur="30s" repeatCount="indefinite" />
+                {/* Base Holographic Rings */}
+                <g filter="url(#heroGlow)" opacity="0.15">
+                  <circle cx="450" cy="250" r="220" fill="none" stroke="url(#heroPrimary)" strokeWidth="2">
+                    <animateTransform attributeName="transform" type="rotate" values="0 450 250; 360 450 250" dur="40s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="450" cy="250" r="180" fill="none" stroke="url(#heroSecondary)" strokeWidth="4" strokeDasharray="10 20">
+                    <animateTransform attributeName="transform" type="rotate" values="360 450 250; 0 450 250" dur="30s" repeatCount="indefinite" />
+                  </circle>
                 </g>
 
-                <g opacity="0.06">
-                  {/* Medium gear with 8 teeth */}
-                  <path d="M 450,75 L 460,78 L 460,92 L 450,95 L 440,92 L 440,78 Z
-                           M 615,240 L 618,250 L 612,260 L 605,260 L 598,250 L 602,240 Z
-                           M 450,425 L 460,422 L 460,408 L 450,405 L 440,408 L 440,422 Z
-                           M 285,260 L 282,250 L 288,240 L 295,240 L 302,250 L 298,260 Z
-                           M 577,113 L 584,119 L 581,129 L 571,132 L 564,126 L 567,116 Z
-                           M 577,387 L 584,381 L 581,371 L 571,368 L 564,374 L 567,384 Z
-                           M 323,113 L 316,119 L 319,129 L 329,132 L 336,126 L 333,116 Z
-                           M 323,387 L 316,381 L 319,371 L 329,368 L 336,374 L 333,384 Z"
-                    fill="url(#grad1)" />
-                  <circle cx="450" cy="250" r="165" fill="url(#grad1)" />
-                  <animateTransform attributeName="transform" type="rotate" from="360 450 250" to="0 450 250" dur="20s" repeatCount="indefinite" />
+                {/* Floating Elements / Particles */}
+                <g opacity="0.6" filter="url(#heroGlow)">
+                  <circle cx="200" cy="100" r="12" fill="url(#heroAccent)">
+                    <animateTransform attributeName="transform" type="translate" values="0,0; -10,20; 0,0" dur="6s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="750" cy="150" r="8" fill="url(#heroSecondary)">
+                    <animateTransform attributeName="transform" type="translate" values="0,0; -20,-10; 0,0" dur="5s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="150" cy="400" r="15" fill="url(#heroPrimary)">
+                    <animateTransform attributeName="transform" type="translate" values="0,0; 15,-15; 0,0" dur="7s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="800" cy="350" r="20" fill="url(#heroAccent)" opacity="0.3">
+                    <animateTransform attributeName="transform" type="translate" values="0,0; -15,15; 0,0" dur="8s" repeatCount="indefinite" />
+                  </circle>
                 </g>
 
-                <g opacity="0.08">
-                  {/* Small gear with 8 teeth */}
-                  <path d="M 300,135 L 308,137 L 308,148 L 300,150 L 292,148 L 292,137 Z
-                           M 410,242 L 412,250 L 408,258 L 403,258 L 398,250 L 401,242 Z
-                           M 300,365 L 308,363 L 308,352 L 300,350 L 292,352 L 292,363 Z
-                           M 190,258 L 188,250 L 192,242 L 197,242 L 202,250 L 199,258 Z
-                           M 384,166 L 390,170 L 388,178 L 380,181 L 374,177 L 376,169 Z
-                           M 384,334 L 390,330 L 388,322 L 380,319 L 374,323 L 376,331 Z
-                           M 216,166 L 210,170 L 212,178 L 220,181 L 226,177 L 224,169 Z
-                           M 216,334 L 210,330 L 212,322 L 220,319 L 226,323 L 224,331 Z"
-                    fill="url(#grad1)" />
-                  <circle cx="300" cy="250" r="110" fill="url(#grad1)" />
-                  <animateTransform attributeName="transform" type="rotate" from="0 300 250" to="360 300 250" dur="15s" repeatCount="indefinite" />
+                {/* Connection Lines Matrix */}
+                <g opacity="0.2" stroke="currentColor" strokeWidth="1.5" className="text-gray-400 dark:text-gray-600">
+                  <path d="M 250 250 L 350 180 L 450 150 L 550 180 L 650 250 L 550 320 L 450 350 L 350 320 Z" fill="none" />
+                  <path d="M 350 180 L 450 250 L 550 180" fill="none" />
+                  <path d="M 350 320 L 450 250 L 550 320" fill="none" />
+                  <circle cx="250" cy="250" r="4" fill="currentColor" />
+                  <circle cx="350" cy="180" r="4" fill="currentColor" />
+                  <circle cx="450" cy="150" r="4" fill="currentColor" />
+                  <circle cx="550" cy="180" r="4" fill="currentColor" />
+                  <circle cx="650" cy="250" r="4" fill="currentColor" />
+                  <circle cx="550" cy="320" r="4" fill="currentColor" />
+                  <circle cx="450" cy="350" r="4" fill="currentColor" />
+                  <circle cx="350" cy="320" r="4" fill="currentColor" />
                 </g>
 
-                {/* Central AI Processor */}
-                <rect x="220" y="200" width="160" height="100" rx="12" fill="url(#grad1)" opacity="0.9" filter="url(#glow)" />
-                {/* Processing bars */}
-                <rect x="240" y="230" width="120" height="8" rx="3" fill="white" opacity="0.3">
-                  <animate attributeName="width" from="40" to="120" dur="2s" repeatCount="indefinite" />
-                </rect>
-                <rect x="240" y="245" width="100" height="8" rx="3" fill="white" opacity="0.25">
-                  <animate attributeName="width" from="30" to="100" dur="1.8s" repeatCount="indefinite" />
-                </rect>
-                <rect x="240" y="260" width="130" height="8" rx="3" fill="white" opacity="0.25">
-                  <animate attributeName="width" from="50" to="130" dur="2.2s" repeatCount="indefinite" />
-                </rect>
-                {/* Clustering indicator */}
-                <circle cx="245" cy="280" r="4" fill="#10b981" opacity="0.8" />
-                <circle cx="258" cy="283" r="4" fill="#10b981" opacity="0.8" />
-                <circle cx="271" cy="280" r="4" fill="#10b981" opacity="0.8" />
-                {/* Status indicator */}
-                <circle cx="355" cy="215" r="6" fill="#10b981">
-                  <animate attributeName="opacity" from="0.4" to="1" dur="1s" repeatCount="indefinite" direction="alternate" />
-                </circle>
-
-                {/* Input: Customer Feedback Bubbles */}
-                <g opacity="0.85">
-                  {/* Speech bubble shape */}
-                  <path d="M 50 135 Q 50 115 70 115 L 105 115 Q 125 115 125 135 L 125 165 Q 125 185 105 185 L 85 185 L 75 195 L 75 185 L 70 185 Q 50 185 50 165 Z" fill="#ec4899" />
-                  <circle cx="70" cy="145" r="3" fill="white" opacity="0.5" />
-                  <circle cx="85" cy="145" r="3" fill="white" opacity="0.5" />
-                  <circle cx="100" cy="145" r="3" fill="white" opacity="0.5" />
-                  <rect x="65" y="160" width="50" height="5" rx="1.5" fill="white" opacity="0.3" />
-                  <rect x="65" y="170" width="40" height="4" rx="1" fill="white" opacity="0.3" />
-                  {/* Customer icon */}
-                  <circle cx="110" cy="125" r="8" fill="#fbbf24" opacity="0.9" />
+                {/* Central Brain / OS Hub */}
+                <g transform="translate(370, 170)" filter="url(#heroDropShadow)">
+                  <rect x="0" y="0" width="160" height="160" rx="30" fill="white" className="dark:fill-gray-800" stroke="url(#heroPrimary)" strokeWidth="4" />
+                  {/* Inner glowing core */}
+                  <rect x="20" y="20" width="120" height="120" rx="20" fill="url(#heroPrimary)" opacity="0.1" filter="url(#heroGlow)" />
+                  <circle cx="80" cy="80" r="30" fill="url(#heroPrimary)">
+                    <animate attributeName="r" values="28;32;28" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="80" cy="80" r="15" fill="white" opacity="0.9" />
                 </g>
 
-                <g opacity="0.85">
-                  {/* Feature request card */}
-                  <rect x="60" y="225" width="70" height="50" rx="6" fill="#ec4899" />
-                  <circle cx="75" cy="240" r="4" fill="#fbbf24" opacity="0.6" />
-                  <rect x="83" y="237" width="35" height="6" rx="2" fill="white" opacity="0.4" />
-                  <rect x="70" y="252" width="50" height="4" rx="1" fill="white" opacity="0.3" />
-                  <rect x="70" y="260" width="40" height="4" rx="1" fill="white" opacity="0.3" />
-                  {/* Priority badge */}
-                  <circle cx="120" cy="235" r="10" fill="#ef4444" />
-                  <path d="M 120 229 L 120 238" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="120" cy="242" r="1" fill="white" />
+                {/* Data Packets Orbiting Central Hub */}
+                <g>
+                  <circle cx="450" cy="80" r="6" fill="#10b981" filter="url(#heroGlow)">
+                    <animateTransform attributeName="transform" type="rotate" values="0 450 250; 360 450 250" dur="10s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="450" cy="420" r="6" fill="#f59e0b" filter="url(#heroGlow)">
+                    <animateTransform attributeName="transform" type="rotate" values="180 450 250; 540 450 250" dur="15s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="280" cy="250" r="6" fill="#ec4899" filter="url(#heroGlow)">
+                    <animateTransform attributeName="transform" type="rotate" values="90 450 250; 450 450 250" dur="12s" repeatCount="indefinite" />
+                  </circle>
                 </g>
 
-                <g opacity="0.85">
-                  {/* User feedback with rating */}
-                  <rect x="55" y="325" width="75" height="50" rx="6" fill="#ec4899" />
-                  <circle cx="70" cy="340" r="5" fill="#fbbf24" opacity="0.8" />
-                  <rect x="80" y="337" width="40" height="6" rx="2" fill="white" opacity="0.4" />
-                  {/* Star rating */}
-                  <text x="65" y="365" fontSize="12" fill="#fbbf24">★★★★</text>
-                  {/* Money icon */}
-                  <circle cx="110" cy="360" r="6" fill="#10b981" opacity="0.8" />
-                  <text x="107" y="364" fontSize="8" fill="white" fontWeight="bold">$</text>
+                {/* Left Cards: VoC & Feedback */}
+                <g transform="translate(180, 120)" filter="url(#heroDropShadow)">
+                  <rect x="0" y="0" width="140" height="80" rx="12" fill="white" className="dark:fill-gray-800" stroke="url(#heroSecondary)" strokeWidth="2" />
+                  <rect x="20" y="20" width="40" height="40" rx="8" fill="url(#heroSecondary)" opacity="0.2" />
+                  {/* Chat Icon */}
+                  <path d="M 30 35 Q 30 25 40 25 L 50 25 Q 60 25 60 35 L 60 45 Q 60 55 50 55 L 45 55 L 35 60 L 38 52 Q 30 48 30 40 Z" fill="url(#heroSecondary)" />
+                  <rect x="75" y="30" width="45" height="8" rx="4" fill="#9ca3af" opacity="0.5" />
+                  <rect x="75" y="45" width="30" height="8" rx="4" fill="#9ca3af" opacity="0.3" />
+                  <animateTransform attributeName="transform" type="translate" values="180,120; 180,115; 180,120" dur="4s" repeatCount="indefinite" />
                 </g>
 
-                {/* Connection lines from inputs to processor */}
-                <path d="M 115 150 Q 170 160 220 220" stroke="#ec4899" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite" />
-                </path>
-                <path d="M 130 250 L 220 250" stroke="#ec4899" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite" />
-                </path>
-                <path d="M 120 345 Q 170 330 220 280" stroke="#ec4899" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite" />
-                </path>
-
-                {/* Output: Priority #1 Decision */}
-                <g opacity="0.9">
-                  <rect x="450" y="120" width="95" height="65" rx="8" fill="url(#grad2)" />
-                  {/* Priority badge */}
-                  <circle cx="465" cy="135" r="10" fill="white" opacity="0.9" />
-                  <text x="461" y="140" fontSize="11" fill="#10b981" fontWeight="bold">1</text>
-                  {/* Decision bars */}
-                  <rect x="480" y="133" width="50" height="7" rx="2" fill="white" opacity="0.4" />
-                  <rect x="460" y="150" width="70" height="6" rx="2" fill="white" opacity="0.35" />
-                  <rect x="460" y="162" width="65" height="6" rx="2" fill="white" opacity="0.3" />
-                  {/* Checkmark */}
-                  <circle cx="530" cy="140" r="8" fill="white" opacity="0.3" />
-                  <path d="M 527 140 L 529 142 L 533 137" stroke="#10b981" strokeWidth="2" fill="none" strokeLinecap="round" />
+                <g transform="translate(140, 240)" filter="url(#heroDropShadow)">
+                  <rect x="0" y="0" width="160" height="90" rx="12" fill="white" className="dark:fill-gray-800" />
+                  <rect x="20" y="20" width="120" height="8" rx="4" fill="url(#heroAccent)" opacity="0.8" />
+                  <rect x="20" y="40" width="80" height="8" rx="4" fill="#9ca3af" opacity="0.3" />
+                  <rect x="20" y="60" width="60" height="8" rx="4" fill="#9ca3af" opacity="0.3" />
+                  <circle cx="120" cy="55" r="15" fill="#f59e0b" opacity="0.2" />
+                  <circle cx="120" cy="55" r="5" fill="#f59e0b" />
+                  <animateTransform attributeName="transform" type="translate" values="140,240; 140,245; 140,240" dur="5s" repeatCount="indefinite" />
                 </g>
 
-                {/* Output: Theme Cluster */}
-                <g opacity="0.9">
-                  <rect x="460" y="215" width="90" height="60" rx="8" fill="url(#grad2)" />
-                  {/* Cluster icon */}
-                  <circle cx="475" cy="233" r="5" fill="white" opacity="0.5" />
-                  <circle cx="485" cy="230" r="4" fill="white" opacity="0.5" />
-                  <circle cx="482" cy="240" r="4" fill="white" opacity="0.5" />
-                  <line x1="475" y1="233" x2="485" y2="230" stroke="white" strokeWidth="1" opacity="0.3" />
-                  <line x1="475" y1="233" x2="482" y2="240" stroke="white" strokeWidth="1" opacity="0.3" />
-                  <line x1="485" y1="230" x2="482" y2="240" stroke="white" strokeWidth="1" opacity="0.3" />
-                  {/* Theme bars */}
-                  <rect x="495" y="230" width="45" height="6" rx="2" fill="white" opacity="0.4" />
-                  <rect x="470" y="250" width="65" height="5" rx="1.5" fill="white" opacity="0.3" />
-                  <rect x="470" y="260" width="55" height="5" rx="1.5" fill="white" opacity="0.3" />
+                {/* Right Cards: Roadmap & Personas */}
+                <g transform="translate(580, 140)" filter="url(#heroDropShadow)">
+                  <rect x="0" y="0" width="150" height="100" rx="12" fill="white" className="dark:fill-gray-800" stroke="url(#heroPrimary)" strokeWidth="2" />
+                  {/* Roadmap Timeline */}
+                  <rect x="20" y="25" width="10" height="50" rx="5" fill="#e5e7eb" className="dark:fill-gray-700" />
+                  <circle cx="25" cy="35" r="8" fill="#10b981" />
+                  <circle cx="25" cy="65" r="8" fill="url(#heroPrimary)" />
+                  <rect x="45" y="31" width="80" height="8" rx="4" fill="#10b981" opacity="0.8" />
+                  <rect x="45" y="61" width="60" height="8" rx="4" fill="url(#heroPrimary)" />
+                  <animateTransform attributeName="transform" type="translate" values="580,140; 580,135; 580,140" dur="6s" repeatCount="indefinite" />
                 </g>
 
-                {/* Output: Persona Insight */}
-                <g opacity="0.9">
-                  <rect x="455" y="310" width="95" height="62" rx="8" fill="url(#grad2)" />
-                  {/* Persona icon */}
-                  <circle cx="472" cy="330" r="10" fill="white" opacity="0.5" />
-                  <path d="M 465 343 Q 472 338 479 343" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.5" />
-                  {/* Persona bars */}
-                  <rect x="490" y="326" width="48" height="6" rx="2" fill="white" opacity="0.4" />
-                  <rect x="490" y="338" width="50" height="5" rx="1.5" fill="white" opacity="0.35" />
-                  <rect x="490" y="349" width="45" height="5" rx="1.5" fill="white" opacity="0.3" />
-                  {/* Money indicator */}
-                  <circle cx="465" cy="357" r="5" fill="#fbbf24" opacity="0.8" />
-                  <text x="462" y="360" fontSize="7" fill="white" fontWeight="bold">$</text>
-                  {/* Confidence */}
-                  <circle cx="535" cy="330" r="6" fill="white" opacity="0.4" />
-                  <text x="531" y="334" fontSize="8" fill="#10b981" fontWeight="bold">✓</text>
+                <g transform="translate(600, 280)" filter="url(#heroDropShadow)">
+                  <rect x="0" y="0" width="140" height="80" rx="12" fill="white" className="dark:fill-gray-800" />
+                  {/* Persona Profile */}
+                  <circle cx="40" cy="40" r="20" fill="url(#heroSecondary)" opacity="0.2" />
+                  <circle cx="40" cy="36" r="8" fill="url(#heroSecondary)" />
+                  <path d="M 28 50 Q 40 42 52 50 A 10 10 0 0 1 40 60 Z" fill="url(#heroSecondary)" />
+                  <rect x="75" y="30" width="45" height="8" rx="4" fill="url(#heroSecondary)" opacity="0.8" />
+                  <rect x="75" y="45" width="25" height="8" rx="4" fill="#10b981" />
+                  <animateTransform attributeName="transform" type="translate" values="600,280; 600,285; 600,280" dur="4.5s" repeatCount="indefinite" />
                 </g>
 
-                {/* Connection lines from processor to outputs */}
-                <path d="M 380 220 Q 420 160 450 150" stroke="#8b5cf6" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite" />
-                </path>
-                <path d="M 380 250 Q 420 245 460 247" stroke="#8b5cf6" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite" />
-                </path>
-                <path d="M 380 280 Q 420 300 455 340" stroke="#8b5cf6" strokeWidth="2.5" fill="none" strokeDasharray="5,5" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite" />
-                </path>
-
-                {/* Rocket - Ready to Launch */}
-                <g opacity="0.95">
-                  {/* Exhaust flames (animated) */}
-                  <ellipse cx="640" cy="360" rx="12" ry="8" fill="#ef4444" opacity="0.7">
-                    <animate attributeName="ry" values="8;12;8" dur="0.5s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.7;0.4;0.7" dur="0.5s" repeatCount="indefinite" />
-                  </ellipse>
-                  <ellipse cx="640" cy="365" rx="10" ry="6" fill="#f59e0b" opacity="0.8">
-                    <animate attributeName="ry" values="6;10;6" dur="0.4s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.8;0.5;0.8" dur="0.4s" repeatCount="indefinite" />
-                  </ellipse>
-                  <ellipse cx="640" cy="368" rx="8" ry="5" fill="#fbbf24" opacity="0.9">
-                    <animate attributeName="ry" values="5;8;5" dur="0.3s" repeatCount="indefinite" />
-                  </ellipse>
-
-                  {/* Rocket body */}
-                  <rect x="620" y="200" width="40" height="140" rx="4" fill="url(#grad3)" filter="url(#glow)" />
-
-                  {/* Nose cone */}
-                  <path d="M 620 200 L 640 150 L 660 200 Z" fill="#fbbf24" filter="url(#glow)" />
-
-                  {/* Window */}
-                  <circle cx="640" cy="220" r="12" fill="#6366f1" opacity="0.6" />
-                  <circle cx="640" cy="220" r="8" fill="white" opacity="0.8" />
-
-                  {/* Fins */}
-                  <path d="M 620 320 L 605 350 L 620 340 Z" fill="#d97706" />
-                  <path d="M 660 320 L 675 350 L 660 340 Z" fill="#d97706" />
-
-                  {/* Details/stripes */}
-                  <rect x="620" y="260" width="40" height="3" fill="white" opacity="0.3" />
-                  <rect x="620" y="280" width="40" height="3" fill="white" opacity="0.3" />
-                  <rect x="620" y="300" width="40" height="3" fill="white" opacity="0.3" />
-
-                  {/* Booster effect */}
-                  <rect x="625" y="340" width="10" height="10" rx="2" fill="#ef4444" opacity="0.5">
-                    <animate attributeName="opacity" values="0.5;0.2;0.5" dur="0.4s" repeatCount="indefinite" />
-                  </rect>
-                  <rect x="645" y="340" width="10" height="10" rx="2" fill="#ef4444" opacity="0.5">
-                    <animate attributeName="opacity" values="0.5;0.2;0.5" dur="0.4s" repeatCount="indefinite" />
-                  </rect>
+                {/* Data Flow Beams (Animated) */}
+                <g opacity="0.7">
+                  <path d="M 320 160 L 370 200" stroke="url(#heroSecondary)" strokeWidth="4" strokeLinecap="round" strokeDasharray="10, 10">
+                    <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite" />
+                  </path>
+                  <path d="M 300 280 L 370 250" stroke="url(#heroAccent)" strokeWidth="4" strokeLinecap="round" strokeDasharray="10, 10">
+                    <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite" />
+                  </path>
+                  <path d="M 530 200 L 580 170" stroke="url(#heroPrimary)" strokeWidth="4" strokeLinecap="round" strokeDasharray="10, 10">
+                    <animate attributeName="stroke-dashoffset" values="0;20" dur="1s" repeatCount="indefinite" />
+                  </path>
+                  <path d="M 530 250 L 600 300" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeDasharray="10, 10">
+                    <animate attributeName="stroke-dashoffset" values="0;20" dur="1s" repeatCount="indefinite" />
+                  </path>
                 </g>
-
-                {/* Connections from green cards to rocket */}
-                <path d="M 545 152 Q 580 160 620 180" stroke="#fbbf24" strokeWidth="3" fill="none" strokeDasharray="6,6" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="1s" repeatCount="indefinite" />
-                </path>
-                <path d="M 550 245 L 620 245" stroke="#fbbf24" strokeWidth="3" fill="none" strokeDasharray="6,6" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="1s" repeatCount="indefinite" />
-                </path>
-                <path d="M 550 340 Q 580 330 620 310" stroke="#fbbf24" strokeWidth="3" fill="none" strokeDasharray="6,6" opacity="0.7">
-                  <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="1s" repeatCount="indefinite" />
-                </path>
-
-                {/* Floating indicators */}
-                <circle cx="250" cy="180" r="5" fill="#10b981" opacity="0.6">
-                  <animate attributeName="opacity" from="0.3" to="0.8" dur="2s" repeatCount="indefinite" direction="alternate" />
-                  <animate attributeName="r" from="5" to="7" dur="2s" repeatCount="indefinite" direction="alternate" />
-                </circle>
-                <circle cx="310" cy="185" r="6" fill="#fbbf24" opacity="0.5">
-                  <animate attributeName="opacity" from="0.3" to="0.7" dur="1.8s" repeatCount="indefinite" direction="alternate" />
-                  <animate attributeName="r" from="6" to="8" dur="1.8s" repeatCount="indefinite" direction="alternate" />
-                </circle>
-                <circle cx="280" cy="277" r="5" fill="#8b5cf6" opacity="0.6">
-                  <animate attributeName="opacity" from="0.3" to="0.8" dur="2.2s" repeatCount="indefinite" direction="alternate" />
-                  <animate attributeName="r" from="5" to="7" dur="2.2s" repeatCount="indefinite" direction="alternate" />
-                </circle>
               </svg>
             </motion.div>
           </div>
@@ -435,7 +304,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="hidden md:flex items-center justify-center">
-                <svg viewBox="0 0 400 400" className="w-full max-w-md drop-shadow-xl">
+                <svg viewBox="0 0 400 400" className="w-full max-w-md drop-shadow-lg">
                   <defs>
                     <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" style={{ stopColor: '#6366f1', stopOpacity: 1 }} />
@@ -508,7 +377,7 @@ export default function Home() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                       Included in your simple, flat Evols subscription.
                     </p>
-                    <Link href="/book-demo" className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-full shadow-lg transform transition-all hover:scale-105 active:scale-95">
+                    <Link href="/book-demo" className="block w-full text-center bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 hover:brightness-110 active:scale-95">
                       Start Saving
                     </Link>
                   </div>
