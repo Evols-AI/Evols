@@ -9,9 +9,9 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
-import { User, Palette, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2 } from 'lucide-react'
+import { User, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2 } from 'lucide-react'
 
-type Tab = 'profile' | 'appearance' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team'
+type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -41,7 +41,7 @@ interface ModelOptions {
 export default function Settings() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<Tab>('appearance')
+  const [activeTab, setActiveTab] = useState<Tab>('profile')
   const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
@@ -117,7 +117,6 @@ export default function Settings() {
 
   const tabs = [
     { id: 'profile' as Tab, label: 'Profile', icon: User },
-    { id: 'appearance' as Tab, label: 'Appearance', icon: Palette },
     { id: 'security' as Tab, label: 'Security', icon: Shield },
     // { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
@@ -516,6 +515,7 @@ export default function Settings() {
             </div>
           )}
 
+          {/* Appearance tab - Temporarily hidden
           {activeTab === 'appearance' && (
             <div className="max-w-2xl">
               <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Theme Preferences</h3>
@@ -530,6 +530,7 @@ export default function Settings() {
               </div>
             </div>
           )}
+          */}
 
           {activeTab === 'security' && (
             <div className="max-w-2xl space-y-6">

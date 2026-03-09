@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { Users, Plus, Trash2, ArrowLeft, Shield, User as UserIcon } from 'lucide-react'
+import { Users, Plus, Trash2, ArrowLeft, Shield, User as UserIcon, ChevronDown } from 'lucide-react'
 import { isAuthenticated, getCurrentUser } from '@/utils/auth'
 import Header from '@/components/Header'
 
@@ -83,6 +83,29 @@ export default function TenantUsers() {
 
       await loadUsers()
       setShowCreateModal(false)
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    }
+  }
+
+  const handleChangeRole = async (userId: number, newRole: string) => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`http://localhost:8000/api/v1/admin/tenants/${id}/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role: newRole })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.detail || 'Failed to update user role')
+      }
+
+      await loadUsers()
     } catch (err: any) {
       alert(`Error: ${err.message}`)
     }
@@ -176,13 +199,18 @@ export default function TenantUsers() {
                       {user.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded ${
-                        user.role === 'TENANT_ADMIN'
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                      }`}>
-                        {user.role.replace('_', ' ')}
-                      </span>
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                        className={`px-2 py-1 text-xs rounded border-none cursor-pointer ${
+                          user.role === 'TENANT_ADMIN'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <option value="USER">USER</option>
+                        <option value="TENANT_ADMIN">TENANT ADMIN</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs rounded ${

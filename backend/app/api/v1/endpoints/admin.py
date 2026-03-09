@@ -64,6 +64,12 @@ class AdminUserCreate(BaseModel):
     role: UserRole = UserRole.USER
 
 
+class AdminUserUpdate(BaseModel):
+    full_name: str | None = None
+    role: UserRole | None = None
+    is_active: bool | None = None
+
+
 class UserResponse(BaseModel):
     id: int
     email: str
@@ -436,3 +442,68 @@ async def list_tenant_users(
         )
         for user in users
     ]
+
+
+@router.put("/tenants/{tenant_id}/users/{user_id}", response_model=UserResponse)
+async def update_tenant_user(
+    tenant_id: int,
+    user_id: int,
+    user_data: AdminUserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update a user in any tenant (SUPER_ADMIN only)
+
+    Allows SUPER_ADMIN to update user role, active status, and name.
+    """
+    require_super_admin(current_user)
+
+    # Verify tenant exists
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == tenant_id)
+    )
+    tenant = result.scalar_one_or_none()
+
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant not found"
+        )
+
+    # Get the user
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.tenant_id == tenant_id)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found in this tenant"
+        )
+
+    # Prevent modifying SUPER_ADMIN or PRODUCT_ADMIN users
+    if user.role in [UserRole.SUPER_ADMIN, UserRole.PRODUCT_ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot modify SUPER_ADMIN or PRODUCT_ADMIN users via tenant management"
+        )
+
+    # Update fields
+    update_data = user_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    await db.commit()
+    await db.refresh(user)
+
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role.value,
+        is_active=user.is_active,
+        is_verified=user.is_verified,
+        tenant_id=user.tenant_id,
+    )
