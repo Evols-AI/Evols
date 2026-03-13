@@ -35,11 +35,25 @@ export default function Support() {
         e.preventDefault()
         setStatus('submitting')
 
-        // Simulate API call for now since we don't have a direct support endpoint
-        setTimeout(() => {
+        try {
+            const response = await fetch('http://localhost:8000/api/v1/support/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+
+            if (!response.ok) {
+                throw new Error('Failed to submit support ticket')
+            }
+
             setStatus('success')
             setFormData({ name: '', email: '', topic: 'general', message: '' })
-        }, 1500)
+        } catch (error) {
+            console.error('Error submitting support ticket:', error)
+            setStatus('error')
+        }
     }
 
     return (

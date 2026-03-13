@@ -24,10 +24,9 @@ interface LLMConfig {
   deployment_name?: string
   api_version?: string
   aws_auth_method?: AWSAuthMethod
-  access_key_id?: string
-  secret_access_key?: string
-  region?: string
-  model_id?: string
+  aws_access_key_id?: string
+  aws_secret_access_key?: string
+  aws_region?: string
 }
 
 interface ModelOptions {
@@ -173,7 +172,7 @@ export default function Settings() {
         break
       case 'aws_bedrock':
         setAwsAuthMethod('api_key')
-        setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', region: 'us-east-1', model_id: 'anthropic.claude-v2' })
+        setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-v2' })
         break
     }
   }
@@ -182,9 +181,9 @@ export default function Settings() {
     setAwsAuthMethod(method)
     setTestResult(null)
     if (method === 'api_key') {
-      setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', region: 'us-east-1', model_id: 'anthropic.claude-v2' })
+      setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-v2' })
     } else {
-      setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'credentials', access_key_id: '', secret_access_key: '', region: 'us-east-1', model_id: 'anthropic.claude-v2' })
+      setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'credentials', aws_access_key_id: '', aws_secret_access_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-v2' })
     }
   }
 
@@ -193,7 +192,7 @@ export default function Settings() {
       if (awsAuthMethod === 'api_key') {
         return !!llmConfig.api_key
       } else {
-        return !!llmConfig.access_key_id && !!llmConfig.secret_access_key
+        return !!llmConfig.aws_access_key_id && !!llmConfig.aws_secret_access_key
       }
     }
     return !!llmConfig.api_key
@@ -830,8 +829,8 @@ export default function Settings() {
                         <input
                           type="text"
                           placeholder="AKIAIOSFODNN7EXAMPLE"
-                          value={llmConfig.access_key_id}
-                          onChange={(e) => setLLMConfig({ ...llmConfig, access_key_id: e.target.value })}
+                          value={llmConfig.aws_access_key_id}
+                          onChange={(e) => setLLMConfig({ ...llmConfig, aws_access_key_id: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                         />
                       </div>
@@ -841,8 +840,8 @@ export default function Settings() {
                           <input
                             type={showSecretKey ? 'text' : 'password'}
                             placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-                            value={llmConfig.secret_access_key}
-                            onChange={(e) => setLLMConfig({ ...llmConfig, secret_access_key: e.target.value })}
+                            value={llmConfig.aws_secret_access_key}
+                            onChange={(e) => setLLMConfig({ ...llmConfig, aws_secret_access_key: e.target.value })}
                             className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                           />
                           <button
@@ -861,8 +860,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Region</label>
                     <div className="relative">
                       <select
-                        value={llmConfig.region}
-                        onChange={(e) => setLLMConfig({ ...llmConfig, region: e.target.value })}
+                        value={llmConfig.aws_region}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, aws_region: e.target.value })}
                         className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       >
                         {modelOptions?.aws_regions.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -874,8 +873,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Model ID</label>
                     <div className="relative">
                       <select
-                        value={llmConfig.model_id}
-                        onChange={(e) => setLLMConfig({ ...llmConfig, model_id: e.target.value })}
+                        value={llmConfig.model}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
                         className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       >
                         {modelOptions?.aws_bedrock_models.map((m) => <option key={m} value={m}>{m}</option>)}

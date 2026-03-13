@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, FlaskConical, Settings, LayoutDashboard, MessageSquare, Rocket, Users, ChevronDown, LogOut, BookOpen, Shield } from 'lucide-react'
+import { Moon, Sun, FlaskConical, Settings, LayoutDashboard, MessageSquare, Rocket, Users, ChevronDown, LogOut, BookOpen, Shield, LifeBuoy } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoIcon } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
@@ -52,6 +52,11 @@ export default function Header({ user, currentPage }: HeaderProps) {
     { href: '/workbench', label: 'Workbench', key: 'workbench', highlight: true, icon: FlaskConical },
   ]
 
+  const adminNavItems = [
+    { href: '/admin/tenants', label: 'Admin Panel', key: 'admin', icon: Shield },
+    { href: '/admin/support', label: 'Support', key: 'support', icon: LifeBuoy },
+  ]
+
   return (
     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
       <div className="container mx-auto px-6 py-4">
@@ -67,6 +72,29 @@ export default function Header({ user, currentPage }: HeaderProps) {
             {user && fullUser?.role !== 'SUPER_ADMIN' && (
               <nav className="flex items-center space-x-6">
                 {navItems.map((item) => {
+                  const isActive = currentPage === item.key || router.pathname.startsWith(item.href)
+                  const Icon = item.icon
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-1.5 text-sm transition-colors ${
+                        isActive
+                          ? 'text-blue-500 dark:text-blue-300 font-semibold'
+                          : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
+                      }`}
+                    >
+                      {Icon && <Icon className="w-3.5 h-3.5" />}
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </nav>
+            )}
+            {user && fullUser?.role === 'SUPER_ADMIN' && (
+              <nav className="flex items-center space-x-6">
+                {adminNavItems.map((item) => {
                   const isActive = currentPage === item.key || router.pathname.startsWith(item.href)
                   const Icon = item.icon
 
@@ -124,16 +152,6 @@ export default function Header({ user, currentPage }: HeaderProps) {
 
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                    {fullUser?.role === 'SUPER_ADMIN' && (
-                      <Link
-                        href="/admin/tenants"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-blue-500 dark:text-blue-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <Shield className="w-4 h-4" />
-                        Admin Panel
-                      </Link>
-                    )}
                     <Link
                       href="/settings"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
