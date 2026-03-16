@@ -3,7 +3,8 @@ Context Models
 Unified context ingestion system for customer feedback, product docs, meetings, and more
 """
 
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, Float, Date, JSON, DateTime, Enum as SQLEnum
+from sqlalchemy import Column, String, Text, Integer, ForeignKey, Float, Date, JSON, DateTime, Enum as SQLEnum, Boolean, LargeBinary
+import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 from pgvector.sqlalchemy import Vector
@@ -107,6 +108,21 @@ class ContextSource(TenantScopedModel):
     raw_content = Column(Text, nullable=True)  # Original unprocessed content
     file_path = Column(String(500), nullable=True)  # For uploaded files
 
+    # Data Retention & Privacy
+    retention_policy = Column(String(50), nullable=True, default='30_days')  # delete_immediately, 30_days, 90_days, retain_encrypted
+    content_deleted_at = Column(DateTime, nullable=True)  # When content was deleted
+    deletion_scheduled_for = Column(DateTime, nullable=True)  # When scheduled for deletion
+    content_summary = Column(Text, nullable=True)  # Summary after deletion (e.g., "47 responses, 2.3MB")
+
+    # Encryption (for retain_encrypted policy)
+    encrypted_content = Column(sa.LargeBinary, nullable=True)  # Encrypted content blob
+    encryption_key_id = Column(String(100), nullable=True)  # Reference to encryption key
+    is_encrypted = Column(sa.Boolean, default=False, nullable=False)
+
+    # Access Tracking
+    last_accessed_at = Column(DateTime, nullable=True)
+    access_count = Column(Integer, default=0, nullable=False)
+
     # Source-specific fields
     mcp_endpoint = Column(String(500), nullable=True)  # For MCP servers
     github_repo = Column(String(255), nullable=True)  # For GitHub repos
@@ -147,6 +163,7 @@ class ContextSource(TenantScopedModel):
     account = relationship("Account", back_populates="context_sources")
     theme = relationship("Theme", back_populates="context_sources")
     extracted_entities = relationship("ExtractedEntity", back_populates="source", cascade="all, delete-orphan")
+    access_logs = relationship("ContentAccessLog", back_populates="context_source", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<ContextSource(id={self.id}, type='{self.source_type}', name='{self.name}')>"
@@ -203,6 +220,112 @@ class ExtractedEntity(TenantScopedModel):
     source = relationship("ContextSource", back_populates="extracted_entities")
     related_persona = relationship("Persona")
     related_capability = relationship("Capability")
+    initiative_links = relationship("EntityInitiativeLink", back_populates="entity", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<ExtractedEntity(id={self.id}, type='{self.entity_type}', name='{self.name}')>"
+
+
+class ContentAccessLog(TenantScopedModel):
+    """
+    Audit log for accessing raw content from context sources
+    Tracks who accessed what content and when for compliance
+    """
+    __tablename__ = "content_access_logs"
+
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    context_source_id = Column(Integer, ForeignKey("context_sources.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Access details
+    access_reason = Column(String(255), nullable=True)
+    ip_address = Column(String(50), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    accessed_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    # Relationships
+    tenant = relationship("Tenant")
+    context_source = relationship("ContextSource", back_populates="access_logs")
+    user = relationship("User")
+
+    def __repr__(self):
+        return f"<ContentAccessLog(id={self.id}, source_id={self.context_source_id}, user_id={self.user_id})>"
+
+
+class InitiativeEvidence(TenantScopedModel):
+    """
+    Pre-aggregated evidence supporting an initiative
+    Built from extracted entities linked to the initiative
+    """
+    __tablename__ = "initiative_evidence"
+
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    initiative_id = Column(Integer, ForeignKey("initiatives.id"), nullable=False, index=True)
+
+    # Aggregated metrics
+    total_mentions = Column(Integer, default=0, nullable=False)
+    total_arr_impacted = Column(sa.BigInteger, default=0, nullable=False)
+
+    # Breakdown by segment
+    customer_segments = Column(JSON, nullable=True)
+    # {"Enterprise": 23, "Mid-Market": 24, "SMB": 10}
+
+    # Top representative quotes
+    representative_quotes = Column(JSON, nullable=True)
+    # [
+    #   {
+    #     "text": "snippet...",
+    #     "customer_name": "Acme Corp",
+    #     "customer_segment": "Enterprise",
+    #     "customer_arr": 150000,
+    #     "speaker_role": "VP Engineering",
+    #     "source_name": "Q1 Survey",
+    #     "source_section": "Question 5",
+    #     "date": "2024-03-15",
+    #     "entity_id": 123
+    #   }
+    # ]
+
+    # Source breakdown
+    sources = Column(JSON, nullable=True)
+    # [
+    #   {"source_id": 123, "name": "Q1 Survey", "mention_count": 47, "source_type": "csv_survey"},
+    #   {"source_id": 124, "name": "Support Tickets", "mention_count": 12, "source_type": "support_ticket"}
+    # ]
+
+    # Aggregate scores
+    confidence_avg = Column(Float, nullable=True)
+    sentiment_avg = Column(Float, nullable=True)
+
+    # Tracking
+    last_updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationships
+    tenant = relationship("Tenant")
+    initiative = relationship("Initiative")
+
+    def __repr__(self):
+        return f"<InitiativeEvidence(id={self.id}, initiative_id={self.initiative_id}, mentions={self.total_mentions})>"
+
+
+class EntityInitiativeLink(TenantScopedModel):
+    """
+    Many-to-many relationship between extracted entities and initiatives
+    Tracks which entities support which initiatives with relevance scoring
+    """
+    __tablename__ = "entity_initiative_links"
+
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    entity_id = Column(Integer, ForeignKey("extracted_entities.id"), nullable=False, index=True)
+    initiative_id = Column(Integer, ForeignKey("initiatives.id"), nullable=False, index=True)
+
+    # Relevance score (0-1) - how strongly this entity supports this initiative
+    relevance_score = Column(Float, nullable=True)
+
+    # Relationships
+    tenant = relationship("Tenant")
+    entity = relationship("ExtractedEntity")
+    initiative = relationship("Initiative")
+
+    def __repr__(self):
+        return f"<EntityInitiativeLink(entity_id={self.entity_id}, initiative_id={self.initiative_id}, score={self.relevance_score})>"

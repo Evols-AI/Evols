@@ -54,8 +54,30 @@ class ContextExtractionService:
             # Extract entities based on source type
             entities = await self._extract_by_source_type(source)
 
-            # Save entities
+            # Save entities with rich metadata
             for entity_data in entities:
+                # Build rich attributes for traceability
+                attributes = entity_data.get('attributes', {})
+
+                # Add source metadata
+                if source.customer_name:
+                    attributes['customer_name'] = source.customer_name
+                if source.customer_segment:
+                    attributes['customer_segment'] = source.customer_segment
+                if source.customer_email:
+                    attributes['customer_email'] = source.customer_email
+                if source.source_date:
+                    attributes['source_date'] = source.source_date.isoformat()
+
+                # Add source type for context
+                attributes['source_type'] = source.source_type.value
+                attributes['source_name'] = source.name
+
+                # Limit context snippet to 200 chars
+                context_snippet = entity_data.get('context_snippet', '')
+                if context_snippet and len(context_snippet) > 200:
+                    context_snippet = context_snippet[:197] + '...'
+
                 entity = ExtractedEntity(
                     tenant_id=self.tenant_id,
                     product_id=source.product_id,
@@ -65,8 +87,8 @@ class ContextExtractionService:
                     description=entity_data['description'],
                     confidence_score=entity_data.get('confidence', 0.8),
                     category=entity_data.get('category'),
-                    attributes=entity_data.get('attributes', {}),
-                    context_snippet=entity_data.get('context_snippet'),
+                    attributes=attributes,
+                    context_snippet=context_snippet,
                 )
                 self.db.add(entity)
 
@@ -147,10 +169,24 @@ Return a JSON array with this structure:
     "description": "Detailed description",
     "confidence": 0.0-1.0,
     "category": "optional category",
-    "attributes": {{}},
-    "context_snippet": "Original text where found"
+    "attributes": {{
+      "speaker_role": "job title if mentioned",
+      "company_size": "company size if mentioned",
+      "arr_value": numeric ARR if mentioned,
+      "sentiment": "positive|negative|neutral",
+      "urgency": "high|medium|low"
+    }},
+    "context_snippet": "Original text where found (max 200 chars)"
   }}
 ]
+
+**IMPORTANT - Extract Rich Metadata:**
+- speaker_role: Job title of person quoted (e.g., "VP Engineering", "CTO", "Product Manager")
+- company_size: If mentioned (e.g., "50-200 employees", "Enterprise", "500+ employees")
+- arr_value: Annual recurring revenue if mentioned (numeric value)
+- sentiment: Whether this is positive, negative, or neutral
+- urgency: How urgent/important this seems based on language used
+- context_snippet: Keep under 200 characters but include key quote
 
 **CRITICAL - Confidence Scoring Rules (Follow Strictly):**
 

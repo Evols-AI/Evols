@@ -4,6 +4,7 @@ AsyncIO-compatible PostgreSQL with pgvector support
 """
 
 from typing import AsyncGenerator
+from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
@@ -55,6 +56,26 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             # ❌ REMOVED AUTO-COMMIT - use @transactional or explicit commit
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+@asynccontextmanager
+async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Context manager for getting database session (for use in jobs/background tasks)
+
+    Usage:
+        async with get_db_context() as db:
+            # Do database operations
+            await db.commit()
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
         except Exception:
             await session.rollback()
             raise

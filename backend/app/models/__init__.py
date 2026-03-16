@@ -16,7 +16,8 @@ from app.models.project import Project, ProjectEffort, ProjectStatus
 from app.models.prompt import Prompt, PromptExecution
 from app.models.support import SupportTicket
 from app.models.context import (
-    ContextSource, ExtractedEntity,
+    ContextSource, ExtractedEntity, ContentAccessLog,
+    InitiativeEvidence, EntityInitiativeLink,
     ContextSourceType, ContextProcessingStatus, EntityType
 )
 from app.models.skill import (
@@ -74,6 +75,9 @@ __all__ = [
     # Context system
     "ContextSource",
     "ExtractedEntity",
+    "ContentAccessLog",
+    "InitiativeEvidence",
+    "EntityInitiativeLink",
     "ContextSourceType",
     "ContextProcessingStatus",
     "EntityType",

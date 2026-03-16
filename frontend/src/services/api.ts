@@ -200,9 +200,26 @@ export const api = {
     deleteSource: (sourceId: number) => apiClient.delete(`/api/v1/context/sources/${sourceId}`),
     extractEntities: (sourceId: number) => apiClient.post(`/api/v1/context/sources/${sourceId}/extract`),
 
+    // Retention
+    getRetentionPolicies: () => apiClient.get('/api/v1/context/retention/policies'),
+    updateRetentionPolicy: (sourceId: number, policy: string) =>
+      apiClient.put(`/api/v1/context/sources/${sourceId}/retention`, { policy }),
+    deleteContent: (sourceId: number) => apiClient.post(`/api/v1/context/sources/${sourceId}/delete-content`),
+    getContent: (sourceId: number, reason?: string) =>
+      apiClient.get(`/api/v1/context/sources/${sourceId}/content`, { params: { reason } }),
+    getRetentionStats: () => apiClient.get('/api/v1/context/retention/stats'),
+
     // Extracted Entities
     getEntities: (params?: any) => apiClient.get('/api/v1/context/entities', { params }),
     getEntitiesSummary: (params?: any) => apiClient.get('/api/v1/context/entities/summary', { params }),
+
+    // Evidence
+    buildInitiativeEvidence: (initiativeId: number, entityIds?: number[]) =>
+      apiClient.post(`/api/v1/context/evidence/initiative/${initiativeId}`, entityIds ? { entity_ids: entityIds } : {}),
+    getInitiativeEvidence: (initiativeId: number) =>
+      apiClient.get(`/api/v1/context/evidence/initiative/${initiativeId}`),
+    getSupportingEntities: (initiativeId: number, limit?: number) =>
+      apiClient.get(`/api/v1/context/evidence/initiative/${initiativeId}/entities`, { params: { limit } }),
   },
 
   // Projects

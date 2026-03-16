@@ -43,6 +43,15 @@ class SchedulerService:
             replace_existing=True
         )
 
+        # Run content cleanup job every 6 hours
+        self.scheduler.add_job(
+            self.run_content_cleanup,
+            IntervalTrigger(hours=6),
+            id='content_cleanup',
+            name='Content Cleanup Job',
+            replace_existing=True
+        )
+
     def shutdown(self):
         """Shutdown the scheduler"""
         self.scheduler.shutdown()
@@ -208,6 +217,17 @@ class SchedulerService:
         except Exception as e:
             logger.error(f"Failed to refresh knowledge sources for tenant {tenant.id}: {e}")
             await db.rollback()
+
+    async def run_content_cleanup(self):
+        """Run content cleanup job to process scheduled content deletions"""
+        try:
+            from app.jobs.content_cleanup_job import run_content_cleanup_job
+
+            result = await run_content_cleanup_job()
+            logger.info(f"Content cleanup job completed: {result}")
+
+        except Exception as e:
+            logger.error(f"Error in content cleanup job: {e}")
 
 
 # Global scheduler instance

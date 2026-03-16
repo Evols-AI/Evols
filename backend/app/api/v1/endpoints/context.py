@@ -180,6 +180,7 @@ async def upload_context_file(
     product_id: Optional[int] = Form(None),
     description: Optional[str] = Form(None),
     source_type: str = Form("csv_survey"),
+    retention_policy: str = Form("30_days"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -216,6 +217,11 @@ async def upload_context_file(
         except ValueError:
             source_type_enum = ContextSourceType.DOCUMENT_PDF
 
+        # Validate retention policy
+        valid_policies = ['delete_immediately', '30_days', '90_days', 'retain_encrypted']
+        if retention_policy not in valid_policies:
+            retention_policy = '30_days'  # Default fallback
+
         # Create context source
         new_source = ContextSource(
             tenant_id=current_user.tenant_id,
@@ -226,6 +232,7 @@ async def upload_context_file(
             content=content_text,
             status=ContextProcessingStatus.PENDING,  # Start as pending for extraction
             entities_extracted_count=0,
+            retention_policy=retention_policy,
         )
 
         db.add(new_source)
@@ -243,6 +250,17 @@ async def upload_context_file(
                 source_id=new_source.id
             )
             await db.refresh(new_source)  # Refresh to get updated status and count
+
+            # Apply retention policy after successful extraction
+            from app.services.retention_service import RetentionPolicyService
+            retention_service = RetentionPolicyService(db)
+            await retention_service.apply_retention_policy(
+                new_source,
+                policy=retention_policy,
+                encrypt_if_needed=True
+            )
+            await db.refresh(new_source)  # Refresh to get updated retention fields
+
         except ValueError as e:
             # LLM configuration error - return clear message to user
             error_msg = str(e)
@@ -343,6 +361,181 @@ async def delete_context_source(
     return {"message": "Context source deleted successfully"}
 
 
+@router.get("/retention/policies")
+async def get_retention_policies(
+    current_user: User = Depends(get_current_user),
+):
+    """Get available retention policies"""
+    from app.services.retention_service import RetentionPolicyService
+
+    return {
+        "policies": [
+            {
+                "id": "delete_immediately",
+                "name": "Maximum Privacy",
+                "description": "Delete original file after AI extraction completes. You'll keep extracted insights and short quotes.",
+                "days": 0,
+                "recommended": False
+            },
+            {
+                "id": "30_days",
+                "name": "Balanced (Recommended)",
+                "description": "Keep original for 30 days, then auto-delete. Allows re-extraction if needed.",
+                "days": 30,
+                "recommended": True
+            },
+            {
+                "id": "90_days",
+                "name": "Extended Retention",
+                "description": "Keep original for 90 days, then auto-delete.",
+                "days": 90,
+                "recommended": False
+            },
+            {
+                "id": "retain_encrypted",
+                "name": "Full Retention (Encrypted)",
+                "description": "Keep original file indefinitely, encrypted. Best for audit/compliance requirements.",
+                "days": None,
+                "recommended": False
+            }
+        ]
+    }
+
+
+@router.put("/sources/{source_id}/retention")
+async def update_retention_policy(
+    source_id: int,
+    policy: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update retention policy for a source"""
+    from app.services.retention_service import RetentionPolicyService
+
+    query = select(ContextSource).where(
+        and_(
+            ContextSource.id == source_id,
+            ContextSource.tenant_id == current_user.tenant_id
+        )
+    )
+    result = await db.execute(query)
+    source = result.scalar_one_or_none()
+
+    if not source:
+        raise HTTPException(status_code=404, detail="Context source not found")
+
+    retention_service = RetentionPolicyService(db)
+    try:
+        await retention_service.apply_retention_policy(source, policy, encrypt_if_needed=True)
+        return {"message": "Retention policy updated successfully", "policy": policy}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/sources/{source_id}/delete-content")
+async def manually_delete_content(
+    source_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually delete content from a source (preserves metadata and entities)"""
+    from app.services.retention_service import RetentionPolicyService
+
+    query = select(ContextSource).where(
+        and_(
+            ContextSource.id == source_id,
+            ContextSource.tenant_id == current_user.tenant_id
+        )
+    )
+    result = await db.execute(query)
+    source = result.scalar_one_or_none()
+
+    if not source:
+        raise HTTPException(status_code=404, detail="Context source not found")
+
+    if source.content_deleted_at:
+        raise HTTPException(status_code=400, detail="Content already deleted")
+
+    retention_service = RetentionPolicyService(db)
+    await retention_service._delete_content(source)
+
+    return {"message": "Content deleted successfully", "summary": source.content_summary}
+
+
+@router.get("/sources/{source_id}/content")
+async def get_source_content(
+    source_id: int,
+    reason: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get raw content from source (logged for audit).
+    Requires justification for accessing raw data.
+    """
+    from app.services.retention_service import RetentionPolicyService
+
+    query = select(ContextSource).where(
+        and_(
+            ContextSource.id == source_id,
+            ContextSource.tenant_id == current_user.tenant_id
+        )
+    )
+    result = await db.execute(query)
+    source = result.scalar_one_or_none()
+
+    if not source:
+        raise HTTPException(status_code=404, detail="Context source not found")
+
+    retention_service = RetentionPolicyService(db)
+
+    # Log access
+    await retention_service.log_content_access(
+        source_id=source_id,
+        user_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+        reason=reason
+    )
+
+    # Get content (decrypt if needed)
+    if source.is_encrypted:
+        try:
+            content = await retention_service.decrypt_content(source)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    elif source.content:
+        content = source.content
+    elif source.content_deleted_at:
+        raise HTTPException(
+            status_code=410,
+            detail=f"Content deleted on {source.content_deleted_at.isoformat()}. Summary: {source.content_summary}"
+        )
+    else:
+        raise HTTPException(status_code=404, detail="No content available")
+
+    return {
+        "content": content,
+        "is_encrypted": source.is_encrypted,
+        "retention_policy": source.retention_policy,
+        "access_count": source.access_count,
+        "last_accessed_at": source.last_accessed_at.isoformat() if source.last_accessed_at else None
+    }
+
+
+@router.get("/retention/stats")
+async def get_retention_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get retention statistics for current tenant"""
+    from app.services.retention_service import RetentionPolicyService
+
+    retention_service = RetentionPolicyService(db)
+    stats = await retention_service.get_retention_stats(current_user.tenant_id)
+
+    return stats
+
+
 # ===================================
 # Extracted Entities Endpoints
 # ===================================
@@ -410,4 +603,117 @@ async def get_entities_summary(
             "competitor": 0,
             "stakeholder": 0,
         }
+    }
+
+
+# ===================================
+# Evidence & Initiative Endpoints
+# ===================================
+
+@router.post("/evidence/initiative/{initiative_id}")
+async def build_initiative_evidence(
+    initiative_id: int,
+    entity_ids: Optional[List[int]] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Build or update evidence for an initiative from extracted entities
+
+    Args:
+        initiative_id: Initiative to build evidence for
+        entity_ids: Optional list of entity IDs to link to this initiative
+    """
+    from app.services.evidence_service import EvidenceService
+
+    evidence_service = EvidenceService(db)
+
+    try:
+        evidence = await evidence_service.build_initiative_evidence(
+            initiative_id=initiative_id,
+            tenant_id=current_user.tenant_id,
+            entity_ids=entity_ids or []
+        )
+
+        return {
+            "id": evidence.id,
+            "initiative_id": evidence.initiative_id,
+            "total_mentions": evidence.total_mentions,
+            "total_arr_impacted": evidence.total_arr_impacted,
+            "customer_segments": evidence.customer_segments,
+            "representative_quotes": evidence.representative_quotes,
+            "sources": evidence.sources,
+            "confidence_avg": evidence.confidence_avg,
+            "sentiment_avg": evidence.sentiment_avg,
+            "last_updated_at": evidence.last_updated_at.isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to build evidence: {str(e)}")
+
+
+@router.get("/evidence/initiative/{initiative_id}")
+async def get_initiative_evidence(
+    initiative_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get evidence for an initiative"""
+    from app.services.evidence_service import EvidenceService
+
+    evidence_service = EvidenceService(db)
+    evidence = await evidence_service.get_initiative_evidence(
+        initiative_id=initiative_id,
+        tenant_id=current_user.tenant_id
+    )
+
+    if not evidence:
+        raise HTTPException(status_code=404, detail="No evidence found for this initiative")
+
+    return {
+        "id": evidence.id,
+        "initiative_id": evidence.initiative_id,
+        "total_mentions": evidence.total_mentions,
+        "total_arr_impacted": evidence.total_arr_impacted,
+        "customer_segments": evidence.customer_segments,
+        "representative_quotes": evidence.representative_quotes,
+        "sources": evidence.sources,
+        "confidence_avg": evidence.confidence_avg,
+        "sentiment_avg": evidence.sentiment_avg,
+        "last_updated_at": evidence.last_updated_at.isoformat()
+    }
+
+
+@router.get("/evidence/initiative/{initiative_id}/entities")
+async def get_supporting_entities(
+    initiative_id: int,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get entities supporting an initiative"""
+    from app.services.evidence_service import EvidenceService
+
+    evidence_service = EvidenceService(db)
+    entities = await evidence_service.get_supporting_entities(
+        initiative_id=initiative_id,
+        tenant_id=current_user.tenant_id,
+        limit=limit
+    )
+
+    return {
+        "initiative_id": initiative_id,
+        "entities": [
+            {
+                "id": e.id,
+                "entity_type": e.entity_type.value,
+                "name": e.name,
+                "description": e.description,
+                "confidence_score": e.confidence_score,
+                "context_snippet": e.context_snippet,
+                "attributes": e.attributes,
+                "created_at": e.created_at.isoformat()
+            }
+            for e in entities
+        ]
     }
