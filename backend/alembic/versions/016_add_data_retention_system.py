@@ -17,6 +17,77 @@ depends_on = None
 
 
 def upgrade():
+    # First, ensure initiatives table exists (may have been missed in earlier migrations)
+    bind = op.get_bind()
+    result = bind.execute(sa.text(
+        "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'initiative')"
+    ))
+
+    if not result.scalar():
+        # Create initiative enums if they don't exist
+        result = bind.execute(sa.text(
+            "SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'initiativestatus')"
+        ))
+        if not result.scalar():
+            initiative_status_enum = postgresql.ENUM(
+                'idea', 'backlog', 'planned', 'in_progress', 'launched', 'paused', 'cancelled',
+                name='initiativestatus'
+            )
+            initiative_status_enum.create(bind)
+
+        result = bind.execute(sa.text(
+            "SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'initiativeeffort')"
+        ))
+        if not result.scalar():
+            initiative_effort_enum = postgresql.ENUM(
+                'small', 'medium', 'large', 'xlarge',
+                name='initiativeeffort'
+            )
+            initiative_effort_enum.create(bind)
+
+        # Create initiative table
+        op.create_table(
+            'initiative',
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.Column('tenant_id', sa.Integer(), nullable=False),
+            sa.Column('product_id', sa.Integer(), nullable=True),
+            sa.Column('title', sa.String(length=255), nullable=False),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('status', postgresql.ENUM(name='initiativestatus'), nullable=False, server_default='idea'),
+            sa.Column('effort', postgresql.ENUM(name='initiativeeffort'), nullable=True),
+            sa.Column('estimated_impact_score', sa.Float(), nullable=True),
+            sa.Column('target_segments', postgresql.ARRAY(sa.String()), nullable=True),
+            sa.Column('expected_arr_impact', sa.Float(), nullable=True),
+            sa.Column('expected_retention_impact', sa.Float(), nullable=True),
+            sa.Column('expected_activation_impact', sa.Float(), nullable=True),
+            sa.Column('priority_score', sa.Float(), nullable=True),
+            sa.Column('external_id', sa.String(length=255), nullable=True),
+            sa.Column('owner_email', sa.String(length=255), nullable=True),
+            sa.Column('extra_data', sa.JSON(), nullable=True),
+            sa.PrimaryKeyConstraint('id'),
+            sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='SET NULL'),
+        )
+        op.create_index('ix_initiative_tenant_id', 'initiative', ['tenant_id'])
+        op.create_index('ix_initiative_product_id', 'initiative', ['product_id'])
+        op.create_index('ix_initiative_status', 'initiative', ['status'])
+
+        # Create theme_initiative association table
+        result = bind.execute(sa.text(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'theme_initiative')"
+        ))
+        if not result.scalar():
+            op.create_table(
+                'theme_initiative',
+                sa.Column('theme_id', sa.Integer(), nullable=False),
+                sa.Column('initiative_id', sa.Integer(), nullable=False),
+                sa.PrimaryKeyConstraint('theme_id', 'initiative_id'),
+                sa.ForeignKeyConstraint(['theme_id'], ['theme.id'], ondelete='CASCADE'),
+                sa.ForeignKeyConstraint(['initiative_id'], ['initiative.id'], ondelete='CASCADE'),
+            )
+
     # Add retention fields to context_sources
     op.add_column('context_sources', sa.Column('retention_policy', sa.String(50), nullable=True, server_default='30_days'))
     op.add_column('context_sources', sa.Column('content_deleted_at', sa.DateTime(), nullable=True))
@@ -73,7 +144,7 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['initiative_id'], ['initiatives.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['initiative_id'], ['initiative.id'], ondelete='CASCADE'),
     )
     op.create_index('ix_initiative_evidence_tenant_id', 'initiative_evidence', ['tenant_id'])
     op.create_index('ix_initiative_evidence_initiative_id', 'initiative_evidence', ['initiative_id'])
@@ -91,7 +162,7 @@ def upgrade():
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['entity_id'], ['extracted_entities.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['initiative_id'], ['initiatives.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['initiative_id'], ['initiative.id'], ondelete='CASCADE'),
         sa.UniqueConstraint('entity_id', 'initiative_id', name='uq_entity_initiative')
     )
     op.create_index('ix_entity_initiative_links_tenant_id', 'entity_initiative_links', ['tenant_id'])
@@ -104,6 +175,9 @@ def downgrade():
     op.drop_table('entity_initiative_links')
     op.drop_table('initiative_evidence')
     op.drop_table('content_access_logs')
+
+    # Note: We don't drop initiative/theme_initiative tables on downgrade
+    # as they may have been created elsewhere or contain important data
 
     # Drop columns from context_sources
     op.drop_column('context_sources', 'access_count')
