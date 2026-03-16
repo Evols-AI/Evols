@@ -27,11 +27,15 @@ class PersonaCreate(PersonaBase):
     """Persona creation schema - manually or generated"""
 
     persona_summary: str
+    product_id: Optional[int] = None
     key_pain_points: Optional[List[str]] = None
     buying_triggers: Optional[List[str]] = None
     feature_priorities: Optional[List[str]] = None
     budget_authority_min: Optional[float] = None
     budget_authority_max: Optional[float] = None
+    confidence_score: Optional[float] = None
+    status: Optional[PersonaStatus] = PersonaStatus.NEW
+    extra_data: Optional[Dict[str, Any]] = None
 
 
 class PersonaUpdate(BaseModel):

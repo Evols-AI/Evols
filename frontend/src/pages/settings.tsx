@@ -129,8 +129,6 @@ export default function Settings() {
       loadModelOptions()
     } else if (activeTab === 'data_refresh') {
       loadPersonaRefreshSettings()
-      loadThemeRefreshSettings()
-      loadKnowledgeRefreshSettings()
     } else if (activeTab === 'team') {
       loadTeamMembers()
     }
@@ -202,10 +200,36 @@ export default function Settings() {
     setTesting(true)
     setTestResult(null)
     try {
-      const response = await api.testLLMConnection(llmConfig)
+      // Transform config to match backend schema
+      const configToSend = { ...llmConfig }
+      if (llmConfig.provider === 'aws_bedrock') {
+        configToSend.region = llmConfig.aws_region
+        configToSend.access_key_id = llmConfig.aws_access_key_id
+        configToSend.secret_access_key = llmConfig.aws_secret_access_key
+        configToSend.model_id = llmConfig.model
+        delete configToSend.aws_region
+        delete configToSend.aws_access_key_id
+        delete configToSend.aws_secret_access_key
+        delete configToSend.model
+      }
+
+      const response = await api.testLLMConnection(configToSend)
       setTestResult({ success: response.data.success, message: response.data.message })
     } catch (error: any) {
-      setTestResult({ success: false, message: error.response?.data?.detail || 'Connection test failed.' })
+      // Handle validation errors (422)
+      let errorMessage = 'Connection test failed.'
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail
+        if (Array.isArray(detail)) {
+          // FastAPI validation errors
+          errorMessage = detail.map((err: any) => err.msg || JSON.stringify(err)).join(', ')
+        } else if (typeof detail === 'string') {
+          errorMessage = detail
+        } else if (typeof detail === 'object') {
+          errorMessage = JSON.stringify(detail)
+        }
+      }
+      setTestResult({ success: false, message: errorMessage })
     } finally {
       setTesting(false)
     }
@@ -214,11 +238,33 @@ export default function Settings() {
   const handleSaveLLMSettings = async () => {
     setSaving(true)
     try {
-      await api.updateLLMSettings(llmConfig)
+      // Transform config to match backend schema
+      const configToSend = { ...llmConfig }
+      if (llmConfig.provider === 'aws_bedrock') {
+        configToSend.region = llmConfig.aws_region
+        configToSend.access_key_id = llmConfig.aws_access_key_id
+        configToSend.secret_access_key = llmConfig.aws_secret_access_key
+        configToSend.model_id = llmConfig.model
+        delete configToSend.aws_region
+        delete configToSend.aws_access_key_id
+        delete configToSend.aws_secret_access_key
+        delete configToSend.model
+      }
+
+      await api.updateLLMSettings(configToSend)
       alert('LLM settings saved successfully!')
       await loadCurrentLLMSettings()
     } catch (error: any) {
-      alert(`Failed to save settings: ${error.response?.data?.detail || error.message}`)
+      let errorMessage = 'Failed to save settings'
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail
+        if (Array.isArray(detail)) {
+          errorMessage = detail.map((err: any) => err.msg || JSON.stringify(err)).join(', ')
+        } else if (typeof detail === 'string') {
+          errorMessage = detail
+        }
+      }
+      alert(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -935,21 +981,20 @@ export default function Settings() {
           {/* Data Refresh Tab */}
           {activeTab === 'data_refresh' && (
             <div>
-              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Automated Data Refresh</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">Configure automatic refresh schedules for personas, roadmap themes, and knowledge sources</p>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Context Intelligence Refresh</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Automatically re-extract insights from uploaded context sources on a schedule.
+                Use the manual "Refresh Context" button on the Context page for on-demand updates.
+              </p>
 
-              {/* Persona Auto-Refresh Settings */}
+              {/* Unified Context Refresh Settings */}
               <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Persona Auto-Refresh</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">Automatically refresh personas with latest VoC data on a schedule</p>
-
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <div>
                       <h4 className="font-medium text-gray-900 dark:text-white">Enable Auto-Refresh</h4>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Automatically refresh 'New' personas with latest VoC data on a schedule.
-                        Active and Inactive personas are never changed.
+                        Automatically re-extract entities and insights from all context sources on a schedule.
                       </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -977,7 +1022,7 @@ export default function Settings() {
                         className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Personas will be refreshed every {personaRefreshDays} day(s)
+                        Context intelligence will be refreshed every {personaRefreshDays} day(s)
                       </p>
                     </div>
                   )}
@@ -993,126 +1038,6 @@ export default function Settings() {
                   {lastRefreshDate && (
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Last refresh: {new Date(lastRefreshDate).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Theme Auto-Refresh Settings */}
-              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Roadmap Auto-Refresh</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">Automatically refresh your product roadmap based on latest customer feedback</p>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white">Enable Auto-Refresh</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Automatically regenerate your product roadmap from customer feedback with AI-powered prioritization.
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={themeRefreshEnabled}
-                        onChange={(e) => setThemeRefreshEnabled(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
-                    </label>
-                  </div>
-
-                  {themeRefreshEnabled && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
-                        Refresh Interval (Days)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="365"
-                        value={themeRefreshDays}
-                        onChange={(e) => setThemeRefreshDays(Number(e.target.value))}
-                        className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Themes will be refreshed every {themeRefreshDays} day(s)
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleSaveThemeRefreshSettings}
-                    disabled={savingThemeRefresh}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-300 dark:disabled:bg-purple-800 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {savingThemeRefresh ? 'Saving...' : 'Save Refresh Settings'}
-                  </button>
-
-                  {lastThemeRefreshDate && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Last refresh: {new Date(lastThemeRefreshDate).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Knowledge Source Auto-Refresh Settings */}
-              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Knowledge Source Auto-Refresh</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">Automatically refresh knowledge sources to extract latest capabilities on a schedule</p>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white">
-                        Enable Auto-Refresh
-                      </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Automatically re-extract capabilities from all knowledge sources on a schedule
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={knowledgeRefreshEnabled}
-                        onChange={(e) => setKnowledgeRefreshEnabled(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-                    </label>
-                  </div>
-
-                  {knowledgeRefreshEnabled && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
-                        Refresh Interval (Days)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="365"
-                        value={knowledgeRefreshDays}
-                        onChange={(e) => setKnowledgeRefreshDays(Number(e.target.value))}
-                        className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Knowledge sources will be refreshed every {knowledgeRefreshDays} day(s)
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleSaveKnowledgeRefreshSettings}
-                    disabled={savingKnowledgeRefresh}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-300 dark:disabled:bg-green-800 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {savingKnowledgeRefresh ? 'Saving...' : 'Save Refresh Settings'}
-                  </button>
-
-                  {lastKnowledgeRefreshDate && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Last refresh: {new Date(lastKnowledgeRefreshDate).toLocaleDateString()}
                     </p>
                   )}
                 </div>

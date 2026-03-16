@@ -73,4 +73,5 @@ alembic/versions/*.pyc
 
 # Test data
 test-data/
+demo_data/
 *.csv

@@ -182,15 +182,12 @@ async def generate_options(
     This is Step 3 of the workbench flow.
     """
     # Validate LLM configuration
-    import os
     if not tenant_config:
-        if not os.getenv('OPENAI_API_KEY') and not os.getenv('ANTHROPIC_API_KEY'):
-            logger.error("No LLM configuration available for option generation")
-            raise HTTPException(
-                status_code=400,
-                detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before generating options."
-            )
-        logger.warning("No tenant LLM config, falling back to environment variables")
+        logger.error("No LLM configuration available for option generation")
+        raise HTTPException(
+            status_code=400,
+            detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before generating options."
+        )
 
     segments_str = ", ".join(req.segments) if req.segments else "all segments"
     constraints_str = f"\n\nConstraints: {req.constraints}" if req.constraints else ""
@@ -370,15 +367,12 @@ async def persona_votes(
     This is Step 5 of the workbench flow.
     """
     # Validate LLM configuration
-    import os
     if not tenant_config:
-        if not os.getenv('OPENAI_API_KEY') and not os.getenv('ANTHROPIC_API_KEY'):
             logger.error("No LLM configuration available for persona voting")
             raise HTTPException(
                 status_code=400,
                 detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before using persona voting."
             )
-        logger.warning("No tenant LLM config, falling back to environment variables")
 
     # Use generated personas if provided (from market research), otherwise use library personas
     personas = []
@@ -515,15 +509,12 @@ async def generate_personas_from_market(
     This is Step 3 of the founder workflow.
     """
     # Validate LLM configuration
-    import os
     if not tenant_config:
-        if not os.getenv('OPENAI_API_KEY') and not os.getenv('ANTHROPIC_API_KEY'):
             logger.error("No LLM configuration available for persona generation")
             raise HTTPException(
                 status_code=400,
                 detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings."
             )
-        logger.warning("No tenant LLM config, falling back to environment variables")
 
     # Extract key data from market research
     market_data = req.market_data
@@ -838,15 +829,12 @@ async def workbench_chat(
     Every response includes citations back to source data.
     """
     # Validate LLM configuration
-    import os
     if not tenant_config:
-        if not os.getenv('OPENAI_API_KEY') and not os.getenv('ANTHROPIC_API_KEY'):
             logger.error("No LLM configuration available for workbench chat")
             raise HTTPException(
                 status_code=400,
                 detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before using the chat feature."
             )
-        logger.warning("No tenant LLM config, falling back to environment variables")
     # Gather context: themes and feedback from the workbench state
     context_parts = []
     citations = []

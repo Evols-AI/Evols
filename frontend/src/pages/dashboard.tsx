@@ -10,13 +10,14 @@ import Link from 'next/link'
 import {
   TrendingUp,
   ArrowRight, Plus, Upload, FlaskConical, BarChart3,
-  FileText, Users, Scale, MessageSquare, X
+  FileText, Users, Scale, MessageSquare, X, BookOpen, Database
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, StatCard, Card, Loading } from '@/components/PageContainer'
 import { useProducts } from '@/hooks/useProducts'
+import { AddContextModal } from '@/pages/context'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -130,8 +131,7 @@ export default function Dashboard() {
   // const [signals, setSignals] = useState<Signal[]>([])
   const [personas, setPersonas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [showAskModal, setShowAskModal] = useState(false)
-  const [showVoteModal, setShowVoteModal] = useState(false)
+  const [showAddContextModal, setShowAddContextModal] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -353,58 +353,38 @@ export default function Dashboard() {
                   <Card>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Quick Actions</h2>
                     <div className="space-y-2">
-                      <Link href="/feedback" className="flex items-center gap-3 p-2.5 rounded-lg hover-lift">
+                      <button
+                        onClick={() => setShowAddContextModal(true)}
+                        className="flex items-center gap-3 p-2.5 rounded-lg hover-lift w-full text-left"
+                      >
                         <div className="p-2 rounded-lg flex-shrink-0 bg-purple-50 dark:bg-purple-900/20">
-                          <Plus className="w-4 h-4 text-purple-600" />
+                          <Database className="w-4 h-4 text-purple-600" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-heading">Add VoC</div>
-                          <div className="text-xs text-body">Import or create new</div>
+                          <div className="text-sm font-medium text-heading">Add Context</div>
+                          <div className="text-xs text-body">Upload feedback, docs, or data</div>
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-muted ml-auto" />
+                      </button>
+
+                      <Link href="/workbench?skill=persona_analyzer" className="flex items-center gap-3 p-2.5 rounded-lg hover-lift">
+                        <div className="p-2 rounded-lg flex-shrink-0 bg-violet-50 dark:bg-violet-900/20">
+                          <MessageSquare className="w-4 h-4 text-violet-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-heading">Ask a Persona</div>
+                          <div className="text-xs text-body">Use @persona_analyzer skill</div>
                         </div>
                         <ArrowRight className="w-3.5 h-3.5 text-muted ml-auto" />
                       </Link>
 
-                      <button
-                        onClick={() => setShowAskModal(true)}
-                        disabled={personas.length === 0}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-lg hover-lift disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <div className="p-2 rounded-lg flex-shrink-0 bg-violet-50 dark:bg-violet-900/20">
-                          <MessageSquare className="w-4 h-4 text-violet-600" />
-                        </div>
-                        <div className="text-left">
-                          <div className="text-sm font-medium text-heading">Ask a Persona</div>
-                          <div className="text-xs text-body">
-                            {personas.length > 0 ? 'Simulate customer response' : 'No active personas yet'}
-                          </div>
-                        </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-muted ml-auto" />
-                      </button>
-
-                      <button
-                        onClick={() => setShowVoteModal(true)}
-                        disabled={personas.length === 0}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-lg hover-lift disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <div className="p-2 rounded-lg flex-shrink-0 bg-orange-50 dark:bg-orange-900/20">
-                          <Scale className="w-4 h-4 text-orange-600" />
-                        </div>
-                        <div className="text-left">
-                          <div className="text-sm font-medium text-heading">Trade-off Voting</div>
-                          <div className="text-xs text-body">
-                            {personas.length > 0 ? 'Get persona votes on options' : 'No active personas yet'}
-                          </div>
-                        </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-muted ml-auto" />
-                      </button>
-
-                      <Link href="/workbench" className="flex items-center gap-3 p-2.5 rounded-lg hover-lift">
+                      <Link href="/workbench?skill=decision_workbench" className="flex items-center gap-3 p-2.5 rounded-lg hover-lift">
                         <div className="p-2 rounded-lg flex-shrink-0 bg-blue-50 dark:bg-blue-900/20">
                           <FlaskConical className="w-4 h-4 text-blue-500" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-heading">New Decision</div>
-                          <div className="text-xs text-body">Open the workbench</div>
+                          <div className="text-xs text-body">Use @decision_workbench skill</div>
                         </div>
                         <ArrowRight className="w-3.5 h-3.5 text-muted ml-auto" />
                       </Link>
@@ -437,394 +417,18 @@ export default function Dashboard() {
           )}
         </PageContainer>
 
-        {/* Ask Personas Modal */}
-        {showAskModal && personas.length > 0 && (
-          <AskPersonasModal personas={personas} onClose={() => setShowAskModal(false)} />
-        )}
-
-        {/* Trade-off Voting Modal */}
-        {showVoteModal && personas.length > 0 && (
-          <TradeOffVotingModal personas={personas} onClose={() => setShowVoteModal(false)} />
+        {/* Add Context Modal */}
+        {showAddContextModal && (
+          <AddContextModal
+            selectedProductIds={selectedProductIds}
+            onClose={() => setShowAddContextModal(false)}
+            onSuccess={() => {
+              setShowAddContextModal(false)
+              loadData()
+            }}
+          />
         )}
       </div>
     </>
-  )
-}
-
-// ── Modal Components ───────────────────────────────────────────────────────
-
-function AskPersonasModal({ personas, onClose }: { personas: any[]; onClose: () => void }) {
-  const [question, setQuestion] = useState('')
-  const [selectedPersonas, setSelectedPersonas] = useState<number[]>([])
-  const [responses, setResponses] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [askingProgress, setAskingProgress] = useState<{ current: number; total: number } | null>(null)
-
-  const handleAsk = async () => {
-    if (!question.trim() || selectedPersonas.length === 0) {
-      alert('Please enter a question and select at least one persona')
-      return
-    }
-
-    setLoading(true)
-    setAskingProgress({ current: 0, total: selectedPersonas.length })
-
-    try {
-      let completed = 0
-
-      const responsePromises = selectedPersonas.map(async (personaId) => {
-        try {
-          const result = await api.simulatePersona({
-            persona_id: personaId,
-            question: question,
-          })
-
-          const response = {
-            personaName: result.data.persona_name,
-            response: result.data.response,
-            reasoning: result.data.reasoning,
-            confidence: result.data.confidence,
-          }
-
-          completed++
-          setAskingProgress({ current: completed, total: selectedPersonas.length })
-
-          return response
-        } catch (error) {
-          const persona = personas.find(p => p.id === personaId)
-          completed++
-          setAskingProgress({ current: completed, total: selectedPersonas.length })
-
-          return {
-            personaName: persona?.name || 'Unknown',
-            response: 'Unable to generate response. Please try again.',
-            reasoning: 'Error contacting AI service',
-            confidence: 0,
-          }
-        }
-      })
-
-      const results = await Promise.all(responsePromises)
-      setTimeout(() => setAskingProgress(null), 500)
-      setResponses(results)
-    } catch (error) {
-      setAskingProgress(null)
-      console.error('Error asking personas:', error)
-      alert('Failed to get responses from personas')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const togglePersona = (personaId: number) => {
-    setSelectedPersonas(prev =>
-      prev.includes(personaId)
-        ? prev.filter(id => id !== personaId)
-        : [...prev, personaId]
-    )
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-heading">Ask Personas</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-heading mb-2">Your Question</label>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask your personas anything about features, priorities, pain points..."
-              rows={4}
-              className="input"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-heading mb-2">Select Personas to Ask</label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {personas.map(persona => (
-                <button
-                  key={persona.id}
-                  onClick={() => togglePersona(persona.id)}
-                  className={`p-3 rounded-lg border-2 transition ${selectedPersonas.includes(persona.id)
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                >
-                  <div className="text-sm font-medium text-heading">{persona.name}</div>
-                  <div className="text-xs text-body">{persona.segment}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {askingProgress ? (
-            <div className="bg-gradient-to-r from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-blue-600 animate-pulse" />
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Asking Personas...
-                  </h3>
-                </div>
-                <span className="text-sm font-medium text-blue-600">
-                  {askingProgress.current}/{askingProgress.total}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                <div
-                  className="bg-gradient-to-r from-blue-600 to-blue-500 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(askingProgress.current / askingProgress.total) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                Receiving responses in real-time as personas respond...
-              </p>
-            </div>
-          ) : (
-            <button
-              onClick={handleAsk}
-              disabled={loading || !question.trim() || selectedPersonas.length === 0}
-              className="btn-primary w-full disabled:opacity-50"
-            >
-              {loading ? 'Asking Personas...' : 'Ask Personas'}
-            </button>
-          )}
-
-          {responses.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-heading">Responses (AI-Powered Digital Twins)</h3>
-              {responses.map((response, idx) => (
-                <div key={idx} className="card p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="font-semibold text-heading">{response.personaName}</div>
-                    {response.confidence !== undefined && (
-                      <div className="text-xs text-body">
-                        Confidence: {(response.confidence * 100).toFixed(0)}%
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-body mb-2">{response.response}</p>
-                  {response.reasoning && (
-                    <div className="text-xs text-muted mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <span className="font-medium">Based on:</span> {response.reasoning}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function TradeOffVotingModal({ personas, onClose }: { personas: any[]; onClose: () => void }) {
-  const [question, setQuestion] = useState('')
-  const [options, setOptions] = useState(['', ''])
-  const [votes, setVotes] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [votingProgress, setVotingProgress] = useState<{ current: number; total: number } | null>(null)
-
-  const addOption = () => setOptions([...options, ''])
-  const removeOption = (index: number) => setOptions(options.filter((_, i) => i !== index))
-  const updateOption = (index: number, value: string) => {
-    const newOptions = [...options]
-    newOptions[index] = value
-    setOptions(newOptions)
-  }
-
-  const handleVote = async () => {
-    const validOptions = options.filter(o => o.trim())
-    if (!question.trim() || validOptions.length < 2) {
-      alert('Please enter a question and at least 2 options')
-      return
-    }
-
-    setLoading(true)
-    setVotingProgress({ current: 0, total: personas.length })
-
-    try {
-      const formattedOptions = validOptions.map((opt, idx) => ({
-        id: String.fromCharCode(65 + idx),
-        description: opt
-      }))
-
-      let completed = 0
-
-      const votePromises = personas.map(async (persona) => {
-        try {
-          const result = await api.personaVote({
-            persona_ids: [persona.id],
-            question: question,
-            options: formattedOptions,
-          })
-
-          const votes = result.data.votes || []
-          completed++
-          setVotingProgress({ current: completed, total: personas.length })
-
-          return votes
-        } catch (error) {
-          console.error(`Error getting vote from persona ${persona.name}:`, error)
-          completed++
-          setVotingProgress({ current: completed, total: personas.length })
-          return []
-        }
-      })
-
-      const voteResultsArray = await Promise.all(votePromises)
-      const votesData = voteResultsArray.flat()
-
-      setTimeout(() => setVotingProgress(null), 500)
-
-      const voteResults = validOptions.map((option, idx) => {
-        const optionId = String.fromCharCode(65 + idx)
-        const votesForOption = votesData.filter((v: any) =>
-          v.choice === optionId || v.selected_option_id === optionId
-        )
-
-        return {
-          option,
-          votes: votesForOption.length,
-          percentage: Math.round((votesForOption.length / personas.length) * 100),
-          personas: votesForOption.map((v: any) => v.persona_name),
-          reasoning: votesForOption.map((v: any) => ({
-            persona: v.persona_name,
-            reason: v.reasoning
-          }))
-        }
-      })
-
-      voteResults.sort((a, b) => b.votes - a.votes)
-      setVotes(voteResults)
-    } catch (error: any) {
-      console.error('Error getting votes:', error)
-      setVotingProgress(null)
-      const errorMsg = error.response?.data?.detail || error.message || 'Unknown error'
-      alert(`Failed to get persona votes: ${errorMsg}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-heading">Trade-off Voting</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-heading mb-2">Trade-off Question</label>
-            <input
-              type="text"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="E.g., What should we prioritize next quarter?"
-              className="input"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-heading mb-2">Options</label>
-            <div className="space-y-3">
-              {options.map((option, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={option}
-                    onChange={(e) => updateOption(idx, e.target.value)}
-                    placeholder={`Option ${idx + 1}`}
-                    className="input flex-1"
-                  />
-                  {options.length > 2 && (
-                    <button
-                      onClick={() => removeOption(idx)}
-                      className="btn-secondary px-3"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button onClick={addOption} className="btn-secondary">
-                + Add Option
-              </button>
-            </div>
-          </div>
-
-          {votingProgress ? (
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-purple-600 animate-pulse" />
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Collecting Persona Votes...
-                  </h3>
-                </div>
-                <span className="text-sm font-medium text-purple-600">
-                  {votingProgress.current}/{votingProgress.total}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                <div
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(votingProgress.current / votingProgress.total) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                Receiving votes in real-time as personas respond...
-              </p>
-            </div>
-          ) : (
-            <button
-              onClick={handleVote}
-              disabled={loading || !question.trim() || options.filter(o => o.trim()).length < 2}
-              className="btn-primary w-full disabled:opacity-50"
-            >
-              {loading ? 'Getting Votes...' : 'Get Persona Votes'}
-            </button>
-          )}
-
-          {votes && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-heading">Voting Results</h3>
-              {votes.map((result: any, idx: number) => (
-                <div key={idx} className="card p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold text-heading">{result.option}</div>
-                    <div className="text-lg font-bold text-blue-500 dark:text-blue-300">
-                      {result.percentage}%
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
-                    <div
-                      className="bg-blue-500 dark:bg-blue-400 h-2 rounded-full transition-all"
-                      style={{ width: `${result.percentage}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-body">
-                    Voted by: {result.personas.join(', ')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
   )
 }

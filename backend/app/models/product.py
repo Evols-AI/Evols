@@ -57,6 +57,16 @@ class Product(TenantScopedModel):
         back_populates="product",
         cascade="all, delete-orphan"
     )
+    context_sources = relationship(
+        "ContextSource",
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
+    extracted_entities = relationship(
+        "ExtractedEntity",
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Product(id={self.id}, name='{self.name}', tenant_id={self.tenant_id}, is_demo={self.is_demo})>"

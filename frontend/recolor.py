@@ -45,7 +45,7 @@ replacements = [
     ("dark:border-emerald-800",  "dark:border-indigo-800"),
 ]
 
-src_dir = "/Users/akshay/Desktop/workspace/ProductOS/frontend/src"
+src_dir = os.path.join(os.path.dirname(__file__), "src")
 changed = 0
 
 for root, dirs, files in os.walk(src_dir):

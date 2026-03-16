@@ -264,7 +264,7 @@ export default function KnowledgeBase() {
                   {sources.length === 0 ? (
                     <Card>
                       <EmptyState
-                        icon={<BookOpen className="w-16 h-16" />}
+                        icon={BookOpen}
                         title="No knowledge sources yet"
                         description="Start building your Product RAG by adding documentation, code repositories, or connecting data sources"
                         action={
@@ -480,7 +480,7 @@ export default function KnowledgeBase() {
                   {products.length === 0 && (
                     <Card>
                       <EmptyState
-                        icon={<Package className="w-16 h-16" />}
+                        icon={Package}
                         title="No products yet"
                         description="Create your first product to organize your data"
                         action={

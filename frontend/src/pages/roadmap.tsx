@@ -313,7 +313,7 @@ export default function Roadmap() {
           ) : initiatives.length === 0 ? (
             <Card>
               <EmptyState
-                icon={<Rocket className="w-16 h-16" />}
+                icon={Rocket}
                 title="No roadmap yet"
                 description="Upload customer feedback and click 'Refresh All' to automatically generate an AI-powered product roadmap with prioritized initiatives and projects."
                 action={

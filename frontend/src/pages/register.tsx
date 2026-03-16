@@ -19,11 +19,11 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // Redirect to dashboard if already authenticated
+  // Redirect to workbench if already authenticated
   useEffect(() => {
     const checkAuth = () => {
       if (isAuthenticated()) {
-        router.replace('/dashboard')
+        router.replace('/workbench')
       } else {
         setCheckingAuth(false)
       }
@@ -89,8 +89,8 @@ export default function Register() {
           role: data.role,
         }))
 
-        // Redirect to dashboard
-        router.push('/dashboard')
+        // Redirect to workbench
+        router.push('/workbench')
       } else {
         setError(data.detail || 'Registration failed. Please try again.')
       }

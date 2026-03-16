@@ -13,6 +13,7 @@ from app.models.persona import Persona
 from app.models.initiative import Initiative, InitiativeStatus, InitiativeEffort
 from app.models.project import Project, ProjectStatus, ProjectEffort
 from app.models.knowledge_base import KnowledgeSource, Capability
+from app.models.context import ContextSource, ContextSourceType, ContextProcessingStatus, ExtractedEntity, EntityType
 
 
 async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
@@ -258,11 +259,27 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
 
     await db.flush()  # Get initiative IDs
 
+    # Link themes to initiatives - reload with eager loading to avoid lazy-load issues in async
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select as sql_select
+
+    # Reload initiatives with themes relationship eagerly loaded
+    initiative_ids = [init.id for init in initiatives]
+    result = await db.execute(
+        sql_select(Initiative)
+        .where(Initiative.id.in_(initiative_ids))
+        .options(selectinload(Initiative.themes))
+    )
+    reloaded_initiatives = result.scalars().all()
+
+    # Create a mapping of initiative ID to initiative object
+    initiative_map = {init.id: init for init in reloaded_initiatives}
+
     # Link themes to initiatives
     for i, init_data in enumerate(initiatives_data):
         if init_data["theme_index"] is not None:
             theme_idx = init_data["theme_index"]
-            initiatives[i].themes.append(themes[theme_idx])
+            initiative_map[initiatives[i].id].themes.append(themes[theme_idx])
 
     await db.flush()  # Flush to persist theme-initiative relationships
 
@@ -406,6 +423,165 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             endpoints=cap_data.get("endpoints"),
         )
         db.add(capability)
+
+    # 9. Create Context Sources (3 sources showcasing the unified context system)
+    context_sources_data = [
+        {
+            "source_type": ContextSourceType.MEETING_TRANSCRIPT,
+            "name": "Customer Discovery Call - Enterprise Prospect",
+            "content": "Discussed with Sarah from TechCorp (500+ employees). Key insights: They need faster dashboard performance (current load time: 8 seconds). Their team struggles with mobile offline access during client visits. They mentioned switching to competitors if we don't improve mobile experience. Revenue potential: $85K ARR. Quote: 'If you had better mobile support and faster dashboards, we'd upgrade immediately.'",
+            "status": ContextProcessingStatus.COMPLETED,
+            "entities_extracted_count": 4,
+            "metadata": {
+                "participant": "Sarah Johnson, VP Engineering",
+                "company": "TechCorp",
+                "duration_minutes": 45,
+                "call_type": "discovery"
+            }
+        },
+        {
+            "source_type": ContextSourceType.CSV_SURVEY,
+            "name": "Q1 2026 User Satisfaction Survey",
+            "content": "Survey of 250 users. Key findings: 68% want dark mode, 55% report slow dashboard performance, 42% need better Slack integration. Power users specifically mentioned: 'Dashboard takes too long with large datasets.' Most requested features: dark mode (68%), performance improvements (55%), integrations (42%).",
+            "status": ContextProcessingStatus.COMPLETED,
+            "entities_extracted_count": 5,
+            "metadata": {
+                "response_count": 250,
+                "completion_rate": 0.72,
+                "survey_period": "Q1 2026"
+            }
+        },
+        {
+            "source_type": ContextSourceType.DOCUMENT_PDF,
+            "name": "Win/Loss Analysis - Lost Deal to Competitor",
+            "content": "Lost $120K deal to Competitor X. Primary reasons: (1) Better mobile offline support, (2) Faster dashboard loading, (3) Native mobile apps. Customer quote from final call: 'We love your product's feature set, but our field team needs reliable mobile access without internet. Competitor X has this solved with native apps.' Takeaway: Mobile experience is critical for enterprise deals.",
+            "status": ContextProcessingStatus.COMPLETED,
+            "entities_extracted_count": 3,
+            "metadata": {
+                "deal_size": "$120K ARR",
+                "competitor": "Competitor X",
+                "lost_date": "2026-02-15"
+            }
+        }
+    ]
+
+    context_sources = []
+    for cs_data in context_sources_data:
+        context_source = ContextSource(
+            tenant_id=tenant_id,
+            product_id=product_id,
+            source_type=cs_data["source_type"],
+            name=cs_data["name"],
+            content=cs_data["content"],
+            status=cs_data["status"],
+            entities_extracted_count=cs_data["entities_extracted_count"],
+            metadata=cs_data["metadata"],
+            created_at=datetime.utcnow(),
+        )
+        db.add(context_source)
+        context_sources.append(context_source)
+
+    await db.flush()  # Get context source IDs
+
+    # 10. Create Extracted Entities (AI-discovered insights from context sources)
+    extracted_entities_data = [
+        {
+            "source_index": 0,  # Customer Discovery Call
+            "entity_type": EntityType.PERSONA,
+            "name": "Enterprise VP Engineering",
+            "description": "VPs of Engineering at enterprise companies (500+ employees) focused on performance, scalability, and team productivity",
+            "confidence_score": 0.90,
+            "metadata": {
+                "company_size": "500+",
+                "department": "Engineering",
+                "key_concerns": ["Performance", "Mobile access", "Team productivity"],
+                "revenue_potential": "high"
+            }
+        },
+        {
+            "source_index": 0,  # Customer Discovery Call
+            "entity_type": EntityType.PAIN_POINT,
+            "name": "Slow dashboard performance",
+            "description": "Dashboard takes 8+ seconds to load, causing frustration and lost productivity",
+            "confidence_score": 0.92,
+            "metadata": {
+                "severity": "high",
+                "affected_personas": ["Enterprise VP Engineering", "Product Manager Paula"],
+                "source_count": 2
+            }
+        },
+        {
+            "source_index": 0,  # Customer Discovery Call
+            "entity_type": EntityType.PAIN_POINT,
+            "name": "No mobile offline access",
+            "description": "Field teams cannot work without internet connectivity, causing data loss and workflow interruptions",
+            "confidence_score": 0.88,
+            "metadata": {
+                "severity": "high",
+                "affected_personas": ["Enterprise VP Engineering"],
+                "use_case": "Field team client visits"
+            }
+        },
+        {
+            "source_index": 1,  # Survey
+            "entity_type": EntityType.USE_CASE,
+            "name": "Dark mode for night work",
+            "description": "Users need dark mode UI to reduce eye strain during evening/night work sessions",
+            "confidence_score": 0.85,
+            "metadata": {
+                "demand_percentage": 68,
+                "related_persona": "Developer Dave"
+            }
+        },
+        {
+            "source_index": 1,  # Survey
+            "entity_type": EntityType.USE_CASE,
+            "name": "Slack integration for team notifications",
+            "description": "Teams want automated notifications and updates pushed to their Slack channels",
+            "confidence_score": 0.78,
+            "metadata": {
+                "demand_percentage": 42,
+                "related_persona": "Product Manager Paula"
+            }
+        },
+        {
+            "source_index": 2,  # Win/Loss Document
+            "entity_type": EntityType.COMPETITOR,
+            "name": "Competitor X",
+            "description": "Primary competitor with strong mobile-first approach and native apps for iOS/Android",
+            "confidence_score": 0.87,
+            "metadata": {
+                "strengths": ["Native mobile apps", "Offline support", "Faster performance"],
+                "lost_deals": 1,
+                "deal_value": "$120K ARR"
+            }
+        },
+        {
+            "source_index": 2,  # Win/Loss Document
+            "entity_type": EntityType.PRODUCT_CAPABILITY,
+            "name": "Native mobile apps with offline mode",
+            "description": "iOS and Android native applications with full offline functionality and background sync",
+            "confidence_score": 0.83,
+            "metadata": {
+                "priority": "high",
+                "competitive_advantage": "Critical for enterprise deals"
+            }
+        }
+    ]
+
+    for entity_data in extracted_entities_data:
+        extracted_entity = ExtractedEntity(
+            tenant_id=tenant_id,
+            product_id=product_id,
+            source_id=context_sources[entity_data["source_index"]].id,
+            entity_type=entity_data["entity_type"],
+            name=entity_data["name"],
+            description=entity_data["description"],
+            confidence_score=entity_data["confidence_score"],
+            attributes=entity_data["metadata"],
+            created_at=datetime.utcnow(),
+        )
+        db.add(extracted_entity)
 
     # Commit all changes
     await db.commit()

@@ -1,10 +1,9 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, FlaskConical, Settings, LayoutDashboard, MessageSquare, Rocket, Users, ChevronDown, LogOut, BookOpen, Shield, LifeBuoy } from 'lucide-react'
+import { Moon, Sun, FlaskConical, Settings, MessageSquare, Users, ChevronDown, LogOut, BookOpen, Shield, LifeBuoy, Sparkles, Database, Wand2 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoIcon } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
-// import GlobalAICopilot from '@/components/GlobalAICopilot'
 import { ProductSelector } from '@/components/ProductSelector'
 import { getCurrentUser } from '@/utils/auth'
 
@@ -20,7 +19,6 @@ export default function Header({ user, currentPage }: HeaderProps) {
   const router = useRouter()
   const { theme, toggleTheme } = useTheme()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  // const [isCopilotOpen, setIsCopilotOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const fullUser = getCurrentUser()
 
@@ -44,17 +42,17 @@ export default function Header({ user, currentPage }: HeaderProps) {
   }
 
   const navItems = [
-    { href: '/dashboard', label: 'Dashboard', key: 'dashboard', icon: LayoutDashboard },
-    { href: '/feedback', label: 'VoC', key: 'feedback', icon: MessageSquare },
+    // { href: '/dashboard', label: 'Dashboard', key: 'dashboard', icon: LayoutDashboard }, // Hidden for demo - points to outdated pages
+    { href: '/context', label: 'Context', key: 'context', icon: Database },
     { href: '/personas', label: 'Personas', key: 'personas', icon: Users },
-    { href: '/roadmap', label: 'Roadmap', key: 'roadmap', icon: Rocket },
-    { href: '/knowledge-base', label: 'Product RAG', key: 'knowledge-base', icon: BookOpen },
-    { href: '/workbench', label: 'Workbench', key: 'workbench', highlight: true, icon: FlaskConical },
+    { href: '/workbench', label: 'Workbench', key: 'workbench', highlight: true, icon: Sparkles },
   ]
 
   const adminNavItems = [
     { href: '/admin/tenants', label: 'Admin Panel', key: 'admin', icon: Shield },
     { href: '/admin/support', label: 'Support', key: 'support', icon: LifeBuoy },
+    { href: '/admin/advisers', label: 'Skills', key: 'advisers-admin', icon: Wand2 },
+    { href: '/admin/advisers-platform', label: 'Skills Analytics', key: 'advisers-platform', icon: Sparkles },
   ]
 
   return (
@@ -90,6 +88,19 @@ export default function Header({ user, currentPage }: HeaderProps) {
                     </Link>
                   )
                 })}
+                {fullUser?.role === 'TENANT_ADMIN' && (
+                  <Link
+                    href="/admin/advisers"
+                    className={`flex items-center gap-1.5 text-sm transition-colors ${
+                      currentPage === 'advisers-admin' || router.pathname.startsWith('/admin/advisers')
+                        ? 'text-blue-500 dark:text-blue-300 font-semibold'
+                        : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
+                    }`}
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    Skills
+                  </Link>
+                )}
               </nav>
             )}
             {user && fullUser?.role === 'SUPER_ADMIN' && (
@@ -117,18 +128,6 @@ export default function Header({ user, currentPage }: HeaderProps) {
             )}
           </div>
           <div className="flex items-center space-x-4">
-            {/* AI Copilot - Temporarily hidden
-            {user && fullUser?.role !== 'SUPER_ADMIN' && (
-              <button
-                onClick={() => setIsCopilotOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                aria-label="Open AI Copilot"
-                title="AI Copilot"
-              >
-                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </button>
-            )}
-            */}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
@@ -174,10 +173,6 @@ export default function Header({ user, currentPage }: HeaderProps) {
           </div>
         </div>
       </div>
-
-      {/* Global AI Copilot - Temporarily hidden
-      {isCopilotOpen && <GlobalAICopilot onClose={() => setIsCopilotOpen(false)} />}
-      */}
     </header>
   )
 }

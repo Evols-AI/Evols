@@ -1,4 +1,4 @@
-# ProductOS Styling Guide
+# Evols Styling Guide
 
 ## Global CSS Classes
 

@@ -116,6 +116,7 @@ export const api = {
     return apiClient.get('/api/v1/personas/', { params: queryParams })
   },
   getSegments: () => apiClient.get('/api/v1/personas/segments/list'),
+  createPersona: (data: any) => apiClient.post('/api/v1/personas/', data),
   generatePersonas: (data: any) => apiClient.post('/api/v1/personas/generate', data),
   refreshPersonas: () => apiClient.post('/api/v1/personas/refresh'),
   refreshPersonasAsync: () => apiClient.post('/api/v1/personas/refresh-async'),
@@ -188,6 +189,22 @@ export const api = {
   getKnowledgeRefreshSettings: () => apiClient.get('/api/v1/settings/knowledge-refresh'),
   updateKnowledgeRefreshSettings: (data: any) => apiClient.put('/api/v1/settings/knowledge-refresh', data),
 
+  // Context (Unified Context System)
+  context: {
+    // Context Sources
+    getSources: (params?: any) => apiClient.get('/api/v1/context/sources', { params }),
+    createSource: (data: any) => apiClient.post('/api/v1/context/sources', data),
+    uploadFile: (formData: FormData) => apiClient.post('/api/v1/context/sources/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    deleteSource: (sourceId: number) => apiClient.delete(`/api/v1/context/sources/${sourceId}`),
+    extractEntities: (sourceId: number) => apiClient.post(`/api/v1/context/sources/${sourceId}/extract`),
+
+    // Extracted Entities
+    getEntities: (params?: any) => apiClient.get('/api/v1/context/entities', { params }),
+    getEntitiesSummary: (params?: any) => apiClient.get('/api/v1/context/entities/summary', { params }),
+  },
+
   // Projects
   getProjects: (params?: any) => apiClient.get('/api/v1/projects/', { params }),
   getProject: (projectId: number) => apiClient.get(`/api/v1/projects/${projectId}`),
@@ -208,8 +225,11 @@ export const api = {
   changeMyPassword: (data: { current_password: string; new_password: string }) =>
     apiClient.post('/api/v1/users/me/change-password', data),
 
-  // Generic post helper for workbench
-  post: (path: string, data: any) => apiClient.post(`/api/v1${path}`, data),
+  // Generic helpers
+  get: (path: string, params?: any) => apiClient.get(`/api/v1${path}`, { params }),
+  post: (path: string, data: any, config?: any) => apiClient.post(`/api/v1${path}`, data, config),
+  put: (path: string, data: any) => apiClient.put(`/api/v1${path}`, data),
+  delete: (path: string) => apiClient.delete(`/api/v1${path}`),
 }
 
 export default api

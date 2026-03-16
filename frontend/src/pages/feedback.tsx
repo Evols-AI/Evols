@@ -523,7 +523,7 @@ export default function Feedback() {
           ) : feedback.length === 0 ? (
             <Card>
               <EmptyState
-                icon={<MessageSquare className="w-16 h-16" />}
+                icon={MessageSquare}
                 title="No VoC items yet"
                 description="Upload a CSV file or manually add VoC items to get started"
                 action={

@@ -163,36 +163,36 @@ class PersonaTwinService:
 
             response = llm_response.content
 
-            # Extract citations (feedback that informed the response)
+            # Extract citations (feedback that informed the response) - ensure primitives only
             citations = []
             for fb in knowledge['feedback_items'][:3]:
                 citations.append({
-                    'feedback_id': fb.id,
-                    'content': fb.content[:100] + "...",
-                    'category': fb.category.value if fb.category else None,
+                    'feedback_id': int(fb.id),
+                    'content': str(fb.content)[:100] + "..." if fb.content else "",
+                    'category': str(fb.category.value) if fb.category else None,
                 })
 
             return {
-                'persona_id': persona.id,
-                'persona_name': persona.name,
-                'question': question,
-                'response': response,
+                'persona_id': int(persona.id),
+                'persona_name': str(persona.name),
+                'question': str(question),
+                'response': str(response),
                 'reasoning': f"Based on {knowledge['feedback_count']} feedback items from {knowledge['segment']} customers",
-                'confidence': min(0.6 + (knowledge['feedback_count'] / 50), 0.95),
+                'confidence': float(min(0.6 + (knowledge['feedback_count'] / 50), 0.95)),
                 'citations': citations,
-                'timestamp': datetime.utcnow(),
+                'timestamp': datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
             return {
-                'persona_id': persona.id,
-                'persona_name': persona.name,
-                'question': question,
+                'persona_id': int(persona.id),
+                'persona_name': str(persona.name),
+                'question': str(question),
                 'response': f"I apologize, but I'm unable to respond at this time. {str(e)}",
                 'reasoning': "Error generating response",
                 'confidence': 0.0,
                 'citations': [],
-                'timestamp': datetime.utcnow(),
+                'timestamp': datetime.utcnow().isoformat(),
             }
 
     async def vote_on_options(
@@ -297,21 +297,21 @@ CONFIDENCE: [Low/Medium/High]"""
             confidence_map = {'Low': 0.4, 'Medium': 0.7, 'High': 0.9}
             confidence = confidence_map.get(confidence_str, 0.7)
 
-            # Extract citations
+            # Extract citations - ensure primitives only
             citations = []
             for fb in knowledge['feedback_items'][:2]:
                 citations.append({
-                    'feedback_id': fb.id,
-                    'content': fb.content[:100] + "...",
+                    'feedback_id': int(fb.id),
+                    'content': str(fb.content)[:100] + "..." if fb.content else "",
                 })
 
             result = {
-                'persona_id': persona.id,
-                'persona_name': persona.name,
-                'segment': persona.segment,
-                'choice': choice,
-                'reasoning': reasoning,
-                'confidence': confidence,
+                'persona_id': int(persona.id),
+                'persona_name': str(persona.name),
+                'segment': str(persona.segment),
+                'choice': str(choice) if choice else None,
+                'reasoning': str(reasoning),
+                'confidence': float(confidence),
                 'citations': citations,
             }
             logger.info(f"=== VOTE RESULT for {persona.name}: choice={choice} ===")
@@ -321,9 +321,9 @@ CONFIDENCE: [Low/Medium/High]"""
             logger.error(f"=== VOTE ERROR for {persona.name}: {str(e)} ===")
             logger.exception(e)  # This will log the full stack trace
             return {
-                'persona_id': persona.id,
-                'persona_name': persona.name,
-                'segment': persona.segment,
+                'persona_id': int(persona.id),
+                'persona_name': str(persona.name),
+                'segment': str(persona.segment),
                 'choice': None,
                 'reasoning': f"Unable to vote: {str(e)}",
                 'confidence': 0.0,

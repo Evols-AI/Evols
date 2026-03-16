@@ -59,22 +59,10 @@ class Settings(BaseSettings):
             return [i.strip() for i in v.split(",")]
         return v
 
-    # LLM Configuration (User can provide their own)
-    # OpenAI
-    OPENAI_API_KEY: Optional[str] = None
-    OPENAI_API_BASE: str = "https://api.openai.com/v1"
-    OPENAI_MODEL: str = "gpt-4-turbo-preview"
-    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
-
-    # Azure OpenAI
-    AZURE_OPENAI_API_KEY: Optional[str] = None
-    AZURE_OPENAI_ENDPOINT: Optional[str] = None
-    AZURE_OPENAI_API_VERSION: str = "2024-02-15-preview"
-    AZURE_OPENAI_DEPLOYMENT_NAME: str = "gpt-4"
-    AZURE_OPENAI_EMBEDDING_DEPLOYMENT: str = "text-embedding-ada-002"
-
-    # Anthropic
-    ANTHROPIC_API_KEY: Optional[str] = None
+    # LLM Configuration
+    # NOTE: LLM API keys are NOT stored in environment variables.
+    # Each tenant configures their own API keys via Settings → LLM Settings in the UI.
+    # Keys are encrypted and stored in the database per tenant (BYOK - Bring Your Own Keys).
 
     # Email
     SMTP_HOST: str = "smtp.gmail.com"

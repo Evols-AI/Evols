@@ -21,24 +21,46 @@ export function PageContainer({ children, className = '' }: PageContainerProps) 
 interface PageHeaderProps {
   title: string
   subtitle?: string
-  action?: ReactNode
+  description?: string
+  icon?: any
+  action?: ReactNode | { label: string; onClick: () => void; icon?: any }
   className?: string
 }
 
-export function PageHeader({ title, subtitle, action, className = '' }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, description, icon, action, className = '' }: PageHeaderProps) {
+  const displayText = description || subtitle
+  const Icon = icon
+
   return (
     <div className={`page-header ${className}`}>
       <div>
-        <h1 className="page-title">
-          {title}
-        </h1>
-        {subtitle && (
+        <div className="flex items-center gap-3">
+          {Icon && <Icon className="w-8 h-8 text-blue-500" />}
+          <h1 className="page-title">
+            {title}
+          </h1>
+        </div>
+        {displayText && (
           <p className="page-subtitle mt-2">
-            {subtitle}
+            {displayText}
           </p>
         )}
       </div>
-      {action && <div>{action}</div>}
+      {action && (
+        <div>
+          {typeof action === 'object' && action !== null && 'label' in action ? (
+            <button
+              onClick={action.onClick}
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              {action.icon && <action.icon className="w-5 h-5" />}
+              {action.label}
+            </button>
+          ) : (
+            action
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -47,9 +69,11 @@ interface CardProps {
   children: ReactNode
   className?: string
   padding?: 'none' | 'sm' | 'md' | 'lg'
+  hover?: boolean
+  onClick?: () => void
 }
 
-export function Card({ children, className = '', padding = 'md' }: CardProps) {
+export function Card({ children, className = '', padding = 'md', hover = false, onClick }: CardProps) {
   const paddingMap = {
     none: '',
     sm: 'p-4',
@@ -57,22 +81,29 @@ export function Card({ children, className = '', padding = 'md' }: CardProps) {
     lg: 'p-8',
   }
 
+  const hoverClass = hover ? 'cursor-pointer hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-700 transition-all' : ''
+
   return (
-    <div className={`card ${paddingMap[padding]} ${className}`}>
+    <div
+      className={`card ${paddingMap[padding]} ${hoverClass} ${className}`}
+      onClick={onClick}
+    >
       {children}
     </div>
   )
 }
 
 interface EmptyStateProps {
-  icon?: ReactNode
+  icon?: any  // Can be a component or ReactNode
   illustration?: string  // URL to illustration image
   title: string
   description: string
-  action?: ReactNode
+  action?: ReactNode | { label: string; onClick: () => void; icon?: any }
 }
 
 export function EmptyState({ icon, illustration, title, description, action }: EmptyStateProps) {
+  const Icon = icon
+
   return (
     <div className="empty-state">
       {illustration ? (
@@ -81,8 +112,10 @@ export function EmptyState({ icon, illustration, title, description, action }: E
           alt={title}
           className="w-64 mx-auto mb-6 drop-shadow-lg"
         />
-      ) : icon ? (
-        <div className="empty-state-icon">{icon}</div>
+      ) : Icon ? (
+        <div className="empty-state-icon">
+          <Icon className="w-16 h-16" />
+        </div>
       ) : null}
       <h3 className="empty-state-title">
         {title}
@@ -90,7 +123,21 @@ export function EmptyState({ icon, illustration, title, description, action }: E
       <p className="empty-state-description">
         {description}
       </p>
-      {action && <div>{action}</div>}
+      {action && (
+        <div>
+          {typeof action === 'object' && action !== null && 'label' in action ? (
+            <button
+              onClick={action.onClick}
+              className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              {action.icon && <action.icon className="w-5 h-5" />}
+              {action.label}
+            </button>
+          ) : (
+            action
+          )}
+        </div>
+      )}
     </div>
   )
 }

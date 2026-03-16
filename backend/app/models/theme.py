@@ -62,6 +62,7 @@ class Theme(TenantScopedModel):
     tenant = relationship("Tenant", back_populates="themes")
     product = relationship("Product", back_populates="themes")
     feedback_items = relationship("Feedback", back_populates="theme")
+    context_sources = relationship("ContextSource", back_populates="theme")
     initiatives = relationship("Initiative", secondary="theme_initiative", back_populates="themes")
 
     def __repr__(self):

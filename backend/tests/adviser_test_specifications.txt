@@ -1,0 +1,123 @@
+================================================================================
+ADVISER FUNCTIONAL TEST REPORT
+================================================================================
+
+
+INSIGHTS_MINER
+--------------------------------------------------------------------------------
+
+Test: Feature adoption analysis
+User Input: {'analysis_goal': 'Feature adoption', 'time_period': 'Last 30 days', 'specific_question': 'Why did adoption of the new search feature drop by 15% last month?'}
+Expected Tools: get_feedback_summary, get_themes, get_personas, get_features, get_feedback_items
+Quality Checks:
+  ✓ Should NOT ask user for data that tools can provide
+  ✓ Should segment analysis by persona
+  ✓ Should provide confidence intervals
+  ✓ Should highlight surprising findings
+  ✓ Should connect insights to decisions
+
+Test: Churn analysis
+User Input: {'analysis_goal': 'Churn analysis', 'time_period': 'Last quarter', 'specific_question': 'Which persona segments are churning most and why?'}
+Expected Tools: get_personas, get_feedback_items, get_themes
+
+PROTOTYPING_AGENT
+--------------------------------------------------------------------------------
+
+Test: Landing page for demand validation
+User Input: {'concept_type': 'Landing page', 'hypothesis': 'Enterprise users will pay $99/month for advanced analytics', 'target_audience': 'Enterprise product managers'}
+Quality Checks:
+  ✓ Should define exact success threshold (e.g., >30% email capture)
+  ✓ Should specify target sample size
+  ✓ Should include recruitment plan
+  ✓ Should use realistic data in mockups
+  ✓ Should define go/no-go criteria upfront
+
+PRIORITIZATION_ENGINE
+--------------------------------------------------------------------------------
+
+Test: Prioritize backlog items
+User Input: {'items_to_prioritize': 'SSO login\nDark mode\nAPI rate limiting\nMobile app\nAdvanced search', 'strategic_context': 'Expand to enterprise market, improve retention', 'team_capacity': 10}
+Expected Tools: get_features, get_themes, get_personas, calculate_rice_score
+Quality Checks:
+  ✓ Should show calculation methodology for each RICE component
+  ✓ Should compare scores relatively
+  ✓ Should provide sensitivity analysis
+  ✓ Should segment by persona
+  ✓ Should include data from tools in estimates
+
+PRD_WRITER
+--------------------------------------------------------------------------------
+
+Test: Create PRD for new feature
+User Input: {'feature_name': 'Bulk user import', 'problem': 'Team admins waste hours inviting users one by one', 'target_personas': 'Enterprise Administrators'}
+Expected Tools: get_personas, get_themes, get_feedback_items, get_features
+Quality Checks:
+  ✓ Should include 2-3 real customer quotes from feedback
+  ✓ Should have testable acceptance criteria
+  ✓ Should cover error cases and edge cases
+  ✓ Should specify exact validation rules
+  ✓ Should distinguish v1 scope from future
+
+OPPORTUNITY_IDENTIFIER
+--------------------------------------------------------------------------------
+
+Test: Identify growth opportunities
+User Input: {'focus_area': 'Growth opportunities', 'time_period': 'Last quarter'}
+Expected Tools: get_feedback_items, get_themes, get_personas, get_feedback_summary
+Quality Checks:
+  ✓ Should distinguish widespread vs isolated issues
+  ✓ Should quantify users affected and revenue at risk
+  ✓ Should aggregate signals from multiple sources
+  ✓ Should assess strategic fit
+  ✓ Should include supporting quotes
+
+EDGE_CASES
+--------------------------------------------------------------------------------
+
+No data available
+  When tools return empty results, adviser should acknowledge gracefully
+
+Conflicting data
+  When personas want opposite things
+
+Insufficient sample size
+  When data has small sample size
+
+Ambiguous user input
+  When user question is vague
+
+BEST_PRACTICES
+--------------------------------------------------------------------------------
+
+Clear and direct instructions
+  Instructions should be explicit about what to do
+
+XML structure
+  Should use <role>, <methodology>, <instructions>, <constraints>
+
+Tool usage workflow
+  Should have <critical_workflow> explaining when to call tools
+
+Proactive tool calling
+  Should call tools BEFORE asking user for data
+
+Specific constraints
+  Should have DO and DO NOT lists
+
+Output structure
+  Should specify exact output format
+
+Examples and methodology
+  Should provide concrete examples
+
+================================================================================
+TEST SUMMARY
+================================================================================
+Total test suites: 7
+
+NOTE: These are test specifications.
+Actual execution requires:
+  1. LLM API integration
+  2. Mock data for tools
+  3. Response validation
+  4. Quality assessment

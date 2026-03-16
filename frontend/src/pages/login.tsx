@@ -14,21 +14,21 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // Redirect to dashboard if already authenticated
+  // Redirect to workbench if already authenticated
   useEffect(() => {
     const checkAuth = () => {
       if (isAuthenticated()) {
         const user = localStorage.getItem('user')
         if (user) {
           const userData = JSON.parse(user)
-          // SUPER_ADMIN goes to Admin Panel, others to Dashboard
+          // SUPER_ADMIN goes to Admin Panel, others to Workbench
           if (userData.role === 'SUPER_ADMIN') {
             router.replace('/admin/tenants')
           } else {
-            router.replace('/dashboard')
+            router.replace('/workbench')
           }
         } else {
-          router.replace('/dashboard')
+          router.replace('/workbench')
         }
       } else {
         setCheckingAuth(false)
@@ -64,11 +64,11 @@ export default function Login() {
           role: data.role,
         }))
 
-        // Redirect based on role: SUPER_ADMIN to Admin Panel, others to Dashboard
+        // Redirect based on role: SUPER_ADMIN to Admin Panel, others to Workbench
         if (data.role === 'SUPER_ADMIN') {
           window.location.href = '/admin/tenants'
         } else {
-          window.location.href = '/dashboard'
+          window.location.href = '/workbench'
         }
       } else {
         setError(data.detail || 'Login failed. Please check your credentials.')

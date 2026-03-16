@@ -63,6 +63,8 @@ class Tenant(BaseModel):
     capabilities = relationship("Capability", back_populates="tenant", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="tenant", cascade="all, delete-orphan")
     prompts = relationship("Prompt", back_populates="tenant", cascade="all, delete-orphan")
+    context_sources = relationship("ContextSource", back_populates="tenant", cascade="all, delete-orphan")
+    extracted_entities = relationship("ExtractedEntity", back_populates="tenant", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Tenant(id={self.id}, name='{self.name}', slug='{self.slug}')>"

@@ -1,0 +1,74 @@
+[
+  {
+    "adviser": "Insights Miner",
+    "scenario": {
+      "analysis_goal": "Feature adoption",
+      "time_period": "Last 30 days",
+      "specific_question": "Why did adoption of the search feature drop by 15% last month?"
+    },
+    "timestamp": "2026-03-13T16:47:12.133583",
+    "success": true,
+    "errors": [],
+    "warnings": [],
+    "response": "Executive Summary:\n\nKey Finding: The 15% drop in search feature adoption over the last 30 days appears to be driven primarily by poor search relevance and result quality issues. Power users and enterprise customers have reported frustrations with not being able to find documents they expect, forcing them to browse manually instead of using search.\n\nRecommended Action: Prioritize improvements to the search algorithm and relevance ranking to address the core issues around missed results and poor relevance. Additionally, gather more specific feedback from affected users on missed queries and expected results to further fine-tune the search experience.\n\nExpected Impact: Improving search relevance can lead to increased adoption and usage among power users (20% of revenue) and enterprise customers (50% of revenue), two high-value segments. Even a 10% increase in adoption from resolving this issue could represent $70K in additional annual recurring revenue.\n\nKey Findings:\n\n1. Poor search quality is a widespread pain point across personas, with 28 pieces of direct feedback and 156 upvotes under the \"Better Search\" theme. Power users and enterprise admins are the most vocal complainants.\n\n2. Analysis of sample feedback shows users are frequently unable to surface documents they know exist in the system. Quotes like \"I search for things I know exist but they don't show up\" indicate relevance ranking issues.\n\n3. The \"Better Search\" theme has remained stable in feedback volume over time, suggesting an ongoing and unresolved issue that is now impacting feature adoption for the core search use case.\n\n4. Enterprise customers specifically cited poor search as a potential driver of churn, with one large $80K ARR customer saying they are \"considering alternatives if search doesn't improve.\"\n\nDetailed Analysis:\n\nThe data indicates that poor search quality is a significant usability issue impacting adoption across key customer personas, particularly power users and enterprise customers who make up 70% of revenue. Here is a breakdown of the evidence:\n\nFeedback Analysis:\n- The \"Better Search\" theme has 156 upvotes (16.4% of total) and 28 pieces of direct feedback \n- Sample feedback comments like \"I search for things I know exist but they don't show up in results\" and \"We search for documents we know exist, but they never show up in results\" point to relevance ranking problems where expected results are missing\n\nPersona Impact:\n- Power Users (20% of revenue): Accounted for 34 of the 156 \"Better Search\" votes, indicating high degree of pain\n- Enterprise Admins (50% of revenue): An $80K ARR enterprise customer specifically threatened churn, saying \"They mentioned considering alternatives if search doesn't improve\"\n\nTrends Over Time:  \n- While the \"Performance Issues\" and \"Mobile Support\" themes are increasing, \"Better Search\" has remained constant at high levels over the last 6 months\n- This suggests it is a persistent, unresolved issue that is now hindering adoption of the core search feature itself\n\nQuantifying the Impact:\nBased on the high priority for power users and enterprises, let's assume:\n- 10% increase in search adoption from improvements \n- Power Users: 20% of $1M ARR = $200K annual revenue\n    - 10% increase = $20K additional ARR\n- Enterprises: 50% of $1M ARR = $500K annual revenue \n    - 10% increase = $50K additional ARR\n- Total: $70K estimated annual recurring revenue opportunity\n\nThis analysis shows that while other priorities like performance exist, poor search relevance is a key inhibitor to adoption of a core feature across high-value customer segments. Addressing it could drive $70K+ in additional ARR from improved retention and adoption.\n\nRecommendations:\n\n1. As a short-term priority, gather additional data from \"missed\" search queries and expected results. This can help further diagnose relevance issues.\n\n2. Based on findings, update the search algorithm and relevance ranking to improve result quality. This may require investing in more advanced natural language processing capabilities.\n\n3. For an enterprise segment, consider implementing search customizations or relevance \"tuning\" to adjust for unique terminology and corpus.\n\n4. Implement better search UX with features like query suggestions, filters, and result highlighting to improve the overall search experience.\n\n5. After releasing updates, closely monitor search satisfaction, adoption, and revenue retention metrics to quantify the impact.\n\nBy directly addressing the search quality issues through a combination of algorithmic improvements and UX enhancements, we can remove a barrier to adoption and unlock more value from high-value customer segments like power users and enterprises. Let me know if any other analysis would be helpful!",
+    "quality_score": 87.5,
+    "quality_checks": {
+      "has_content": true,
+      "no_data_requests": true,
+      "uses_data": true,
+      "well_structured": true,
+      "mentions_personas": true,
+      "mentions_themes": true,
+      "provides_recommendations": true,
+      "shows_confidence": false
+    }
+  },
+  {
+    "adviser": "Prioritization Engine",
+    "scenario": {
+      "items_to_prioritize": "SSO login\nMobile app\nAdvanced search\nPerformance optimization",
+      "strategic_context": "Focus on enterprise market expansion and retention",
+      "team_capacity": 10
+    },
+    "timestamp": "2026-03-13T16:47:37.086539",
+    "success": true,
+    "errors": [],
+    "warnings": [],
+    "response": "Based on the data provided, here is my analysis and recommendations using the RICE prioritization framework:\n\n**1. SSO/SAML Integration**\n- Reach: 500 enterprise admins (high confidence from multiple sources mentioning this for enterprise accounts)\n- Impact: 3.0 - Massive impact. Core requirement for enterprise adoption and security compliance. Could unlock $500K+ ARR from enterprises.\n- Confidence: 90% - Strong data showing this is a top priority and blocker for closing enterprise deals.\n- Effort: 6 weeks - Moderate complexity integration but very high ROI.\n- RICE Score: (500 * 3.0 * 0.9) / 6 = 225\n\nThis is a must-have feature to unlock the enterprise market. Extremely high RICE score.\n\n**2. Advanced Search**  \n- Reach: 2500 users (enterprise + power users having issues)\n- Impact: 2.0 - High impact. Major workflow pain point.\n- Confidence: 80% - Consistent feedback, though not cited as #1 priority.\n- Effort: 8 weeks - Difficult problem with potential dependencies.\n- RICE Score: (2500 * 2.0 * 0.8) / 8 = 500\n\nSignificant user pain and reasonable effort. High priority to retain customers.\n\n**3. Mobile App with Offline Support**\n- Reach: 1000 users (mix of field sales, end users)\n- Impact: 2.5 - Massive for field roles, high for others. Weighted 2.5.\n- Confidence: 70% - Some data but making assumptions.\n- Effort: 16 weeks - Building full native apps is costly.  \n- RICE Score: (1000 * 2.5 * 0.7) / 16 = 109\n\nWhile important, this is a longer-term investment. Should be prioritized after SSO and search.\n\n**4. Performance Optimization**  \n- Reach: 3000 users (all active users impacted)\n- Impact: 2.0 - High but not transformative if current issues are resolved.\n- Confidence: 90% - Very clear pain point from survey data.\n- Effort: 10 weeks - Likely requires architecture changes.\n- RICE Score: (3000 * 2.0 * 0.9) / 10 = 540  \n\nAddressing current performance issues is a must-do to stop churn, but continuous optimization is lower priority.\n\n**Recommendation**\n\nI would recommend the following prioritization:\n\n1. SSO/SAML Integration (RICE 225) - Top priority to unlock enterprise market.\n2. Advanced Search (RICE 500) - Critical to address workflow issues and churn risk. \n3. Initial Performance Optimization (RICE 540) - Must resolve current bottlenecks first.\n4. Mobile App with Offline (RICE 109) - Longer-term investment after addressing core issues.\n\nThis balances addressing our most urgent needs (enterprise, churn risk) while laying the foundation for future growth in mobile/offline.\n\nIf the mobile app effort doubles to 32 weeks, the RICE drops to 54 which drastically lowers the priority. We should phase that work and validate the ROI.\n\nSensitivity analysis:\n- If search effort doubles, RICE is still very high at 250\n- If SSO confidence drops to 70%, RICE is 161 (still easily #1)\n\nLet me know if you need any other analysis! I'm happy to model additional portfolio scenarios as well.",
+    "quality_score": 100.0,
+    "quality_checks": {
+      "has_content": true,
+      "no_data_requests": true,
+      "uses_data": true,
+      "well_structured": true,
+      "mentions_personas": true,
+      "mentions_themes": true,
+      "provides_recommendations": true,
+      "shows_confidence": true
+    }
+  },
+  {
+    "adviser": "PRD Writer",
+    "scenario": {
+      "feature_name": "Bulk user import",
+      "problem": "Enterprise admins waste hours inviting users one by one",
+      "target_personas": "Enterprise Admin"
+    },
+    "timestamp": "2026-03-13T16:47:56.535963",
+    "success": true,
+    "errors": [],
+    "warnings": [],
+    "response": "Based on the data provided, here are my recommendations for the Bulk User Import PRD:\n\n**Executive Summary**\nEnterprise admins currently waste hours manually inviting new users one by one into the system. A bulk user import feature would allow them to quickly onboard hundreds of users via CSV upload or directory sync integration. This addresses a major pain point for enterprise customers and could drive expansion revenue from existing accounts upgrading to higher tiers.\n\n**Background**\nMultiple enterprise customers have directly requested bulk user import, citing the tedious process of individually inviting new hires as a major pain point. In the discovery call with Acme Corp, they stated \"If you had bulk import and SSO, we'd upgrade to Enterprise tier immediately.\"\n\nThe lack of bulk import has also contributed to at least one $120K ARR deal being lost to a competitor with better enterprise admin capabilities. Addressing this need could reduce churn risk and drive expansion revenue.\n\n**User Stories**\n\n1. As an Enterprise Admin, I want to bulk import users from a CSV file, so I can quickly onboard new employees without manual effort.\n    - AC: Allow uploading a CSV with fields for email, name, department, etc.\n    - AC: Show import preview with validations before import\n    - AC: Handle duplicate emails, invalid formatting gracefully\n    - AC: Import users into default groups/roles based on department\n\n2. As an Enterprise Admin, I want to sync users from my company's LDAP/Active Directory, so my user directory always stays in sync.\n    - AC: Connect to LDAP/AD over secure protocol \n    - AC: Map fields like email, name, department\n    - AC: Schedule daily/weekly sync \n    - AC: Flag new, removed, changed users clearly\n\n3. As an Enterprise Admin, I want granular permissions to control who can bulk import/sync users, so I can restrict this access.\n    - AC: Admin can enable/disable bulk import permissions for a role\n    - AC: Audit log of all bulk imports/syncs\n\n**Functional Requirements**\n1. FR-1: Support bulk importing users from CSV files\n2. FR-2: Support syncing users from LDAP/Active Directory \n3. FR-3: Mapping between LDAP/AD fields and user account fields\n4. FR-4: Scheduled automatic directory sync on recurring cadence\n5. FR-5: Import preview with validations before importing users\n6. FR-6: Configurable permissions for bulk import/sync capabilities\n7. FR-7: Audit log of all bulk user operations\n\n**Non-Functional Requirements**\n1. NFR-1: Secure transfer of LDAP/AD credentials over encrypted protocol\n2. NFR-2: Bulk operations must complete within 10 seconds per 100 users \n3. NFR-3: Accessible UI for importing/mapping with screen reader support\n4. NFR-4: Bulk operations are resumable if interrupted\n\n**UX Considerations**\n- Wizard-style flow for mapping LDAP fields to user properties\n- Clear preview before running import, with option to download errors\n- Progress indicator during long-running imports/syncs\n- Ability to re-upload CSV with corrected rows after error\n- Sensible error messages (e.g. \"200 new users created, 15 failed due to duplicates\")\n\n**Technical Details**\n- Use background jobs to prevent timeouts on large imports\n- Write scalable sync service integrating with LDAP/AD\n- Update data model to support user lifecycle states (requested, active, deactivated)\n- Secure LDAP/AD credentials in a credential store\n\n**Edge Cases**\n- What if LDAP/AD is temporarily unavailable during sync? Retry with backoff\n- What if CSV has 500,000 rows? Support streaming/batching\n- What if a single user is re-uploaded with different department? Configure primary data source\n- What if LDAP/AD has read-only replication issues? Support manual remediation \n\n**Out of Scope**\n- Automatic group/role provisioning rules (future)\n- Customizing required user fields (future)\n- De-provisioning/offboarding flows (future)\n\n**Success Metrics**\n- Number of enterprise accounts adopting feature\n- Reduction in individual user invitation events\n- Expansion $$ from accounts upgrading to enterprise tier\n- Preventing customer churn due to missing capabilities\n\n**Dependencies**\n- Enterprise tier packaging/pricing\n- Authentication/SSO implementation\n- Scalable job processing infrastructure\n\n**Open Questions**\n- How should we handle mapping custom user fields?\n- Do we need to support connection pooling for LDAP?\n- What is the pricing model for this feature?\n\nLet me know if you need any clarification or have additional requirements to include!",
+    "quality_score": 75.0,
+    "quality_checks": {
+      "has_content": true,
+      "no_data_requests": true,
+      "uses_data": true,
+      "well_structured": true,
+      "mentions_personas": true,
+      "mentions_themes": false,
+      "provides_recommendations": true,
+      "shows_confidence": false
+    }
+  }
+]

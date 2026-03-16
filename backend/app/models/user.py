@@ -58,7 +58,7 @@ class User(BaseModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="users")
-    conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
+    conversations = relationship("SkillConversation", back_populates="user", cascade="all, delete-orphan")
     decisions = relationship("Decision", back_populates="created_by_user", foreign_keys="Decision.created_by")
 
     def __repr__(self):

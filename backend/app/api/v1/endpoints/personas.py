@@ -660,14 +660,11 @@ async def simulate_persona_response(
 
     # Check if LLM configuration is available
     if not tenant_config:
-        # Check if environment variables are set as fallback
-        if not os.getenv('OPENAI_API_KEY') and not os.getenv('ANTHROPIC_API_KEY'):
-            logger.error("No LLM configuration available for persona simulation")
-            raise HTTPException(
-                status_code=400,
-                detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before using persona simulation."
-            )
-        logger.warning("No tenant LLM config, falling back to environment variables")
+        logger.error("No LLM configuration available for persona simulation")
+        raise HTTPException(
+            status_code=400,
+            detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before using persona simulation."
+        )
 
     # Get persona
     result = await db.execute(
@@ -721,15 +718,11 @@ async def personas_vote(
 
     # Check if LLM configuration is available
     if not tenant_config:
-        # Check if environment variables are set as fallback
-        import os
-        if not os.getenv('OPENAI_API_KEY') and not os.getenv('ANTHROPIC_API_KEY'):
-            logger.error("No LLM configuration available: tenant config is None and no environment variables set")
-            raise HTTPException(
-                status_code=400,
-                detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before using persona voting."
-            )
-        logger.warning("No tenant LLM config, falling back to environment variables")
+        logger.error("No LLM configuration available: tenant config is None")
+        raise HTTPException(
+            status_code=400,
+            detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before using persona voting."
+        )
 
     # Get personas to vote (all personas if not specified)
     if request.persona_ids:

@@ -52,19 +52,25 @@ class EmbeddingService:
         if provider == "openai":
             if AsyncOpenAI is None:
                 raise ImportError("openai package required: pip install openai")
-            self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError("OpenAI API key is required. Please configure in Settings → LLM Settings.")
+            self.api_key = api_key
             self.openai_client = AsyncOpenAI(api_key=self.api_key)
 
         elif provider == "aws_bedrock":
             if boto3 is None:
                 raise ImportError("boto3 package required: pip install boto3")
 
-            session_kwargs = {
-                "region_name": aws_region or os.getenv("AWS_REGION", "us-east-1")
-            }
+            if not aws_region:
+                raise ValueError("AWS region is required for Bedrock. Please configure in Settings → LLM Settings.")
+
+            session_kwargs = {"region_name": aws_region}
             if aws_access_key_id and aws_secret_access_key:
                 session_kwargs["aws_access_key_id"] = aws_access_key_id
                 session_kwargs["aws_secret_access_key"] = aws_secret_access_key
+            else:
+                raise ValueError("AWS credentials are required for Bedrock. Please configure in Settings → LLM Settings.")
+
             if aws_session_token:
                 session_kwargs["aws_session_token"] = aws_session_token
 
@@ -308,26 +314,25 @@ def get_embedding_service(
         resolved_model = (
             model
             or cfg.get("embedding_model")
-            or os.getenv("EMBEDDING_MODEL", "amazon.titan-embed-text-v2:0")
+            or "amazon.titan-embed-text-v2:0"
         )
         return EmbeddingService(
             provider="aws_bedrock",
             model=resolved_model,
-            aws_region=aws_region or cfg.get("aws_region") or os.getenv("AWS_REGION"),
+            aws_region=aws_region or cfg.get("aws_region") or cfg.get("region"),
             aws_access_key_id=(
                 aws_access_key_id
                 or cfg.get("aws_access_key_id")
-                or os.getenv("AWS_ACCESS_KEY_ID")
+                or cfg.get("access_key_id")
             ),
             aws_secret_access_key=(
                 aws_secret_access_key
                 or cfg.get("aws_secret_access_key")
-                or os.getenv("AWS_SECRET_ACCESS_KEY")
+                or cfg.get("secret_access_key")
             ),
             aws_session_token=(
                 aws_session_token
                 or cfg.get("aws_session_token")
-                or os.getenv("AWS_SESSION_TOKEN")
             ),
         )
 
@@ -335,12 +340,12 @@ def get_embedding_service(
         resolved_model = (
             model
             or cfg.get("embedding_model")
-            or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+            or "text-embedding-3-small"
         )
         return EmbeddingService(
             provider="openai",
             model=resolved_model,
-            api_key=api_key or cfg.get("api_key") or os.getenv("OPENAI_API_KEY"),
+            api_key=api_key or cfg.get("api_key"),
         )
 
     else:  # sentence_transformers

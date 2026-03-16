@@ -93,15 +93,25 @@ export default function Personas() {
     try {
       setLoading(true)
       const productIdsParam = selectedProductIds.join(',')
-      const response = await api.getPersonas(productIdsParam, {
+
+      // Fetch managed personas only - extracted personas are now on Context page
+      const managedResponse = await api.getPersonas(productIdsParam, {
         status_filter: tagFilter.join(',')
       })
-      setPersonas(response.data.items || response.data || [])
+      const managedPersonas = (managedResponse.data.items || managedResponse.data || []).map((p: any) => ({
+        ...p,
+        source: 'managed',
+        isExtracted: false
+      }))
 
+      setPersonas(managedPersonas)
+
+      // Update total count
       const totalResponse = await api.getPersonas(productIdsParam, {
         status_filter: 'new,advisor,dismissed'
       })
-      setTotalPersonas((totalResponse.data.items || totalResponse.data || []).length)
+      const managedTotal = (totalResponse.data.items || totalResponse.data || []).length
+      setTotalPersonas(managedTotal)
     } catch (error) {
       console.error('Error loading personas:', error)
     } finally {
@@ -296,6 +306,38 @@ export default function Personas() {
     }
   }
 
+  const handlePromotePersona = async (persona: any) => {
+    if (!await confirmDemoOperation()) return
+
+    try {
+      // Create a managed persona from the extracted entity
+      const promoteData = {
+        name: persona.name,
+        persona_summary: persona.description,
+        segment: persona.category || 'Mid-Market',
+        key_pain_points: persona.attributes?.pain_points || [],
+        feature_priorities: persona.attributes?.priorities || [],
+        confidence_score: persona.confidence_score,
+        status: 'advisor',
+        product_id: selectedProductIds[0] || null,
+        extra_data: {
+          promoted_from_entity_id: persona.entityId,
+          original_source: 'extracted_entity'
+        }
+      }
+
+      await api.createPersona(promoteData)
+
+      // Reload personas to show the new managed one
+      await loadPersonas()
+
+      alert('✓ Persona promoted to managed successfully!')
+    } catch (error: any) {
+      console.error('Error promoting persona:', error)
+      alert(`Failed to promote persona: ${error.response?.data?.detail || error.message}`)
+    }
+  }
+
   const toggleMergeSelection = (personaId: number) => {
     setSelectedForMerge(prev =>
       prev.includes(personaId)
@@ -358,42 +400,14 @@ export default function Personas() {
         <Header user={user} currentPage="personas" />
 
         <PageContainer>
-          {/* Custom Header with Refresh Button */}
+          {/* Page Header */}
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Digital Twin Personas
-                </h1>
-              </div>
-              <button
-                onClick={handleRefreshPersonas}
-                disabled={isRefreshing}
-                className="btn-secondary flex items-center gap-2 disabled:opacity-50"
-                title={refreshJobStatus?.message || undefined}
-              >
-                {isRefreshing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                {isRefreshing ? (
-                  <span>Refreshing... {refreshJobStatus?.progress ? `${(refreshJobStatus.progress * 100).toFixed(0)}%` : ''}</span>
-                ) : (
-                  <span>Refresh Personas</span>
-                )}
-              </button>
-            </div>
-            <div className="flex items-center gap-4">
-              <p className="text-gray-600 dark:text-gray-400">
-                AI-powered customer personas from your feedback
-              </p>
-              {lastRefreshTime && (
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  • Last refreshed {formatLastRefresh()}
-                </p>
-              )}
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Digital Twin Personas
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              AI-powered customer personas from your feedback
+            </p>
           </div>
 
           {selectedProductIds.length === 0 ? (
@@ -410,7 +424,7 @@ export default function Personas() {
           ) : totalPersonas === 0 ? (
             <Card>
               <EmptyState
-                icon={<Users className="w-16 h-16" />}
+                icon={Users}
                 title="No personas yet"
                 description="Personas are automatically generated when you add feedback with customer segments. Upload some feedback to get started!"
                 action={
@@ -637,6 +651,7 @@ export default function Personas() {
                     onEdit={handleEditPersona}
                     onChangeStatus={handleChangeStatus}
                     onToggleMerge={toggleMergeSelection}
+                    onPromote={handlePromotePersona}
                     isSelectedForMerge={selectedForMerge.includes(persona.id)}
                     getStatusColor={getStatusColor}
                     formatLastUpdated={formatLastUpdated}
@@ -730,6 +745,7 @@ function PersonaCard({
   onEdit,
   onChangeStatus,
   onToggleMerge,
+  onPromote,
   isSelectedForMerge,
   getStatusColor,
   formatLastUpdated,
@@ -738,6 +754,7 @@ function PersonaCard({
   onEdit: (persona: any) => void
   onChangeStatus: (id: number, status: string) => void
   onToggleMerge: (id: number) => void
+  onPromote?: (persona: any) => void
   isSelectedForMerge: boolean
   getStatusColor: (status: string) => string
   formatLastUpdated: (date: string) => string
@@ -750,15 +767,17 @@ function PersonaCard({
 
   return (
     <div className="card-hover p-6 relative">
-      {/* Checkbox for merging */}
-      <div className="absolute top-3 left-3">
-        <input
-          type="checkbox"
-          checked={isSelectedForMerge}
-          onChange={() => onToggleMerge(persona.id)}
-          className="w-4 h-4 text-blue-500 rounded"
-        />
-      </div>
+      {/* Checkbox for merging (only for managed personas) */}
+      {!persona.isExtracted && (
+        <div className="absolute top-3 left-3">
+          <input
+            type="checkbox"
+            checked={isSelectedForMerge}
+            onChange={() => onToggleMerge(persona.id)}
+            className="w-4 h-4 text-blue-500 rounded"
+          />
+        </div>
+      )}
 
       <div className="pl-8">
         {/* Header with Last Updated */}
@@ -766,13 +785,21 @@ function PersonaCard({
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-heading mb-1">{persona.name}</h3>
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${segmentColors[persona.segment] || 'badge-gray'}`}>
-                {persona.segment}
-              </span>
-              {persona.status === 'new' && (
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                  New
+              {persona.isExtracted ? (
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                  🤖 AI-Extracted
                 </span>
+              ) : (
+                <>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${segmentColors[persona.segment] || 'badge-gray'}`}>
+                    {persona.segment}
+                  </span>
+                  {persona.status === 'new' && (
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                      New
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -845,32 +872,46 @@ function PersonaCard({
 
         {/* Actions */}
         <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => onEdit(persona)}
-            className="btn-secondary text-sm py-1.5 px-3"
-          >
-            <Edit2 className="w-3.5 h-3.5 inline mr-1" />
-            Edit
-          </button>
+          {persona.isExtracted ? (
+            /* Promote button for extracted personas */
+            <button
+              onClick={() => onPromote?.(persona)}
+              className="btn-primary text-sm py-1.5 px-4 flex-1"
+            >
+              <Sparkles className="w-3.5 h-3.5 inline mr-1.5" />
+              Promote to Managed
+            </button>
+          ) : (
+            /* Edit and status toggle for managed personas */
+            <>
+              <button
+                onClick={() => onEdit(persona)}
+                className="btn-secondary text-sm py-1.5 px-3"
+              >
+                <Edit2 className="w-3.5 h-3.5 inline mr-1" />
+                Edit
+              </button>
 
-          {/* Active/Inactive Toggle */}
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-medium ${persona.status === 'advisor' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              {persona.status === 'advisor' ? 'Active' : 'Inactive'}
-            </span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={persona.status === 'advisor'}
-                onChange={() => {
-                  const newStatus = persona.status === 'advisor' ? 'dismissed' : 'advisor'
-                  onChangeStatus(persona.id, newStatus)
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-            </label>
-          </div>
+              {/* Active/Inactive Toggle */}
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium ${persona.status === 'advisor' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {persona.status === 'advisor' ? 'Active' : 'Inactive'}
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={persona.status === 'advisor'}
+                    onChange={() => {
+                      const newStatus = persona.status === 'advisor' ? 'dismissed' : 'advisor'
+                      onChangeStatus(persona.id, newStatus)
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                </label>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
 #!/bin/zsh
 # Replace teal/emerald with indigo/violet across all frontend TSX/TS files
 
-cd /Users/akshay/Desktop/workspace/ProductOS/frontend/src
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/src"
 
 FILES=$(find . -name "*.tsx" -o -name "*.ts")
 

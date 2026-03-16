@@ -15,6 +15,7 @@ from app.core.permissions import require_super_admin
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole
 from app.models.tenant import Tenant
+from app.models.job import Job
 from app.services.demo_seed_service import seed_demo_product
 
 router = APIRouter()
@@ -331,6 +332,12 @@ async def delete_tenant(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Tenant has {user_count} users. Use force=true to delete anyway."
             )
+    else:
+        # Force deletion: clean up related records first
+        # Delete jobs
+        await db.execute(
+            Job.__table__.delete().where(Job.tenant_id == tenant_id)
+        )
 
     await db.delete(tenant)
     await db.commit()

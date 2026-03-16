@@ -4,6 +4,7 @@ Unified interface for multiple LLM providers (OpenAI, Anthropic, Azure, AWS Bedr
 """
 
 import os
+import json
 from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel
 import asyncio
@@ -79,12 +80,20 @@ MODEL_TIERS = {
 }
 
 
+class ToolCall(BaseModel):
+    """Function/tool call from LLM"""
+    id: str
+    type: str = "function"
+    function: Dict[str, str]  # {"name": "tool_name", "arguments": "json_string"}
+
+
 class LLMResponse(BaseModel):
     """Standardized LLM response"""
     content: str
     model: str
     usage: Dict[str, int]
     finish_reason: str
+    tool_calls: Optional[List[ToolCall]] = None
 
 
 class LLMService:
@@ -182,23 +191,27 @@ class LLMService:
 
     async def generate(
         self,
-        prompt: str,
+        prompt: Optional[str] = None,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         use_cheaper_model: bool = False,
         skip_cache: bool = False,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: Optional[List[Dict[str, str]]] = None,
     ) -> LLMResponse:
         """
         Generate text from prompt
 
         Args:
-            prompt: User prompt
-            system_prompt: System/instruction prompt
+            prompt: User prompt (ignored if messages provided)
+            system_prompt: System/instruction prompt (ignored if messages provided)
             temperature: Override default temperature
             max_tokens: Override default max_tokens
             use_cheaper_model: If True, use cheaper model tier for simple tasks (cost optimization)
             skip_cache: If True, bypass cache and force fresh generation
+            tools: List of tools available for function calling
+            messages: Full conversation messages array (for function calling with context)
 
         Returns:
             LLMResponse with generated content
@@ -213,8 +226,12 @@ class LLMService:
             if cheaper_model:
                 model_to_use = cheaper_model
 
-        # Check cache first (unless skipping)
-        if not skip_cache and self.cache:
+        # Log tool usage
+        if tools:
+            logger.info(f"[LLMService] Function calling enabled with tools: {[t.get('function', {}).get('name') for t in tools]}")
+
+        # Check cache first (unless skipping) - skip cache when using tools or messages
+        if not skip_cache and not tools and not messages and self.cache:
             cached_response = await self.cache.get(
                 prompt, system_prompt, temp, max_tok, model_to_use
             )
@@ -224,11 +241,11 @@ class LLMService:
         # Generate fresh response
         try:
             if self.provider in ["openai", "azure_openai"]:
-                response = await self._generate_openai(prompt, system_prompt, temp, max_tok, model_to_use)
+                response = await self._generate_openai(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages)
             elif self.provider == "anthropic":
-                response = await self._generate_anthropic(prompt, system_prompt, temp, max_tok, model_to_use)
+                response = await self._generate_anthropic(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages)
             elif self.provider == "aws_bedrock":
-                response = await self._generate_bedrock(prompt, system_prompt, temp, max_tok, model_to_use)
+                response = await self._generate_bedrock(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages)
             else:
                 raise ValueError(f"Unsupported provider: {self.provider}")
 
@@ -247,104 +264,204 @@ class LLMService:
     
     async def _generate_openai(
         self,
-        prompt: str,
+        prompt: Optional[str],
         system_prompt: Optional[str],
         temperature: float,
         max_tokens: int,
-        model: str
+        model: str,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        messages_array: Optional[List[Dict[str, Any]]] = None
     ) -> LLMResponse:
         """Generate with OpenAI (native async)"""
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        # Use provided messages array or build from prompt
+        if messages_array:
+            messages = messages_array
+        else:
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+
+        # Build request params
+        request_params = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+
+        # Add tools if provided (OpenAI function calling)
+        if tools:
+            request_params["tools"] = tools
+            request_params["tool_choice"] = "auto"
 
         # Use raw_client for normal generation (instructor-patched client is for structured outputs)
-        response = await self.raw_client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        response = await self.raw_client.chat.completions.create(**request_params)
+
+        # Extract tool calls if present
+        tool_calls = None
+        message = response.choices[0].message
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            tool_calls = [
+                ToolCall(
+                    id=tc.id,
+                    type=tc.type,
+                    function={"name": tc.function.name, "arguments": tc.function.arguments}
+                )
+                for tc in message.tool_calls
+            ]
 
         return LLMResponse(
-            content=response.choices[0].message.content,
+            content=message.content or "",
             model=response.model,
             usage={
                 "prompt_tokens": response.usage.prompt_tokens,
                 "completion_tokens": response.usage.completion_tokens,
                 "total_tokens": response.usage.total_tokens,
             },
-            finish_reason=response.choices[0].finish_reason
+            finish_reason=response.choices[0].finish_reason,
+            tool_calls=tool_calls
         )
     
     async def _generate_anthropic(
         self,
-        prompt: str,
+        prompt: Optional[str],
         system_prompt: Optional[str],
         temperature: float,
         max_tokens: int,
-        model: str
+        model: str,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        messages_array: Optional[List[Dict[str, Any]]] = None
     ) -> LLMResponse:
         """Generate with Anthropic (native async)"""
-        system = system_prompt or ""
+        # Use provided messages array or build from prompt
+        if messages_array:
+            # Extract system message if present
+            system = ""
+            messages = []
+            for msg in messages_array:
+                if msg.get("role") == "system":
+                    system = msg.get("content", "")
+                else:
+                    messages.append(msg)
+        else:
+            system = system_prompt or ""
+            messages = [{"role": "user", "content": prompt}]
+
+        request_params = {
+            "model": model,
+            "system": system,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+
+        # Add tools if provided (Anthropic tool use)
+        if tools:
+            # Convert OpenAI format to Anthropic format
+            anthropic_tools = []
+            for tool in tools:
+                if tool.get("type") == "function":
+                    func = tool.get("function", {})
+                    anthropic_tools.append({
+                        "name": func.get("name"),
+                        "description": func.get("description"),
+                        "input_schema": func.get("parameters", {})
+                    })
+            request_params["tools"] = anthropic_tools
 
         # Native async - no thread blocking
-        response = await self.client.messages.create(
-            model=model,
-            system=system,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        response = await self.client.messages.create(**request_params)
+
+        # Extract tool calls if present
+        tool_calls = None
+        content_text = ""
+        if response.content:
+            for block in response.content:
+                if block.type == "text":
+                    content_text = block.text
+                elif block.type == "tool_use":
+                    if tool_calls is None:
+                        tool_calls = []
+                    tool_calls.append(
+                        ToolCall(
+                            id=block.id,
+                            type="function",
+                            function={"name": block.name, "arguments": json.dumps(block.input)}
+                        )
+                    )
 
         return LLMResponse(
-            content=response.content[0].text,
+            content=content_text,
             model=response.model,
             usage={
                 "prompt_tokens": response.usage.input_tokens,
                 "completion_tokens": response.usage.output_tokens,
                 "total_tokens": response.usage.input_tokens + response.usage.output_tokens
             },
-            finish_reason=response.stop_reason
+            finish_reason=response.stop_reason,
+            tool_calls=tool_calls
         )
     
     async def _generate_bedrock(
         self,
-        prompt: str,
+        prompt: Optional[str],
         system_prompt: Optional[str],
         temperature: float,
         max_tokens: int,
-        model: str
+        model: str,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        messages_array: Optional[List[Dict[str, Any]]] = None
     ) -> LLMResponse:
         """Generate with AWS Bedrock"""
-        import json
-
         # Format request based on model family
         model_id = model
-        
+
         # Build the prompt
         if system_prompt:
             full_prompt = f"{system_prompt}\n\nHuman: {prompt}\n\nAssistant:"
         else:
             full_prompt = f"Human: {prompt}\n\nAssistant:"
-        
+
         # Prepare request body based on model type
         if "anthropic.claude" in model_id:
             # Anthropic Claude models on Bedrock
+            # Use provided messages array or build from prompt
+            if messages_array:
+                # Extract system message if present
+                system = ""
+                messages = []
+                for msg in messages_array:
+                    if msg.get("role") == "system":
+                        system = msg.get("content", "")
+                    else:
+                        messages.append(msg)
+            else:
+                system = system_prompt or ""
+                messages = [{"role": "user", "content": prompt}]
+
             body = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "max_tokens": max_tokens,
                 "temperature": temperature,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
+                "messages": messages
             }
-            if system_prompt:
-                body["system"] = system_prompt
+
+            # Add tools if provided (Bedrock Anthropic tool use)
+            if tools:
+                # Convert OpenAI format to Anthropic/Bedrock format
+                bedrock_tools = []
+                for tool in tools:
+                    if tool.get("type") == "function":
+                        func = tool.get("function", {})
+                        bedrock_tools.append({
+                            "name": func.get("name"),
+                            "description": func.get("description"),
+                            "input_schema": func.get("parameters", {})
+                        })
+                body["tools"] = bedrock_tools
+            if system:
+                body["system"] = system
                 
         elif "amazon.titan" in model_id:
             # Amazon Titan models
@@ -399,10 +516,29 @@ class LLMService:
         
         # Parse response
         response_body = json.loads(response['body'].read())
-        
+
+        # Initialize tool_calls (only Claude models support this)
+        tool_calls = None
+
         # Extract content based on model type
         if "anthropic.claude" in model_id:
-            content = response_body['content'][0]['text']
+            content = ""
+
+            # Parse content blocks
+            for block in response_body.get('content', []):
+                if block.get('type') == 'text':
+                    content = block.get('text', '')
+                elif block.get('type') == 'tool_use':
+                    if tool_calls is None:
+                        tool_calls = []
+                    tool_calls.append(
+                        ToolCall(
+                            id=block.get('id', ''),
+                            type="function",
+                            function={"name": block.get('name', ''), "arguments": json.dumps(block.get('input', {}))}
+                        )
+                    )
+
             usage = {
                 "prompt_tokens": response_body.get('usage', {}).get('input_tokens', 0),
                 "completion_tokens": response_body.get('usage', {}).get('output_tokens', 0),
@@ -451,9 +587,162 @@ class LLMService:
             content=content,
             model=model_id,
             usage=usage,
-            finish_reason=finish_reason
+            finish_reason=finish_reason,
+            tool_calls=tool_calls
         )
     
+    async def chat_completion(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        config: Optional[Dict[str, Any]] = None
+    ) -> Any:
+        """
+        Chat completion with optional function/tool calling support.
+
+        Args:
+            messages: List of chat messages with role and content
+            tools: Optional list of tools/functions in OpenAI format
+            temperature: Override default temperature
+            max_tokens: Override default max tokens
+            config: Optional config override (for multi-tenant scenarios)
+
+        Returns:
+            Response object with message and optional tool_calls
+        """
+        temp = temperature if temperature is not None else self.config.temperature
+        max_tok = max_tokens if max_tokens is not None else self.config.max_tokens
+        model = self.config.model
+
+        # Use OpenAI-style API (most compatible)
+        if self.provider in ["openai", "azure_openai"]:
+            kwargs = {
+                "model": model,
+                "messages": messages,
+                "temperature": temp,
+                "max_tokens": max_tok
+            }
+
+            if tools:
+                kwargs["tools"] = tools
+
+            response = await self.raw_client.chat.completions.create(**kwargs)
+            return response
+
+        elif self.provider == "anthropic":
+            # Anthropic has native tool calling support
+            from anthropic import AsyncAnthropic
+
+            # Convert messages format
+            system_msg = None
+            anthropic_messages = []
+            for msg in messages:
+                if msg["role"] == "system":
+                    system_msg = msg["content"]
+                else:
+                    anthropic_messages.append(msg)
+
+            kwargs = {
+                "model": model,
+                "messages": anthropic_messages,
+                "temperature": temp,
+                "max_tokens": max_tok
+            }
+
+            if system_msg:
+                kwargs["system"] = system_msg
+
+            if tools:
+                # Convert OpenAI tool format to Anthropic format
+                anthropic_tools = []
+                for tool in tools:
+                    anthropic_tools.append({
+                        "name": tool["function"]["name"],
+                        "description": tool["function"]["description"],
+                        "input_schema": tool["function"]["parameters"]
+                    })
+                kwargs["tools"] = anthropic_tools
+
+            response = await self.client.messages.create(**kwargs)
+
+            # Convert Anthropic response to OpenAI-like format
+            class Message:
+                def __init__(self, content, tool_calls=None):
+                    self.content = content
+                    self.tool_calls = tool_calls or []
+
+            class Choice:
+                def __init__(self, message):
+                    self.message = message
+
+            class Response:
+                def __init__(self, choices):
+                    self.choices = choices
+
+            # Extract content and tool calls
+            content_text = ""
+            tool_calls_list = []
+
+            for block in response.content:
+                if hasattr(block, 'text'):
+                    content_text += block.text
+                elif hasattr(block, 'type') and block.type == 'tool_use':
+                    # Convert to OpenAI format
+                    class ToolCall:
+                        def __init__(self, id, type, function):
+                            self.id = id
+                            self.type = type
+                            self.function = function
+
+                    class Function:
+                        def __init__(self, name, arguments):
+                            self.name = name
+                            self.arguments = arguments
+
+                    import json
+                    tool_calls_list.append(ToolCall(
+                        id=block.id,
+                        type="function",
+                        function=Function(
+                            name=block.name,
+                            arguments=json.dumps(block.input)
+                        )
+                    ))
+
+            message = Message(content=content_text or None, tool_calls=tool_calls_list if tool_calls_list else None)
+            return Response(choices=[Choice(message)])
+
+        else:
+            # For other providers, fall back to basic completion
+            # Extract last user message
+            user_msg = messages[-1]["content"] if messages else ""
+            system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
+
+            response = await self.generate(
+                prompt=user_msg,
+                system_prompt=system_msg,
+                temperature=temp,
+                max_tokens=max_tok
+            )
+
+            # Convert to OpenAI-like format
+            class Message:
+                def __init__(self, content):
+                    self.content = content
+                    self.tool_calls = None
+
+            class Choice:
+                def __init__(self, message):
+                    self.message = message
+
+            class Response:
+                def __init__(self, choices):
+                    self.choices = choices
+
+            return Response(choices=[Choice(Message(response.content))])
+
     async def generate_structured(
         self,
         prompt: str,
@@ -568,6 +857,7 @@ async def get_llm_service_for_tenant(
     """
     from sqlalchemy import select
     from app.models.tenant import Tenant
+    from app.core.security import decrypt_llm_config
 
     # Fetch tenant configuration
     result = await db.execute(
@@ -578,8 +868,10 @@ async def get_llm_service_for_tenant(
     if not tenant:
         raise ValueError(f"Tenant {tenant_id} not found")
 
-    # Get tenant's LLM config
+    # Get tenant's LLM config and decrypt sensitive fields
     tenant_config = tenant.llm_config if tenant else None
+    if tenant_config:
+        tenant_config = decrypt_llm_config(tenant_config)
 
     return get_llm_service(tenant_config=tenant_config)
 
@@ -620,7 +912,8 @@ def get_llm_service(
             "in Settings → LLM Settings."
         )
 
-    model = config_source.get("model")
+    # Get model - AWS Bedrock uses 'model_id', others use 'model'
+    model = config_source.get("model") or config_source.get("model_id")
     if not model:
         raise ValueError(
             f"LLM model not configured for provider '{provider}'. "
@@ -630,18 +923,30 @@ def get_llm_service(
     # Validate provider-specific credentials
     if provider == "aws_bedrock":
         api_key = None  # AWS uses credentials, not API key
-        aws_access_key = config_source.get("aws_access_key_id")
-        aws_secret_key = config_source.get("aws_secret_access_key")
-        aws_region = config_source.get("aws_region")
+        # Support both old and new field names for backward compatibility
+        aws_access_key = config_source.get("aws_access_key_id") or config_source.get("access_key_id")
+        aws_secret_key = config_source.get("aws_secret_access_key") or config_source.get("secret_access_key")
+        aws_region = config_source.get("aws_region") or config_source.get("region")
+        aws_auth_method = config_source.get("aws_auth_method", "credentials")
 
-        if not aws_access_key or not aws_secret_key:
-            raise ValueError(
-                "AWS credentials not configured. Please provide aws_access_key_id and aws_secret_access_key "
-                "in Settings → LLM Settings to use AWS Bedrock."
-            )
+        # Check for API key method (simpler authentication)
+        if aws_auth_method == "api_key":
+            api_key = config_source.get("api_key")
+            if not api_key:
+                raise ValueError(
+                    "AWS Bedrock API key not configured. Please provide api_key in Settings → LLM Settings."
+                )
+        else:
+            # IAM credentials method
+            if not aws_access_key or not aws_secret_key:
+                raise ValueError(
+                    "AWS credentials not configured. Please provide access_key_id and secret_access_key "
+                    "in Settings → LLM Settings to use AWS Bedrock."
+                )
+
         if not aws_region:
             raise ValueError(
-                "AWS region not configured. Please specify aws_region in Settings → LLM Settings."
+                "AWS region not configured. Please specify region in Settings → LLM Settings."
             )
     elif provider == "azure_openai":
         api_key = config_source.get("api_key")
@@ -665,21 +970,30 @@ def get_llm_service(
                 f"{provider.title()} API key not configured. Please provide api_key in Settings → LLM Settings."
             )
 
-    config = LLMConfig(
-        provider=provider,
-        api_key=api_key,
-        model=model,
-        temperature=config_source.get("temperature", 0.7),
-        max_tokens=config_source.get("max_tokens", 2000),
-        # Azure-specific
-        azure_endpoint=config_source.get("azure_endpoint"),
-        azure_deployment=config_source.get("azure_deployment"),
-        # AWS Bedrock-specific (no env fallbacks)
-        aws_region=config_source.get("aws_region"),
-        aws_access_key_id=config_source.get("aws_access_key_id"),
-        aws_secret_access_key=config_source.get("aws_secret_access_key"),
-        aws_session_token=config_source.get("aws_session_token"),
-    )
+    # For AWS Bedrock, use the variables we already extracted (supports both old and new field names)
+    if provider == "aws_bedrock":
+        config = LLMConfig(
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            temperature=config_source.get("temperature", 0.7),
+            max_tokens=config_source.get("max_tokens", 2000),
+            aws_region=aws_region,
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
+            aws_session_token=config_source.get("aws_session_token"),
+        )
+    else:
+        config = LLMConfig(
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            temperature=config_source.get("temperature", 0.7),
+            max_tokens=config_source.get("max_tokens", 2000),
+            # Azure-specific
+            azure_endpoint=config_source.get("azure_endpoint"),
+            azure_deployment=config_source.get("azure_deployment"),
+        )
 
     return LLMService(config)
 
