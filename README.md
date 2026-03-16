@@ -7,52 +7,78 @@ Turn customer feedback into prioritized roadmaps automatically. Help senior PMs 
 ## Overview
 
 Evols is an AI-native Product Decision OS that helps product managers:
-- **Consolidate fragmented evidence** from feedback tools, CRM, analytics, and support tickets
+- **Get AI assistance for PM tasks** via interactive Skills (PRD writing, user research, competitive analysis, etc.)
+- **Consolidate fragmented evidence** from 20+ data sources (meetings, docs, tickets, surveys, repos)
+- **Extract intelligence automatically** with entity recognition and semantic search
 - **Auto-cluster feedback** into themes with revenue impact and urgency
 - **Generate evidence-backed decision briefs** with clear options, tradeoffs, and recommendations
 - **Simulate persona digital twins** for product validation and trade-off decisions
 - **Track decisions and outcomes** to build institutional product memory
+- **Maintain privacy and compliance** with data retention policies, encryption, and audit logs
 
 ## Features
 
 ### Core Features (v1)
-1. **Data Ingestion & Knowledge Graph**
-   - Upload feedback, accounts, and initiatives via CSV
-   - Auto-categorize into tech debt, features, bugs
-   - Build product knowledge graph with visualization
+1. **AI Skills System** 🤖 *Interactive PM Assistants*
+   - Pre-built AI skills for common PM tasks
+   - Custom skill creation and versioning
+   - A/B testing with adaptive bandit optimization
+   - Session-based conversations with context retention
+   - Multi-turn refinement and iterative improvement
+   - Built-in tools: web research, data analysis, document generation
+   - Sentiment analysis and user feedback tracking
 
-2. **AI-Assisted Synthesis** ⚡ *Now with Async Processing*
+2. **Context Management System** 📚 *Unified Data Intelligence*
+   - Upload any data source: meetings, docs, surveys, support tickets
+   - Supports 20+ source types (CSV, PDF, Slack, GitHub, MCP servers, etc.)
+   - Automatic entity extraction (personas, pain points, use cases, feature requests)
+   - Semantic embedding and vector search with pgvector
+   - Link entities to initiatives with relevance scoring
+   - Evidence aggregation with deduplication
+   - **Data Retention & Privacy**:
+     - User-controlled retention policies (delete immediately, 30/90 days, encrypted storage)
+     - AES-256-GCM encryption with PBKDF2 key derivation
+     - Content access audit logs for compliance (SOC2, GDPR)
+     - Automatic content deletion with preserved evidence summaries
+   - **Deduplication System**:
+     - SHA-256 content hash detection at upload
+     - Semantic similarity matching with pgvector
+     - Source grouping for related documents (same meeting/event)
+     - Prevents inflated metrics when multiple PMs upload same content
+
+3. **AI-Assisted Synthesis** ⚡ *Now with Async Processing*
    - Auto-cluster feedback into themes using embeddings + LLM
    - Link themes to accounts and ARR
    - Calculate urgency and severity scores
    - Generate strategic initiatives from themes
-   - **NEW**: Background processing for large datasets (no timeouts!)
-   - **NEW**: Real-time progress tracking with status updates
-   - **NEW**: Auto-generate prioritized projects (boulders & pebbles) with RICE scoring
+   - **Background processing** for large datasets (no timeouts!)
+   - **Real-time progress tracking** with status updates
+   - **Auto-generate prioritized projects** (boulders & pebbles) with RICE scoring
 
-3. **Decision Workbench**
+4. **Decision Workbench**
    - Visual workspace for exploring opportunities
    - Filter by segment, time window, and initiatives
    - AI-generated roadmap options with pros/cons
    - Interactive editing and regeneration
 
-4. **Decision Brief Generator**
+5. **Decision Brief Generator**
    - One-click export to Markdown/PDF
    - Problem context, options, tradeoffs, recommendation
    - Full citations back to feedback and accounts
    - Confidence scores for all claims
 
-5. **Persona Digital Twins**
+6. **Persona Digital Twins**
    - Auto-generate personas from customer segments
    - LLM-powered response simulation
    - "Ask Persona" chat interface
    - Trade-off voting with confidence scores
 
-6. **Multi-Tenancy & Auth**
-   - Three role types: Product Admin, Tenant Admin, User
+7. **Multi-Tenancy & Auth**
+   - Three role types: SUPER_ADMIN, TENANT_ADMIN, USER
    - Session management and multi-device support
    - API key management for LLM providers
    - User preferences and settings
+   - Complete data isolation per tenant
 
 ## Architecture
 
@@ -288,6 +314,11 @@ Theme (Feedback Clusters) → Initiative (Strategic Bets) → Project (Work Item
 - ✅ Multi-tenant architecture
 
 ### v1.1 (Current) - *Released March 2026*
+- ✅ **AI Skills system** - Interactive AI assistants for PM tasks with A/B testing
+- ✅ **Context management system** - Unified data ingestion with 20+ source types
+- ✅ **Data retention & privacy** - User-controlled policies with encryption and audit logs
+- ✅ **Deduplication system** - Three-phase deduplication (content hash, semantic similarity, source grouping)
+- ✅ **Support ticket system** - Built-in customer support with admin dashboard
 - ✅ **Async background processing** for themes, personas, and projects
 - ✅ **Real-time progress tracking** with status updates
 - ✅ **Strategic Initiatives page** (renamed from Themes)
@@ -321,14 +352,22 @@ Theme (Feedback Clusters) → Initiative (Strategic Bets) → Project (Work Item
 
 ## Documentation
 
-- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+### Setup & Usage
+- **[Setup Guide](SETUP_GUIDE.md)** - Complete setup from fresh database to multi-tenant platform
 - **[CSV Upload Guide](docs/CSV_UPLOAD_GUIDE.md)** - How to upload customer feedback
-- **[Async API Documentation](docs/ASYNC_API.md)** - Background job processing API
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+### Architecture & Implementation
 - **[Three-Tier Architecture](docs/THREE_TIER_ARCHITECTURE.md)** - Theme → Initiative → Project architecture
+- **[Data Retention Implementation](DATA_RETENTION_IMPLEMENTATION.md)** - Privacy controls, encryption, and audit logs
+- **[Deduplication Implementation](DEDUPLICATION_IMPLEMENTATION.md)** - Three-phase deduplication system
+- **[Async API Documentation](docs/ASYNC_API.md)** - Background job processing API
 - **[LLM Cost Analysis](docs/LLM_COST_ANALYSIS.md)** - Detailed breakdown of AI costs per VoC ($0.05/VoC)
+
+### Technical References
 - **[Technical Debt Fixes](docs/TECHNICAL_DEBT_FIXES.md)** - Native async clients, prompt management, outcome learning
 - **[Engineering Gaps](docs/ENGINEERING_GAPS.md)** - Architectural issues analysis and solutions
-- **[Engineering Gaps Migration](docs/ENGINEERING_GAPS_MIGRATION.md)** - ✅ **Step-by-step migration guide for all fixes**
+- **[Engineering Gaps Migration](docs/ENGINEERING_GAPS_MIGRATION.md)** - Step-by-step migration guide for all fixes
 - **[Changelog](CHANGELOG.md)** - Version history and recent changes
 
 ## Contributing

@@ -2,6 +2,151 @@
 
 All notable changes to Evols will be documented in this file.
 
+## [1.1.0] - 2026-03-15
+
+### Added - AI Skills System 🤖
+
+#### Interactive PM Assistants
+- **Skill Templates**: Pre-built AI skills for common PM tasks (PRD writing, user research, competitive analysis)
+- **Custom Skills**: Tenant-level skill customization and versioning
+- **A/B Testing**: Built-in experimentation framework with adaptive bandit optimization
+- **Session Management**: Multi-turn conversations with context retention
+- **Tool Integration**: Web research, data analysis, document generation tools
+- **Sentiment Analysis**: Automatic user feedback tracking and sentiment classification
+- **Skill Phases**: Initial generation → Refinement → Completion workflow
+
+#### New Models
+- `Skill` - Product-level skill templates (created by SUPER_ADMIN)
+- `CustomSkill` - Tenant-customized skills with versioning
+- `CustomSkillVersion` - Version control for skill iterations
+- `SkillConversation` - Session-based conversations
+- `SkillMessage` - Individual messages with sentiment tracking
+- `SkillExperiment` - A/B testing experiments
+- `SkillExperimentVariant` - Experiment variants with metrics
+- `SkillSessionVariant` - Session-to-variant assignments
+- `SkillExperimentBanditState` - Adaptive bandit optimization state
+
+#### API Endpoints
+- `POST /api/v1/skills/conversations` - Start new skill session
+- `POST /api/v1/skills/conversations/{id}/messages` - Send message in session
+- `GET /api/v1/skills/` - List available skills
+- `POST /api/v1/skills/experiments` - Create A/B test
+- `GET /api/v1/skills/experiments/{id}/metrics` - Get experiment metrics
+- Full experiment management and monitoring
+
+### Added - Context Management System 📚
+
+#### Unified Data Intelligence
+- **Multi-Source Ingestion**: Support for 20+ data source types
+  - Structured: CSV surveys, analytics exports, NPS/CSAT data
+  - Unstructured: Meeting transcripts, emails, Slack conversations, PDFs
+  - Support systems: Intercom, Zendesk, Productboard integrations
+  - Code & docs: GitHub repos, API docs, MCP servers
+  - Manual uploads and API ingestion
+- **Entity Extraction**: Automatic extraction of personas, pain points, use cases, feature requests, etc.
+- **Semantic Search**: pgvector integration for similarity search and clustering
+- **Evidence Building**: Link entities to initiatives with relevance scoring
+- **Initiative Evidence**: Pre-aggregated evidence with metrics and quotes
+
+#### New Models
+- `ContextSource` - Unified source for all data types (replaces Feedback and KnowledgeSource)
+- `ExtractedEntity` - Extracted insights from sources (personas, pain points, etc.)
+- `ContentAccessLog` - Audit trail for compliance
+- `InitiativeEvidence` - Pre-aggregated evidence for initiatives
+- `EntityInitiativeLink` - Many-to-many entity-initiative relationships
+- `SourceGroup` - Group related sources (deduplication)
+- `EntityDuplicate` - Track duplicate entities
+
+#### API Endpoints
+- `POST /api/v1/context/sources/upload` - Upload any data source
+- `GET /api/v1/context/sources` - List sources with filtering
+- `POST /api/v1/context/sources/{id}/extract` - Trigger entity extraction
+- `GET /api/v1/context/entities` - List extracted entities
+- `POST /api/v1/context/entities/search` - Semantic similarity search
+- `GET /api/v1/context/initiatives/{id}/evidence` - Get initiative evidence
+- `POST /api/v1/context/initiatives/{id}/evidence/build` - Build evidence
+
+### Added - Data Retention & Privacy System 🔐
+
+#### User-Controlled Retention
+- **Retention Policies**: 4 policy options
+  - `delete_immediately` - Delete raw content after extraction
+  - `30_days` - Retain for 30 days then delete
+  - `90_days` - Retain for 90 days then delete
+  - `retain_encrypted` - Encrypt and store indefinitely
+- **AES-256-GCM Encryption**: Military-grade encryption with PBKDF2 key derivation
+- **Audit Logs**: Track all access to raw content (SOC2, GDPR compliance)
+- **Scheduled Deletion**: Automatic cleanup job runs every 6 hours
+- **Content Summaries**: Preserve metadata after deletion ("47 responses, 2.3MB")
+
+#### Privacy Features
+- Short context snippets (200 chars max) instead of full documents
+- Rich metadata extraction (customer name, segment, ARR, role, sentiment)
+- Access tracking (who, when, why)
+- Encrypted storage option for compliance
+- Audit trail for all content access
+
+#### New Services
+- `EncryptionService` - AES-256-GCM encryption/decryption
+- `RetentionPolicyService` - Policy management and enforcement
+- `ContentCleanupJob` - Scheduled deletion processor
+
+### Added - Deduplication System 🔄
+
+#### Three-Phase Deduplication
+1. **Content Hash Detection** (Upload Time)
+   - SHA-256 hash computation at upload
+   - Returns 409 Conflict if duplicate detected
+   - User choice: Link to existing or upload separately
+
+2. **Entity Semantic Similarity** (Post-Extraction)
+   - pgvector cosine similarity search
+   - Mark and merge duplicate entities
+   - Combine attributes, keep higher confidence
+
+3. **Evidence Deduplication** (Aggregation Time)
+   - Group entities by source_group_id or content_hash
+   - Keep highest confidence entity from each group
+   - Prevents inflated metrics (e.g., "94 customers" → "47 customers")
+
+#### Benefits
+- 90% storage savings when multiple PMs upload same content
+- Accurate metrics (prevents counting same customer 10x)
+- Source grouping for related documents (same meeting/event)
+
+#### New Services
+- `DeduplicationService` - Hash computation, similarity search, evidence filtering
+
+#### API Endpoints
+- `POST /api/v1/context/sources/{id}/link-duplicate` - Link as duplicate
+- `POST /api/v1/context/deduplication/source-groups` - Create source group
+- `GET /api/v1/context/deduplication/entities/{id}/similar` - Find similar entities
+- `POST /api/v1/context/deduplication/entities/merge` - Merge duplicates
+- `GET /api/v1/context/deduplication/stats` - Get deduplication statistics
+
+### Added - Support Ticket System 📞
+
+#### Customer Support
+- Full ticketing system with priority levels
+- Status tracking (open, in_progress, resolved, closed)
+- Admin dashboard for ticket management
+- Support contact page for end users
+
+#### New Models
+- `SupportTicket` - Support ticket with status, priority, resolution tracking
+
+#### API Endpoints
+- `POST /api/v1/support/tickets` - Create support ticket
+- `GET /api/v1/support/tickets` - List tickets (with admin filters)
+- `PATCH /api/v1/support/tickets/{id}` - Update ticket status
+- Admin-only ticket management endpoints
+
+### Documentation
+- **New**: `DATA_RETENTION_IMPLEMENTATION.md` - Complete retention system documentation
+- **New**: `DEDUPLICATION_IMPLEMENTATION.md` - Three-phase deduplication guide
+- **Updated**: `README.md` - Added Skills, Context, and new features
+- **Updated**: Documentation organization and links
+
 ## [Unreleased] - 2026-03-02
 
 ### Fixed - Technical Debt Resolution
