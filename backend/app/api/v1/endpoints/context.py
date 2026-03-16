@@ -222,6 +222,33 @@ async def upload_context_file(
         if retention_policy not in valid_policies:
             retention_policy = '30_days'  # Default fallback
 
+        # Check for duplicate content
+        from app.services.deduplication_service import DeduplicationService
+        dedup_service = DeduplicationService(db)
+        content_hash = dedup_service.compute_content_hash(content_text)
+
+        existing_source = await dedup_service.find_duplicate_source(
+            content_hash=content_hash,
+            tenant_id=current_user.tenant_id
+        )
+
+        if existing_source:
+            # Return 409 Conflict with existing source info
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "duplicate_content",
+                    "message": f"This content was already uploaded as '{existing_source.name}'",
+                    "existing_source": {
+                        "id": existing_source.id,
+                        "name": existing_source.name,
+                        "created_at": existing_source.created_at.isoformat(),
+                        "entities_count": existing_source.entities_extracted_count,
+                        "uploader_id": existing_source.created_by if hasattr(existing_source, 'created_by') else None
+                    }
+                }
+            )
+
         # Create context source
         new_source = ContextSource(
             tenant_id=current_user.tenant_id,
@@ -230,6 +257,7 @@ async def upload_context_file(
             name=name,
             description=description,
             content=content_text,
+            content_hash=content_hash,
             status=ContextProcessingStatus.PENDING,  # Start as pending for extraction
             entities_extracted_count=0,
             retention_policy=retention_policy,
@@ -717,3 +745,193 @@ async def get_supporting_entities(
             for e in entities
         ]
     }
+
+
+# ===================================
+# Deduplication Endpoints
+# ===================================
+
+@router.post("/sources/{source_id}/link-duplicate")
+async def link_to_duplicate(
+    source_id: int,
+    existing_source_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Link a source as duplicate of existing source"""
+    from app.services.deduplication_service import DeduplicationService
+
+    # Get both sources
+    new_source_query = select(ContextSource).where(
+        and_(
+            ContextSource.id == source_id,
+            ContextSource.tenant_id == current_user.tenant_id
+        )
+    )
+    result = await db.execute(new_source_query)
+    new_source = result.scalar_one_or_none()
+
+    if not new_source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    existing_source_query = select(ContextSource).where(
+        and_(
+            ContextSource.id == existing_source_id,
+            ContextSource.tenant_id == current_user.tenant_id
+        )
+    )
+    result = await db.execute(existing_source_query)
+    existing_source = result.scalar_one_or_none()
+
+    if not existing_source:
+        raise HTTPException(status_code=404, detail="Existing source not found")
+
+    dedup_service = DeduplicationService(db)
+    await dedup_service.link_to_existing_source(new_source, existing_source)
+
+    return {"message": "Source linked as duplicate", "duplicate_of_id": existing_source_id}
+
+
+@router.post("/deduplication/source-groups")
+async def create_source_group_endpoint(
+    name: str,
+    source_ids: List[int],
+    event_date: Optional[str] = None,
+    description: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a source group for related sources (same meeting/event)"""
+    from app.services.deduplication_service import DeduplicationService
+
+    dedup_service = DeduplicationService(db)
+    group = await dedup_service.create_source_group(
+        name=name,
+        tenant_id=current_user.tenant_id,
+        source_ids=source_ids,
+        event_date=event_date,
+        description=description
+    )
+
+    return {
+        "id": group.id,
+        "name": group.name,
+        "description": group.description,
+        "event_date": group.event_date.isoformat() if group.event_date else None,
+        "source_count": len(source_ids)
+    }
+
+
+@router.get("/deduplication/entities/{entity_id}/similar")
+async def find_similar_entities_endpoint(
+    entity_id: int,
+    similarity_threshold: float = 0.90,
+    limit: int = 5,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Find entities similar to given entity"""
+    from app.services.deduplication_service import DeduplicationService
+
+    # Get entity
+    entity_query = select(ExtractedEntity).where(
+        and_(
+            ExtractedEntity.id == entity_id,
+            ExtractedEntity.tenant_id == current_user.tenant_id
+        )
+    )
+    result = await db.execute(entity_query)
+    entity = result.scalar_one_or_none()
+
+    if not entity:
+        raise HTTPException(status_code=404, detail="Entity not found")
+
+    dedup_service = DeduplicationService(db)
+    similar = await dedup_service.find_similar_entities(
+        entity=entity,
+        similarity_threshold=similarity_threshold,
+        limit=limit
+    )
+
+    return {
+        "entity_id": entity_id,
+        "similar_entities": [
+            {
+                "id": e.id,
+                "name": e.name,
+                "description": e.description,
+                "similarity_score": score,
+                "confidence_score": e.confidence_score
+            }
+            for e, score in similar
+        ]
+    }
+
+
+@router.post("/deduplication/entities/mark-duplicate")
+async def mark_entity_duplicate_endpoint(
+    primary_entity_id: int,
+    duplicate_entity_id: int,
+    similarity_score: float,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark entity as duplicate of another"""
+    from app.services.deduplication_service import DeduplicationService
+
+    dedup_service = DeduplicationService(db)
+    duplicate_record = await dedup_service.mark_as_duplicate(
+        primary_entity_id=primary_entity_id,
+        duplicate_entity_id=duplicate_entity_id,
+        tenant_id=current_user.tenant_id,
+        similarity_score=similarity_score
+    )
+
+    return {
+        "id": duplicate_record.id,
+        "primary_entity_id": primary_entity_id,
+        "duplicate_entity_id": duplicate_entity_id,
+        "similarity_score": similarity_score
+    }
+
+
+@router.post("/deduplication/entities/merge")
+async def merge_entities_endpoint(
+    primary_entity_id: int,
+    duplicate_entity_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Merge duplicate entity into primary entity"""
+    from app.services.deduplication_service import DeduplicationService
+
+    dedup_service = DeduplicationService(db)
+    try:
+        merged_entity = await dedup_service.merge_entities(
+            primary_entity_id=primary_entity_id,
+            duplicate_entity_id=duplicate_entity_id,
+            tenant_id=current_user.tenant_id
+        )
+
+        return {
+            "message": "Entities merged successfully",
+            "primary_entity_id": merged_entity.id,
+            "name": merged_entity.name,
+            "confidence_score": merged_entity.confidence_score
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/deduplication/stats")
+async def get_deduplication_stats_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get deduplication statistics for current tenant"""
+    from app.services.deduplication_service import DeduplicationService
+
+    dedup_service = DeduplicationService(db)
+    stats = await dedup_service.get_deduplication_stats(current_user.tenant_id)
+
+    return stats

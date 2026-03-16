@@ -64,6 +64,12 @@ class EvidenceService:
 
         entities = [row[0] for row in entities_with_scores]
 
+        # Deduplicate entities (Phase 3)
+        from app.services.deduplication_service import DeduplicationService
+        dedup_service = DeduplicationService(self.db)
+        entity_ids = [e.id for e in entities]
+        entities = await dedup_service.get_unique_entities_for_evidence(entity_ids, tenant_id)
+
         # Aggregate metrics
         total_mentions = len(entities)
 

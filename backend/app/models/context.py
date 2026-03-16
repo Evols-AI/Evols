@@ -123,6 +123,12 @@ class ContextSource(TenantScopedModel):
     last_accessed_at = Column(DateTime, nullable=True)
     access_count = Column(Integer, default=0, nullable=False)
 
+    # Deduplication
+    content_hash = Column(String(64), nullable=True)  # SHA-256 hash of content
+    source_group_id = Column(Integer, ForeignKey("source_groups.id"), nullable=True)
+    duplicate_of_id = Column(Integer, ForeignKey("context_sources.id"), nullable=True)
+    is_primary = Column(sa.Boolean, default=True, nullable=False)  # Primary source in group
+
     # Source-specific fields
     mcp_endpoint = Column(String(500), nullable=True)  # For MCP servers
     github_repo = Column(String(255), nullable=True)  # For GitHub repos
@@ -164,6 +170,8 @@ class ContextSource(TenantScopedModel):
     theme = relationship("Theme", back_populates="context_sources")
     extracted_entities = relationship("ExtractedEntity", back_populates="source", cascade="all, delete-orphan")
     access_logs = relationship("ContentAccessLog", back_populates="context_source", cascade="all, delete-orphan")
+    source_group = relationship("SourceGroup", foreign_keys=[source_group_id], back_populates="sources")
+    duplicate_of = relationship("ContextSource", remote_side="ContextSource.id", foreign_keys=[duplicate_of_id])
 
     def __repr__(self):
         return f"<ContextSource(id={self.id}, type='{self.source_type}', name='{self.name}')>"
@@ -329,3 +337,47 @@ class EntityInitiativeLink(TenantScopedModel):
 
     def __repr__(self):
         return f"<EntityInitiativeLink(entity_id={self.entity_id}, initiative_id={self.initiative_id}, score={self.relevance_score})>"
+
+
+class SourceGroup(TenantScopedModel):
+    """
+    Group of context sources representing the same event/meeting
+    Allows multiple PMs to upload notes from same meeting while preventing duplication
+    """
+    __tablename__ = "source_groups"
+
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    event_date = Column(Date, nullable=True)
+    primary_source_id = Column(Integer, ForeignKey("context_sources.id"), nullable=True)
+
+    # Relationships
+    tenant = relationship("Tenant")
+    primary_source = relationship("ContextSource", foreign_keys=[primary_source_id])
+    sources = relationship("ContextSource", foreign_keys="ContextSource.source_group_id", back_populates="source_group")
+
+    def __repr__(self):
+        return f"<SourceGroup(id={self.id}, name='{self.name}', sources={len(self.sources) if self.sources else 0})>"
+
+
+class EntityDuplicate(TenantScopedModel):
+    """
+    Tracks duplicate entities detected via semantic similarity
+    Allows merging or linking duplicate entities
+    """
+    __tablename__ = "entity_duplicates"
+
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    primary_entity_id = Column(Integer, ForeignKey("extracted_entities.id"), nullable=False, index=True)
+    duplicate_entity_id = Column(Integer, ForeignKey("extracted_entities.id"), nullable=False, index=True)
+    similarity_score = Column(Float, nullable=True)
+    merged_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    tenant = relationship("Tenant")
+    primary_entity = relationship("ExtractedEntity", foreign_keys=[primary_entity_id])
+    duplicate_entity = relationship("ExtractedEntity", foreign_keys=[duplicate_entity_id])
+
+    def __repr__(self):
+        return f"<EntityDuplicate(primary={self.primary_entity_id}, duplicate={self.duplicate_entity_id}, similarity={self.similarity_score})>"

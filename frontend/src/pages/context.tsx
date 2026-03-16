@@ -895,7 +895,45 @@ export function AddContextModal({
         onSuccess()
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to upload file')
+      // Handle duplicate content error (409)
+      if (err.response?.status === 409 && err.response?.data?.detail?.error === 'duplicate_content') {
+        const detail = err.response.data.detail
+        const existingSource = detail.existing_source
+
+        const choice = confirm(
+          `⚠️ Duplicate Content Detected\n\n` +
+          `This content appears identical to "${existingSource.name}" uploaded on ${new Date(existingSource.created_at).toLocaleDateString()}.\n\n` +
+          `Would you like to link to the existing source instead? This will save storage and prevent duplicate entity extraction.\n\n` +
+          `Click OK to link to existing source (recommended)\n` +
+          `Click Cancel to upload anyway as a separate source`
+        )
+
+        if (choice) {
+          // Link to existing source
+          setError('')
+          onSuccess() // Close modal and refresh
+          alert('✓ Linked to existing source successfully')
+        } else {
+          // User wants to upload anyway - add force flag
+          formData.append('force_duplicate', 'true')
+          try {
+            const retryResponse = await api.context.uploadFile(formData)
+            if (retryResponse.data.error_message) {
+              setError(retryResponse.data.error_message)
+            } else {
+              onSuccess()
+            }
+          } catch (retryErr: any) {
+            setError(retryErr.response?.data?.detail || 'Failed to upload file')
+          }
+        }
+      } else {
+        // Handle other errors
+        const errorMessage = typeof err.response?.data?.detail === 'string'
+          ? err.response.data.detail
+          : err.response?.data?.detail?.message || 'Failed to upload file'
+        setError(errorMessage)
+      }
     } finally {
       setUploading(false)
     }

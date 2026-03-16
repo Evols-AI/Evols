@@ -220,6 +220,20 @@ export const api = {
       apiClient.get(`/api/v1/context/evidence/initiative/${initiativeId}`),
     getSupportingEntities: (initiativeId: number, limit?: number) =>
       apiClient.get(`/api/v1/context/evidence/initiative/${initiativeId}/entities`, { params: { limit } }),
+
+    // Deduplication
+    linkToDuplicate: (sourceId: number, existingSourceId: number) =>
+      apiClient.post(`/api/v1/context/sources/${sourceId}/link-duplicate`, { existing_source_id: existingSourceId }),
+    createSourceGroup: (data: { name: string; source_ids: number[]; event_date?: string; description?: string }) =>
+      apiClient.post('/api/v1/context/deduplication/source-groups', data),
+    findSimilarEntities: (entityId: number, threshold?: number, limit?: number) =>
+      apiClient.get(`/api/v1/context/deduplication/entities/${entityId}/similar`, { params: { similarity_threshold: threshold, limit } }),
+    markEntityDuplicate: (primaryId: number, duplicateId: number, score: number) =>
+      apiClient.post('/api/v1/context/deduplication/entities/mark-duplicate', { primary_entity_id: primaryId, duplicate_entity_id: duplicateId, similarity_score: score }),
+    mergeEntities: (primaryId: number, duplicateId: number) =>
+      apiClient.post('/api/v1/context/deduplication/entities/merge', { primary_entity_id: primaryId, duplicate_entity_id: duplicateId }),
+    getDeduplicationStats: () =>
+      apiClient.get('/api/v1/context/deduplication/stats'),
   },
 
   // Projects

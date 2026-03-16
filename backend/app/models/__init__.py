@@ -17,7 +17,7 @@ from app.models.prompt import Prompt, PromptExecution
 from app.models.support import SupportTicket
 from app.models.context import (
     ContextSource, ExtractedEntity, ContentAccessLog,
-    InitiativeEvidence, EntityInitiativeLink,
+    InitiativeEvidence, EntityInitiativeLink, SourceGroup, EntityDuplicate,
     ContextSourceType, ContextProcessingStatus, EntityType
 )
 from app.models.skill import (
@@ -78,6 +78,8 @@ __all__ = [
     "ContentAccessLog",
     "InitiativeEvidence",
     "EntityInitiativeLink",
+    "SourceGroup",
+    "EntityDuplicate",
     "ContextSourceType",
     "ContextProcessingStatus",
     "EntityType",
