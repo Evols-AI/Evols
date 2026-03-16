@@ -355,7 +355,7 @@ async def debug_generation_context(
     result = await db.execute(
         select(Persona).where(
             Persona.tenant_id == tenant_id,
-            Persona.status == 'advisor'
+            Persona.status == 'active'
         )
     )
     personas = result.scalars().all()

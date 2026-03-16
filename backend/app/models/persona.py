@@ -71,7 +71,7 @@ class Persona(TenantScopedModel):
         nullable=False,
         default='new',
         index=True,
-        comment="Persona lifecycle status: new, advisor, dismissed"
+        comment="Persona lifecycle status: new, active, inactive"
     )
 
     # Relationships

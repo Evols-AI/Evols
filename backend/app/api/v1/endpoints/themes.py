@@ -642,7 +642,7 @@ async def auto_generate_initiatives(tenant_id: int, db: AsyncSession):
     persona_result = await db.execute(
         select(Persona).where(
             Persona.tenant_id == tenant_id,
-            Persona.status == 'advisor'  # Only active/prioritized personas
+            Persona.status == 'active'  # Only active/prioritized personas
         )
     )
     active_personas = persona_result.scalars().all()
@@ -971,7 +971,7 @@ async def preview_initiative_context(
     persona_result = await db.execute(
         select(Persona).where(
             Persona.tenant_id == tenant_id,
-            Persona.status == 'advisor'
+            Persona.status == 'active'
         )
     )
     active_personas = persona_result.scalars().all()

@@ -175,8 +175,8 @@ export default function Dashboard() {
       const personasData = personasRes.data?.items || personasRes.data || []
       const totalArr = themesData.reduce((s: number, t: any) => s + (t.total_arr || 0), 0)
 
-      // Filter only advisor personas for modals
-      const advisorPersonas = personasData.filter((p: any) => p.status === 'advisor')
+      // Filter only active personas for modals
+      const activePersonas = personasData.filter((p: any) => p.status === 'active')
 
       setStats({
         feedbackCount: feedbackRes.data?.total || feedbackItems.length,
@@ -188,7 +188,7 @@ export default function Dashboard() {
       })
       setThemes(themesData)
       setDecisions(decisionsData)
-      setPersonas(advisorPersonas)
+      setPersonas(activePersonas)
 
       // Mock signals - temporarily disabled
       // setSignals([

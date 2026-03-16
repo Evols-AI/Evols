@@ -83,11 +83,11 @@ class PriorityService:
             logger.warning(f"[PriorityService] No projects found")
             return 0
 
-        # Load personas for matching (only advisor personas)
+        # Load personas for matching (only active personas)
         persona_result = await db.execute(
             select(Persona).where(
                 Persona.tenant_id == tenant_id,
-                Persona.status == 'advisor'
+                Persona.status == 'active'
             )
         )
         personas = persona_result.scalars().all()

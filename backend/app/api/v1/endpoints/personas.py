@@ -50,7 +50,7 @@ async def list_personas(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
     product_ids: str = Query(None, description="Comma-separated product IDs to filter by"),
-    status_filter: str = Query(None, description="Comma-separated: new,advisor,dismissed"),
+    status_filter: str = Query(None, description="Comma-separated: new,active,inactive"),
     segment: str = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -402,8 +402,8 @@ async def auto_generate_personas(tenant_id: int, db: AsyncSession, last_refresh_
             )
             existing_count = existing_personas_result.scalar() or 0
 
-            # First batch: 'advisor' (active), subsequent batches: 'new' (inactive until reviewed)
-            initial_status = 'advisor' if existing_count == 0 else 'new'
+            # First batch: 'active', subsequent batches: 'new' (inactive until reviewed)
+            initial_status = 'active' if existing_count == 0 else 'new'
 
             # Create new persona with appropriate status
             persona = Persona(
@@ -417,7 +417,7 @@ async def auto_generate_personas(tenant_id: int, db: AsyncSession, last_refresh_
                 confidence_score=min(0.5 + (feedback_count / 50), 0.95),
                 key_pain_points=[],
                 feature_priorities=[],
-                status=initial_status,  # First batch: 'advisor', subsequent: 'new'
+                status=initial_status,  # First batch: 'active', subsequent: 'new'
                 extra_data={
                     'revenue_contribution': revenue_contribution,
                     'usage_frequency': usage_frequency,
@@ -835,9 +835,9 @@ async def update_persona(
     for field, value in persona_update.model_dump(exclude_unset=True).items():
         setattr(persona, field, value)
 
-    # If this was a 'new' persona, mark it as 'advisor' since user has reviewed/edited it
+    # If this was a 'new' persona, mark it as 'active' since user has reviewed/edited it
     if persona.status == 'new':
-        persona.status = 'advisor'
+        persona.status = 'active'
 
     await db.commit()
     await db.refresh(persona)
@@ -875,7 +875,7 @@ async def update_persona_status(
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """
-    Update persona status (can only set to 'advisor' or 'dismissed').
+    Update persona status (can only set to 'active' or 'inactive').
     Status 'new' is auto-assigned and cannot be manually set.
     """
     result = await db.execute(
@@ -999,9 +999,9 @@ async def merge_personas(
     from datetime import datetime
     primary.updated_at = datetime.utcnow()
 
-    # If this was a 'new' persona, mark it as 'advisor' since user has reviewed/merged it
+    # If this was a 'new' persona, mark it as 'active' since user has reviewed/merged it
     if primary.status == 'new':
-        primary.status = 'advisor'
+        primary.status = 'active'
 
     # Delete secondary personas
     for secondary in secondaries:

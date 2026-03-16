@@ -11,8 +11,8 @@ from enum import Enum
 class PersonaStatus(str, Enum):
     """Persona lifecycle status"""
     NEW = "new"
-    ADVISOR = "advisor"
-    DISMISSED = "dismissed"
+    ACTIVE = "active"
+    INACTIVE = "inactive"
 
 
 class PersonaBase(BaseModel):

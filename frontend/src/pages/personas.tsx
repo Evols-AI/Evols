@@ -23,7 +23,7 @@ export default function Personas() {
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [editingPersona, setEditingPersona] = useState<any>(null)
   const [selectedForMerge, setSelectedForMerge] = useState<number[]>([])
-  const [tagFilter, setTagFilter] = useState<string[]>(['new', 'advisor'])
+  const [tagFilter, setTagFilter] = useState<string[]>(['new', 'active'])
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const [sortBy, setSortBy] = useState<'confidence' | 'name' | 'revenue' | 'usage'>('confidence')
@@ -146,8 +146,8 @@ export default function Personas() {
   const getFilterDisplayText = () => {
     if (tagFilter.length === 3) return 'All'
     const statusNames = tagFilter.map(s => {
-      if (s === 'advisor') return 'Active'
-      if (s === 'dismissed') return 'Inactive'
+      if (s === 'active') return 'Active'
+      if (s === 'inactive') return 'Inactive'
       return 'New'
     })
     return statusNames.join(' & ')
@@ -262,10 +262,10 @@ export default function Personas() {
     // If persona is "new", mark it as active since user is reviewing it
     if (persona.status === 'new') {
       try {
-        await api.updatePersonaStatus(persona.id, 'advisor')
+        await api.updatePersonaStatus(persona.id, 'active')
         // Update persona in state without reloading (preserves scroll position)
         setPersonas(prev =>
-          prev.map(p => p.id === persona.id ? { ...p, status: 'advisor' } : p)
+          prev.map(p => p.id === persona.id ? { ...p, status: 'active' } : p)
         )
       } catch (error) {
         console.error('Error updating status:', error)
@@ -318,7 +318,7 @@ export default function Personas() {
         key_pain_points: persona.attributes?.pain_points || [],
         feature_priorities: persona.attributes?.priorities || [],
         confidence_score: persona.confidence_score,
-        status: 'advisor',
+        status: 'active',
         product_id: selectedProductIds[0] || null,
         extra_data: {
           promoted_from_entity_id: persona.entityId,
@@ -379,11 +379,11 @@ export default function Personas() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'advisor':
+      case 'active':
         return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
       case 'new':
         return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-      case 'dismissed':
+      case 'inactive':
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
       default:
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
@@ -463,8 +463,8 @@ export default function Personas() {
                         </div>
                         {[
                           { value: 'new', label: 'New', color: 'text-blue-600 dark:text-blue-400' },
-                          { value: 'advisor', label: 'Active', color: 'text-green-600 dark:text-green-400' },
-                          { value: 'dismissed', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
+                          { value: 'active', label: 'Active', color: 'text-green-600 dark:text-green-400' },
+                          { value: 'inactive', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
                         ].map((status) => (
                           <button
                             key={status.value}
@@ -546,8 +546,8 @@ export default function Personas() {
                           </div>
                           {[
                             { value: 'new', label: 'New', color: 'text-blue-600 dark:text-blue-400' },
-                            { value: 'advisor', label: 'Active', color: 'text-green-600 dark:text-green-400' },
-                            { value: 'dismissed', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
+                            { value: 'active', label: 'Active', color: 'text-green-600 dark:text-green-400' },
+                            { value: 'inactive', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
                           ].map((status) => (
                             <button
                               key={status.value}
@@ -894,15 +894,15 @@ function PersonaCard({
 
               {/* Active/Inactive Toggle */}
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-medium ${persona.status === 'advisor' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                  {persona.status === 'advisor' ? 'Active' : 'Inactive'}
+                <span className={`text-xs font-medium ${persona.status === 'active' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {persona.status === 'active' ? 'Active' : 'Inactive'}
                 </span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={persona.status === 'advisor'}
+                    checked={persona.status === 'active'}
                     onChange={() => {
-                      const newStatus = persona.status === 'advisor' ? 'dismissed' : 'advisor'
+                      const newStatus = persona.status === 'active' ? 'inactive' : 'active'
                       onChangeStatus(persona.id, newStatus)
                     }}
                     className="sr-only peer"
