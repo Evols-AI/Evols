@@ -7,6 +7,7 @@ import { api } from '@/services/api'
 import Header from '@/components/Header'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { useProducts } from '@/hooks/useProducts'
 
 interface Adviser {
   id: number
@@ -42,6 +43,7 @@ interface Conversation {
 
 export default function Workbench() {
   const router = useRouter()
+  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversation, setActiveConversation] = useState<string | null>(null)
