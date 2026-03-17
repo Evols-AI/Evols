@@ -203,6 +203,7 @@ export const api = {
     // Source Groups
     getSourceGroups: (params?: any) => apiClient.get('/api/v1/context/source-groups', { params }),
     getSourceGroupSources: (groupId: number) => apiClient.get(`/api/v1/context/source-groups/${groupId}/sources`),
+    deleteSourceGroup: (groupId: number) => apiClient.delete(`/api/v1/context/source-groups/${groupId}`),
 
     // Retention
     getRetentionPolicies: () => apiClient.get('/api/v1/context/retention/policies'),

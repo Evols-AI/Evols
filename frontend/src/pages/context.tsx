@@ -164,6 +164,22 @@ export default function Context() {
     }
   }
 
+  const handleDeleteSourceGroup = async (groupId: number, groupName: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent expanding/collapsing the group
+
+    if (!confirm(`Delete source group "${groupName}" and all its sources? This will also delete all extracted entities.`)) {
+      return
+    }
+
+    try {
+      await api.context.deleteSourceGroup(groupId)
+      await loadContext() // Reload to show updated list
+    } catch (error: any) {
+      console.error('Error deleting source group:', error)
+      alert(`Failed to delete source group: ${error.response?.data?.detail || error.message}`)
+    }
+  }
+
   const filteredSources = contextSources.filter(source => {
     const matchesSearch = source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (source.description && source.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -385,6 +401,7 @@ export default function Context() {
                     setExpandedGroups(newExpanded)
                   }}
                   onRefresh={loadContext}
+                  onDeleteGroup={handleDeleteSourceGroup}
                 />
               ) : selectedView === 'entities' ? (
                 <EntitiesView
@@ -422,13 +439,15 @@ function SourcesView({
   groups,
   expandedGroups,
   onToggleGroup,
-  onRefresh
+  onRefresh,
+  onDeleteGroup
 }: {
   sources: any[]
   groups: any[]
   expandedGroups: Set<number>
   onToggleGroup: (groupId: number) => void
   onRefresh: () => void
+  onDeleteGroup: (groupId: number, groupName: string, e: React.MouseEvent) => void
 }) {
   const [groupSources, setGroupSources] = React.useState<Record<number, any[]>>({})
   const [loadingGroupId, setLoadingGroupId] = React.useState<number | null>(null)
@@ -497,6 +516,13 @@ function SourcesView({
                         {group.total_entities} entities
                       </div>
                     </div>
+                    <button
+                      onClick={(e) => onDeleteGroup(group.id, group.name, e)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                      title="Delete source group"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                     <svg
                       className={`w-5 h-5 transition-transform ${
                         expandedGroups.has(group.id) ? 'rotate-180' : ''
@@ -1219,7 +1245,7 @@ export function AddContextModal({
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">⚖️ Balanced (Recommended)</span>
+                      <span className="font-medium text-sm">⚖️ Balanced</span>
                       <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
                         Recommended
                       </span>

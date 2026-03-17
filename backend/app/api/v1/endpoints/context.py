@@ -693,6 +693,42 @@ async def delete_context_source(
     return {"message": "Context source deleted successfully"}
 
 
+@router.delete("/source-groups/{group_id}")
+async def delete_source_group(
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a source group and all its sources (with their entities)"""
+    # Get the group
+    query = select(SourceGroup).where(
+        and_(
+            SourceGroup.id == group_id,
+            SourceGroup.tenant_id == current_user.tenant_id
+        )
+    )
+    result = await db.execute(query)
+    group = result.scalar_one_or_none()
+
+    if not group:
+        raise HTTPException(status_code=404, detail="Source group not found")
+
+    # Get all sources in this group
+    sources_query = select(ContextSource).where(ContextSource.source_group_id == group_id)
+    sources_result = await db.execute(sources_query)
+    sources = sources_result.scalars().all()
+
+    # Delete all sources (cascade will delete entities)
+    for source in sources:
+        await db.delete(source)
+
+    # Delete the group
+    await db.delete(group)
+    await db.commit()
+
+    return {"message": f"Source group and {len(sources)} sources deleted successfully"}
+
+
 @router.get("/retention/policies")
 async def get_retention_policies(
     current_user: User = Depends(get_current_user),
