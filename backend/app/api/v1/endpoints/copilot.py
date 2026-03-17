@@ -1,6 +1,6 @@
 """
 Copilot API Endpoints
-Main chat interface for AI copilot with auto-routing to advisers
+Main chat interface for AI copilot with auto-routing to skills
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,7 +13,7 @@ from datetime import datetime
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.models.adviser import AdviserConversation, AdviserMessage, Adviser, CustomAdviser, AdviserType
+from app.models.skill import SkillConversation, SkillMessage, Skill, CustomSkill, SkillType
 from app.services.copilot_orchestrator import CopilotOrchestrator
 
 
@@ -30,7 +30,7 @@ class ChatRequest(BaseModel):
     product_id: Optional[int] = None  # Filter tools by product
 
 
-class AdviserInfo(BaseModel):
+class SkillInfo(BaseModel):
     id: int
     type: str
     name: str
@@ -42,7 +42,7 @@ class MessageResponse(BaseModel):
     id: int
     role: str
     content: str
-    adviser: Optional[AdviserInfo] = None
+    skill: Optional[SkillInfo] = None
     created_at: str
 
 
@@ -68,7 +68,7 @@ class ConversationDetail(BaseModel):
     messages: List[MessageResponse]
 
 
-class AdviserListItem(BaseModel):
+class SkillListItem(BaseModel):
     id: int
     type: str
     name: str
@@ -89,7 +89,7 @@ async def chat(
 ):
     """
     Send a message to the AI copilot.
-    Can include @mention to invoke specific adviser.
+    Can include @mention to invoke specific skill.
     """
     orchestrator = CopilotOrchestrator(db, current_user)
 
@@ -117,9 +117,9 @@ async def list_conversations(
     List user's conversations
     """
     result = await db.execute(
-        select(AdviserConversation)
-        .where(AdviserConversation.user_id == current_user.id)
-        .order_by(desc(AdviserConversation.last_message_at))
+        select(SkillConversation)
+        .where(SkillConversation.user_id == current_user.id)
+        .order_by(desc(SkillConversation.last_message_at))
         .limit(limit)
         .offset(offset)
     )
@@ -129,8 +129,8 @@ async def list_conversations(
     for conv in conversations:
         # Get message count
         msg_result = await db.execute(
-            select(AdviserMessage)
-            .where(AdviserMessage.conversation_id == conv.id)
+            select(SkillMessage)
+            .where(SkillMessage.conversation_id == conv.id)
         )
         messages = msg_result.scalars().all()
         message_count = len(messages)
@@ -164,7 +164,7 @@ async def get_conversation(
     """
     # Get conversation
     result = await db.execute(
-        select(AdviserConversation).where(AdviserConversation.id == conversation_id)
+        select(SkillConversation).where(SkillConversation.id == conversation_id)
     )
     conversation = result.scalars().first()
 
@@ -176,42 +176,42 @@ async def get_conversation(
 
     # Get messages
     result = await db.execute(
-        select(AdviserMessage)
-        .where(AdviserMessage.conversation_id == conversation_id)
-        .order_by(AdviserMessage.sequence_number)
+        select(SkillMessage)
+        .where(SkillMessage.conversation_id == conversation_id)
+        .order_by(SkillMessage.sequence_number)
     )
     messages = result.scalars().all()
 
     # Format messages
     formatted_messages = []
     for msg in messages:
-        adviser_info = None
+        skill_info = None
         if msg.skill_id:
-            if msg.skill_type == AdviserType.CUSTOM:
-                adviser_result = await db.execute(
-                    select(CustomAdviser).where(CustomAdviser.id == msg.skill_id)
+            if msg.skill_type == SkillType.CUSTOM:
+                skill_result = await db.execute(
+                    select(CustomSkill).where(CustomSkill.id == msg.skill_id)
                 )
-                adviser = adviser_result.scalars().first()
+                skill = skill_result.scalars().first()
             else:
-                adviser_result = await db.execute(
-                    select(Adviser).where(Adviser.id == msg.skill_id)
+                skill_result = await db.execute(
+                    select(Skill).where(Skill.id == msg.skill_id)
                 )
-                adviser = adviser_result.scalars().first()
+                skill = skill_result.scalars().first()
 
-            if adviser:
-                adviser_info = AdviserInfo(
-                    id=adviser.id,
+            if skill:
+                skill_info = SkillInfo(
+                    id=skill.id,
                     type=msg.skill_type,
-                    name=adviser.name,
-                    description=adviser.description,
-                    icon=adviser.icon
+                    name=skill.name,
+                    description=skill.description,
+                    icon=skill.icon
                 )
 
         formatted_messages.append(MessageResponse(
             id=msg.id,
             role=msg.role,
             content=msg.content,
-            adviser=adviser_info,
+            skill=skill_info,
             created_at=msg.created_at.isoformat()
         ))
 
@@ -234,7 +234,7 @@ async def delete_conversation(
     Delete a conversation
     """
     result = await db.execute(
-        select(AdviserConversation).where(AdviserConversation.id == conversation_id)
+        select(SkillConversation).where(SkillConversation.id == conversation_id)
     )
     conversation = result.scalars().first()
 
@@ -250,48 +250,48 @@ async def delete_conversation(
     return {"message": "Conversation deleted successfully"}
 
 
-@router.get("/advisers", response_model=List[AdviserListItem])
-async def list_available_advisers(
+@router.get("/skills", response_model=List[SkillListItem])
+async def list_available_skills(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    List all available advisers for @mention autocomplete
+    List all available skills for @mention autocomplete
     """
-    advisers = []
+    skills = []
 
-    # Get default advisers
+    # Get default skills
     result = await db.execute(
-        select(Adviser).where(Adviser.is_active == True)
+        select(Skill).where(Skill.is_active == True)
     )
-    default_advisers = result.scalars().all()
+    default_skills = result.scalars().all()
 
-    for adviser in default_advisers:
-        advisers.append(AdviserListItem(
-            id=adviser.id,
-            type=AdviserType.DEFAULT,
-            name=adviser.name,
-            description=adviser.description,
-            icon=adviser.icon,
+    for skill in default_skills:
+        skills.append(SkillListItem(
+            id=skill.id,
+            type=SkillType.DEFAULT,
+            name=skill.name,
+            description=skill.description,
+            icon=skill.icon,
             is_custom=False
         ))
 
-    # Get custom advisers for this tenant
+    # Get custom skills for this tenant
     result = await db.execute(
-        select(CustomAdviser)
-        .where(CustomAdviser.tenant_id == current_user.tenant_id)
-        .where(CustomAdviser.is_active == True)
+        select(CustomSkill)
+        .where(CustomSkill.tenant_id == current_user.tenant_id)
+        .where(CustomSkill.is_active == True)
     )
-    custom_advisers = result.scalars().all()
+    custom_skills = result.scalars().all()
 
-    for adviser in custom_advisers:
-        advisers.append(AdviserListItem(
-            id=adviser.id,
-            type=AdviserType.CUSTOM,
-            name=adviser.name,
-            description=adviser.description,
-            icon=adviser.icon,
+    for skill in custom_skills:
+        skills.append(SkillListItem(
+            id=skill.id,
+            type=SkillType.CUSTOM,
+            name=skill.name,
+            description=skill.description,
+            icon=skill.icon,
             is_custom=True
         ))
 
-    return advisers
+    return skills

@@ -1,6 +1,6 @@
 """
 Copilot Orchestrator Service
-Handles routing messages to appropriate advisers and managing conversations
+Handles routing messages to appropriate skills and managing conversations
 """
 
 import re
@@ -10,7 +10,7 @@ from sqlalchemy import select, func
 import os
 from loguru import logger
 
-from app.models.adviser import Adviser, CustomAdviser, AdviserConversation, AdviserMessage, AdviserType
+from app.models.skill import Skill, CustomSkill, SkillConversation, SkillMessage, SkillType
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.services.llm_service import get_llm_service
@@ -19,7 +19,7 @@ from app.services.copilot_function_calling import handle_function_calling, gener
 
 
 class CopilotOrchestrator:
-    """Orchestrates conversations between users and AI advisers"""
+    """Orchestrates conversations between users and AI skills"""
 
     def __init__(self, db: AsyncSession, user: User):
         self.db = db
@@ -47,29 +47,29 @@ class CopilotOrchestrator:
 
         return self.llm_service
 
-    async def detect_adviser(
+    async def detect_skill(
         self,
         message: str,
-        conversation_history: List[AdviserMessage] = None
+        conversation_history: List[SkillMessage] = None
     ) -> Tuple[Optional[int], Optional[str]]:
         """
-        Detect which adviser should handle this message.
-        Returns (adviser_id, adviser_type) or (None, None) for general conversation.
+        Detect which skill should handle this message.
+        Returns (skill_id, skill_type) or (None, None) for general conversation.
         """
         # Check for @mention
         mention_match = re.search(r'@(\w+)', message)
         if mention_match:
-            adviser_name = mention_match.group(1).lower()
-            adviser = await self._find_adviser_by_name(adviser_name)
-            if adviser:
-                return (adviser[0], adviser[1])
+            skill_name = mention_match.group(1).lower()
+            skill = await self._find_skill_by_name(skill_name)
+            if skill:
+                return (skill[0], skill[1])
 
         # Auto-classify based on keywords
-        adviser = await self._classify_by_keywords(message)
-        if adviser:
-            return adviser
+        skill = await self._classify_by_keywords(message)
+        if skill:
+            return skill
 
-        # Check if we should continue with previous adviser
+        # Check if we should continue with previous skill
         if conversation_history:
             last_assistant_msg = next(
                 (msg for msg in reversed(conversation_history) if msg.role == 'assistant' and msg.skill_id),
@@ -80,28 +80,28 @@ class CopilotOrchestrator:
 
         return (None, None)
 
-    async def _find_adviser_by_name(self, name: str) -> Optional[Tuple[int, str]]:
-        """Find adviser by name (fuzzy match)"""
-        # Try custom advisers first
+    async def _find_skill_by_name(self, name: str) -> Optional[Tuple[int, str]]:
+        """Find skill by name (fuzzy match)"""
+        # Try custom skills first
         result = await self.db.execute(
-            select(CustomAdviser)
-            .where(CustomAdviser.tenant_id == self.user.tenant_id)
-            .where(CustomAdviser.is_active == True)
-            .where(func.lower(CustomAdviser.name).contains(name))
+            select(CustomSkill)
+            .where(CustomSkill.tenant_id == self.user.tenant_id)
+            .where(CustomSkill.is_active == True)
+            .where(func.lower(CustomSkill.name).contains(name))
         )
-        custom_adviser = result.scalars().first()
-        if custom_adviser:
-            return (custom_adviser.id, AdviserType.CUSTOM)
+        custom_skill = result.scalars().first()
+        if custom_skill:
+            return (custom_skill.id, SkillType.CUSTOM)
 
-        # Try default advisers
+        # Try default skills
         result = await self.db.execute(
-            select(Adviser)
-            .where(Adviser.is_active == True)
-            .where(func.lower(Adviser.name).contains(name))
+            select(Skill)
+            .where(Skill.is_active == True)
+            .where(func.lower(Skill.name).contains(name))
         )
-        adviser = result.scalars().first()
-        if adviser:
-            return (adviser.id, AdviserType.DEFAULT)
+        skill = result.scalars().first()
+        if skill:
+            return (skill.id, SkillType.DEFAULT)
 
         return None
 
@@ -109,7 +109,7 @@ class CopilotOrchestrator:
         """Classify message using keyword matching"""
         message_lower = message.lower()
 
-        # Define keyword patterns for each adviser type
+        # Define keyword patterns for each skill type
         patterns = {
             'roadmap': ['roadmap', 'prioritize', 'priority', 'quarter', 'planning', 'strategy', 'q1', 'q2', 'q3', 'q4', 'arr', 'revenue'],
             'rice': ['rice', 'score', 'scoring', 'ranking', 'calculate', 'prioritization', 'reach', 'impact', 'confidence', 'effort'],
@@ -117,76 +117,76 @@ class CopilotOrchestrator:
             'persona': ['persona', 'segment', 'customer', 'user type', 'user segment', 'audience', 'demographic']
         }
 
-        # Get all active advisers for this tenant
+        # Get all active skills for this tenant
         result = await self.db.execute(
-            select(CustomAdviser)
-            .where(CustomAdviser.tenant_id == self.user.tenant_id)
-            .where(CustomAdviser.is_active == True)
+            select(CustomSkill)
+            .where(CustomSkill.tenant_id == self.user.tenant_id)
+            .where(CustomSkill.is_active == True)
         )
-        custom_advisers = result.scalars().all()
+        custom_skills = result.scalars().all()
 
         result = await self.db.execute(
-            select(Adviser)
-            .where(Adviser.is_active == True)
+            select(Skill)
+            .where(Skill.is_active == True)
         )
-        default_advisers = result.scalars().all()
+        default_skills = result.scalars().all()
 
         # Check patterns
-        for adviser_key, keywords in patterns.items():
+        for skill_key, keywords in patterns.items():
             if any(keyword in message_lower for keyword in keywords):
-                # Try to find matching adviser
-                for adviser in custom_advisers:
-                    if adviser_key in adviser.name.lower():
-                        return (adviser.id, AdviserType.CUSTOM)
+                # Try to find matching skill
+                for skill in custom_skills:
+                    if skill_key in skill.name.lower():
+                        return (skill.id, SkillType.CUSTOM)
 
-                for adviser in default_advisers:
-                    if adviser_key in adviser.name.lower():
-                        return (adviser.id, AdviserType.DEFAULT)
+                for skill in default_skills:
+                    if skill_key in skill.name.lower():
+                        return (skill.id, SkillType.DEFAULT)
 
         return None
 
-    async def load_adviser_config(self, adviser_id: int, adviser_type: str) -> Dict[str, Any]:
-        """Load adviser configuration"""
-        if adviser_type == AdviserType.CUSTOM:
+    async def load_skill_config(self, skill_id: int, skill_type: str) -> Dict[str, Any]:
+        """Load skill configuration"""
+        if skill_type == SkillType.CUSTOM:
             result = await self.db.execute(
-                select(CustomAdviser).where(CustomAdviser.id == adviser_id)
+                select(CustomSkill).where(CustomSkill.id == skill_id)
             )
-            adviser = result.scalars().first()
+            skill = result.scalars().first()
         else:
             result = await self.db.execute(
-                select(Adviser).where(Adviser.id == adviser_id)
+                select(Skill).where(Skill.id == skill_id)
             )
-            adviser = result.scalars().first()
+            skill = result.scalars().first()
 
-        if not adviser:
+        if not skill:
             return None
 
         return {
-            'id': adviser.id,
-            'type': adviser_type,
-            'name': adviser.name,
-            'description': adviser.description,
-            'icon': adviser.icon,
-            'instructions': adviser.instructions,
-            'tools': adviser.tools,
-            'output_template': adviser.output_template
+            'id': skill.id,
+            'type': skill_type,
+            'name': skill.name,
+            'description': skill.description,
+            'icon': skill.icon,
+            'instructions': skill.instructions,
+            'tools': skill.tools,
+            'output_template': skill.output_template
         }
 
     async def get_next_sequence_number(self, conversation_id: str) -> int:
         """Get next sequence number for message"""
         result = await self.db.execute(
-            select(func.coalesce(func.max(AdviserMessage.sequence_number), 0))
-            .where(AdviserMessage.conversation_id == conversation_id)
+            select(func.coalesce(func.max(SkillMessage.sequence_number), 0))
+            .where(SkillMessage.conversation_id == conversation_id)
         )
         max_seq = result.scalar()
         return (max_seq or 0) + 1
 
-    def build_system_prompt(self, adviser_config: Optional[Dict[str, Any]] = None) -> str:
+    def build_system_prompt(self, skill_config: Optional[Dict[str, Any]] = None) -> str:
         """Build system prompt for Claude"""
-        if adviser_config:
-            return f"""You are {adviser_config['name']}, an expert AI assistant for product managers.
+        if skill_config:
+            return f"""You are {skill_config['name']}, an expert AI assistant for product managers.
 
-{adviser_config['instructions']}
+{skill_config['instructions']}
 
 Remember:
 - Be conversational and helpful
@@ -205,11 +205,9 @@ You help product managers with various tasks including:
 - Customer analysis
 - Data-driven decision making
 
-When a user's request is specific to one of these areas, you'll automatically switch to the appropriate specialized adviser mode.
+Be conversational, ask clarifying questions, and provide actionable insights backed by data. When you have access to specific tools or skills, you'll use them to provide more detailed answers."""
 
-Be conversational, ask clarifying questions, and provide actionable insights backed by data."""
-
-    def format_conversation_history(self, messages: List[AdviserMessage]) -> List[Dict[str, str]]:
+    def format_conversation_history(self, messages: List[SkillMessage]) -> List[Dict[str, str]]:
         """Format conversation history for Claude API"""
         formatted = []
         for msg in messages:
@@ -239,7 +237,7 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
         # Load or create conversation
         if conversation_id:
             result = await self.db.execute(
-                select(AdviserConversation).where(AdviserConversation.id == conversation_id)
+                select(SkillConversation).where(SkillConversation.id == conversation_id)
             )
             conversation = result.scalars().first()
 
@@ -254,16 +252,16 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
 
             # Load message history
             result = await self.db.execute(
-                select(AdviserMessage)
-                .where(AdviserMessage.conversation_id == conversation_id)
-                .order_by(AdviserMessage.sequence_number)
+                select(SkillMessage)
+                .where(SkillMessage.conversation_id == conversation_id)
+                .order_by(SkillMessage.sequence_number)
             )
             history = result.scalars().all()
         else:
             # Create new conversation
             import uuid
             context_data = {'product_id': product_id} if product_id is not None else None
-            conversation = AdviserConversation(
+            conversation = SkillConversation(
                 id=str(uuid.uuid4()),
                 user_id=self.user.id,
                 tenant_id=self.user.tenant_id,
@@ -275,7 +273,7 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
             history = []
 
         # Save user message
-        user_msg = AdviserMessage(
+        user_msg = SkillMessage(
             conversation_id=conversation.id,
             role='user',
             content=message,
@@ -284,16 +282,16 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
         self.db.add(user_msg)
         await self.db.flush()
 
-        # Detect adviser
-        adviser_id, adviser_type = await self.detect_adviser(message, history)
+        # Detect skill
+        skill_id, skill_type = await self.detect_skill(message, history)
 
-        # Load adviser config if applicable
-        adviser_config = None
-        if adviser_id:
-            adviser_config = await self.load_adviser_config(adviser_id, adviser_type)
+        # Load skill config if applicable
+        skill_config = None
+        if skill_id:
+            skill_config = await self.load_skill_config(skill_id, skill_type)
 
         # Build prompt
-        system_prompt = self.build_system_prompt(adviser_config)
+        system_prompt = self.build_system_prompt(skill_config)
         conversation_history = self.format_conversation_history(history)
 
         # Get LLM service
@@ -304,14 +302,14 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
         if conversation and conversation.context_data:
             product_id = conversation.context_data.get('product_id')
 
-        # Check if adviser has tools
-        if adviser_config and adviser_config.get('tools'):
+        # Check if skill has tools
+        if skill_config and skill_config.get('tools'):
             # Use function calling mode
             assistant_content, tool_calls = await handle_function_calling(
                 user_message=message,
                 conversation_history=conversation_history,
                 system_prompt=system_prompt,
-                adviser_config=adviser_config,
+                skill_config=skill_config,
                 llm_service=llm_service,
                 tenant_id=self.user.tenant_id,
                 db=self.db,
@@ -346,12 +344,12 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
                     logger.error(f"[Copilot] Even default=str failed for metadata: {e2}")
                     metadata['tool_calls'] = [{"error": "Tool calls could not be serialized"}]
 
-        assistant_msg = AdviserMessage(
+        assistant_msg = SkillMessage(
             conversation_id=conversation.id,
             role='assistant',
             content=assistant_content,
-            skill_id=adviser_id,
-            skill_type=adviser_type,
+            skill_id=skill_id,
+            skill_type=skill_type,
             sequence_number=await self.get_next_sequence_number(conversation.id),
             message_metadata=metadata
         )
@@ -369,7 +367,7 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
                 'id': assistant_msg.id,
                 'role': 'assistant',
                 'content': assistant_content,
-                'adviser': adviser_config if adviser_id else None,
+                'skill': skill_config if skill_id else None,
                 'created_at': assistant_msg.created_at.isoformat()
             }
         }

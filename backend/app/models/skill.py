@@ -187,6 +187,23 @@ class SkillConversation(BaseModel):
     def __repr__(self):
         return f"<SkillConversation(id={self.id}, user_id={self.user_id})>"
 
+    # Backwards compatibility properties
+    @property
+    def adviser_id(self):
+        return self.skill_id
+
+    @adviser_id.setter
+    def adviser_id(self, value):
+        self.skill_id = value
+
+    @property
+    def adviser_type(self):
+        return self.skill_type
+
+    @adviser_type.setter
+    def adviser_type(self, value):
+        self.skill_type = value
+
 
 # Backwards compatibility alias
 AdviserConversation = SkillConversation

@@ -14,6 +14,7 @@ from app.core.dependencies import get_current_tenant_id
 from app.models.theme import Theme
 from app.models.feedback import Feedback, FeedbackCategory
 from app.models.knowledge_base import Capability
+from app.models.context import ContextSource, ExtractedEntity, ContextProcessingStatus, EntityType
 from app.schemas.theme import (
     ThemeCreate,
     ThemeUpdate,
@@ -241,37 +242,55 @@ async def auto_generate_themes(tenant_id: int, db: AsyncSession, last_refresh_ti
     logger = logging.getLogger(__name__)
     logger.info(f"[Theme Generation] Starting theme generation for tenant {tenant_id}")
 
-    # Build base query for feedback
+    # Build queries for both legacy feedback and new context sources
     feedback_query = select(Feedback).where(Feedback.tenant_id == tenant_id)
+    context_query = select(ContextSource).where(
+        ContextSource.tenant_id == tenant_id,
+        ContextSource.status == ContextProcessingStatus.COMPLETED
+    )
 
-    # If incremental refresh, only get feedback created after last refresh
+    # If incremental refresh, only get items created after last refresh
     if last_refresh_timestamp:
         feedback_query = feedback_query.where(Feedback.created_at > last_refresh_timestamp)
-        logger.info(f"[Theme Generation] Incremental refresh: processing feedback after {last_refresh_timestamp}")
+        context_query = context_query.where(ContextSource.created_at > last_refresh_timestamp)
+        logger.info(f"[Theme Generation] Incremental refresh: processing data after {last_refresh_timestamp}")
 
-        # Check if there's any new feedback
-        count_result = await db.execute(
+        # Check if there's any new data
+        feedback_count_result = await db.execute(
             select(func.count(Feedback.id))
             .where(Feedback.tenant_id == tenant_id)
             .where(Feedback.created_at > last_refresh_timestamp)
         )
-        new_feedback_count = count_result.scalar()
+        context_count_result = await db.execute(
+            select(func.count(ContextSource.id))
+            .where(ContextSource.tenant_id == tenant_id)
+            .where(ContextSource.status == ContextProcessingStatus.COMPLETED)
+            .where(ContextSource.created_at > last_refresh_timestamp)
+        )
+        new_feedback_count = feedback_count_result.scalar()
+        new_context_count = context_count_result.scalar()
 
-        if new_feedback_count == 0:
-            logger.info(f"[Theme Generation] No new feedback since last refresh")
-            return {"status": "up_to_date", "message": "No new feedback to process"}
+        if new_feedback_count == 0 and new_context_count == 0:
+            logger.info(f"[Theme Generation] No new data since last refresh")
+            return {"status": "up_to_date", "message": "No new data to process"}
 
-    # Get feedback for clustering
-    result = await db.execute(feedback_query)
-    all_feedback = result.scalars().all()
+    # Get feedback and context sources for clustering
+    feedback_result = await db.execute(feedback_query)
+    all_feedback = list(feedback_result.scalars().all())
 
-    if len(all_feedback) < 3:
-        logger.warning(f"[Theme Generation] Not enough feedback ({len(all_feedback)}) to generate themes")
+    context_result = await db.execute(context_query)
+    all_context_sources = list(context_result.scalars().all())
+
+    # Combine feedback from both sources
+    combined_items = all_feedback + all_context_sources
+
+    if len(combined_items) < 3:
+        logger.warning(f"[Theme Generation] Not enough data ({len(combined_items)}) to generate themes")
         if last_refresh_timestamp:
-            return {"status": "up_to_date", "message": "Not enough new feedback for theme generation"}
-        return {"status": "no_data", "message": "Not enough feedback data available"}
+            return {"status": "up_to_date", "message": "Not enough new data for theme generation"}
+        return {"status": "no_data", "message": "Not enough data available"}
 
-    logger.info(f"[Theme Generation] Processing {len(all_feedback)} feedback items")
+    logger.info(f"[Theme Generation] Processing {len(all_feedback)} feedback items + {len(all_context_sources)} context sources")
 
     # Fetch existing capabilities from knowledge base
     from app.models.knowledge_base import Capability

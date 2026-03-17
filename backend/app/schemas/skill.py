@@ -1,6 +1,6 @@
 """
 Skill Schemas
-Pydantic models for adviser API requests/responses
+Pydantic models for skill API requests/responses
 """
 
 from pydantic import BaseModel, Field
@@ -12,15 +12,15 @@ from datetime import datetime
 # BASE SCHEMAS
 # ===================================
 
-class AdviserBase(BaseModel):
-    """Base adviser fields"""
+class SkillBase(BaseModel):
+    """Base skill fields"""
     name: str
     description: Optional[str] = None
     icon: Optional[str] = "💡"
 
 
-class SkillResponse(AdviserBase):
-    """Response for single adviser"""
+class SkillResponse(SkillBase):
+    """Response for single skill"""
     id: int
     type: str  # 'default' or 'custom'
     is_custom: bool
@@ -128,7 +128,7 @@ class CustomSkillResponse(BaseModel):
 # ===================================
 
 class ToolDefinition(BaseModel):
-    """Tool definition for adviser configuration"""
+    """Tool definition for skill configuration"""
     name: str
     description: str
     parameters: List[Dict[str, Any]]

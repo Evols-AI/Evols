@@ -6,14 +6,14 @@ Implements agent loop for tool execution
 from typing import List, Dict, Any, Optional, Tuple
 from loguru import logger
 import json
-from app.services.adviser_tools import tool_registry
+from app.services.skill_tools import tool_registry
 
 
 async def handle_function_calling(
     user_message: str,
     conversation_history: List[Dict],
     system_prompt: str,
-    adviser_config: Dict,
+    skill_config: Dict,
     llm_service,
     tenant_id: int,
     db,
@@ -23,8 +23,8 @@ async def handle_function_calling(
     Handle function calling agent loop.
     Returns (final_response, tool_calls_made)
     """
-    # Get available tools for this adviser
-    available_tools = adviser_config.get('tools', [])
+    # Get available tools for this skill
+    available_tools = skill_config.get('tools', [])
     if not available_tools:
         # No tools, fallback to regular mode
         return await generate_without_tools(user_message, conversation_history, system_prompt, llm_service)

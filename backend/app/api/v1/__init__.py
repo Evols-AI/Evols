@@ -28,7 +28,7 @@ api_router.include_router(knowledge_base.router, prefix="/knowledge-base", tags=
 api_router.include_router(projects.router, prefix="/projects", tags=["Projects"])
 api_router.include_router(jobs.router, prefix="/jobs", tags=["Background Jobs"])
 api_router.include_router(support.router, prefix="/support", tags=["Support"])
-api_router.include_router(advisers.router, prefix="/advisers", tags=["Advisers"])
+api_router.include_router(advisers.router, prefix="/advisers", tags=["Skills"])
 api_router.include_router(copilot.router, prefix="/copilot", tags=["Copilot"])
 api_router.include_router(copilot_cleanup.router, prefix="/copilot/cleanup", tags=["Copilot"])
 api_router.include_router(context.router, prefix="/context", tags=["Context"])

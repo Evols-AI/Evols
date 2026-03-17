@@ -21,6 +21,7 @@ from app.models.theme import Theme
 from app.models.persona import Persona
 from app.models.decision import Decision, DecisionOption
 from app.models.user import User
+from app.models.context import ContextSource, ExtractedEntity, ContextProcessingStatus
 from app.services.llm_service import get_llm_service, DECISION_OPTIONS_SYSTEM_PROMPT_PM, DECISION_OPTIONS_SYSTEM_PROMPT_FOUNDER
 from app.services.persona_service import PersonaService
 from app.services.web_scraper import get_web_scraper
@@ -107,15 +108,38 @@ async def get_workbench_context(
     )
     themes = theme_result.scalars().all()
 
-    # Fetch top feedback items
-    feedback_query = select(Feedback).where(Feedback.tenant_id == tenant_id)
+    # Fetch context sources (uploaded CSVs, documents, etc.)
+    context_query = select(ContextSource).where(
+        ContextSource.tenant_id == tenant_id,
+        ContextSource.status == ContextProcessingStatus.COMPLETED
+    )
     if req.segments:
         from sqlalchemy import or_
+        context_query = context_query.where(
+            or_(*[ContextSource.customer_segment == s for s in req.segments])
+        )
+    context_result = await db.execute(
+        context_query.order_by(ContextSource.impact_score.desc().nullslast()).limit(15)
+    )
+    context_sources = context_result.scalars().all()
+
+    # Fetch extracted entities (insights from uploaded context)
+    entities_result = await db.execute(
+        select(ExtractedEntity)
+        .where(ExtractedEntity.tenant_id == tenant_id)
+        .order_by(ExtractedEntity.confidence_score.desc().nullslast())
+        .limit(20)
+    )
+    extracted_entities = entities_result.scalars().all()
+
+    # Also fetch legacy feedback for backward compatibility
+    feedback_query = select(Feedback).where(Feedback.tenant_id == tenant_id)
+    if req.segments:
         feedback_query = feedback_query.where(
             or_(*[Feedback.customer_segment == s for s in req.segments])
         )
     feedback_result = await db.execute(
-        feedback_query.order_by(Feedback.urgency_score.desc().nullslast()).limit(20)
+        feedback_query.order_by(Feedback.urgency_score.desc().nullslast()).limit(10)
     )
     feedback_items = feedback_result.scalars().all()
 
@@ -161,11 +185,42 @@ async def get_workbench_context(
         for f in feedback_items
     ]
 
+    context_sources_out = [
+        {
+            "id": cs.id,
+            "name": cs.name,
+            "content": cs.content[:500] if cs.content else "",  # Truncate for preview
+            "source_type": cs.source_type.value if cs.source_type else "unknown",
+            "customer_name": cs.customer_name,
+            "customer_segment": cs.customer_segment,
+            "impact_score": cs.impact_score,
+            "sentiment_score": cs.sentiment_score,
+        }
+        for cs in context_sources
+    ]
+
+    entities_out = [
+        {
+            "id": e.id,
+            "entity_type": e.entity_type.value,
+            "name": e.name,
+            "description": e.description,
+            "confidence_score": e.confidence_score,
+            "category": e.category,
+            "context_snippet": e.context_snippet,
+        }
+        for e in extracted_entities
+    ]
+
     return {
         "themes": themes_out,
         "feedback": feedback_out,
+        "context_sources": context_sources_out,
+        "extracted_entities": entities_out,
         "total_themes": len(themes_out),
         "total_feedback": len(feedback_out),
+        "total_context_sources": len(context_sources_out),
+        "total_entities": len(entities_out),
     }
 
 
@@ -878,12 +933,64 @@ async def workbench_chat(
                 "metadata": {"title": t.title, "total_arr": t.total_arr},
             })
 
-    # Load top feedback
+    # Load context sources (uploaded CSVs, documents, etc.)
+    context_sources_result = await db.execute(
+        select(ContextSource)
+        .where(
+            ContextSource.tenant_id == tenant_id,
+            ContextSource.status == ContextProcessingStatus.COMPLETED
+        )
+        .order_by(ContextSource.impact_score.desc().nullslast())
+        .limit(10)
+    )
+    context_sources = context_sources_result.scalars().all()
+    for cs in context_sources:
+        if cs.content:
+            context_parts.append(
+                f'Context from {cs.name} [{cs.customer_segment or "Unknown"}]: "{cs.content[:200]}"'
+            )
+            citations.append({
+                "source_type": "context_source",
+                "source_id": cs.id,
+                "quote": cs.content[:200],
+                "confidence": 0.85,
+                "metadata": {
+                    "name": cs.name,
+                    "source_type": cs.source_type.value if cs.source_type else "unknown",
+                    "segment": cs.customer_segment
+                },
+            })
+
+    # Load extracted entities (insights from uploaded context)
+    entities_result = await db.execute(
+        select(ExtractedEntity)
+        .where(ExtractedEntity.tenant_id == tenant_id)
+        .order_by(ExtractedEntity.confidence_score.desc().nullslast())
+        .limit(15)
+    )
+    entities = entities_result.scalars().all()
+    for entity in entities:
+        context_parts.append(
+            f'{entity.entity_type.value.replace("_", " ").title()}: {entity.name} - {entity.description[:150]}'
+        )
+        citations.append({
+            "source_type": "extracted_entity",
+            "source_id": entity.id,
+            "quote": entity.description[:150],
+            "confidence": entity.confidence_score or 0.8,
+            "metadata": {
+                "entity_type": entity.entity_type.value,
+                "name": entity.name,
+                "category": entity.category
+            },
+        })
+
+    # Also load legacy feedback for backward compatibility
     feedback_result = await db.execute(
         select(Feedback)
         .where(Feedback.tenant_id == tenant_id)
         .order_by(Feedback.urgency_score.desc().nullslast())
-        .limit(10)
+        .limit(5)
     )
     feedback_items = feedback_result.scalars().all()
     for f in feedback_items:
@@ -902,28 +1009,39 @@ async def workbench_chat(
     objective = req.context.get("objective", "")
     segments = req.context.get("segments", [])
 
-    system_prompt = f"""You are an AI product copilot with access to a company's product knowledge graph.
-Answer questions grounded ONLY in the provided data. Be specific and cite the data.
+    # Detect if this is an analytical/aggregation question
+    analytical_keywords = ['top', 'most common', 'frequent', 'all themes', 'list themes', 'summarize', 'aggregate', 'analyze', 'themes that appeared']
+    is_analytical = any(keyword in req.message.lower() for keyword in analytical_keywords)
+
+    system_prompt = f"""You are an AI product copilot with access to a company's product knowledge graph including uploaded context sources (CSVs, documents, feedback), extracted insights, themes, and customer data.
+
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
+1. Answer ONLY using the EXACT data provided in the context below. Do NOT supplement with assumptions, general knowledge, or made-up information.
+2. You have access to a LIMITED SAMPLE of the data, NOT the complete dataset. The context shows only a subset of available information.
+3. For analytical questions (like "what are the top themes" or "summarize all feedback"), you MUST explicitly state: "I only have access to a limited sample of the data shown below. For comprehensive theme analysis across all data, please use the Themes page where the complete dataset is analyzed."
+4. NEVER invent or fabricate themes, metrics, facts, or customer opinions. If a detail is not explicitly in the provided context, do NOT include it in your answer.
+5. When citing data, reference the specific source name, segment, or quote from the context.
+6. If you cannot answer the question with the limited context provided, say so explicitly.
+
 Current decision context: {objective or "General product exploration"}
 Target segments: {', '.join(segments) if segments else 'All'}
 
-IMPORTANT: Always cite specific themes, feedback, or accounts from the data. 
-Never hallucinate metrics or facts not present in the provided context."""
+{"⚠️  ANALYTICAL QUESTION DETECTED: You only have a SAMPLE of the data, not the full dataset. Be explicit about this limitation in your response." if is_analytical else ""}"""
 
-    context_text = "\n".join(context_parts[:15])  # Limit context size
-    full_prompt = f"""Context from your product knowledge graph:
+    context_text = "\n".join(context_parts[:25])  # Include more context for comprehensive answers
+    full_prompt = f"""Context from your product knowledge graph (LIMITED SAMPLE - showing {len(context_parts[:25])} items out of potentially many more):
 {context_text}
 
 Question: {req.message}
 
-Answer based on the context above. Be concise (3-5 sentences). Cite specific themes and feedback."""
+Answer based ONLY on the context above. Do NOT add information from general knowledge or make assumptions. If you don't have enough data to answer comprehensively (especially for analytical questions), state this limitation explicitly and direct the user to the appropriate page (e.g., Themes page for complete theme analysis)."""
 
     try:
         llm = get_llm_service(tenant_config=tenant_config)
         response = await llm.generate(
             prompt=full_prompt,
             system_prompt=system_prompt,
-            temperature=0.3,
+            temperature=0.0,  # Zero temperature for deterministic, fact-based responses only
             max_tokens=600,
         )
         return {

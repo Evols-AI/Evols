@@ -12,6 +12,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_tenant_id, get_tenant_llm_config
 from app.models.persona import Persona
 from app.models.feedback import Feedback
+from app.models.context import ContextSource, ExtractedEntity, ContextProcessingStatus, EntityType
 from app.schemas.persona import (
     PersonaCreate,
     PersonaUpdate,
@@ -137,44 +138,71 @@ async def auto_generate_personas(tenant_id: int, db: AsyncSession, last_refresh_
 
     logger = logging.getLogger(__name__)
 
-    # Build base query for feedback
+    # Build queries for both legacy feedback and new context sources
     feedback_query = select(Feedback).where(Feedback.tenant_id == tenant_id)
-    count_query = select(func.count(Feedback.id)).where(Feedback.tenant_id == tenant_id)
+    feedback_count_query = select(func.count(Feedback.id)).where(Feedback.tenant_id == tenant_id)
 
-    # If incremental refresh, only get feedback created after last refresh
+    context_query = select(ContextSource).where(
+        ContextSource.tenant_id == tenant_id,
+        ContextSource.status == ContextProcessingStatus.COMPLETED
+    )
+    context_count_query = select(func.count(ContextSource.id)).where(
+        ContextSource.tenant_id == tenant_id,
+        ContextSource.status == ContextProcessingStatus.COMPLETED
+    )
+
+    # If incremental refresh, only get data created after last refresh
     if last_refresh_timestamp:
         feedback_query = feedback_query.where(Feedback.created_at > last_refresh_timestamp)
-        count_query = count_query.where(Feedback.created_at > last_refresh_timestamp)
-        logger.info(f"[Persona Generation] Incremental refresh: processing feedback after {last_refresh_timestamp}")
+        feedback_count_query = feedback_count_query.where(Feedback.created_at > last_refresh_timestamp)
+        context_query = context_query.where(ContextSource.created_at > last_refresh_timestamp)
+        context_count_query = context_count_query.where(ContextSource.created_at > last_refresh_timestamp)
+        logger.info(f"[Persona Generation] Incremental refresh: processing data after {last_refresh_timestamp}")
 
-    # First check if there's any feedback to process
-    total_feedback = await db.execute(count_query)
-    total_count = total_feedback.scalar()
+    # First check if there's any data to process
+    feedback_result = await db.execute(feedback_count_query)
+    feedback_count = feedback_result.scalar()
+
+    context_result = await db.execute(context_count_query)
+    context_count = context_result.scalar()
+
+    total_count = feedback_count + context_count
 
     if total_count == 0:
         if last_refresh_timestamp:
-            logger.info(f"[Persona Generation] No new feedback since last refresh for tenant {tenant_id}")
-            return {"status": "up_to_date", "message": "No new feedback to process", "personas_created": 0, "personas_failed": 0}
+            logger.info(f"[Persona Generation] No new data since last refresh for tenant {tenant_id}")
+            return {"status": "up_to_date", "message": "No new data to process", "personas_created": 0, "personas_failed": 0}
         else:
-            logger.warning(f"[Persona Generation] No feedback found for tenant {tenant_id}")
-            return {"status": "no_data", "message": "No feedback data available", "personas_created": 0, "personas_failed": 0}
+            logger.warning(f"[Persona Generation] No data found for tenant {tenant_id}")
+            return {"status": "no_data", "message": "No data available", "personas_created": 0, "personas_failed": 0}
 
     # Check how many have segments
-    segmented_count_query = count_query.where(
+    segmented_feedback_count_query = feedback_count_query.where(
         Feedback.customer_segment.isnot(None)
     ).where(
         Feedback.customer_segment != ''
     )
-    segmented_feedback = await db.execute(segmented_count_query)
-    segmented_count = segmented_feedback.scalar()
+    segmented_context_count_query = context_count_query.where(
+        ContextSource.customer_segment.isnot(None)
+    ).where(
+        ContextSource.customer_segment != ''
+    )
 
-    logger.info(f"[Persona Generation] Tenant {tenant_id}: {segmented_count}/{total_count} feedback items have segments")
+    segmented_feedback_result = await db.execute(segmented_feedback_count_query)
+    segmented_feedback_count = segmented_feedback_result.scalar()
+
+    segmented_context_result = await db.execute(segmented_context_count_query)
+    segmented_context_count = segmented_context_result.scalar()
+
+    segmented_count = segmented_feedback_count + segmented_context_count
+
+    logger.info(f"[Persona Generation] Tenant {tenant_id}: {segmented_count}/{total_count} items have segments")
 
     if segmented_count == 0:
-        logger.warning(f"[Persona Generation] No feedback with customer_segment field populated. Personas require segment data.")
+        logger.warning(f"[Persona Generation] No data with customer_segment field populated. Personas require segment data.")
         if last_refresh_timestamp:
-            return {"status": "up_to_date", "message": "No new feedback with segments", "personas_created": 0, "personas_failed": 0}
-        return {"status": "no_data", "message": "No feedback with segments available", "personas_created": 0, "personas_failed": 0}
+            return {"status": "up_to_date", "message": "No new data with segments", "personas_created": 0, "personas_failed": 0}
+        return {"status": "no_data", "message": "No data with segments available", "personas_created": 0, "personas_failed": 0}
 
     # Get all feedback with demographics (use filtered query)
     segmented_feedback_query = feedback_query.where(

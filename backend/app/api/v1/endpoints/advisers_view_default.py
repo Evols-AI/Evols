@@ -1,14 +1,14 @@
 """
 Endpoint to add to advisers.py
 
-Insert this after list_custom_advisers (line 737) and before create_custom_adviser (line 739)
+Insert this after list_custom_skills (line 737) and before create_custom_skill (line 739)
 """
 
 # Add this endpoint code:
 
 """
 @router.get("/admin/default/{adviser_id}")
-async def get_default_adviser_details(
+async def get_default_skill_details(
     adviser_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_tenant_admin),

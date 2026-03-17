@@ -10,6 +10,7 @@ from datetime import datetime
 
 from app.models.persona import Persona
 from app.models.feedback import Feedback
+from app.models.context import ContextSource, ExtractedEntity, ContextProcessingStatus, EntityType
 from app.services.llm_service import get_llm_service
 
 
@@ -32,57 +33,71 @@ class PersonaTwinService:
         limit: int = 20
     ) -> Dict[str, any]:
         """
-        Retrieve persona's knowledge base from feedback data
+        Retrieve persona's knowledge base from context sources and extracted entities
 
         Args:
             persona: Persona object
             db: Database session
-            limit: Max feedback items to retrieve
+            limit: Max items to retrieve
 
         Returns:
-            Knowledge base dictionary with feedback and stats
+            Knowledge base dictionary with context and insights
         """
-        # Get feedback for this persona's segment
-        query = select(Feedback).where(
+        # Get context sources for this persona's segment
+        query = select(ContextSource).where(
             and_(
-                Feedback.tenant_id == persona.tenant_id,
-                Feedback.customer_segment == persona.segment
+                ContextSource.tenant_id == persona.tenant_id,
+                ContextSource.customer_segment == persona.segment,
+                ContextSource.status == ContextProcessingStatus.COMPLETED
             )
-        ).order_by(Feedback.created_at.desc()).limit(limit)
+        ).order_by(ContextSource.impact_score.desc().nullslast()).limit(limit)
 
-        # If persona has industry filter, add that
-        if persona.industry:
-            # Filter by industry in extra_data
-            result = await db.execute(query)
-            all_feedback = result.scalars().all()
-            feedback_items = [
-                fb for fb in all_feedback
-                if fb.extra_data and fb.extra_data.get('industry') == persona.industry
-            ][:limit]
-        else:
-            result = await db.execute(query)
-            feedback_items = result.scalars().all()
+        result = await db.execute(query)
+        context_items = result.scalars().all()
 
-        # Aggregate feedback themes
-        themes = {}
-        categories = {}
+        # Get extracted entities (pain points, feature requests, quotes) for this segment
+        entity_query = select(ExtractedEntity).where(
+            ExtractedEntity.tenant_id == persona.tenant_id
+        ).order_by(ExtractedEntity.confidence_score.desc().nullslast()).limit(limit)
+
+        entity_result = await db.execute(entity_query)
+        all_entities = entity_result.scalars().all()
+
+        # Filter entities by matching against persona's segment in the source
         pain_points = []
+        feature_requests = []
+        quotes = []
 
-        for fb in feedback_items:
-            # Count categories
-            if fb.category:
-                cat = fb.category.value
-                categories[cat] = categories.get(cat, 0) + 1
+        for entity in all_entities:
+            # Get the source context to check segment
+            source_query = select(ContextSource).where(
+                ContextSource.id == entity.source_id,
+                ContextSource.customer_segment == persona.segment
+            )
+            source_result = await db.execute(source_query)
+            source = source_result.scalar_one_or_none()
 
-            # Extract pain points (complaints, bugs, feature requests)
-            if fb.category and fb.category.value in ['bug', 'complaint', 'feature_request']:
-                pain_points.append(fb.content[:200])  # First 200 chars
+            if source:
+                if entity.entity_type == EntityType.PAIN_POINT:
+                    pain_points.append(entity.description[:200])
+                elif entity.entity_type == EntityType.FEATURE_REQUEST:
+                    feature_requests.append(entity.description[:200])
+                elif entity.entity_type == EntityType.QUOTE:
+                    quotes.append(entity.description[:200])
+
+        # Count entity types
+        entity_types = {}
+        for entity in all_entities:
+            entity_type = entity.entity_type.value
+            entity_types[entity_type] = entity_types.get(entity_type, 0) + 1
 
         return {
-            'feedback_count': len(feedback_items),
-            'feedback_items': feedback_items,
-            'categories': categories,
+            'context_count': len(context_items),
+            'context_sources': context_items,
+            'entity_types': entity_types,
             'top_pain_points': pain_points[:5],
+            'top_feature_requests': feature_requests[:5],
+            'key_quotes': quotes[:3],
             'segment': persona.segment,
             'industry': persona.industry,
         }

@@ -14,22 +14,22 @@ import json
 from app.core.database import get_db
 from app.core.dependencies import get_current_tenant_id, get_current_user, get_tenant_llm_config
 from app.models.user import User, UserRole
-from app.models.adviser import (
-    Adviser, CustomAdviser, AdviserSession, AdviserMessage,
-    AdviserType, AdviserPhase, AdviserSessionEvaluation
+from app.models.skill import (
+    Skill, CustomSkill, SkillConversation, SkillMessage,
+    SkillType, SkillPhase, SkillSessionEvaluation
 )
-from app.schemas.adviser import (
-    AdviserResponse,
-    AdviserListResponse,
+from app.schemas.skill import (
+    SkillResponse,
+    SkillListResponse,
     SessionCreateRequest,
     SessionResponse,
     SessionAnswersRequest,
     SessionChatRequest,
     SessionChatResponse,
     SessionEvaluationRequest,
-    CustomAdviserCreate,
-    CustomAdviserUpdate,
-    CustomAdviserResponse,
+    CustomSkillCreate,
+    CustomSkillUpdate,
+    CustomSkillResponse,
 )
 from app.services.adviser_orchestrator import AdviserOrchestrator
 from sqlalchemy import func
@@ -44,8 +44,8 @@ router = APIRouter()
 async def get_next_sequence_number(session_id: str, db: AsyncSession) -> int:
     """Get the next sequence number for a message in this session"""
     result = await db.execute(
-        select(func.coalesce(func.max(AdviserMessage.sequence_number), 0))
-        .where(AdviserMessage.session_id == session_id)
+        select(func.coalesce(func.max(SkillMessage.sequence_number), 0))
+        .where(SkillMessage.session_id == session_id)
     )
     max_seq = result.scalar()
     return (max_seq or 0) + 1
@@ -55,7 +55,7 @@ async def get_next_sequence_number(session_id: str, db: AsyncSession) -> int:
 # USER ENDPOINTS
 # ===================================
 
-@router.get("/", response_model=AdviserListResponse)
+@router.get("/", response_model=SkillListResponse)
 async def list_available_advisers(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
@@ -67,16 +67,16 @@ async def list_available_advisers(
     """
     # Get default advisers
     default_result = await db.execute(
-        select(Adviser).where(Adviser.is_active == True)
+        select(Skill).where(Skill.is_active == True)
     )
     default_advisers = default_result.scalars().all()
 
     # Get tenant's custom advisers
     custom_result = await db.execute(
-        select(CustomAdviser).where(
+        select(CustomSkill).where(
             and_(
-                CustomAdviser.tenant_id == tenant_id,
-                CustomAdviser.is_active == True
+                CustomSkill.tenant_id == tenant_id,
+                CustomSkill.is_active == True
             )
         )
     )
@@ -123,8 +123,8 @@ async def create_adviser_session(
 
     # Create session
     session = await orchestrator.create_session(
-        adviser_id=request.adviser_id,
-        adviser_type=AdviserType(request.adviser_type),
+        adviser_id=request.skill_id,
+        adviser_type=SkillType(request.skill_type),
         user_id=current_user.id,
         tenant_id=tenant_id,
         db=db
@@ -132,8 +132,8 @@ async def create_adviser_session(
 
     # Get initial questions
     questions = await orchestrator.get_initial_questions(
-        adviser_id=request.adviser_id,
-        adviser_type=AdviserType(request.adviser_type),
+        adviser_id=request.skill_id,
+        adviser_type=SkillType(request.skill_type),
         db=db
     )
 
@@ -149,7 +149,7 @@ async def create_adviser_session(
         welcome_msg = f"Hello! I'm here to help you. Let me ask you a few questions to get started.\n\n{questions[0]['question']}"
 
         # Save welcome message
-        welcome_message = AdviserMessage(
+        welcome_message = SkillMessage(
             session_id=session.id,
             role="assistant",
             content=welcome_msg,
@@ -182,10 +182,10 @@ async def submit_initial_answers(
     """
     # Verify session belongs to user
     result = await db.execute(
-        select(AdviserSession).where(
+        select(SkillConversation).where(
             and_(
-                AdviserSession.id == session_id,
-                AdviserSession.user_id == current_user.id
+                SkillConversation.id == session_id,
+                SkillConversation.user_id == current_user.id
             )
         )
     )
@@ -230,10 +230,10 @@ async def chat_with_adviser(
     """
     # Verify session
     result = await db.execute(
-        select(AdviserSession).where(
+        select(SkillConversation).where(
             and_(
-                AdviserSession.id == session_id,
-                AdviserSession.user_id == current_user.id
+                SkillConversation.id == session_id,
+                SkillConversation.user_id == current_user.id
             )
         )
     )
@@ -246,7 +246,7 @@ async def chat_with_adviser(
     user_seq = await get_next_sequence_number(session_id, db)
 
     # Save user message
-    user_message = AdviserMessage(
+    user_message = SkillMessage(
         session_id=session_id,
         role="user",
         content=request.message,
@@ -256,7 +256,7 @@ async def chat_with_adviser(
     await db.commit()
 
     # Check if we're still in question-asking phase
-    if session.phase == AdviserPhase.INITIAL_GENERATION:
+    if session.phase == SkillPhase.INITIAL_GENERATION:
         context = session.context_data or {}
         questions = context.get("questions", [])
         answers = context.get("answers", {})
@@ -306,7 +306,7 @@ async def chat_with_adviser(
 
             # Save assistant response
             assistant_seq = await get_next_sequence_number(session_id, db)
-            assistant_message = AdviserMessage(
+            assistant_message = SkillMessage(
                 session_id=session_id,
                 role="assistant",
                 content=response_content,
@@ -325,7 +325,7 @@ async def chat_with_adviser(
 
     # Analyze sentiment of user message
     from app.services.sentiment_service import sentiment_analyzer
-    from app.models.adviser import AdviserMessageSentiment
+    from app.models.skill import SkillMessageSentiment
 
     sentiment_label, sentiment_score = sentiment_analyzer.analyze(request.message)
 
@@ -342,22 +342,22 @@ async def chat_with_adviser(
 
     # Find the user's message in the database to attach sentiment
     messages_result = await db.execute(
-        select(AdviserMessage)
+        select(SkillMessage)
         .where(
             and_(
-                AdviserMessage.session_id == session_id,
-                AdviserMessage.role == 'user',
-                AdviserMessage.content == request.message
+                SkillMessage.session_id == session_id,
+                SkillMessage.role == 'user',
+                SkillMessage.content == request.message
             )
         )
-        .order_by(AdviserMessage.created_at.desc())
+        .order_by(SkillMessage.created_at.desc())
         .limit(1)
     )
     user_message = messages_result.scalar_one_or_none()
 
     if user_message:
         # Save sentiment
-        sentiment_record = AdviserMessageSentiment(
+        sentiment_record = SkillMessageSentiment(
             message_id=user_message.id,
             sentiment_label=sentiment_label.value,
             sentiment_score=sentiment_score
@@ -388,9 +388,9 @@ async def get_session_history(
 ):
     """Get user's session history"""
     result = await db.execute(
-        select(AdviserSession)
-        .where(AdviserSession.user_id == current_user.id)
-        .order_by(AdviserSession.created_at.desc())
+        select(SkillConversation)
+        .where(SkillConversation.user_id == current_user.id)
+        .order_by(SkillConversation.created_at.desc())
         .offset(skip)
         .limit(limit)
     )
@@ -399,8 +399,8 @@ async def get_session_history(
     return [
         {
             "session_id": s.id,
-            "adviser_id": s.adviser_id,
-            "adviser_type": s.adviser_type.value,
+            "skill_id": s.skill_id,
+            "skill_type": s.skill_type.value,
             "phase": s.phase.value,
             "session_name": s.session_name,
             "created_at": s.created_at.isoformat(),
@@ -418,10 +418,10 @@ async def get_session_details(
 ):
     """Get full session details including conversation"""
     result = await db.execute(
-        select(AdviserSession).where(
+        select(SkillConversation).where(
             and_(
-                AdviserSession.id == session_id,
-                AdviserSession.user_id == current_user.id
+                SkillConversation.id == session_id,
+                SkillConversation.user_id == current_user.id
             )
         )
     )
@@ -432,26 +432,26 @@ async def get_session_details(
 
     # Get messages
     messages_result = await db.execute(
-        select(AdviserMessage)
-        .where(AdviserMessage.session_id == session_id)
-        .order_by(AdviserMessage.sequence_number)
+        select(SkillMessage)
+        .where(SkillMessage.session_id == session_id)
+        .order_by(SkillMessage.sequence_number)
     )
     messages = messages_result.scalars().all()
 
     # If still in initial_generation phase, include questions
     initial_questions = None
-    if session.phase == AdviserPhase.INITIAL_GENERATION:
+    if session.phase == SkillPhase.INITIAL_GENERATION:
         orchestrator = AdviserOrchestrator()
         initial_questions = await orchestrator.get_initial_questions(
-            adviser_id=session.adviser_id,
-            adviser_type=session.adviser_type,
+            adviser_id=session.skill_id,
+            adviser_type=session.skill_type,
             db=db
         )
 
     return {
         "session_id": session.id,
-        "adviser_id": session.adviser_id,
-        "adviser_type": session.adviser_type.value,
+        "skill_id": session.skill_id,
+        "skill_type": session.skill_type.value,
         "phase": session.phase.value,
         "context_data": session.context_data,
         "output_data": session.output_data,
@@ -477,10 +477,10 @@ async def delete_session(
     """Delete an adviser session"""
     # Verify session belongs to user
     result = await db.execute(
-        select(AdviserSession).where(
+        select(SkillConversation).where(
             and_(
-                AdviserSession.id == session_id,
-                AdviserSession.user_id == current_user.id
+                SkillConversation.id == session_id,
+                SkillConversation.user_id == current_user.id
             )
         )
     )
@@ -506,10 +506,10 @@ async def evaluate_session(
     """Submit feedback on adviser session"""
     # Verify session
     result = await db.execute(
-        select(AdviserSession).where(
+        select(SkillConversation).where(
             and_(
-                AdviserSession.id == session_id,
-                AdviserSession.user_id == current_user.id
+                SkillConversation.id == session_id,
+                SkillConversation.user_id == current_user.id
             )
         )
     )
@@ -519,7 +519,7 @@ async def evaluate_session(
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Save evaluation
-    evaluation = AdviserSessionEvaluation(
+    evaluation = SkillSessionEvaluation(
         session_id=session_id,
         user_id=current_user.id,
         rating=request.rating,
@@ -530,7 +530,7 @@ async def evaluate_session(
     db.add(evaluation)
 
     # Mark session as completed
-    session.phase = AdviserPhase.COMPLETED
+    session.phase = SkillPhase.COMPLETED
     await db.commit()
 
     return {"message": "Feedback submitted successfully"}
@@ -545,10 +545,10 @@ async def update_session(
 ):
     """Update session metadata"""
     result = await db.execute(
-        select(AdviserSession).where(
+        select(SkillConversation).where(
             and_(
-                AdviserSession.id == session_id,
-                AdviserSession.user_id == current_user.id
+                SkillConversation.id == session_id,
+                SkillConversation.user_id == current_user.id
             )
         )
     )
@@ -577,10 +577,10 @@ async def export_session_markdown(
 
     # Get session
     result = await db.execute(
-        select(AdviserSession).where(
+        select(SkillConversation).where(
             and_(
-                AdviserSession.id == session_id,
-                AdviserSession.user_id == current_user.id
+                SkillConversation.id == session_id,
+                SkillConversation.user_id == current_user.id
             )
         )
     )
@@ -590,14 +590,14 @@ async def export_session_markdown(
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Get adviser name
-    if session.adviser_type == AdviserType.DEFAULT:
+    if session.skill_type == SkillType.DEFAULT:
         adviser_result = await db.execute(
-            select(Adviser).where(Adviser.id == session.adviser_id)
+            select(Skill).where(Skill.id ==session.skill_id)
         )
         adviser = adviser_result.scalar_one_or_none()
     else:
         adviser_result = await db.execute(
-            select(CustomAdviser).where(CustomAdviser.id == session.adviser_id)
+            select(CustomSkill).where(CustomSkill.id == session.skill_id)
         )
         adviser = adviser_result.scalar_one_or_none()
 
@@ -653,10 +653,10 @@ async def export_session_json(
 
     # Get session
     result = await db.execute(
-        select(AdviserSession).where(
+        select(SkillConversation).where(
             and_(
-                AdviserSession.id == session_id,
-                AdviserSession.user_id == current_user.id
+                SkillConversation.id == session_id,
+                SkillConversation.user_id == current_user.id
             )
         )
     )
@@ -667,16 +667,16 @@ async def export_session_json(
 
     # Get messages
     messages_result = await db.execute(
-        select(AdviserMessage)
-        .where(AdviserMessage.session_id == session_id)
-        .order_by(AdviserMessage.sequence_number)
+        select(SkillMessage)
+        .where(SkillMessage.session_id == session_id)
+        .order_by(SkillMessage.sequence_number)
     )
     messages = messages_result.scalars().all()
 
     export_data = {
         "session_id": session.id,
-        "adviser_id": session.adviser_id,
-        "adviser_type": session.adviser_type.value,
+        "skill_id": session.skill_id,
+        "skill_type": session.skill_type.value,
         "phase": session.phase.value,
         "created_at": session.created_at.isoformat(),
         "context": session.context_data,
@@ -711,7 +711,7 @@ def require_tenant_admin(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.get("/admin/custom", response_model=List[CustomAdviserResponse])
+@router.get("/admin/custom", response_model=List[CustomSkillResponse])
 async def list_custom_advisers(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
@@ -719,7 +719,7 @@ async def list_custom_advisers(
 ):
     """List tenant's custom advisers"""
     result = await db.execute(
-        select(CustomAdviser).where(CustomAdviser.tenant_id == tenant_id)
+        select(CustomSkill).where(CustomSkill.tenant_id == tenant_id)
     )
     advisers = result.scalars().all()
 
@@ -745,7 +745,7 @@ async def get_default_adviser_details(
 ):
     """Get full details of a default adviser (read-only)"""
     result = await db.execute(
-        select(Adviser).where(Adviser.id == adviser_id)
+        select(Skill).where(Skill.id ==adviser_id)
     )
     adviser = result.scalar_one_or_none()
 
@@ -768,15 +768,15 @@ async def get_default_adviser_details(
     }
 
 
-@router.post("/admin/custom", response_model=CustomAdviserResponse)
+@router.post("/admin/custom", response_model=CustomSkillResponse)
 async def create_custom_adviser(
-    request: CustomAdviserCreate,
+    request: CustomSkillCreate,
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
     current_user: User = Depends(require_tenant_admin),
 ):
     """Create a new custom adviser (or clone from default)"""
-    adviser = CustomAdviser(
+    adviser = CustomSkill(
         tenant_id=tenant_id,
         source_adviser_id=request.source_adviser_id,
         name=request.name,
@@ -816,7 +816,7 @@ async def clone_default_adviser(
     """Clone a default adviser to create custom version"""
     # Get default adviser
     result = await db.execute(
-        select(Adviser).where(Adviser.id == adviser_id)
+        select(Skill).where(Skill.id ==adviser_id)
     )
     default_adviser = result.scalar_one_or_none()
 
@@ -824,7 +824,7 @@ async def clone_default_adviser(
         raise HTTPException(status_code=404, detail="Adviser not found")
 
     # Create custom copy
-    custom = CustomAdviser(
+    custom = CustomSkill(
         tenant_id=tenant_id,
         source_adviser_id=adviser_id,
         name=new_name or f"{default_adviser.name} (Custom)",
@@ -857,10 +857,10 @@ async def get_custom_adviser(
 ):
     """Get a single custom adviser with full configuration"""
     result = await db.execute(
-        select(CustomAdviser).where(
+        select(CustomSkill).where(
             and_(
-                CustomAdviser.id == adviser_id,
-                CustomAdviser.tenant_id == tenant_id
+                CustomSkill.id == adviser_id,
+                CustomSkill.tenant_id == tenant_id
             )
         )
     )
@@ -888,19 +888,19 @@ async def get_custom_adviser(
 @router.put("/admin/custom/{adviser_id}")
 async def update_custom_adviser(
     adviser_id: int,
-    request: CustomAdviserUpdate,
+    request: CustomSkillUpdate,
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
     current_user: User = Depends(require_tenant_admin),
 ):
     """Update a custom adviser and save version history"""
-    from app.models.adviser import CustomAdviserVersion
+    from app.models.skill import CustomSkillVersion
 
     result = await db.execute(
-        select(CustomAdviser).where(
+        select(CustomSkill).where(
             and_(
-                CustomAdviser.id == adviser_id,
-                CustomAdviser.tenant_id == tenant_id
+                CustomSkill.id == adviser_id,
+                CustomSkill.tenant_id == tenant_id
             )
         )
     )
@@ -912,14 +912,14 @@ async def update_custom_adviser(
     # Save current config as version before updating
     # Get current version number
     version_count_result = await db.execute(
-        select(CustomAdviserVersion)
-        .where(CustomAdviserVersion.custom_adviser_id == adviser_id)
+        select(CustomSkillVersion)
+        .where(CustomSkillVersion.custom_adviser_id == adviser_id)
     )
     existing_versions = version_count_result.scalars().all()
     next_version = len(existing_versions) + 1
 
     # Create version snapshot
-    version = CustomAdviserVersion(
+    version = CustomSkillVersion(
         custom_adviser_id=adviser_id,
         version_number=next_version,
         tools=adviser.tools,
@@ -966,10 +966,10 @@ async def delete_custom_adviser(
 ):
     """Delete a custom adviser"""
     result = await db.execute(
-        select(CustomAdviser).where(
+        select(CustomSkill).where(
             and_(
-                CustomAdviser.id == adviser_id,
-                CustomAdviser.tenant_id == tenant_id
+                CustomSkill.id == adviser_id,
+                CustomSkill.tenant_id == tenant_id
             )
         )
     )
@@ -992,14 +992,14 @@ async def list_adviser_versions(
     current_user: User = Depends(require_tenant_admin),
 ):
     """List version history for a custom adviser"""
-    from app.models.adviser import CustomAdviserVersion
+    from app.models.skill import CustomSkillVersion
 
     # Verify adviser belongs to tenant
     adviser_result = await db.execute(
-        select(CustomAdviser).where(
+        select(CustomSkill).where(
             and_(
-                CustomAdviser.id == adviser_id,
-                CustomAdviser.tenant_id == tenant_id
+                CustomSkill.id == adviser_id,
+                CustomSkill.tenant_id == tenant_id
             )
         )
     )
@@ -1010,9 +1010,9 @@ async def list_adviser_versions(
 
     # Get versions
     versions_result = await db.execute(
-        select(CustomAdviserVersion)
-        .where(CustomAdviserVersion.custom_adviser_id == adviser_id)
-        .order_by(CustomAdviserVersion.version_number.desc())
+        select(CustomSkillVersion)
+        .where(CustomSkillVersion.custom_adviser_id == adviser_id)
+        .order_by(CustomSkillVersion.version_number.desc())
     )
     versions = versions_result.scalars().all()
 
@@ -1039,14 +1039,14 @@ async def restore_adviser_version(
     current_user: User = Depends(require_tenant_admin),
 ):
     """Restore a custom adviser to a specific version"""
-    from app.models.adviser import CustomAdviserVersion
+    from app.models.skill import CustomSkillVersion
 
     # Verify adviser belongs to tenant
     adviser_result = await db.execute(
-        select(CustomAdviser).where(
+        select(CustomSkill).where(
             and_(
-                CustomAdviser.id == adviser_id,
-                CustomAdviser.tenant_id == tenant_id
+                CustomSkill.id == adviser_id,
+                CustomSkill.tenant_id == tenant_id
             )
         )
     )
@@ -1057,10 +1057,10 @@ async def restore_adviser_version(
 
     # Get version
     version_result = await db.execute(
-        select(CustomAdviserVersion).where(
+        select(CustomSkillVersion).where(
             and_(
-                CustomAdviserVersion.id == version_id,
-                CustomAdviserVersion.custom_adviser_id == adviser_id
+                CustomSkillVersion.id == version_id,
+                CustomSkillVersion.custom_adviser_id == adviser_id
             )
         )
     )
@@ -1071,13 +1071,13 @@ async def restore_adviser_version(
 
     # Save current state as new version before restoring
     version_count_result = await db.execute(
-        select(CustomAdviserVersion)
-        .where(CustomAdviserVersion.custom_adviser_id == adviser_id)
+        select(CustomSkillVersion)
+        .where(CustomSkillVersion.custom_adviser_id == adviser_id)
     )
     existing_versions = version_count_result.scalars().all()
     next_version = len(existing_versions) + 1
 
-    backup_version = CustomAdviserVersion(
+    backup_version = CustomSkillVersion(
         custom_adviser_id=adviser_id,
         version_number=next_version,
         tools=adviser.tools,
@@ -1147,27 +1147,27 @@ async def get_platform_analytics(
 
     # Total sessions
     total_sessions = await db.execute(
-        select(func.count(AdviserSession.id))
+        select(func.count(SkillConversation.id))
     )
 
     # Sessions by phase
     sessions_by_phase = await db.execute(
         select(
-            AdviserSession.phase,
-            func.count(AdviserSession.id)
-        ).group_by(AdviserSession.phase)
+            SkillConversation.phase,
+            func.count(SkillConversation.id)
+        ).group_by(SkillConversation.phase)
     )
 
     # Average rating
     avg_rating = await db.execute(
-        select(func.avg(AdviserSessionEvaluation.rating))
-        .where(AdviserSessionEvaluation.rating.isnot(None))
+        select(func.avg(SkillSessionEvaluation.rating))
+        .where(SkillSessionEvaluation.rating.isnot(None))
     )
 
     # Completion rate
     completed = await db.execute(
-        select(func.count(AdviserSession.id))
-        .where(AdviserSession.phase == AdviserPhase.COMPLETED)
+        select(func.count(SkillConversation.id))
+        .where(SkillConversation.phase == SkillPhase.COMPLETED)
     )
 
     return {
@@ -1188,8 +1188,8 @@ async def get_all_evaluations(
 ):
     """Get all session evaluations across platform"""
     result = await db.execute(
-        select(AdviserSessionEvaluation)
-        .order_by(AdviserSessionEvaluation.created_at.desc())
+        select(SkillSessionEvaluation)
+        .order_by(SkillSessionEvaluation.created_at.desc())
         .offset(skip)
         .limit(limit)
     )
@@ -1217,16 +1217,16 @@ async def list_experiments(
     current_user: User = Depends(require_super_admin),
 ):
     """List all A/B experiments"""
-    from app.models.adviser import AdviserExperiment
+    from app.models.skill import SkillExperiment
 
-    result = await db.execute(select(AdviserExperiment))
+    result = await db.execute(select(SkillExperiment))
     experiments = result.scalars().all()
 
     return {
         "experiments": [
             {
                 "id": e.id,
-                "adviser_id": e.adviser_id,
+                "skill_id": e.skill_id,
                 "name": e.name,
                 "status": e.status.value,
                 "optimization_strategy": e.optimization_strategy.value,
