@@ -6,7 +6,41 @@ Implements agent loop for tool execution
 from typing import List, Dict, Any, Optional, Tuple
 from loguru import logger
 import json
+import re
 from app.services.skill_tools import tool_registry
+
+
+def _extract_result_from_response(response: str) -> str:
+    """
+    Extract clean response from LLM output.
+    Some LLMs wrap their response in XML-like tags for internal reasoning.
+    Extract only the user-facing content.
+    """
+    if not response:
+        return response
+
+    # Check if response contains XML-like reflection/result tags
+    result_match = re.search(r'<result>(.*?)</result>', response, re.DOTALL | re.IGNORECASE)
+    if result_match:
+        # Extract only the <result> content
+        result_content = result_match.group(1).strip()
+        logger.info("[Response Cleaning] Extracted <result> content from XML-wrapped response")
+        return result_content
+
+    # If no <result> tags but has other XML tags, try to strip them
+    if '<' in response and '>' in response:
+        # Remove common internal reasoning tags
+        cleaned = re.sub(r'<search_quality_reflection>.*?</search_quality_reflection>', '', response, flags=re.DOTALL | re.IGNORECASE)
+        cleaned = re.sub(r'<search_quality_score>.*?</search_quality_score>', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
+        cleaned = re.sub(r'<thinking>.*?</thinking>', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
+        cleaned = cleaned.strip()
+
+        if cleaned != response:
+            logger.info("[Response Cleaning] Stripped internal reasoning tags from response")
+            return cleaned
+
+    # No special formatting, return as-is
+    return response
 
 
 async def handle_function_calling(
@@ -208,7 +242,10 @@ async def handle_function_calling(
 
             # No more tool calls, return final response
             logger.info(f"[Function Calling] LLM provided final response after {iteration + 1} iterations")
-            return response.content, tool_calls_made
+
+            # Clean up response - extract only the <result> content if XML tags present
+            cleaned_response = _extract_result_from_response(response.content)
+            return cleaned_response, tool_calls_made
 
         except Exception as e:
             logger.error(f"[Function Calling] Error in iteration {iteration}: {e}")

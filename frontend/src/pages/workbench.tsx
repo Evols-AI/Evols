@@ -183,7 +183,8 @@ export default function Workbench() {
     try {
       const response = await api.post('/copilot/chat', {
         message: userMessage,
-        conversation_id: activeConversation
+        conversation_id: activeConversation,
+        product_id: selectedProductIds[0] || null  // Pass current product context
       })
 
       // Update conversation ID if this was a new conversation

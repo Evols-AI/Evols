@@ -152,66 +152,67 @@ Content:
 {content[:4000]}  # Limit content length
 
 Extract the following entity types (if present):
-1. Personas - Target user types, job titles, roles
-2. Pain Points - Problems, frustrations, challenges mentioned
-3. Use Cases - How the product is used, scenarios
-4. Feature Requests - Desired features or improvements
-5. Product Capabilities - Existing features, APIs, components
-6. Stakeholders - Key people mentioned (customers, team members, partners)
-7. Competitors - Competing products or companies mentioned
-8. Technical Requirements - Technical constraints or requirements
+1. Pain Points - Technical/product problems, bugs, broken features
+2. Feature Requests - Explicitly requested new capabilities
+3. Product Capabilities - Existing features mentioned positively
+4. Personas - Specific user types with job titles (e.g., "VP Engineering")
+5. Competitors - Named competing products/companies
+6. Use Cases - Specific scenarios describing product usage
 
-Return a JSON array with this structure:
+**CRITICAL RULES (FOLLOW EXACTLY):**
+
+1. **EXTRACT MAXIMUM ONE ENTITY PER FEEDBACK:**
+   - Each piece of feedback is about ONE thing - extract only that ONE entity
+   - "Dashboard is slow (30 sec)" → ONE pain_point: "Slow dashboard load time (30 seconds)"
+   - "Dashboard is fast, team loves it" → ONE product_capability: "Fast dashboard performance"
+   - "Need more colors" → ONE feature_request: "More color options for dashboard"
+   - DON'T extract multiple entities about the same topic
+
+2. **NEVER EXTRACT:**
+   - Generic stakeholders: "our team", "users", "customers", "we" (only extract if named person with title)
+   - Feature requests that are just fixes for pain points (e.g., if pain="slow load", don't also extract feature="improve load time")
+   - Business consequences as separate entities (churn, lost deals) - put in business_impact attribute only
+   - The same concept twice
+   - Vague capabilities like "Dashboard performance" when feedback is about something else
+
+3. **SENTIMENT TO TYPE MAPPING:**
+   - Praise ("fast", "loves", "great") → product_capability
+   - Complaint ("slow", "broken", "unacceptable") → pain_point
+   - Bug report ("404", "error", "broken") → pain_point with category="bug"
+   - Request ("need", "want", "add") → feature_request if it's NEW, otherwise pain_point if fixing existing
+
+4. **BE SPECIFIC:**
+   - Include metrics: "30 seconds", "404 error", "5 times per day"
+   - Name the specific feature: "dashboard", "search", "API endpoint"
+   - Bad: "Performance issues" → Good: "Slow dashboard load time (30 seconds)"
+
+Return a JSON array with usually ONE entity (sometimes zero, rarely two if truly distinct topics):
 [
   {{
-    "type": "persona|pain_point|use_case|feature_request|product_capability|stakeholder|competitor|technical_requirement",
-    "name": "Short name or title",
-    "description": "Detailed description",
+    "type": "pain_point|feature_request|product_capability|persona|competitor|use_case",
+    "name": "Specific, concise name with metrics if mentioned",
+    "description": "Detailed description including business impact if mentioned",
     "confidence": 0.0-1.0,
-    "category": "optional category",
+    "category": "optional category (e.g., 'bug', 'performance', 'usability')",
     "attributes": {{
-      "speaker_role": "job title if mentioned",
-      "company_size": "company size if mentioned",
-      "arr_value": numeric ARR if mentioned,
       "sentiment": "positive|negative|neutral",
-      "urgency": "high|medium|low"
+      "urgency": "high|medium|low",
+      "business_impact": "consequence if mentioned (e.g., 'customer churn', 'lost $100K deal')",
+      "metric": "specific measurement if given (e.g., '30 seconds', '404 error')"
     }},
     "context_snippet": "Original text where found (max 200 chars)"
   }}
 ]
 
-**IMPORTANT - Extract Rich Metadata:**
-- speaker_role: Job title of person quoted (e.g., "VP Engineering", "CTO", "Product Manager")
-- company_size: If mentioned (e.g., "50-200 employees", "Enterprise", "500+ employees")
-- arr_value: Annual recurring revenue if mentioned (numeric value)
-- sentiment: Whether this is positive, negative, or neutral
-- urgency: How urgent/important this seems based on language used
-- context_snippet: Keep under 200 characters but include key quote
+**IMPORTANT:** Return an empty array [] if the content has no extractable entities. Most feedback should produce EXACTLY ONE entity.
 
-**CRITICAL - Confidence Scoring Rules (Follow Strictly):**
-
-Reserve 1.0 ONLY for entities with ALL of these:
-- Direct quote with exact attribution
-- Specific details (job title, company size, metrics)
-- Clear context with no ambiguity
-Example: "John Smith, CTO at 3,500 employee company DataCorp, said 'We lost $850K deal'"
-
-Use 0.7-0.85 for most entities (this should be your default):
-- Clear mention but missing some details
-- Role stated but indirect attribution
-- Example: "CTOs mentioned", "VP Engineering at mid-market SaaS"
-
-Use 0.5-0.69 for:
-- Inferred from behavior or context clues
-- Multiple weak signals combined
-- Example: "Technical stakeholders", "Engineering leadership indicated"
-
-Use 0.3-0.49 for:
-- Single vague mention
-- Ambiguous or indirect reference
-- Example: "Some engineers", "Team members suggested"
-
-**TARGET DISTRIBUTION:** Aim for average score of 0.65-0.75. Only ~5-10% of entities should score 0.95+. Most should be 0.6-0.85. Be conservative - when in doubt, go lower!
+**Metadata Guidelines:**
+- sentiment: positive (praise), negative (complaint), neutral
+- urgency: HIGH if mentions churn/blocking/lost deals, MEDIUM for important issues, LOW for nice-to-haves
+- business_impact: Store business consequences here (e.g., "customer churn", "lost $100K deal", "migration blocked")
+- metric: Specific measurements mentioned (e.g., "30 seconds", "404 error", "$100K")
+- context_snippet: Quote the key phrase from the original text (max 200 chars)
+- confidence: Use 0.75 for most clear mentions, 0.6 for inferred, 0.9+ only for direct quotes with attribution
 """
         return base_prompt
 

@@ -200,6 +200,10 @@ export const api = {
     deleteSource: (sourceId: number) => apiClient.delete(`/api/v1/context/sources/${sourceId}`),
     extractEntities: (sourceId: number) => apiClient.post(`/api/v1/context/sources/${sourceId}/extract`),
 
+    // Source Groups
+    getSourceGroups: (params?: any) => apiClient.get('/api/v1/context/source-groups', { params }),
+    getSourceGroupSources: (groupId: number) => apiClient.get(`/api/v1/context/source-groups/${groupId}/sources`),
+
     // Retention
     getRetentionPolicies: () => apiClient.get('/api/v1/context/retention/policies'),
     updateRetentionPolicy: (sourceId: number, policy: string) =>

@@ -8,10 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from typing import List, Optional
 from pydantic import BaseModel
+import csv
+import io
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.models.context import ContextSource, ExtractedEntity, ContextSourceType, ContextProcessingStatus, EntityType
+from app.models.context import ContextSource, ExtractedEntity, ContextSourceType, ContextProcessingStatus, EntityType, SourceGroup
 from app.models.user import User
 from app.services.context_extraction_service import extract_entities_from_source
 
@@ -48,8 +50,24 @@ class ContextSourceResponse(BaseModel):
     status: str
     entities_extracted_count: int
     error_message: Optional[str] = None
+    source_group_id: Optional[int] = None
     created_at: str
     updated_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class SourceGroupResponse(BaseModel):
+    id: int
+    tenant_id: int
+    name: str
+    description: Optional[str]
+    event_date: Optional[str] = None
+    created_at: str
+    sources_count: int
+    total_entities: int
+    sources: Optional[List[ContextSourceResponse]] = None
 
     class Config:
         from_attributes = True
@@ -119,6 +137,87 @@ async def get_context_sources(
             status=s.status.value,
             entities_extracted_count=s.entities_extracted_count or 0,
             error_message=s.error_message,
+            source_group_id=s.source_group_id,
+            created_at=s.created_at.isoformat(),
+            updated_at=s.updated_at.isoformat(),
+        )
+        for s in sources
+    ]
+
+
+@router.get("/source-groups", response_model=List[SourceGroupResponse])
+async def get_source_groups(
+    product_ids: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get source groups with aggregated stats"""
+    from sqlalchemy import func
+
+    # Query for source groups with aggregated data
+    query = select(
+        SourceGroup,
+        func.count(ContextSource.id).label('sources_count'),
+        func.sum(ContextSource.entities_extracted_count).label('total_entities')
+    ).outerjoin(
+        ContextSource, ContextSource.source_group_id == SourceGroup.id
+    ).where(
+        SourceGroup.tenant_id == current_user.tenant_id
+    ).group_by(SourceGroup.id).order_by(SourceGroup.created_at.desc())
+
+    # Filter by product if specified (check if any source in group matches product)
+    if product_ids:
+        product_id_list = [int(pid) for pid in product_ids.split(',')]
+        query = query.where(ContextSource.product_id.in_(product_id_list))
+
+    result = await db.execute(query)
+    groups_with_stats = result.all()
+
+    return [
+        SourceGroupResponse(
+            id=group.id,
+            tenant_id=group.tenant_id,
+            name=group.name,
+            description=group.description,
+            event_date=group.event_date.isoformat() if group.event_date else None,
+            created_at=group.created_at.isoformat(),
+            sources_count=sources_count or 0,
+            total_entities=int(total_entities) if total_entities else 0
+        )
+        for group, sources_count, total_entities in groups_with_stats
+    ]
+
+
+@router.get("/source-groups/{group_id}/sources", response_model=List[ContextSourceResponse])
+async def get_source_group_sources(
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all sources belonging to a source group"""
+    query = select(ContextSource).where(
+        and_(
+            ContextSource.source_group_id == group_id,
+            ContextSource.tenant_id == current_user.tenant_id
+        )
+    ).order_by(ContextSource.created_at.asc())
+
+    result = await db.execute(query)
+    sources = result.scalars().all()
+
+    return [
+        ContextSourceResponse(
+            id=s.id,
+            tenant_id=s.tenant_id,
+            product_id=s.product_id,
+            source_type=s.source_type.value,
+            name=s.name,
+            description=s.description,
+            source_url=s.source_url,
+            status=s.status.value,
+            entities_extracted_count=s.entities_extracted_count or 0,
+            error_message=s.error_message,
+            source_group_id=s.source_group_id,
             created_at=s.created_at.isoformat(),
             updated_at=s.updated_at.isoformat(),
         )
@@ -173,7 +272,87 @@ async def create_context_source(
     )
 
 
-@router.post("/sources/upload", response_model=ContextSourceResponse)
+def _match_csv_column(column_name: str, patterns: List[str]) -> bool:
+    """Check if a column name matches any of the given patterns (case-insensitive, exact match)"""
+    column_lower = column_name.lower().strip().replace('_', '').replace('-', '').replace(' ', '')
+    normalized_patterns = [p.lower().replace('_', '').replace('-', '').replace(' ', '') for p in patterns]
+    return column_lower in normalized_patterns
+
+
+def _parse_csv_row_to_source_fields(row: dict, source_type_enum: ContextSourceType) -> dict:
+    """
+    Parse a CSV row and map columns to ContextSource fields using flexible matching.
+    Returns a dict with recognized fields and extra_data for unmapped columns.
+    """
+    from datetime import datetime
+
+    # Define flexible column patterns for common fields
+    column_mappings = {
+        'content': ['content', 'feedback', 'description', 'text', 'comment', 'message', 'body'],
+        'customer_name': ['customer_name', 'customer', 'company', 'account', 'company_name', 'account_name', 'client'],
+        'customer_segment': ['segment', 'customer_segment', 'tier', 'plan', 'customer_tier'],
+        'customer_email': ['email', 'customer_email', 'contact_email', 'user_email'],
+        'title': ['title', 'subject', 'summary', 'headline'],
+        'source_date': ['date', 'feedback_date', 'created_at', 'timestamp', 'created_date', 'submission_date'],
+        'urgency_score': ['urgency', 'urgency_score', 'priority', 'priority_score'],
+        'impact_score': ['impact', 'impact_score', 'importance'],
+        'sentiment_score': ['sentiment', 'sentiment_score'],
+    }
+
+    # Initialize result
+    mapped_fields = {}
+    extra_data = {}
+
+    # Process each column in the CSV row
+    for col_name, col_value in row.items():
+        if not col_name or col_value == '':
+            continue
+
+        col_value = str(col_value).strip()
+        if not col_value:
+            continue
+
+        # Try to match to recognized fields
+        matched = False
+        for field_name, patterns in column_mappings.items():
+            if _match_csv_column(col_name, patterns):
+                # Special handling for date fields
+                if field_name == 'source_date':
+                    try:
+                        # Try to parse date
+                        from dateutil import parser
+                        parsed_date = parser.parse(col_value)
+                        mapped_fields[field_name] = parsed_date.date()
+                    except:
+                        # If parsing fails, store as string in extra_data
+                        extra_data[col_name] = col_value
+                # Special handling for numeric scores
+                elif field_name in ['urgency_score', 'impact_score', 'sentiment_score']:
+                    try:
+                        mapped_fields[field_name] = float(col_value)
+                    except (ValueError, TypeError):
+                        extra_data[col_name] = col_value
+                else:
+                    # String fields
+                    mapped_fields[field_name] = col_value
+                matched = True
+                break
+
+        # If not matched to a known field, store in extra_data
+        if not matched:
+            extra_data[col_name] = col_value
+
+    # Set source_type
+    mapped_fields['source_type'] = source_type_enum
+
+    # Store extra columns
+    if extra_data:
+        mapped_fields['extra_data'] = extra_data
+
+    return mapped_fields
+
+
+@router.post("/sources/upload")
 async def upload_context_file(
     file: UploadFile = File(...),
     name: str = Form(...),
@@ -185,8 +364,11 @@ async def upload_context_file(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload a file as a context source (TXT, CSV, PDF, etc.)"""
+    """Upload a file as a context source (TXT, CSV, PDF, etc.)
 
+    For CSV files: Parses each row as a separate context source with flexible column mapping.
+    For other files: Stores content as a single context source.
+    """
     # Validate file extension
     allowed_extensions = {'.txt', '.csv', '.pdf', '.md', '.json'}
     file_ext = '.' + file.filename.split('.')[-1].lower() if '.' in file.filename else ''
@@ -222,6 +404,128 @@ async def upload_context_file(
         if retention_policy not in valid_policies:
             retention_policy = '30_days'  # Default fallback
 
+        # === CSV SPECIAL HANDLING: Parse rows into separate sources ===
+        if file_ext == '.csv':
+            try:
+                csv_reader = csv.DictReader(io.StringIO(content_text))
+                rows = list(csv_reader)
+
+                if not rows:
+                    raise HTTPException(status_code=400, detail="CSV file is empty")
+
+                # Create a SourceGroup to keep all CSV rows together
+                source_group = SourceGroup(
+                    tenant_id=current_user.tenant_id,
+                    name=name,
+                    description=f"CSV upload: {file.filename} ({len(rows)} rows)",
+                )
+                db.add(source_group)
+                await db.flush()  # Get group ID
+
+                created_sources = []
+                extraction_errors = []
+
+                # Create one ContextSource per CSV row, linked to the group
+                for row_num, row in enumerate(rows, start=1):
+                    try:
+                        # Parse row with flexible column matching
+                        parsed_fields = _parse_csv_row_to_source_fields(row, source_type_enum)
+
+                        # Must have content
+                        if 'content' not in parsed_fields or not parsed_fields['content']:
+                            continue  # Skip rows without content
+
+                        # Check for duplicate
+                        from app.services.deduplication_service import DeduplicationService
+                        dedup_service = DeduplicationService(db)
+                        content_hash = dedup_service.compute_content_hash(parsed_fields['content'])
+
+                        existing_source = await dedup_service.find_duplicate_source(
+                            content_hash=content_hash,
+                            tenant_id=current_user.tenant_id
+                        )
+
+                        if existing_source:
+                            continue  # Skip duplicate rows
+
+                        # Create source name with row number
+                        row_name = f"{name} - Row {row_num}"
+                        if 'customer_name' in parsed_fields and parsed_fields['customer_name']:
+                            row_name = f"{name} - {parsed_fields['customer_name']}"
+
+                        # Create ContextSource linked to the group
+                        new_source = ContextSource(
+                            tenant_id=current_user.tenant_id,
+                            product_id=product_id,
+                            source_group_id=source_group.id,  # Link to group
+                            name=row_name,
+                            description=description,
+                            content=parsed_fields['content'],
+                            title=parsed_fields.get('title'),
+                            customer_name=parsed_fields.get('customer_name'),
+                            customer_segment=parsed_fields.get('customer_segment'),
+                            customer_email=parsed_fields.get('customer_email'),
+                            source_date=parsed_fields.get('source_date'),
+                            urgency_score=parsed_fields.get('urgency_score'),
+                            impact_score=parsed_fields.get('impact_score'),
+                            sentiment_score=parsed_fields.get('sentiment_score'),
+                            source_type=parsed_fields['source_type'],
+                            extra_data=parsed_fields.get('extra_data'),
+                            content_hash=content_hash,
+                            status=ContextProcessingStatus.PENDING,
+                            entities_extracted_count=0,
+                            retention_policy=retention_policy,
+                        )
+
+                        db.add(new_source)
+                        await db.flush()  # Get ID without committing
+
+                        # Extract entities inline
+                        try:
+                            entities_count = await extract_entities_from_source(
+                                db=db,
+                                tenant_id=current_user.tenant_id,
+                                source_id=new_source.id
+                            )
+
+                            # Apply retention policy
+                            from app.services.retention_service import RetentionPolicyService
+                            retention_service = RetentionPolicyService(db)
+                            await retention_service.apply_retention_policy(
+                                new_source,
+                                policy=retention_policy,
+                                encrypt_if_needed=True
+                            )
+                        except Exception as e:
+                            extraction_errors.append(f"Row {row_num}: {str(e)}")
+                            new_source.status = ContextProcessingStatus.FAILED
+                            new_source.error_message = str(e)
+
+                        created_sources.append(new_source)
+
+                    except Exception as e:
+                        extraction_errors.append(f"Row {row_num}: {str(e)}")
+                        continue
+
+                # Commit all sources at once
+                await db.commit()
+
+                # Return summary
+                return {
+                    "success": True,
+                    "message": f"CSV processed: {len(created_sources)} sources created from {len(rows)} rows (grouped under '{source_group.name}')",
+                    "source_group_id": source_group.id,
+                    "source_group_name": source_group.name,
+                    "sources_created": len(created_sources),
+                    "total_rows": len(rows),
+                    "source_ids": [s.id for s in created_sources],
+                    "errors": extraction_errors if extraction_errors else None
+                }
+
+            except csv.Error as e:
+                raise HTTPException(status_code=400, detail=f"Invalid CSV format: {str(e)}")
+
+        # === NON-CSV FILES: Create single source ===
         # Check for duplicate content
         from app.services.deduplication_service import DeduplicationService
         dedup_service = DeduplicationService(db)

@@ -22,6 +22,8 @@ export default function Context() {
   const [loading, setLoading] = useState(true)
   const [selectedView, setSelectedView] = useState<ViewType>('sources')
   const [contextSources, setContextSources] = useState<any[]>([])
+  const [sourceGroups, setSourceGroups] = useState<any[]>([])
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [extractedEntities, setExtractedEntities] = useState<any[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -51,13 +53,21 @@ export default function Context() {
       setLoading(true)
       const productIdsParam = selectedProductIds.join(',')
 
-      const [sourcesRes, entitiesRes, personasRes] = await Promise.all([
+      const [sourcesRes, groupsRes, entitiesRes, personasRes] = await Promise.all([
         api.context.getSources({ product_ids: productIdsParam }),
+        api.context.getSourceGroups({ product_ids: productIdsParam }),
         api.context.getEntities({ product_ids: productIdsParam }),
         api.getPersonas(productIdsParam, { status_filter: 'new,active,inactive' })
       ])
 
-      setContextSources(Array.isArray(sourcesRes.data) ? sourcesRes.data : [])
+      const allSources = Array.isArray(sourcesRes.data) ? sourcesRes.data : []
+      const groups = Array.isArray(groupsRes.data) ? groupsRes.data : []
+
+      // Separate ungrouped sources (sources without source_group_id)
+      const ungroupedSources = allSources.filter((s: any) => !s.source_group_id)
+
+      setContextSources(ungroupedSources)
+      setSourceGroups(groups)
 
       // Get list of already promoted entity IDs
       const personas = personasRes.data.items || personasRes.data || []
@@ -242,7 +252,7 @@ export default function Context() {
                       }`}
                     >
                       <Database className="w-4 h-4 inline mr-2" />
-                      Sources ({contextSources.length})
+                      Sources ({sourceGroups.length + contextSources.length})
                     </button>
                     <button
                       onClick={() => {
@@ -361,7 +371,21 @@ export default function Context() {
 
               {/* Content Views */}
               {selectedView === 'sources' ? (
-                <SourcesView sources={filteredSources} onRefresh={loadContext} />
+                <SourcesView
+                  sources={filteredSources}
+                  groups={sourceGroups}
+                  expandedGroups={expandedGroups}
+                  onToggleGroup={(groupId) => {
+                    const newExpanded = new Set(expandedGroups)
+                    if (newExpanded.has(groupId)) {
+                      newExpanded.delete(groupId)
+                    } else {
+                      newExpanded.add(groupId)
+                    }
+                    setExpandedGroups(newExpanded)
+                  }}
+                  onRefresh={loadContext}
+                />
               ) : selectedView === 'entities' ? (
                 <EntitiesView
                   entities={filteredEntities}
@@ -393,8 +417,44 @@ export default function Context() {
   )
 }
 
-function SourcesView({ sources, onRefresh }: { sources: any[]; onRefresh: () => void }) {
-  if (sources.length === 0) {
+function SourcesView({
+  sources,
+  groups,
+  expandedGroups,
+  onToggleGroup,
+  onRefresh
+}: {
+  sources: any[]
+  groups: any[]
+  expandedGroups: Set<number>
+  onToggleGroup: (groupId: number) => void
+  onRefresh: () => void
+}) {
+  const [groupSources, setGroupSources] = React.useState<Record<number, any[]>>({})
+  const [loadingGroupId, setLoadingGroupId] = React.useState<number | null>(null)
+
+  const loadGroupSources = async (groupId: number) => {
+    if (groupSources[groupId]) return // Already loaded
+
+    setLoadingGroupId(groupId)
+    try {
+      const response = await api.context.getSourceGroupSources(groupId)
+      setGroupSources(prev => ({ ...prev, [groupId]: response.data }))
+    } catch (error) {
+      console.error('Error loading group sources:', error)
+    } finally {
+      setLoadingGroupId(null)
+    }
+  }
+
+  const handleToggleGroup = async (groupId: number) => {
+    if (!expandedGroups.has(groupId)) {
+      await loadGroupSources(groupId)
+    }
+    onToggleGroup(groupId)
+  }
+
+  if (sources.length === 0 && groups.length === 0) {
     return (
       <Card>
         <EmptyState
@@ -408,10 +468,79 @@ function SourcesView({ sources, onRefresh }: { sources: any[]; onRefresh: () => 
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {sources.map((source) => (
-        <ContextSourceCard key={source.id} source={source} onRefresh={onRefresh} />
+    <div className="space-y-6">
+      {/* Source Groups */}
+      {groups.map((group) => (
+        <div key={`group-${group.id}`}>
+          <button
+            onClick={() => handleToggleGroup(group.id)}
+            className="w-full text-left"
+          >
+            <Card>
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Database className="w-6 h-6 text-blue-500" />
+                    <div>
+                      <h3 className="font-semibold text-lg">{group.name}</h3>
+                      {group.description && (
+                        <p className="text-sm text-muted mt-1">{group.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-sm text-muted">
+                        {group.sources_count} sources
+                      </div>
+                      <div className="text-sm text-muted">
+                        {group.total_entities} entities
+                      </div>
+                    </div>
+                    <svg
+                      className={`w-5 h-5 transition-transform ${
+                        expandedGroups.has(group.id) ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </button>
+
+          {/* Expanded Group Sources */}
+          {expandedGroups.has(group.id) && (
+            <div className="mt-4 ml-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {loadingGroupId === group.id ? (
+                <div className="col-span-2 text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
+                </div>
+              ) : (
+                groupSources[group.id]?.map((source: any) => (
+                  <ContextSourceCard key={source.id} source={source} onRefresh={onRefresh} />
+                ))
+              )}
+            </div>
+          )}
+        </div>
       ))}
+
+      {/* Ungrouped Sources */}
+      {sources.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {sources.map((source) => (
+            <ContextSourceCard key={source.id} source={source} onRefresh={onRefresh} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

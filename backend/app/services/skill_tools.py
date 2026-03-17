@@ -797,6 +797,7 @@ async def get_context_sources(
                 "source_type": str(s.source_type.value) if s.source_type else "",
                 "name": str(s.name) if s.name else "",
                 "description": str(s.description) if s.description else "",
+                "customer_name": str(s.customer_name) if s.customer_name else None,
                 "status": str(s.status.value) if s.status else "",
                 "entities_extracted_count": int(s.entities_extracted_count) if s.entities_extracted_count else 0,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
@@ -810,7 +811,7 @@ async def get_context_sources(
 
 @tool_registry.register(
     name="get_extracted_entities",
-    description="Get AI-extracted entities (personas, pain points, use cases, capabilities, etc.) from context sources. Can search by keywords or filter by source. Returns source_name with each entity so you can see which source it came from.",
+    description="Get AI-extracted entities (personas, pain points, use cases, capabilities, etc.) from context sources. Can search by keywords or filter by source/customer. Returns source_name and customer_name with each entity so you can see which source and customer it came from.",
     parameters=[
         ToolParameter(
             name="entity_type",
@@ -821,6 +822,7 @@ async def get_context_sources(
         ),
         ToolParameter(name="search", type="string", description="Search by entity name, description, or category (e.g., 'dashboard', 'performance', 'slow')", required=False),
         ToolParameter(name="source_name", type="string", description="Filter by source name using partial match (e.g., 'Acme' will match 'Acme Corp Meeting Notes'). NOTE: Source names may vary - check source names first with get_context_sources if unsure.", required=False),
+        ToolParameter(name="customer_name", type="string", description="Filter by customer/company name using partial match (e.g., 'Acme' will match 'Acme Corp')", required=False),
         ToolParameter(name="limit", type="integer", description="Maximum number of entities to return", required=False),
         ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
     ]
@@ -831,6 +833,7 @@ async def get_extracted_entities(
     entity_type: Optional[str] = "all",
     search: Optional[str] = None,
     source_name: Optional[str] = None,
+    customer_name: Optional[str] = None,
     limit: Optional[int] = 100,
     product_id: Optional[int] = None
 ) -> Dict[str, Any]:
@@ -864,6 +867,11 @@ async def get_extracted_entities(
         source_search_term = f"%{source_name.lower()}%"
         query = query.where(sqlfunc.lower(ContextSource.name).like(source_search_term))
 
+    # Add customer name filter
+    if customer_name:
+        customer_search_term = f"%{customer_name.lower()}%"
+        query = query.where(sqlfunc.lower(ContextSource.customer_name).like(customer_search_term))
+
     query = query.order_by(ExtractedEntity.created_at.desc())
 
     if limit:
@@ -872,7 +880,7 @@ async def get_extracted_entities(
     result = await db.execute(query)
     entities = result.scalars().all()
 
-    # Fetch source names for all entities
+    # Fetch source names and customer names for all entities
     source_ids = list(set(e.source_id for e in entities if e.source_id))
     source_map = {}
     if source_ids:
@@ -880,14 +888,15 @@ async def get_extracted_entities(
             select(ContextSource).where(ContextSource.id.in_(source_ids))
         )
         sources = source_result.scalars().all()
-        source_map = {s.id: s.name for s in sources}
+        source_map = {s.id: {"name": s.name, "customer_name": s.customer_name} for s in sources}
 
     return {
         "entities": [
             {
                 "id": int(e.id),
                 "source_id": int(e.source_id) if e.source_id else None,
-                "source_name": source_map.get(e.source_id) if e.source_id else None,
+                "source_name": source_map.get(e.source_id, {}).get("name") if e.source_id else None,
+                "customer_name": source_map.get(e.source_id, {}).get("customer_name") if e.source_id else None,
                 "entity_type": str(e.entity_type.value) if e.entity_type else "",
                 "name": str(e.name) if e.name else "",
                 "description": str(e.description) if e.description else "",
