@@ -198,14 +198,23 @@ Remember:
         else:
             return """You are EvolsAI, an expert AI copilot for product managers.
 
-You help product managers with various tasks including:
+You have access to tools that let you query the company's product data including:
+- Customer feedback and context sources (meeting transcripts, surveys, documents)
+- AI-extracted entities (personas, pain points, feature requests, use cases)
+- Feedback themes and clusters
+- Product features and initiatives
+- Customer personas and segments
+
+IMPORTANT: When users ask about feedback, customers, themes, features, or any product data, you MUST use the available tools to fetch and analyze the actual data. Do not say you don't have access to information - use the tools to retrieve it.
+
+You help product managers with:
 - Strategic roadmap planning
 - Feature prioritization
 - PRD writing
 - Customer analysis
 - Data-driven decision making
 
-Be conversational, ask clarifying questions, and provide actionable insights backed by data. When you have access to specific tools or skills, you'll use them to provide more detailed answers."""
+Be conversational, ask clarifying questions, and provide actionable insights backed by data from the tools."""
 
     def format_conversation_history(self, messages: List[SkillMessage]) -> List[Dict[str, str]]:
         """Format conversation history for Claude API"""
@@ -286,12 +295,31 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
         skill_id, skill_type = await self.detect_skill(message, history)
 
         # Load skill config if applicable
-        skill_config = None
+        actual_skill_config = None
         if skill_id:
-            skill_config = await self.load_skill_config(skill_id, skill_type)
+            actual_skill_config = await self.load_skill_config(skill_id, skill_type)
+
+        # Determine which tools to use (skill tools or default general tools)
+        if actual_skill_config:
+            tools_config = actual_skill_config
+        else:
+            # Provide default tools for general copilot
+            tools_config = {
+                'tools': [
+                    'get_context_sources',
+                    'get_extracted_entities',
+                    'get_entity_summary',
+                    'get_themes',
+                    'get_feedback_items',
+                    'get_feedback_summary',
+                    'get_personas',
+                    'get_features',
+                    'calculate_rice_score'
+                ]
+            }
 
         # Build prompt
-        system_prompt = self.build_system_prompt(skill_config)
+        system_prompt = self.build_system_prompt(actual_skill_config)
         conversation_history = self.format_conversation_history(history)
 
         # Get LLM service
@@ -302,14 +330,14 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
         if conversation and conversation.context_data:
             product_id = conversation.context_data.get('product_id')
 
-        # Check if skill has tools
-        if skill_config and skill_config.get('tools'):
+        # Check if we have tools to use (now always true with default tools)
+        if tools_config and tools_config.get('tools'):
             # Use function calling mode
             assistant_content, tool_calls = await handle_function_calling(
                 user_message=message,
                 conversation_history=conversation_history,
                 system_prompt=system_prompt,
-                skill_config=skill_config,
+                skill_config=tools_config,
                 llm_service=llm_service,
                 tenant_id=self.user.tenant_id,
                 db=self.db,
@@ -367,7 +395,7 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
                 'id': assistant_msg.id,
                 'role': 'assistant',
                 'content': assistant_content,
-                'skill': skill_config if skill_id else None,
+                'skill': actual_skill_config if skill_id else None,
                 'created_at': assistant_msg.created_at.isoformat()
             }
         }
