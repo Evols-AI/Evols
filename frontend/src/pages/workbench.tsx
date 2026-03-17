@@ -116,7 +116,7 @@ export default function Workbench() {
 
   const loadAdvisers = async () => {
     try {
-      const response = await api.get('/copilot/advisers')
+      const response = await api.get('/copilot/skills')
       setAdvisers(response.data)
     } catch (err: any) {
       console.error('Failed to load advisers:', err)
