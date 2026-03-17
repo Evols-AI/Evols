@@ -425,21 +425,30 @@ async def get_features(
     name="calculate_rice_score",
     description="Calculate RICE score for a feature",
     parameters=[
-        ToolParameter(name="reach", type="integer", description="Number of users impacted"),
-        ToolParameter(name="impact", type="integer", description="Impact score (1-5)"),
-        ToolParameter(name="confidence", type="integer", description="Confidence percentage (0-100)"),
-        ToolParameter(name="effort", type="integer", description="Effort in person-weeks")
+        ToolParameter(name="reach", type="number", description="Number of users impacted"),
+        ToolParameter(name="impact", type="number", description="Impact score (1-5)"),
+        ToolParameter(name="confidence", type="number", description="Confidence percentage (0-100)"),
+        ToolParameter(name="effort", type="number", description="Effort in person-weeks (can be decimal)")
     ]
 )
 async def calculate_rice_score(
-    reach: int,
-    impact: int,
-    confidence: int,
-    effort: int,
+    reach: float,
+    impact: float,
+    confidence: float,
+    effort: float,
     tenant_id: int,
     db: AsyncSession
 ) -> Dict[str, Any]:
     """Calculate RICE score"""
+    # Convert all inputs to float to handle both int and string inputs
+    try:
+        reach = float(reach)
+        impact = float(impact)
+        confidence = float(confidence)
+        effort = float(effort)
+    except (ValueError, TypeError) as e:
+        return {"error": f"Invalid numeric input: {str(e)}"}
+
     if effort == 0:
         return {"error": "Effort cannot be zero"}
 
@@ -448,10 +457,10 @@ async def calculate_rice_score(
 
     return {
         "rice_score": float(round(rice_score, 2)),
-        "reach": int(reach),
-        "impact": int(impact),
-        "confidence": int(confidence),
-        "effort": int(effort),
+        "reach": float(reach),
+        "impact": float(impact),
+        "confidence": float(confidence),
+        "effort": float(effort),
         "formula": str(f"({reach} × {impact} × {confidence_decimal}) / {effort}")
     }
 
