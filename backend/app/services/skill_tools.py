@@ -740,8 +740,9 @@ async def get_current_date(tenant_id: int, db: AsyncSession) -> Dict[str, Any]:
 
 @tool_registry.register(
     name="get_context_sources",
-    description="Get all context sources (meeting transcripts, surveys, documents, etc.) for analysis",
+    description="Get all context sources (meeting transcripts, surveys, documents, etc.) for analysis. Can search by source name or keywords.",
     parameters=[
+        ToolParameter(name="search", type="string", description="Search by source name or keywords (e.g., 'Acme Corp', 'dashboard meeting')", required=False),
         ToolParameter(name="source_type", type="string", description="Filter by source type (optional)", required=False),
         ToolParameter(name="status", type="string", description="Filter by processing status (optional)", required=False),
         ToolParameter(name="limit", type="integer", description="Maximum number of sources to return", required=False),
@@ -751,12 +752,15 @@ async def get_current_date(tenant_id: int, db: AsyncSession) -> Dict[str, Any]:
 async def get_context_sources(
     tenant_id: int,
     db: AsyncSession,
+    search: Optional[str] = None,
     source_type: Optional[str] = None,
     status: Optional[str] = None,
     limit: Optional[int] = 50,
     product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get context sources with optional filtering"""
+    from sqlalchemy import or_, func as sqlfunc
+
     query = select(ContextSource).where(ContextSource.tenant_id == tenant_id)
 
     if product_id:
@@ -767,6 +771,16 @@ async def get_context_sources(
 
     if status and status != 'all':
         query = query.where(ContextSource.status == status)
+
+    # Add search filter
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.where(
+            or_(
+                sqlfunc.lower(ContextSource.name).like(search_term),
+                sqlfunc.lower(ContextSource.description).like(search_term)
+            )
+        )
 
     query = query.order_by(ContextSource.created_at.desc())
 
@@ -796,7 +810,7 @@ async def get_context_sources(
 
 @tool_registry.register(
     name="get_extracted_entities",
-    description="Get AI-extracted entities (personas, pain points, use cases, capabilities, etc.) from context sources",
+    description="Get AI-extracted entities (personas, pain points, use cases, capabilities, etc.) from context sources. Can search by keywords or filter by source.",
     parameters=[
         ToolParameter(
             name="entity_type",
@@ -805,6 +819,8 @@ async def get_context_sources(
             required=False,
             enum=["persona", "pain_point", "use_case", "feature_request", "product_capability", "stakeholder", "competitor", "all"]
         ),
+        ToolParameter(name="search", type="string", description="Search by entity name, description, or category (e.g., 'dashboard', 'performance', 'slow')", required=False),
+        ToolParameter(name="source_name", type="string", description="Filter by source name (e.g., 'Acme Corp')", required=False),
         ToolParameter(name="limit", type="integer", description="Maximum number of entities to return", required=False),
         ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
     ]
@@ -813,10 +829,14 @@ async def get_extracted_entities(
     tenant_id: int,
     db: AsyncSession,
     entity_type: Optional[str] = "all",
+    search: Optional[str] = None,
+    source_name: Optional[str] = None,
     limit: Optional[int] = 100,
     product_id: Optional[int] = None
 ) -> Dict[str, Any]:
-    """Get extracted entities with optional type filtering"""
+    """Get extracted entities with optional type filtering and search"""
+    from sqlalchemy import or_, func as sqlfunc
+
     query = select(ExtractedEntity).where(ExtractedEntity.tenant_id == tenant_id)
 
     if product_id:
@@ -824,6 +844,23 @@ async def get_extracted_entities(
 
     if entity_type and entity_type != 'all':
         query = query.where(ExtractedEntity.entity_type == entity_type)
+
+    # Add search filter
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.where(
+            or_(
+                sqlfunc.lower(ExtractedEntity.name).like(search_term),
+                sqlfunc.lower(ExtractedEntity.description).like(search_term),
+                sqlfunc.lower(ExtractedEntity.category).like(search_term)
+            )
+        )
+
+    # Add source name filter - need to join with ContextSource
+    if source_name:
+        query = query.join(ContextSource, ExtractedEntity.source_id == ContextSource.id)
+        source_search_term = f"%{source_name.lower()}%"
+        query = query.where(sqlfunc.lower(ContextSource.name).like(source_search_term))
 
     query = query.order_by(ExtractedEntity.created_at.desc())
 
