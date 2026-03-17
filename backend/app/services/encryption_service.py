@@ -8,7 +8,7 @@ import os
 import base64
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from typing import Tuple, Optional
 from loguru import logger
 
@@ -18,7 +18,7 @@ class EncryptionService:
     Service for encrypting and decrypting content
 
     Uses AES-256-GCM for authenticated encryption with randomly generated keys.
-    Keys are derived from a master secret using PBKDF2.
+    Keys are derived from a master secret using PBKDF2HMAC.
     """
 
     def __init__(self, master_secret: Optional[str] = None):
@@ -38,7 +38,7 @@ class EncryptionService:
 
     def _derive_key(self, key_id: str, salt: bytes) -> bytes:
         """
-        Derive encryption key from master secret and key_id using PBKDF2
+        Derive encryption key from master secret and key_id using PBKDF2HMAC
 
         Args:
             key_id: Unique identifier for this key
@@ -47,7 +47,7 @@ class EncryptionService:
         Returns:
             32-byte encryption key
         """
-        kdf = PBKDF2(
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,  # 256 bits
             salt=salt,
