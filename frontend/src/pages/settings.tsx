@@ -1384,6 +1384,12 @@ export default function Settings() {
               )}
             </div>
           )}
+        </div>
+      </div>
+    </div>
+    </div>
+  )
+}
 
 // Invite Modal Component
 function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
@@ -1487,12 +1493,6 @@ function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  )
-}
-        </div>
-      </div>
       </div>
     </div>
   )
