@@ -54,7 +54,7 @@ export default function Context() {
       const [sourcesRes, entitiesRes, personasRes] = await Promise.all([
         api.context.getSources({ product_ids: productIdsParam }),
         api.context.getEntities({ product_ids: productIdsParam }),
-        api.getPersonas(productIdsParam, { status_filter: 'new,advisor,dismissed' })
+        api.getPersonas(productIdsParam, { status_filter: 'new,active,inactive' })
       ])
 
       setContextSources(Array.isArray(sourcesRes.data) ? sourcesRes.data : [])
@@ -442,7 +442,7 @@ function EntitiesView({
         key_pain_points: entity.attributes?.pain_points || [],
         feature_priorities: entity.attributes?.priorities || [],
         confidence_score: entity.confidence_score || 0.7, // Ensure we have a value
-        status: 'advisor',
+        status: 'active',
         product_id: selectedProductIds[0] || null,
         extra_data: {
           promoted_from_entity_id: entity.id,
@@ -457,7 +457,7 @@ function EntitiesView({
       const productIdsParam = selectedProductIds.join(',')
       const [entitiesRes, personasRes] = await Promise.all([
         api.context.getEntities({ product_ids: productIdsParam }),
-        api.getPersonas(productIdsParam, { status_filter: 'new,advisor,dismissed' })
+        api.getPersonas(productIdsParam, { status_filter: 'new,active,inactive' })
       ])
 
       // Get list of already promoted entity IDs

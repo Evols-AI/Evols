@@ -252,11 +252,11 @@ Respond with JSON array:
             return []
 
     async def _load_personas(self, tenant_id: int, db: AsyncSession) -> List[Persona]:
-        """Load personas for context (only advisor personas)"""
+        """Load personas for context (only active personas)"""
         result = await db.execute(
             select(Persona).where(
                 Persona.tenant_id == tenant_id,
-                Persona.status == 'advisor'  # Only use active personas
+                Persona.status == 'active'  # Only use active personas
             )
         )
         return result.scalars().all()

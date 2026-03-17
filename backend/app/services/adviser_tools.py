@@ -466,7 +466,7 @@ async def calculate_rice_score(
         ToolParameter(
             name="persona_filter",
             type="string",
-            description="Filter personas (e.g., 'CTO', 'VP', 'advisor status'). Leave empty for all personas.",
+            description="Filter personas (e.g., 'CTO', 'VP', 'active status'). Leave empty for all personas.",
             required=False
         ),
         ToolParameter(
@@ -499,9 +499,9 @@ async def simulate_persona_votes(
     # Apply filter
     if persona_filter:
         filter_lower = persona_filter.lower()
-        if 'advisor' in filter_lower or 'adviser' in filter_lower:
+        if 'active' in filter_lower:
             from app.schemas.persona import PersonaStatus
-            query = query.where(Persona.status == PersonaStatus.ADVISOR)
+            query = query.where(Persona.status == PersonaStatus.ACTIVE)
         else:
             # Word-based matching: split filter into words and match if ANY word is in name/segment
             # This handles plurals/variations: "product managers" matches "Product Manager"

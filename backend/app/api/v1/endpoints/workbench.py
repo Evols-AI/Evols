@@ -394,7 +394,7 @@ async def persona_votes(
                 budget_authority_min=p_data.get("budget_authority_min"),
                 budget_authority_max=p_data.get("budget_authority_max"),
                 typical_decision_time_days=p_data.get("typical_decision_time_days"),
-                status="active",  # Treat as advisor for voting
+                status="active",  # Active persona for voting
                 extra_data=p_data,  # Store full generated data in extra_data
             )
             personas.append(persona)
@@ -616,7 +616,7 @@ async def save_generated_personas(
                 budget_authority_min=persona_dict.get("budget_authority_min"),
                 budget_authority_max=persona_dict.get("budget_authority_max"),
                 typical_decision_time_days=persona_dict.get("typical_decision_time_days"),
-                status="active",  # Set as active advisor
+                status="active",  # Set as active persona
                 based_on_feedback_count=0,  # Market-research based, not feedback-based
                 confidence_score=0.7,  # Default confidence for market-research personas
                 extra_data={

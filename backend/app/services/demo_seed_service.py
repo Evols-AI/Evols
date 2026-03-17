@@ -150,7 +150,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "name": "Product Manager Paula",
             "segment": "Product Management",
             "persona_summary": "Senior Product Manager with 5+ years experience leading cross-functional teams to deliver customer-focused products",
-            "status": "advisor",
+            "status": "active",
             "confidence_score": 0.85,  # 85% confidence
             "extra_data": {
                 "revenue_contribution": 150000,  # $150K annual revenue
@@ -161,7 +161,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "name": "Developer Dave",
             "segment": "Engineering",
             "persona_summary": "Senior Full-Stack Developer specializing in performance optimization and scalable architecture",
-            "status": "advisor",
+            "status": "active",
             "confidence_score": 0.78,  # 78% confidence
             "extra_data": {
                 "revenue_contribution": 120000,  # $120K annual revenue
@@ -172,7 +172,7 @@ async def seed_demo_product(db: AsyncSession, tenant_id: int) -> Product:
             "name": "Designer Diana",
             "segment": "Design",
             "persona_summary": "Lead UX/UI Designer with expertise in user research and interaction design",
-            "status": "advisor",
+            "status": "active",
             "confidence_score": 0.72,  # 72% confidence
             "extra_data": {
                 "revenue_contribution": 90000,  # $90K annual revenue

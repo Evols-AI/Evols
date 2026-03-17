@@ -28,7 +28,7 @@ interface Signal {
   title: string
   description: string
   confidence: number
-  status: 'active' | 'dismissed' | 'investigating'
+  status: 'active' | 'inactive' | 'investigating'
   created_at: string
 }
 */

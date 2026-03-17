@@ -199,7 +199,7 @@ docker-compose up -d`}</code>
                     'Auto-generate personas from customer segments',
                     'Revenue contribution calculated from feedback data',
                     'Usage frequency extracted from activity patterns',
-                    'Persona lifecycle (New → Advisor → Dismissed)',
+                    'Persona lifecycle (New → Active → Inactive)',
                     'Incremental updates with duplicate prevention (85% similarity)',
                     'Chat interface and trade-off voting'
                   ]}

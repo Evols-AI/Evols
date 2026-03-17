@@ -268,7 +268,7 @@ class InitiativeEvidence(TenantScopedModel):
     __tablename__ = "initiative_evidence"
 
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
-    initiative_id = Column(Integer, ForeignKey("initiatives.id"), nullable=False, index=True)
+    initiative_id = Column(Integer, ForeignKey("initiative.id"), nullable=False, index=True)
 
     # Aggregated metrics
     total_mentions = Column(Integer, default=0, nullable=False)
@@ -325,7 +325,7 @@ class EntityInitiativeLink(TenantScopedModel):
 
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
     entity_id = Column(Integer, ForeignKey("extracted_entities.id"), nullable=False, index=True)
-    initiative_id = Column(Integer, ForeignKey("initiatives.id"), nullable=False, index=True)
+    initiative_id = Column(Integer, ForeignKey("initiative.id"), nullable=False, index=True)
 
     # Relevance score (0-1) - how strongly this entity supports this initiative
     relevance_score = Column(Float, nullable=True)

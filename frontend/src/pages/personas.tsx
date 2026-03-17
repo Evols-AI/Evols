@@ -108,7 +108,7 @@ export default function Personas() {
 
       // Update total count
       const totalResponse = await api.getPersonas(productIdsParam, {
-        status_filter: 'new,advisor,dismissed'
+        status_filter: 'new,active,inactive'
       })
       const managedTotal = (totalResponse.data.items || totalResponse.data || []).length
       setTotalPersonas(managedTotal)
