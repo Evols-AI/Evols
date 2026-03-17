@@ -38,6 +38,12 @@ class Settings(BaseSettings):
         description="Enable Celery for durable background tasks. Set to False for local dev without Redis/Celery."
     )
 
+    # LLM Cache
+    LLM_CACHE_ENABLED: bool = Field(
+        default=True,
+        description="Enable LLM response caching in Redis. Set to False to disable caching for testing."
+    )
+
     # JWT & Security
     SECRET_KEY: str = "your-secret-key-change-this-in-production"
     ALGORITHM: str = "HS256"

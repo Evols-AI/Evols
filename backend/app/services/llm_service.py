@@ -10,6 +10,8 @@ from pydantic import BaseModel
 import asyncio
 from loguru import logger
 
+from app.core.config import settings
+
 # Import cache service
 try:
     from app.services.llm_cache_service import LLMCacheService
@@ -995,7 +997,7 @@ def get_llm_service(
             azure_deployment=config_source.get("azure_deployment"),
         )
 
-    return LLMService(config)
+    return LLMService(config, enable_cache=settings.LLM_CACHE_ENABLED)
 
 
 # Example usage and prompts for common tasks
