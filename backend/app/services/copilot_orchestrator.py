@@ -56,7 +56,7 @@ class CopilotOrchestrator:
         Detect which skill should handle this message.
         Returns (skill_id, skill_type) or (None, None) for general conversation.
         """
-        # Check for @mention
+        # Check for @mention (highest priority)
         mention_match = re.search(r'@(\w+)', message)
         if mention_match:
             skill_name = mention_match.group(1).lower()
@@ -66,6 +66,11 @@ class CopilotOrchestrator:
 
         # Auto-classify based on keywords
         skill = await self._classify_by_keywords(message)
+        if skill:
+            return skill
+
+        # Try LLM-based intelligent routing (fallback)
+        skill = await self._classify_by_llm(message)
         if skill:
             return skill
 
@@ -114,7 +119,21 @@ class CopilotOrchestrator:
             'roadmap': ['roadmap', 'prioritize', 'priority', 'quarter', 'planning', 'strategy', 'q1', 'q2', 'q3', 'q4', 'arr', 'revenue'],
             'rice': ['rice', 'score', 'scoring', 'ranking', 'calculate', 'prioritization', 'reach', 'impact', 'confidence', 'effort'],
             'prd': ['prd', 'spec', 'specification', 'requirements', 'user story', 'user stories', 'acceptance criteria', 'feature spec'],
-            'persona': ['persona', 'segment', 'customer', 'user type', 'user segment', 'audience', 'demographic']
+            'persona': [
+                # Direct persona mentions
+                'persona', 'segment', 'user type', 'user segment', 'audience', 'demographic',
+                # Preference/opinion questions (strong indicators)
+                'would they prefer', 'would user prefer', 'would customer prefer',
+                'does the user want', 'do users want', 'do customers want',
+                'user preference', 'customer preference', 'user opinion', 'customer opinion',
+                # Specific persona analysis questions
+                'what would', 'how would', 'would terry', 'would sarah', 'would john',  # Questions about specific people
+                'what does terry', 'what does sarah', 'what does john',  # Analyzing specific people
+                'terry prefer', 'sarah prefer', 'john prefer',  # Common first names + prefer
+                # Behavioral patterns
+                'user behavior', 'customer behavior', 'user needs', 'customer needs',
+                'user characteristics', 'customer characteristics', 'user profile', 'customer profile'
+            ]
         }
 
         # Get all active skills for this tenant
@@ -144,6 +163,93 @@ class CopilotOrchestrator:
                         return (skill.id, SkillType.DEFAULT)
 
         return None
+
+    async def _classify_by_llm(self, message: str) -> Optional[Tuple[int, str]]:
+        """Use LLM to intelligently route message to appropriate skill"""
+        try:
+            # Get all available skills
+            result = await self.db.execute(
+                select(CustomSkill)
+                .where(CustomSkill.tenant_id == self.user.tenant_id)
+                .where(CustomSkill.is_active == True)
+            )
+            custom_skills = result.scalars().all()
+
+            result = await self.db.execute(
+                select(Skill)
+                .where(Skill.is_active == True)
+            )
+            default_skills = result.scalars().all()
+
+            all_skills = []
+            for skill in custom_skills:
+                all_skills.append({
+                    'id': skill.id,
+                    'type': SkillType.CUSTOM,
+                    'name': skill.name,
+                    'description': skill.description
+                })
+            for skill in default_skills:
+                all_skills.append({
+                    'id': skill.id,
+                    'type': SkillType.DEFAULT,
+                    'name': skill.name,
+                    'description': skill.description
+                })
+
+            if not all_skills:
+                return None
+
+            # Build skill list for LLM
+            skill_list = "\n".join([
+                f"- {s['name']}: {s['description']}"
+                for s in all_skills
+            ])
+
+            # Ask LLM to classify
+            llm = await self.get_llm_service()
+
+            classification_prompt = f"""Given this user message, determine which specialized skill would be BEST to handle it. Only suggest a skill if it's clearly a better fit than general conversation.
+
+User message: "{message}"
+
+Available skills:
+{skill_list}
+
+IMPORTANT ROUTING RULES:
+- If the message asks about a SPECIFIC PERSON/CUSTOMER by name (e.g., "Would Terry prefer X?", "What does Sarah want?"), use "Persona Analyzer"
+- If the message asks about USER PREFERENCES, CUSTOMER OPINIONS, or BEHAVIORAL ANALYSIS, use "Persona Analyzer"
+- If the message asks about ROADMAP, PRIORITIZATION, or STRATEGIC PLANNING, use "Roadmap Planner"
+- If the message asks to CALCULATE RICE SCORE or SCORE A FEATURE, use appropriate prioritization skill
+- If it's a GENERAL QUESTION that doesn't need specialized analysis, return "none"
+
+Respond with ONLY the skill name (exact match from list above) or "none" if general conversation is sufficient.
+Do not explain, just output the skill name or "none"."""
+
+            response = await llm.generate(
+                prompt=classification_prompt,
+                system_prompt="You are a routing classifier. Output only the skill name or 'none'. No explanations.",
+                temperature=0.0,
+                max_tokens=50
+            )
+
+            skill_name = response.content.strip().lower()
+
+            # If LLM says "none", don't route to a skill
+            if skill_name == "none" or not skill_name:
+                return None
+
+            # Find matching skill
+            for skill_data in all_skills:
+                if skill_name in skill_data['name'].lower() or skill_data['name'].lower() in skill_name:
+                    logger.info(f"[Copilot] LLM routed to skill: {skill_data['name']}")
+                    return (skill_data['id'], skill_data['type'])
+
+            return None
+
+        except Exception as e:
+            logger.warning(f"[Copilot] LLM-based skill classification failed: {e}")
+            return None
 
     async def load_skill_config(self, skill_id: int, skill_type: str) -> Dict[str, Any]:
         """Load skill configuration"""

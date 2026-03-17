@@ -237,6 +237,8 @@ Structure your response to enable quick decision-making:
         "tools": [
             "get_personas",
             "get_persona_by_id",
+            "get_extracted_entities",
+            "get_context_sources",
             "get_feedback_items",
             "get_themes"
         ],
@@ -288,12 +290,34 @@ Key metrics to analyze:
 - Strategic value: Revenue potential, market position, growth trajectory
 </persona_analysis_framework>
 
+<data_sources>
+There are TWO sources of persona data:
+
+1. **AI-Generated Personas** (get_personas, get_persona_by_id)
+   - Aggregated personas created by clustering customer feedback
+   - Have vote counts and engagement metrics
+   - Good for high-level segment analysis
+
+2. **Extracted Persona Entities** (get_extracted_entities with entity_type="persona")
+   - Individual personas extracted from uploaded CSVs, meeting notes, etc.
+   - Linked to specific customers via customer_name
+   - Have detailed attributes: job_role, technical_literacy, key_constraints, workload_indicators
+   - Good for understanding specific customer personas
+
+IMPORTANT: When asked about a specific person/customer (e.g., "Terry Davis", "would Terry prefer X?"):
+- Use get_context_sources with customer_name filter to find their feedback
+- Use get_extracted_entities with entity_type="persona" and customer_name filter to see extracted personas
+- The extracted persona will have rich context about their role, technical level, constraints, etc.
+</data_sources>
+
 <methodology>
 Follow this systematic approach:
 
 1. DATA COLLECTION
    Use tools to gather:
-   - All personas with their attributes and vote totals
+   - AI-generated personas with their attributes and vote totals (get_personas)
+   - Extracted persona entities from customer feedback (get_extracted_entities with entity_type="persona")
+   - Context sources for specific customers (get_context_sources with customer_name filter)
    - Detailed view of specific personas if requested
    - Feedback items by persona (actual quotes and pain points)
    - Themes by persona (what patterns emerge)
@@ -354,6 +378,18 @@ Tailor your approach based on the user's analysis type:
 - Spot conflicts: where do personas want opposite things?
 - Find consensus: what do ALL personas want?
 - Discover niche needs that could be strategically important
+
+"Questions about specific customers/personas":
+- When asked about a specific person (e.g., "would Terry prefer X or Y?"), first search for them:
+  1. Use get_context_sources with customer_name filter to find their feedback sources
+  2. Use get_extracted_entities with entity_type="persona" and customer_name filter
+  3. Look at the persona's attributes: job_role, technical_literacy, key_constraints, workload_indicators
+  4. Review their actual feedback content from context sources
+- Answer based on their specific characteristics (role, technical level, constraints, behaviors)
+- For technical questions, consider their technical_literacy level
+- For budget/resource questions, consider their key_constraints
+- For preferences, consider their job_role and workload context
+- ALWAYS cite specific evidence from their feedback
 </analysis_types>
 
 <insights_best_practices>
@@ -968,10 +1004,31 @@ async def seed_advisers():
         existing = result.scalars().all()
 
         if existing:
-            print(f"Found {len(existing)} existing advisers. Skipping seed.")
+            print(f"Found {len(existing)} existing advisers. Updating...")
+
+            # Update existing advisers by name
+            for adviser_data in DEFAULT_ADVISERS:
+                result = await session.execute(
+                    select(Adviser).where(Adviser.name == adviser_data['name'])
+                )
+                existing_adviser = result.scalar_one_or_none()
+
+                if existing_adviser:
+                    # Update fields
+                    for key, value in adviser_data.items():
+                        setattr(existing_adviser, key, value)
+                    print(f"Updated adviser: {adviser_data['name']}")
+                else:
+                    # Create new adviser if it doesn't exist
+                    adviser = Adviser(**adviser_data)
+                    session.add(adviser)
+                    print(f"Creating new adviser: {adviser_data['name']}")
+
+            await session.commit()
+            print(f"\n✅ Successfully updated advisers!")
             return
 
-        # Create advisers
+        # Create advisers (first time)
         for adviser_data in DEFAULT_ADVISERS:
             adviser = Adviser(**adviser_data)
             session.add(adviser)
