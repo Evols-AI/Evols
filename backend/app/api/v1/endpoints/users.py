@@ -12,10 +12,11 @@ from pydantic import BaseModel, EmailStr
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_tenant_id
 from app.core.permissions import require_tenant_admin, require_same_tenant
-from app.core.security import get_password_hash, verify_password
+from app.core.security import get_password_hash, verify_password, create_access_token
 from app.models.user import User, UserRole
 from app.models.tenant import Tenant
-from app.schemas.auth import PasswordChange, ProfileUpdate
+from app.models.user_tenant import UserTenant
+from app.schemas.auth import PasswordChange, ProfileUpdate, Token
 
 router = APIRouter()
 
@@ -414,3 +415,95 @@ async def delete_user(
 
     await db.delete(user)
     await db.commit()
+
+
+# Multi-tenant support schemas
+class TenantMembershipResponse(BaseModel):
+    tenant_id: int
+    tenant_name: str
+    tenant_slug: str
+    role: str
+    is_active: bool
+    joined_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class SwitchTenantRequest(BaseModel):
+    tenant_id: int
+
+
+@router.get("/me/tenants", response_model=List[TenantMembershipResponse])
+async def list_my_tenants(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    List all tenants the current user belongs to
+    """
+    result = await db.execute(
+        select(UserTenant, Tenant)
+        .join(Tenant, UserTenant.tenant_id == Tenant.id)
+        .where(UserTenant.user_id == current_user.id)
+        .order_by(UserTenant.created_at.desc())
+    )
+    memberships = result.all()
+
+    return [
+        TenantMembershipResponse(
+            tenant_id=membership.UserTenant.tenant_id,
+            tenant_name=membership.Tenant.name,
+            tenant_slug=membership.Tenant.slug,
+            role=membership.UserTenant.role,
+            is_active=membership.UserTenant.is_active,
+            joined_at=membership.UserTenant.created_at.isoformat(),
+        )
+        for membership in memberships
+    ]
+
+
+@router.post("/me/switch-tenant", response_model=Token)
+async def switch_tenant(
+    request: SwitchTenantRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Switch to a different tenant context
+    Returns a new JWT token with the selected tenant
+    """
+    # Verify user is a member of the requested tenant
+    result = await db.execute(
+        select(UserTenant).where(
+            UserTenant.user_id == current_user.id,
+            UserTenant.tenant_id == request.tenant_id,
+            UserTenant.is_active == True
+        )
+    )
+    membership = result.scalar_one_or_none()
+
+    if not membership:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a member of this tenant"
+        )
+
+    # Create new access token with the selected tenant context
+    access_token = create_access_token(
+        data={
+            "user_id": current_user.id,
+            "email": current_user.email,
+            "tenant_id": membership.tenant_id,
+            "role": membership.role,
+        }
+    )
+
+    return Token(
+        access_token=access_token,
+        user_id=current_user.id,
+        tenant_id=membership.tenant_id,
+        role=membership.role,
+        email=current_user.email,
+        full_name=current_user.full_name,
+    )

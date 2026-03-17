@@ -9,7 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
-import { User, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2 } from 'lucide-react'
+import { User, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check } from 'lucide-react'
 
 type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock'
@@ -37,6 +37,18 @@ interface ModelOptions {
   aws_regions: string[]
 }
 
+interface Invite {
+  id: number
+  email: string
+  role: string
+  token: string
+  invited_by: number | null
+  is_accepted: boolean
+  expires_at: string
+  message: string | null
+  created_at: string
+}
+
 export default function Settings() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -58,7 +70,15 @@ export default function Settings() {
         email: currentUser.email || '',
       })
     }
-  }, [])
+
+    // Handle ?tab= query parameter
+    if (router.query.tab && typeof router.query.tab === 'string') {
+      const tabParam = router.query.tab as Tab
+      if (['profile', 'security', 'notifications', 'llm', 'data_refresh', 'team'].includes(tabParam)) {
+        setActiveTab(tabParam)
+      }
+    }
+  }, [router.query.tab])
 
   // LLM Settings state
   const [currentLLMSettings, setCurrentLLMSettings] = useState<any>(null)
@@ -110,9 +130,13 @@ export default function Settings() {
   const [savingKnowledgeRefresh, setSavingKnowledgeRefresh] = useState(false)
 
   // Team management state
+  const [teamSubtab, setTeamSubtab] = useState<'members' | 'invites'>('members')
   const [teamMembers, setTeamMembers] = useState<any[]>([])
   const [loadingTeam, setLoadingTeam] = useState(false)
-  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [invites, setInvites] = useState<Invite[]>([])
+  const [loadingInvites, setLoadingInvites] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [copiedToken, setCopiedToken] = useState<number | null>(null)
 
   const tabs = [
     { id: 'profile' as Tab, label: 'Profile', icon: User },
@@ -131,6 +155,7 @@ export default function Settings() {
       loadPersonaRefreshSettings()
     } else if (activeTab === 'team') {
       loadTeamMembers()
+      loadInvites()
     }
   }, [activeTab])
 
@@ -473,16 +498,6 @@ export default function Settings() {
     }
   }
 
-  const handleAddUser = async (userData: any) => {
-    try {
-      await api.createUser(userData)
-      await loadTeamMembers()
-      setShowAddUserModal(false)
-    } catch (error: any) {
-      alert(`Error: ${error.response?.data?.detail || 'Failed to add user'}`)
-    }
-  }
-
   const handleDeleteUser = async (userId: number) => {
     if (!confirm('Are you sure you want to remove this user from your team?')) {
       return
@@ -493,6 +508,51 @@ export default function Settings() {
     } catch (error: any) {
       alert(`Error: ${error.response?.data?.detail || 'Failed to delete user'}`)
     }
+  }
+
+  // Invite management functions
+  const loadInvites = async () => {
+    try {
+      setLoadingInvites(true)
+      const response = await api.get('/invites/')
+      setInvites(response.data?.invites || [])
+    } catch (error) {
+      console.error('Failed to load invites:', error)
+    } finally {
+      setLoadingInvites(false)
+    }
+  }
+
+  const handleDeleteInvite = async (inviteId: number) => {
+    if (!confirm('Are you sure you want to revoke this invitation?')) return
+
+    try {
+      await api.delete(`/invites/${inviteId}`)
+      await loadInvites()
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to revoke invitation')
+    }
+  }
+
+  const handleResendInvite = async (inviteId: number) => {
+    try {
+      await api.post(`/invites/${inviteId}/resend`)
+      alert('Invitation resent successfully!')
+      await loadInvites()
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to resend invitation')
+    }
+  }
+
+  const copyInviteLink = (token: string, inviteId: number) => {
+    const inviteUrl = `${window.location.origin}/register?invite=${token}`
+    navigator.clipboard.writeText(inviteUrl)
+    setCopiedToken(inviteId)
+    setTimeout(() => setCopiedToken(null), 2000)
+  }
+
+  const isExpired = (expiresAt: string) => {
+    return new Date(expiresAt) < new Date()
   }
 
   return (
@@ -1048,133 +1108,326 @@ export default function Settings() {
           {/* Team Management Tab */}
           {activeTab === 'team' && (
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Manage users in your organization</p>
-                </div>
-                <button
-                  onClick={() => setShowAddUserModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add User
-                </button>
+              {/* Team Subtabs */}
+              <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+                <nav className="flex space-x-8">
+                  <button
+                    onClick={() => setTeamSubtab('members')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      teamSubtab === 'members'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Team Members ({teamMembers.length})
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setTeamSubtab('invites')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      teamSubtab === 'invites'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Pending Invites ({invites.filter(i => !i.is_accepted && !isExpired(i.expires_at)).length})
+                    </div>
+                  </button>
+                </nav>
               </div>
 
-              {loadingTeam ? (
-                <div className="text-center py-12">
-                  <div className="text-gray-500 dark:text-gray-400">Loading team members...</div>
-                </div>
-              ) : teamMembers.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">No team members yet</p>
-                  <button
-                    onClick={() => setShowAddUserModal(true)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                  >
-                    Add First User
-                  </button>
-                </div>
-              ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">User</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Role</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {teamMembers.map((member: any) => (
-                        <tr key={member.id}>
-                          <td className="px-6 py-4">
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              {member.full_name || 'No name'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                            {member.email}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 text-xs rounded ${
-                              member.role === 'TENANT_ADMIN'
-                                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                            }`}>
-                              {member.role.replace('_', ' ')}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 text-xs rounded ${
-                              member.is_active
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                            }`}>
-                              {member.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            {member.id !== user?.id && (
-                              <button
-                                onClick={() => handleDeleteUser(member.id)}
-                                className="text-red-600 dark:text-red-400 hover:text-red-700"
-                                title="Remove user"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Team Members Subtab */}
+              {teamSubtab === 'members' && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Current members of your organization</p>
+                    </div>
+                    <button
+                      onClick={() => setShowInviteModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Invite Member
+                    </button>
+                  </div>
+
+                  {loadingTeam ? (
+                    <div className="text-center py-12">
+                      <div className="text-gray-500 dark:text-gray-400">Loading team members...</div>
+                    </div>
+                  ) : teamMembers.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">No team members yet</p>
+                      <button
+                        onClick={() => setShowInviteModal(true)}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        Invite First Member
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">User</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {teamMembers.map((member: any) => (
+                            <tr key={member.id}>
+                              <td className="px-6 py-4">
+                                <div className="font-medium text-gray-900 dark:text-white">
+                                  {member.full_name || 'No name'}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                {member.email}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-1 text-xs rounded ${
+                                  member.role === 'TENANT_ADMIN'
+                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                }`}>
+                                  {member.role.replace('_', ' ')}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-1 text-xs rounded ${
+                                  member.is_active
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                }`}>
+                                  {member.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                {member.id !== user?.id && (
+                                  <button
+                                    onClick={() => handleDeleteUser(member.id)}
+                                    className="text-red-600 dark:text-red-400 hover:text-red-700"
+                                    title="Remove user"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Add User Modal */}
-              {showAddUserModal && (
-                <AddUserModal
-                  onClose={() => setShowAddUserModal(false)}
-                  onAdd={handleAddUser}
+              {/* Pending Invites Subtab */}
+              {teamSubtab === 'invites' && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Invitations</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Invitations waiting to be accepted</p>
+                    </div>
+                    <button
+                      onClick={() => setShowInviteModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Send Invitation
+                    </button>
+                  </div>
+
+                  {loadingInvites ? (
+                    <div className="text-center py-12">
+                      <div className="text-gray-500 dark:text-gray-400">Loading invitations...</div>
+                    </div>
+                  ) : invites.length === 0 ? (
+                    <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <Mail className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">No pending invitations</p>
+                      <button
+                        onClick={() => setShowInviteModal(true)}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        Send First Invitation
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {invites.map((invite) => {
+                        const expired = isExpired(invite.expires_at)
+                        const expiresIn = Math.ceil(
+                          (new Date(invite.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                        )
+
+                        return (
+                          <div
+                            key={invite.id}
+                            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                                    {invite.email}
+                                  </h3>
+                                  {invite.is_accepted ? (
+                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                      <CheckCircle className="w-3 h-3" />
+                                      Accepted
+                                    </span>
+                                  ) : expired ? (
+                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                                      <XCircle className="w-3 h-3" />
+                                      Expired
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+                                      <Clock className="w-3 h-3" />
+                                      Expires in {expiresIn} days
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                  <span>
+                                    Role:{' '}
+                                    <span className="font-medium text-gray-900 dark:text-white">
+                                      {invite.role.replace('_', ' ')}
+                                    </span>
+                                  </span>
+                                  <span>•</span>
+                                  <span>
+                                    Sent {new Date(invite.created_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+
+                                {invite.message && (
+                                  <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                    <p className="italic">"{invite.message}"</p>
+                                  </div>
+                                )}
+
+                                {!invite.is_accepted && !expired && (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => copyInviteLink(invite.token, invite.id)}
+                                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                    >
+                                      {copiedToken === invite.id ? (
+                                        <>
+                                          <Check className="w-4 h-4" />
+                                          Copied!
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="w-4 h-4" />
+                                          Copy Link
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {!invite.is_accepted && !expired && (
+                                  <button
+                                    onClick={() => handleResendInvite(invite.id)}
+                                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                    title="Resend invitation"
+                                  >
+                                    <Send className="w-4 h-4" />
+                                  </button>
+                                )}
+                                {!invite.is_accepted && (
+                                  <button
+                                    onClick={() => handleDeleteInvite(invite.id)}
+                                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                    title="Revoke invitation"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Invite Modal */}
+              {showInviteModal && (
+                <InviteModal
+                  onClose={() => setShowInviteModal(false)}
+                  onSuccess={() => {
+                    setShowInviteModal(false)
+                    loadInvites()
+                  }}
                 />
               )}
             </div>
           )}
-        </div>
-      </div>
-      </div>
-    </div>
-  )
-}
 
-// Add User Modal Component
-function AddUserModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: any) => void }) {
+// Invite Modal Component
+function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    full_name: '',
-    role: 'USER'
+    role: 'USER',
+    message: '',
   })
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onAdd(formData)
+    setError('')
+    setSending(true)
+
+    try {
+      await api.post('/invites/', formData)
+      onSuccess()
+    } catch (error: any) {
+      setError(error.response?.data?.detail || 'Failed to send invitation')
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Add Team Member</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          Invite Team Member
+        </h2>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Email
+              Email Address
             </label>
             <input
               type="email"
@@ -1182,36 +1435,7 @@ function AddUserModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: a
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-              placeholder="user@company.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Full Name
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.full_name}
-              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-              placeholder="John Doe"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-              placeholder="Min 8 characters"
+              placeholder="colleague@company.com"
             />
           </div>
 
@@ -1225,23 +1449,41 @@ function AddUserModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: a
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
             >
               <option value="USER">User</option>
-              <option value="TENANT_ADMIN">Tenant Admin</option>
+              <option value="TENANT_ADMIN">Admin</option>
             </select>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Users can view and collaborate. Admins can manage team members.
+            </p>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Personal Message (Optional)
+            </label>
+            <textarea
+              value={formData.message}
+              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              placeholder="Hey! Join our team to collaborate on product decisions..."
+              rows={3}
+              maxLength={500}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              disabled={sending}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add User
+              {sending ? 'Sending...' : 'Send Invitation'}
             </button>
           </div>
         </form>
@@ -1249,3 +1491,10 @@ function AddUserModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: a
     </div>
   )
 }
+        </div>
+      </div>
+      </div>
+    </div>
+  )
+}
+

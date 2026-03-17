@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, FlaskConical, Settings, MessageSquare, Users, ChevronDown, LogOut, BookOpen, Shield, LifeBuoy, Sparkles, Database, Wand2 } from 'lucide-react'
+import { Moon, Sun, FlaskConical, Settings, MessageSquare, Users, ChevronDown, LogOut, BookOpen, Shield, LifeBuoy, Sparkles, Database, Wand2, UsersRound } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoIcon } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
 import { ProductSelector } from '@/components/ProductSelector'
+import { TenantSwitcher } from '@/components/TenantSwitcher'
 import { getCurrentUser } from '@/utils/auth'
 
 interface HeaderProps {
@@ -150,7 +151,24 @@ export default function Header({ user, currentPage }: HeaderProps) {
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                    {/* Tenant Switcher - only shown for multi-tenant users */}
+                    <div className="px-2 py-1">
+                      <TenantSwitcher />
+                    </div>
+
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+                    {fullUser?.role === 'TENANT_ADMIN' && (
+                      <Link
+                        href="/settings?tab=team"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <UsersRound className="w-4 h-4" />
+                        Team
+                      </Link>
+                    )}
                     <Link
                       href="/settings"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"

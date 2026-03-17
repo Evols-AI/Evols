@@ -52,7 +52,9 @@ class Tenant(BaseModel):
     # }
 
     # Relationships
-    users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
+    users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")  # Legacy single-tenant
+    user_memberships = relationship("UserTenant", back_populates="tenant", cascade="all, delete-orphan")
+    invites = relationship("TenantInvite", back_populates="tenant", cascade="all, delete-orphan")
     feedback_items = relationship("Feedback", back_populates="tenant", cascade="all, delete-orphan")
     themes = relationship("Theme", back_populates="tenant", cascade="all, delete-orphan")
     initiatives = relationship("Initiative", back_populates="tenant", cascade="all, delete-orphan")

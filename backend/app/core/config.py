@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     EMAIL_FROM: str = "noreply@evols.ai"
+    FRONTEND_URL: str = "http://localhost:3000"  # Frontend URL for email links
 
     # File Upload
     MAX_UPLOAD_SIZE_MB: int = 100

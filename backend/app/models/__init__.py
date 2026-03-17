@@ -1,6 +1,9 @@
 """Database Models"""
 
 from app.models.tenant import Tenant
+from app.models.tenant_invite import TenantInvite
+from app.models.user_tenant import UserTenant
+from app.models.email_verification import EmailVerification
 from app.models.product import Product
 from app.models.feedback import Feedback, FeedbackCategory
 from app.models.theme import Theme
@@ -50,6 +53,9 @@ from app.models.user import User
 
 __all__ = [
     "Tenant",
+    "TenantInvite",
+    "UserTenant",
+    "EmailVerification",
     "User",
     "Product",
     "Feedback",

@@ -18,6 +18,9 @@ export default function Register() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [verificationPending, setVerificationPending] = useState(false)
+  const [verificationEmail, setVerificationEmail] = useState('')
 
   // Redirect to workbench if already authenticated
   useEffect(() => {
@@ -30,6 +33,13 @@ export default function Register() {
     }
     checkAuth()
   }, [router])
+
+  // Check for invite token in URL
+  useEffect(() => {
+    if (router.isReady && router.query.invite) {
+      setInviteToken(router.query.invite as string)
+    }
+  }, [router.isReady, router.query.invite])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target; setFormData(prev => ({
@@ -55,7 +65,8 @@ export default function Register() {
       return
     }
 
-    if (formData.tenant_slug.length < 3) {
+    // Only validate tenant_slug if no invite token
+    if (!inviteToken && formData.tenant_slug.length < 3) {
       setError('Company slug must be at least 3 characters')
       return
     }
@@ -63,22 +74,31 @@ export default function Register() {
     setLoading(true)
 
     try {
+      const requestBody: any = {
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
+      }
+
+      // Add invite_token or tenant_slug based on what's available
+      if (inviteToken) {
+        requestBody.invite_token = inviteToken
+      } else {
+        requestBody.tenant_slug = formData.tenant_slug
+      }
+
       const response = await fetch('http://localhost:8000/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          full_name: formData.full_name,
-          tenant_slug: formData.tenant_slug,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       const data = await response.json()
 
-      if (response.ok) {
+      if (response.status === 201) {
+        // Immediate registration (with invite) - 201 Created
         // Store token and user data
         localStorage.setItem('token', data.access_token)
         localStorage.setItem('user', JSON.stringify({
@@ -91,6 +111,10 @@ export default function Register() {
 
         // Redirect to workbench
         router.push('/workbench')
+      } else if (response.status === 202) {
+        // Verification pending - 202 Accepted
+        setVerificationPending(true)
+        setVerificationEmail(data.email)
       } else {
         setError(data.detail || 'Registration failed. Please try again.')
       }
@@ -209,14 +233,63 @@ export default function Register() {
 
               {/* Register Form */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-                {error && (
-                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                {verificationPending ? (
+                  // Show verification pending message
+                  <div className="text-center py-8">
+                    <div className="flex justify-center mb-6">
+                      <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-3">
+                        <Mail className="w-12 h-12 text-green-600 dark:text-green-400" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                      Check Your Email
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">
+                      We've sent a verification link to <strong>{verificationEmail}</strong>
+                    </p>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        Click the link in the email to complete your registration and create your workspace.
+                        The link will expire in 24 hours.
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Didn't receive the email? Check your spam folder or{' '}
+                      <button
+                        onClick={() => {
+                          setVerificationPending(false)
+                          setVerificationEmail('')
+                        }}
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        try again
+                      </button>
+                    </p>
                   </div>
-                )}
+                ) : (
+                  <>
+                    {inviteToken && (
+                      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start space-x-3">
+                        <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">
+                            You've been invited!
+                          </p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            Complete the form below to accept the invitation and join the team.
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                    {error && (
+                      <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-3">
+                        <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Full Name */}
                   <div>
                     <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -259,30 +332,32 @@ export default function Register() {
                     </div>
                   </div>
 
-                  {/* Company Slug */}
-                  <div>
-                    <label htmlFor="tenant_slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Company Slug
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Building className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                  {/* Company Slug - Only show if no invite token */}
+                  {!inviteToken && (
+                    <div>
+                      <label htmlFor="tenant_slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Company Slug
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Building className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        </div>
+                        <input id="tenant_slug"
+                          name="tenant_slug"
+                          type="text"
+                          required={!inviteToken}
+                          value={formData.tenant_slug}
+                          onChange={handleChange}
+                          className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="my-company"
+                          pattern="[a-z0-9-]{3,}"
+                        />
                       </div>
-                      <input id="tenant_slug"
-                        name="tenant_slug"
-                        type="text"
-                        required
-                        value={formData.tenant_slug}
-                        onChange={handleChange}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="my-company"
-                        pattern="[a-z0-9-]{3,}"
-                      />
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Lowercase letters, numbers, and hyphens only (min 3 characters)
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Lowercase letters, numbers, and hyphens only (min 3 characters)
-                    </p>
-                  </div>
+                  )}
 
                   {/* Password */}
                   <div>
@@ -332,9 +407,11 @@ export default function Register() {
                     disabled={loading}
                     className="w-full bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
                   >
-                    {loading ? 'Creating Account...' : 'Create Account'}
+                    {loading ? (inviteToken ? 'Joining...' : 'Creating Account...') : (inviteToken ? 'Accept Invitation' : 'Create Account')}
                   </button>
                 </form>
+                  </>
+                )}
 
                 {/* Links */}
                 <div className="mt-6 text-center text-sm">

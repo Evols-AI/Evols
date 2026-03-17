@@ -18,7 +18,8 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     full_name: str = Field(..., min_length=1, max_length=255)
-    tenant_slug: str | None = Field(None, min_length=3, max_length=100)  # Create or join tenant (optional for SUPER_ADMIN)
+    invite_token: str | None = Field(None, min_length=1)  # Required if joining existing tenant
+    tenant_slug: str | None = Field(None, min_length=3, max_length=100)  # Legacy - used for SUPER_ADMIN token
     is_super_admin: bool = False  # Set to true to create SUPER_ADMIN (requires special auth)
 
 
@@ -55,3 +56,17 @@ class ProfileUpdate(BaseModel):
 
     full_name: str | None = Field(None, min_length=1, max_length=255)
     job_title: str | None = Field(None, max_length=255)
+
+
+class VerificationPendingResponse(BaseModel):
+    """Response when email verification is pending"""
+
+    message: str
+    email: str
+    requires_verification: bool = True
+
+
+class EmailVerificationRequest(BaseModel):
+    """Email verification request"""
+
+    token: str = Field(..., min_length=1)

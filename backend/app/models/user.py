@@ -57,7 +57,8 @@ class User(BaseModel):
     two_factor_secret = Column(String(255), nullable=True)
 
     # Relationships
-    tenant = relationship("Tenant", back_populates="users")
+    tenant = relationship("Tenant", back_populates="users")  # Legacy single-tenant relationship
+    tenant_memberships = relationship("UserTenant", back_populates="user", cascade="all, delete-orphan")
     conversations = relationship("SkillConversation", back_populates="user", cascade="all, delete-orphan")
     decisions = relationship("Decision", back_populates="created_by_user", foreign_keys="Decision.created_by")
 
