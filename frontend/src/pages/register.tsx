@@ -87,7 +87,8 @@ export default function Register() {
         requestBody.tenant_slug = formData.tenant_slug
       }
 
-      const response = await fetch('http://localhost:8000/api/v1/auth/register', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

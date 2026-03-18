@@ -1030,8 +1030,8 @@ export function AddContextModal({
     setUploading(true)
     setError('')
 
+    const formData = new FormData()
     try {
-      const formData = new FormData()
       formData.append('file', file)
       formData.append('name', name)
       formData.append('product_id', selectedProductIds[0].toString())

@@ -27,6 +27,7 @@ interface LLMConfig {
   aws_access_key_id?: string
   aws_secret_access_key?: string
   aws_region?: string
+  [key: string]: any
 }
 
 interface ModelOptions {
@@ -536,7 +537,7 @@ export default function Settings() {
 
   const handleResendInvite = async (inviteId: number) => {
     try {
-      await api.post(`/invites/${inviteId}/resend`)
+      await api.post(`/invites/${inviteId}/resend`, {})
       alert('Invitation resent successfully!')
       await loadInvites()
     } catch (error: any) {

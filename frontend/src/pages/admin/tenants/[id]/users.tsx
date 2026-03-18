@@ -47,7 +47,8 @@ export default function TenantUsers() {
   const loadUsers = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:8000/api/v1/admin/tenants/${id}/users`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${id}/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
@@ -67,7 +68,8 @@ export default function TenantUsers() {
   const handleCreateUser = async (formData: any) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:8000/api/v1/admin/tenants/${id}/users`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${id}/users`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -91,7 +93,8 @@ export default function TenantUsers() {
   const handleChangeRole = async (userId: number, newRole: string) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:8000/api/v1/admin/tenants/${id}/users/${userId}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${id}/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

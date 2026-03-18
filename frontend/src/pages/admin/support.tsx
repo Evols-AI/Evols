@@ -57,7 +57,8 @@ export default function SupportTicketsAdmin() {
   const loadTickets = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/api/v1/support/', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/support/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
@@ -77,7 +78,8 @@ export default function SupportTicketsAdmin() {
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:8000/api/v1/support/${ticketId}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/support/${ticketId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -307,7 +307,7 @@ export default function Personas() {
   }
 
   const handlePromotePersona = async (persona: any) => {
-    if (!await confirmDemoOperation()) return
+    if (!await confirmDemoOperation(selectedProductIds, products, 'promote persona')) return
 
     try {
       // Create a managed persona from the extracted entity

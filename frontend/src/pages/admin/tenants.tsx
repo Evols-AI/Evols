@@ -49,7 +49,8 @@ export default function TenantsAdmin() {
   const loadTenants = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/api/v1/admin/tenants', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/admin/tenants`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
@@ -69,7 +70,8 @@ export default function TenantsAdmin() {
   const handleCreateTenant = async (formData: any) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/api/v1/admin/tenants', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/admin/tenants`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -97,7 +99,8 @@ export default function TenantsAdmin() {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:8000/api/v1/admin/tenants/${tenantId}?force=true`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${tenantId}?force=true`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
