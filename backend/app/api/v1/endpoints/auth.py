@@ -113,6 +113,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     tenant_id = None
     role = UserRole.USER
     is_new_tenant = False
+    invite = None
 
     # Handle SUPER_ADMIN creation
     if user_data.is_super_admin:
@@ -146,7 +147,6 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
         tenant_id = None
     else:
         # Regular user registration - domain-based or invite-based
-        invite = None
 
         if user_data.invite_token:
             # Invite-based registration
@@ -290,13 +290,14 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     await db.flush()  # Flush to get user ID
 
     # Create UserTenant membership
-    user_tenant = UserTenant(
-        user_id=new_user.id,
-        tenant_id=tenant_id,
-        role=role.value,
-        is_active=True,
-    )
-    db.add(user_tenant)
+    if tenant_id:
+        user_tenant = UserTenant(
+            user_id=new_user.id,
+            tenant_id=tenant_id,
+            role=role.value,
+            is_active=True,
+        )
+        db.add(user_tenant)
 
     # Mark invite as accepted if applicable
     if invite:

@@ -58,9 +58,9 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @field_validator("BACKEND_CORS_ORIGINS", "ALLOWED_UPLOAD_EXTENSIONS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v):
+    def assemble_list_from_str(cls, v):
         if isinstance(v, str):
             return [i.strip() for i in v.split(",")]
         return v
