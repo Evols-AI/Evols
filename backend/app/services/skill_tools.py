@@ -1181,6 +1181,214 @@ async def get_all_product_knowledge(
 
 
 # ===================================
+# SKILL MEMORY TOOLS
+# ===================================
+
+@tool_registry.register(
+    name="get_past_skill_work",
+    description="Get recent skill executions and past work for this product. Use when you need to reference what analysis/frameworks/work was done before. Returns summaries with skill name, date, and brief overview.",
+    parameters=[
+        ToolParameter(name="limit", type="integer", description="Maximum results to return (default: 10)", required=False),
+        ToolParameter(name="category", type="string", description="Filter by skill category: discovery, strategy, execution, market-research, data-analytics, go-to-market, marketing-growth, toolkit, os-infrastructure, daily-discipline", required=False),
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def get_past_skill_work(
+    tenant_id: int,
+    db: AsyncSession,
+    limit: int = 10,
+    category: Optional[str] = None,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Get recent skill executions to understand what work has been done"""
+    from app.services.unified_pm_os import MemoryManager
+
+    mm = MemoryManager(db)
+
+    if not product_id:
+        return {
+            "error": "No product selected",
+            "suggestion": "Product ID is required to query past work"
+        }
+
+    try:
+        recent_work = await mm.get_recent_skill_outputs(
+            product_id=product_id,
+            limit=limit,
+            category=category
+        )
+
+        if not recent_work:
+            return {
+                "message": "No past skill work found for this product",
+                "suggestion": "This is the first skill execution, or past work was cleared"
+            }
+
+        return {
+            "product_id": product_id,
+            "total_results": len(recent_work),
+            "past_work": [
+                {
+                    "skill_name": work['skill_name'],
+                    "category": work['skill_category'],
+                    "summary": work['summary'],
+                    "date": work['created_at'].strftime('%Y-%m-%d') if work.get('created_at') else None,
+                    "memory_id": work['id']
+                }
+                for work in recent_work
+            ]
+        }
+    except Exception as e:
+        return {
+            "error": f"Failed to query past work: {str(e)}"
+        }
+
+
+@tool_registry.register(
+    name="get_skill_memory_details",
+    description="Get full details of a specific past skill execution including complete input and output. Use when you need to see the full content of previous work (e.g., complete OST, full SWOT analysis, entire PRD).",
+    parameters=[
+        ToolParameter(name="memory_id", type="integer", description="ID of the skill memory to retrieve (from get_past_skill_work)")
+    ]
+)
+async def get_skill_memory_details(
+    memory_id: int,
+    tenant_id: int,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """Get full details of a specific skill execution"""
+    from app.services.unified_pm_os import MemoryManager
+
+    mm = MemoryManager(db)
+
+    try:
+        memory = await mm.get_skill_memory_by_id(memory_id)
+
+        if not memory:
+            return {
+                "error": f"Memory ID {memory_id} not found"
+            }
+
+        return {
+            "skill_name": memory['skill_name'],
+            "category": memory['skill_category'],
+            "date": memory['created_at'].strftime('%Y-%m-%d %H:%M') if memory.get('created_at') else None,
+            "input": memory['input_data'],
+            "output": memory['output_data'],
+            "summary": memory['summary']
+        }
+    except Exception as e:
+        return {
+            "error": f"Failed to retrieve memory: {str(e)}"
+        }
+
+
+@tool_registry.register(
+    name="search_past_skill_work",
+    description="Search past skill executions by keyword. Use when looking for specific topics or work (e.g., 'retention', 'onboarding', 'pricing'). Searches in skill names and summaries.",
+    parameters=[
+        ToolParameter(name="search_term", type="string", description="Keyword to search for"),
+        ToolParameter(name="limit", type="integer", description="Maximum results (default: 20)", required=False),
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def search_past_skill_work(
+    search_term: str,
+    tenant_id: int,
+    db: AsyncSession,
+    limit: int = 20,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Search skill memory by keyword"""
+    from app.services.unified_pm_os import MemoryManager
+
+    mm = MemoryManager(db)
+
+    if not product_id:
+        return {
+            "error": "No product selected",
+            "suggestion": "Product ID is required to search past work"
+        }
+
+    try:
+        results = await mm.search_memory(
+            product_id=product_id,
+            search_term=search_term,
+            limit=limit
+        )
+
+        if not results:
+            return {
+                "message": f"No past work found matching '{search_term}'",
+                "suggestion": "Try different keywords or check if work was done on this topic"
+            }
+
+        return {
+            "search_term": search_term,
+            "total_results": len(results),
+            "matches": [
+                {
+                    "skill_name": r['skill_name'],
+                    "category": r['skill_category'],
+                    "summary": r['summary'],
+                    "date": r['created_at'].strftime('%Y-%m-%d') if r.get('created_at') else None,
+                    "memory_id": r['id']
+                }
+                for r in results
+            ]
+        }
+    except Exception as e:
+        return {
+            "error": f"Search failed: {str(e)}"
+        }
+
+
+@tool_registry.register(
+    name="get_skill_usage_stats",
+    description="Get statistics about skill usage for this product - which skills are used most, category breakdown, recent activity. Useful for understanding what work has been prioritized.",
+    parameters=[
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def get_skill_usage_stats(
+    tenant_id: int,
+    db: AsyncSession,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Get skill usage statistics"""
+    from app.services.unified_pm_os import MemoryManager
+
+    mm = MemoryManager(db)
+
+    if not product_id:
+        return {
+            "error": "No product selected"
+        }
+
+    try:
+        stats = await mm.get_memory_stats(product_id)
+
+        return {
+            "product_id": product_id,
+            "total_skill_executions": stats['total_executions'],
+            "category_breakdown": stats['category_breakdown'],
+            "most_used_skills": stats['most_used_skills'],
+            "recent_activity": [
+                {
+                    "skill_name": a['skill_name'],
+                    "summary": a['summary'],
+                    "date": a['created_at'].strftime('%Y-%m-%d') if a.get('created_at') else None
+                }
+                for a in stats['recent_activity']
+            ]
+        }
+    except Exception as e:
+        return {
+            "error": f"Failed to get stats: {str(e)}"
+        }
+
+
+# ===================================
 # INTERNET SEARCH TOOL
 # ===================================
 
