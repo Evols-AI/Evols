@@ -114,6 +114,8 @@ class ToolRegistry:
         product_id: Optional[int] = None
     ) -> Any:
         """Execute a tool with automatic tenant isolation and optional product scoping"""
+        from loguru import logger
+
         tool = self.get_tool(tool_name)
         if not tool:
             raise ValueError(f"Tool '{tool_name}' not found")
@@ -127,7 +129,12 @@ class ToolRegistry:
             # Check if tool accepts product_id parameter
             tool_params = {param.name for param in tool.parameters}
             if 'product_id' in tool_params:
+                logger.info(f"[ToolRegistry] Injecting product_id={product_id} into {tool_name}")
                 arguments['product_id'] = product_id
+            else:
+                logger.warning(f"[ToolRegistry] Tool {tool_name} does not accept product_id parameter")
+        else:
+            logger.warning(f"[ToolRegistry] product_id is None for {tool_name}")
 
         return await tool.handler(**arguments)
 

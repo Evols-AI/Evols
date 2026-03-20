@@ -254,7 +254,7 @@ Do not explain, just output the skill name or "none"."""
             return None
 
     async def load_skill_config(self, skill_id: int, skill_type: str) -> Dict[str, Any]:
-        """Load skill configuration - tries file first, falls back to database"""
+        """Load skill configuration from database"""
         if skill_type == SkillType.CUSTOM:
             result = await self.db.execute(
                 select(CustomSkill).where(CustomSkill.id == skill_id)
@@ -269,32 +269,7 @@ Do not explain, just output the skill name or "none"."""
         if not skill:
             return None
 
-        # NEW: Try loading from unified-pm-os SKILL.md file if file_path exists
-        if skill_type == SkillType.DEFAULT and hasattr(skill, 'file_path') and skill.file_path:
-            unified_pm_os_path = os.getenv('UNIFIED_PM_OS_PATH', '../unified-pm-os')
-
-            try:
-                adapter = SkillAdapter(unified_pm_os_path)
-                skill_from_file = adapter.load_skill_from_file(skill.file_path)
-
-                logger.info(f"Loaded skill '{skill.name}' from file: {skill.file_path}")
-
-                return {
-                    'id': skill.id,
-                    'type': skill_type,
-                    'name': skill_from_file['name'],
-                    'description': skill_from_file.get('description', skill.description),
-                    'icon': skill.icon,  # Keep icon from database
-                    'instructions': skill_from_file['instructions'],
-                    'tools': skill_from_file.get('tools', []),
-                    'output_template': skill_from_file.get('output_template'),
-                    'category': skill_from_file.get('category', 'unknown')
-                }
-            except Exception as e:
-                logger.warning(f"Failed to load skill from file {skill.file_path}: {e}. Falling back to database.")
-                # Fall through to database loading
-
-        # Original database loading
+        # Load from database (all skills have full instructions)
         return {
             'id': skill.id,
             'type': skill_type,
@@ -370,12 +345,18 @@ Do not explain, just output the skill name or "none"."""
 {skill_config['instructions']}
 {enhanced_context}
 
+CRITICAL RULES:
+- NEVER make up data, scores, metrics, or customer quotes that you don't have
+- NEVER invent importance/satisfaction scores, survey results, or analytics data
+- If you need data that wasn't provided, ASK for it explicitly
+- Only use real data from the user's input or from tool calls
+- Be conversational and helpful, but truthful above all
+
 Remember:
-- Be conversational and helpful
-- Ask clarifying questions when needed
-- Use the available tools to access data
-- Provide structured, actionable recommendations
-- Cite specific data from the tools
+- Ask clarifying questions when you need more information
+- Use the available tools to access real data
+- Provide structured, actionable recommendations based on actual data
+- Cite specific data sources (user input or tool results)
 - Reference the product knowledge and past work when relevant to provide personalized, context-aware advice
 """
         else:
@@ -577,10 +558,11 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
         # Get LLM service
         llm_service = await self.get_llm_service()
 
-        # Extract product_id from conversation context if available
-        product_id = None
-        if conversation and conversation.context_data:
+        # Use product_id from parameter, or extract from conversation context
+        if product_id is None and conversation and conversation.context_data:
             product_id = conversation.context_data.get('product_id')
+
+        logger.info(f"[Copilot] Final product_id for function calling: {product_id}")
 
         # Check if we have tools to use (now always true with default tools)
         if tools_config and tools_config.get('tools'):
