@@ -371,9 +371,9 @@ export default function Workbench() {
                       Your AI workspace for product management
                     </p>
                     <div className="max-w-2xl mx-auto text-left space-y-3 text-sm text-gray-600 dark:text-gray-400">
-                      <p>• Ask questions about your roadmap, features, and customers</p>
-                      <p>• Use @mentions to invoke specialized skills (@roadmap_planner, @rice_calculator, etc.)</p>
-                      <p>• Get data-driven recommendations backed by your product data</p>
+                      <p>• Ask anything about your product — roadmap, strategy, features, customers</p>
+                      <p>• Invoke expert skills with @mentions (browse Skills page to discover 80+ capabilities)</p>
+                      <p>• AI recommendations grounded in your product strategy and customer intelligence</p>
                     </div>
                   </div>
                 ) : (
@@ -557,7 +557,7 @@ export default function Workbench() {
                 </div>
 
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Pro tip: Type @ to invoke specialized skills for roadmaps, PRDs, RICE scoring, and more
+                  Pro tip: Type @ to invoke skills, or browse the Skills page to discover all capabilities
                 </p>
               </div>
             </div>

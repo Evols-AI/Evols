@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import {
   Database, Plus, Upload, FileText, MessageSquare, Mail, Slack,
   Github, BookOpen, Cloud, X, Loader2, Filter, Search, Calendar,
-  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Sparkles, Check, RefreshCw
+  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Sparkles, Check, RefreshCw, Book
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
@@ -12,8 +12,9 @@ import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, Loading } from '@/components/PageContainer'
 import { useProducts } from '@/hooks/useProducts'
 import { confirmDemoOperation } from '@/utils/demoWarning'
+import StrategyTab from '@/components/context/StrategyTab'
 
-type ViewType = 'sources' | 'entities' | 'insights'
+type ViewType = 'sources' | 'entities' | 'insights' | 'strategy'
 
 export default function Context() {
   const router = useRouter()
@@ -32,6 +33,8 @@ export default function Context() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [selectedEntityType, setSelectedEntityType] = useState<string>('all')
 
+  const productId = selectedProductIds[0]
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login')
@@ -41,12 +44,23 @@ export default function Context() {
     const currentUser = getCurrentUser()
     setUser(currentUser)
 
+    // Check URL params for tab
+    const { tab } = router.query
+    if (tab && ['sources', 'entities', 'insights', 'strategy'].includes(tab as string)) {
+      setSelectedView(tab as ViewType)
+    }
+
     if (selectedProductIds.length > 0) {
       loadContext()
     } else {
       setLoading(false)
     }
   }, [router, selectedProductIds])
+
+  const handleTabChange = (view: ViewType) => {
+    setSelectedView(view)
+    router.push(`/context?tab=${view}`, undefined, { shallow: true })
+  }
 
   const loadContext = async () => {
     try {
@@ -197,7 +211,7 @@ export default function Context() {
   return (
     <>
       <Head>
-        <title>Context - Evols</title>
+        <title>Knowledge - Evols</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -209,10 +223,10 @@ export default function Context() {
             <div className="flex items-center justify-between mb-2">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  Context
+                  Knowledge
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Unified intelligence from customer feedback, product docs, meetings, and research
+                  Product strategy, customer intelligence, and extracted insights from all sources
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -220,21 +234,21 @@ export default function Context() {
                   onClick={handleRefreshContext}
                   disabled={isRefreshing}
                   className="btn-secondary flex items-center gap-2 disabled:opacity-50"
-                  title="Re-extract entities from all context sources"
+                  title="Re-extract entities from all sources"
                 >
                   {isRefreshing ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <RefreshCw className="w-4 h-4" />
                   )}
-                  {isRefreshing ? 'Refreshing...' : 'Refresh Context'}
+                  {isRefreshing ? 'Refreshing...' : 'Refresh Intelligence'}
                 </button>
                 <button
                   onClick={handleAddContext}
                   className="btn-primary flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Context
+                  Add Source
                 </button>
               </div>
             </div>
@@ -258,9 +272,18 @@ export default function Context() {
                 <div className="flex items-center justify-between">
                   <div className="flex gap-1">
                     <button
-                      onClick={() => {
-                        setSelectedView('sources')
-                      }}
+                      onClick={() => handleTabChange('strategy')}
+                      className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
+                        selectedView === 'strategy'
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <Book className="w-4 h-4 inline mr-2" />
+                      Strategy Docs
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('sources')}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'sources'
                           ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -268,11 +291,11 @@ export default function Context() {
                       }`}
                     >
                       <Database className="w-4 h-4 inline mr-2" />
-                      Sources ({sourceGroups.length + contextSources.length})
+                      Feedback Sources ({sourceGroups.length + contextSources.length})
                     </button>
                     <button
                       onClick={() => {
-                        setSelectedView('entities')
+                        handleTabChange('entities')
                         setSelectedEntityType('all')
                       }}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
@@ -386,7 +409,9 @@ export default function Context() {
               )}
 
               {/* Content Views */}
-              {selectedView === 'sources' ? (
+              {selectedView === 'strategy' ? (
+                <StrategyTab productId={productId} />
+              ) : selectedView === 'sources' ? (
                 <SourcesView
                   sources={filteredSources}
                   groups={sourceGroups}

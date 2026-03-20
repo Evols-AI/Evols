@@ -17,7 +17,7 @@ interface Session {
   last_message_at: string | null
 }
 
-export default function AdviserHistory() {
+export default function SkillHistory() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [sessions, setSessions] = useState<Session[]>([])
@@ -105,16 +105,16 @@ export default function AdviserHistory() {
 
       <PageContainer>
         <button
-          onClick={() => router.push('/advisers')}
+          onClick={() => router.push('/skills')}
           className="flex items-center gap-2 text-blue-500 hover:text-blue-600 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Advisers
+          Back to Skills
         </button>
 
         <PageHeader
           title="Session History"
-          description="View and continue your previous adviser sessions"
+          description="View and continue your previous skill sessions"
           icon={History}
         />
 
@@ -128,10 +128,10 @@ export default function AdviserHistory() {
           <EmptyState
             icon={MessageSquare}
             title="No sessions yet"
-            description="Start a session with an adviser to see it here"
+            description="Start a session with a skill to see it here"
             action={{
-              label: 'Browse Advisers',
-              onClick: () => router.push('/advisers')
+              label: 'Browse Skills',
+              onClick: () => router.push('/skills')
             }}
           />
         ) : (
@@ -143,7 +143,7 @@ export default function AdviserHistory() {
                 <Card
                   key={session.session_id}
                   hover
-                  onClick={() => router.push(`/advisers/session/${session.session_id}`)}
+                  onClick={() => router.push(`/skills/session/${session.session_id}`)}
                 >
                   <div className="p-6">
                     <div className="flex items-start justify-between">

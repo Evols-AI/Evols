@@ -92,7 +92,8 @@ async def list_available_advisers(
             "name": adviser.name,
             "description": adviser.description,
             "icon": adviser.icon,
-            "is_custom": False
+            "is_custom": False,
+            "category": adviser.category
         })
 
     for adviser in custom_advisers:
@@ -729,7 +730,7 @@ async def list_custom_advisers(
             "name": a.name,
             "description": a.description,
             "icon": a.icon,
-            "source_adviser_id": a.source_adviser_id,
+            "source_adviser_id": a.source_skill_id,
             "is_active": a.is_active,
             "created_at": a.created_at.isoformat()
         }

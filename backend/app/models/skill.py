@@ -69,6 +69,11 @@ class Skill(BaseModel):
     instructions = Column(Text, nullable=False)  # System prompt
     output_template = Column(Text, nullable=True)  # How to format results
 
+    # unified-pm-os integration
+    category = Column(String(50), nullable=True)  # e.g., 'discovery', 'strategy'
+    source = Column(String(20), nullable=True, default='database')  # 'unified-pm-os' or 'database'
+    file_path = Column(String(500), nullable=True)  # Path to SKILL.md file
+
     is_active = Column(Boolean, nullable=False, default=True)
 
     # Relationships

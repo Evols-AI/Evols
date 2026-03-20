@@ -30,6 +30,8 @@ from app.models.skill import (
     SkillSessionVariant, SkillExperimentBanditState, SkillBanditAllocationHistory,
     SkillPhase, SkillType
 )
+from app.models.product_knowledge import ProductKnowledge
+from app.models.skill_memory import SkillMemory
 
 # Backward compatibility aliases
 Adviser = Skill
@@ -119,4 +121,7 @@ __all__ = [
     "AdviserBanditAllocationHistory",
     "AdviserPhase",
     "AdviserType",
+    # Unified PM OS
+    "ProductKnowledge",
+    "SkillMemory",
 ]

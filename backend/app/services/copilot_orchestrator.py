@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 import os
 from loguru import logger
+from pathlib import Path
 
 from app.models.skill import Skill, CustomSkill, SkillConversation, SkillMessage, SkillType
 from app.models.user import User
@@ -16,6 +17,7 @@ from app.models.tenant import Tenant
 from app.services.llm_service import get_llm_service
 from app.core.security import decrypt_llm_config
 from app.services.copilot_function_calling import handle_function_calling, generate_without_tools
+from app.services.unified_pm_os import SkillAdapter, KnowledgeManager, MemoryManager
 
 
 class CopilotOrchestrator:
@@ -252,7 +254,7 @@ Do not explain, just output the skill name or "none"."""
             return None
 
     async def load_skill_config(self, skill_id: int, skill_type: str) -> Dict[str, Any]:
-        """Load skill configuration"""
+        """Load skill configuration - tries file first, falls back to database"""
         if skill_type == SkillType.CUSTOM:
             result = await self.db.execute(
                 select(CustomSkill).where(CustomSkill.id == skill_id)
@@ -267,6 +269,32 @@ Do not explain, just output the skill name or "none"."""
         if not skill:
             return None
 
+        # NEW: Try loading from unified-pm-os SKILL.md file if file_path exists
+        if skill_type == SkillType.DEFAULT and hasattr(skill, 'file_path') and skill.file_path:
+            unified_pm_os_path = os.getenv('UNIFIED_PM_OS_PATH', '../unified-pm-os')
+
+            try:
+                adapter = SkillAdapter(unified_pm_os_path)
+                skill_from_file = adapter.load_skill_from_file(skill.file_path)
+
+                logger.info(f"Loaded skill '{skill.name}' from file: {skill.file_path}")
+
+                return {
+                    'id': skill.id,
+                    'type': skill_type,
+                    'name': skill_from_file['name'],
+                    'description': skill_from_file.get('description', skill.description),
+                    'icon': skill.icon,  # Keep icon from database
+                    'instructions': skill_from_file['instructions'],
+                    'tools': skill_from_file.get('tools', []),
+                    'output_template': skill_from_file.get('output_template'),
+                    'category': skill_from_file.get('category', 'unknown')
+                }
+            except Exception as e:
+                logger.warning(f"Failed to load skill from file {skill.file_path}: {e}. Falling back to database.")
+                # Fall through to database loading
+
+        # Original database loading
         return {
             'id': skill.id,
             'type': skill_type,
@@ -287,12 +315,60 @@ Do not explain, just output the skill name or "none"."""
         max_seq = result.scalar()
         return (max_seq or 0) + 1
 
-    def build_system_prompt(self, skill_config: Optional[Dict[str, Any]] = None) -> str:
-        """Build system prompt for Claude"""
+    async def build_system_prompt(
+        self,
+        skill_config: Optional[Dict[str, Any]] = None,
+        product_id: Optional[int] = None
+    ) -> str:
+        """Build system prompt for Claude with enhanced context from knowledge and memory"""
+
+        # NEW: Build enhanced context if product_id is provided
+        enhanced_context = ""
+
+        if product_id:
+            try:
+                # Get product knowledge
+                km = KnowledgeManager(self.db)
+                knowledge = await km.get_product_knowledge(product_id)
+
+                if knowledge and any(knowledge.values()):
+                    enhanced_context += "\n## Product Knowledge\n\n"
+
+                    if knowledge.get('strategy_doc'):
+                        enhanced_context += f"**Product Strategy:**\n{knowledge['strategy_doc']}\n\n"
+
+                    if knowledge.get('customer_segments_doc'):
+                        enhanced_context += f"**Customer Segments:**\n{knowledge['customer_segments_doc']}\n\n"
+
+                    if knowledge.get('competitive_landscape_doc'):
+                        enhanced_context += f"**Competitive Landscape:**\n{knowledge['competitive_landscape_doc']}\n\n"
+
+                    if knowledge.get('value_proposition_doc'):
+                        enhanced_context += f"**Value Proposition:**\n{knowledge['value_proposition_doc']}\n\n"
+
+                    if knowledge.get('metrics_and_targets_doc'):
+                        enhanced_context += f"**Metrics & Targets:**\n{knowledge['metrics_and_targets_doc']}\n\n"
+
+                # Get recent memory/past work
+                mm = MemoryManager(self.db)
+                recent_work = await mm.get_recent_skill_outputs(product_id, limit=5)
+
+                if recent_work:
+                    enhanced_context += "\n## Past Work (Memory)\n\n"
+                    enhanced_context += "You have access to recent work done on this product:\n"
+                    for work in recent_work:
+                        created_date = work['created_at'].strftime('%Y-%m-%d') if work.get('created_at') else 'recent'
+                        enhanced_context += f"- **{work['skill_name']}** ({created_date}): {work['summary']}\n"
+                    enhanced_context += "\nReference this past work when relevant to provide continuity.\n\n"
+
+            except Exception as e:
+                logger.warning(f"Failed to load enhanced context for product {product_id}: {e}")
+
         if skill_config:
             return f"""You are {skill_config['name']}, an expert AI assistant for product managers.
 
 {skill_config['instructions']}
+{enhanced_context}
 
 Remember:
 - Be conversational and helpful
@@ -300,9 +376,11 @@ Remember:
 - Use the available tools to access data
 - Provide structured, actionable recommendations
 - Cite specific data from the tools
+- Reference the product knowledge and past work when relevant to provide personalized, context-aware advice
 """
         else:
-            return """You are EvolsAI, an expert AI copilot for product managers.
+            return f"""You are EvolsAI, an expert AI copilot for product managers.
+{enhanced_context}
 
 IMPORTANT: You are currently analyzing data for a SPECIFIC PRODUCT. All your queries are automatically scoped to this product only. You will NOT see data from other products.
 
@@ -450,8 +528,8 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
                 ]
             }
 
-        # Build prompt
-        system_prompt = self.build_system_prompt(actual_skill_config)
+        # Build prompt with enhanced context
+        system_prompt = await self.build_system_prompt(actual_skill_config, product_id=product_id)
         conversation_history = self.format_conversation_history(history)
 
         # Get LLM service
@@ -520,6 +598,23 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
         conversation.last_message_at = datetime.utcnow()
 
         await self.db.commit()
+
+        # NEW: Save skill output to memory for future context
+        if actual_skill_config and product_id:
+            try:
+                mm = MemoryManager(self.db)
+                await mm.save_skill_output(
+                    product_id=product_id,
+                    tenant_id=self.user.tenant_id,
+                    skill_name=actual_skill_config['name'],
+                    skill_category=actual_skill_config.get('category', 'unknown'),
+                    input_data={'message': message, 'conversation_id': conversation.id},
+                    output_data={'content': assistant_content},
+                    summary=assistant_content[:200] if len(assistant_content) > 200 else assistant_content
+                )
+                logger.info(f"Saved skill memory for {actual_skill_config['name']}")
+            except Exception as e:
+                logger.warning(f"Failed to save skill memory: {e}")
 
         return {
             'conversation_id': conversation.id,

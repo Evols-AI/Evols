@@ -22,7 +22,7 @@ interface Message {
   created_at: string
 }
 
-export default function AdviserSession() {
+export default function SkillSession() {
   const router = useRouter()
   const { sessionId } = router.query
   const [user, setUser] = useState<any>(null)
@@ -60,7 +60,7 @@ export default function AdviserSession() {
       setSession(response.data)
     } catch (err: any) {
       alert(`Failed to load session: ${err.response?.data?.detail || err.message}`)
-      router.push('/advisers')
+      router.push('/skills')
     } finally {
       setLoading(false)
     }
@@ -98,7 +98,7 @@ export default function AdviserSession() {
       })
 
       alert('Thank you for your feedback!')
-      router.push('/advisers/history')
+      router.push('/skills/history')
     } catch (err: any) {
       alert(`Failed to submit feedback: ${err.response?.data?.detail || err.message}`)
     }
@@ -139,7 +139,7 @@ export default function AdviserSession() {
             <div className="max-w-4xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => router.push('/advisers')}
+                  onClick={() => router.push('/skills')}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -148,13 +148,13 @@ export default function AdviserSession() {
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5 text-blue-500" />
                   <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    AI Adviser Chat
+                    AI Skill Chat
                   </h1>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => router.push('/advisers/history')}
+                  onClick={() => router.push('/skills/history')}
                   className="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg transition"
                   title="Session History"
                 >

@@ -957,5 +957,362 @@ async def get_entity_summary(tenant_id: int, db: AsyncSession) -> Dict[str, Any]
     }
 
 
+# ===================================
+# PRODUCT KNOWLEDGE TOOLS
+# ===================================
+
+@tool_registry.register(
+    name="get_product_strategy",
+    description="Get the product strategy document - includes vision, mission, goals, target market, positioning",
+    parameters=[
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def get_product_strategy(
+    tenant_id: int,
+    db: AsyncSession,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Get product strategy document"""
+    from app.models.product_knowledge import ProductKnowledge
+
+    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
+
+    if product_id:
+        query = query.where(ProductKnowledge.product_id == product_id)
+
+    result = await db.execute(query)
+    knowledge = result.scalar_one_or_none()
+
+    if not knowledge or not knowledge.strategy_doc:
+        return {
+            "error": "No product strategy document found",
+            "suggestion": "Add strategy documentation in the Knowledge page (Strategy Docs tab)"
+        }
+
+    return {
+        "product_id": product_id,
+        "strategy": knowledge.strategy_doc
+    }
+
+
+@tool_registry.register(
+    name="get_customer_segments",
+    description="Get customer segment definitions - target personas, ICP, market segments",
+    parameters=[
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def get_customer_segments(
+    tenant_id: int,
+    db: AsyncSession,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Get customer segments document"""
+    from app.models.product_knowledge import ProductKnowledge
+
+    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
+
+    if product_id:
+        query = query.where(ProductKnowledge.product_id == product_id)
+
+    result = await db.execute(query)
+    knowledge = result.scalar_one_or_none()
+
+    if not knowledge or not knowledge.customer_segments_doc:
+        return {
+            "error": "No customer segments document found",
+            "suggestion": "Add customer segment documentation in the Knowledge page (Strategy Docs tab)"
+        }
+
+    return {
+        "product_id": product_id,
+        "customer_segments": knowledge.customer_segments_doc
+    }
+
+
+@tool_registry.register(
+    name="get_competitive_landscape",
+    description="Get competitive analysis - competitors, differentiation, market positioning, SWOT analysis",
+    parameters=[
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def get_competitive_landscape(
+    tenant_id: int,
+    db: AsyncSession,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Get competitive landscape document"""
+    from app.models.product_knowledge import ProductKnowledge
+
+    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
+
+    if product_id:
+        query = query.where(ProductKnowledge.product_id == product_id)
+
+    result = await db.execute(query)
+    knowledge = result.scalar_one_or_none()
+
+    if not knowledge or not knowledge.competitive_landscape_doc:
+        return {
+            "error": "No competitive landscape document found",
+            "suggestion": "Add competitive analysis in the Knowledge page (Strategy Docs tab)"
+        }
+
+    return {
+        "product_id": product_id,
+        "competitive_landscape": knowledge.competitive_landscape_doc
+    }
+
+
+@tool_registry.register(
+    name="get_value_proposition",
+    description="Get value proposition - unique selling points, benefits, positioning statement",
+    parameters=[
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def get_value_proposition(
+    tenant_id: int,
+    db: AsyncSession,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Get value proposition document"""
+    from app.models.product_knowledge import ProductKnowledge
+
+    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
+
+    if product_id:
+        query = query.where(ProductKnowledge.product_id == product_id)
+
+    result = await db.execute(query)
+    knowledge = result.scalar_one_or_none()
+
+    if not knowledge or not knowledge.value_proposition_doc:
+        return {
+            "error": "No value proposition document found",
+            "suggestion": "Add value proposition in the Knowledge page (Strategy Docs tab)"
+        }
+
+    return {
+        "product_id": product_id,
+        "value_proposition": knowledge.value_proposition_doc
+    }
+
+
+@tool_registry.register(
+    name="get_metrics_and_targets",
+    description="Get key metrics, OKRs, KPIs, and targets - business goals, success metrics, performance indicators",
+    parameters=[
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def get_metrics_and_targets(
+    tenant_id: int,
+    db: AsyncSession,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Get metrics and targets document"""
+    from app.models.product_knowledge import ProductKnowledge
+
+    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
+
+    if product_id:
+        query = query.where(ProductKnowledge.product_id == product_id)
+
+    result = await db.execute(query)
+    knowledge = result.scalar_one_or_none()
+
+    if not knowledge or not knowledge.metrics_and_targets_doc:
+        return {
+            "error": "No metrics and targets document found",
+            "suggestion": "Add metrics and targets in the Knowledge page (Strategy Docs tab)"
+        }
+
+    return {
+        "product_id": product_id,
+        "metrics_and_targets": knowledge.metrics_and_targets_doc
+    }
+
+
+@tool_registry.register(
+    name="get_all_product_knowledge",
+    description="Get all product knowledge documents at once - strategy, segments, competitive landscape, value prop, and metrics. Use this when you need comprehensive product context.",
+    parameters=[
+        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
+    ]
+)
+async def get_all_product_knowledge(
+    tenant_id: int,
+    db: AsyncSession,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Get all product knowledge documents"""
+    from app.models.product_knowledge import ProductKnowledge
+
+    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
+
+    if product_id:
+        query = query.where(ProductKnowledge.product_id == product_id)
+
+    result = await db.execute(query)
+    knowledge = result.scalar_one_or_none()
+
+    if not knowledge:
+        return {
+            "error": "No product knowledge found",
+            "suggestion": "Add product documentation in the Knowledge page (Strategy Docs tab)"
+        }
+
+    return {
+        "product_id": product_id,
+        "strategy": knowledge.strategy_doc or "",
+        "customer_segments": knowledge.customer_segments_doc or "",
+        "competitive_landscape": knowledge.competitive_landscape_doc or "",
+        "value_proposition": knowledge.value_proposition_doc or "",
+        "metrics_and_targets": knowledge.metrics_and_targets_doc or "",
+        "has_strategy": bool(knowledge.strategy_doc),
+        "has_customer_segments": bool(knowledge.customer_segments_doc),
+        "has_competitive_landscape": bool(knowledge.competitive_landscape_doc),
+        "has_value_proposition": bool(knowledge.value_proposition_doc),
+        "has_metrics_and_targets": bool(knowledge.metrics_and_targets_doc)
+    }
+
+
+# ===================================
+# INTERNET SEARCH TOOL
+# ===================================
+
+@tool_registry.register(
+    name="search_internet",
+    description="Search the internet for current information, news, research, or facts. Use this when the user asks about recent events, current data, competitors, market trends, or information not in your training data. Returns both a synthesized answer and source links.",
+    parameters=[
+        ToolParameter(
+            name="query",
+            type="string",
+            description="Search query (e.g., 'latest trends in product management 2026', 'what is RICE prioritization framework')"
+        ),
+        ToolParameter(
+            name="max_results",
+            type="integer",
+            description="Maximum number of search results to return (default: 5)",
+            required=False
+        )
+    ]
+)
+async def search_internet(
+    query: str,
+    tenant_id: int,
+    db: AsyncSession,
+    max_results: int = 5
+) -> Dict[str, Any]:
+    """
+    Search the internet using Tavily AI (primary) or Serper.dev (fallback).
+
+    Returns both a synthesized answer and source links for grounding.
+    """
+    import os
+    import httpx
+    from loguru import logger
+
+    # Try Tavily first (AI-optimized search)
+    tavily_api_key = os.getenv("TAVILY_API_KEY")
+
+    if tavily_api_key:
+        try:
+            from tavily import TavilyClient
+
+            tavily = TavilyClient(api_key=tavily_api_key)
+
+            response = tavily.search(
+                query=query,
+                max_results=max_results,
+                include_answer=True,
+                include_raw_content=False
+            )
+
+            logger.info(f"[Search] Tavily search successful for: {query}")
+
+            return {
+                "query": query,
+                "answer": response.get("answer", ""),
+                "results": [
+                    {
+                        "title": r["title"],
+                        "url": r["url"],
+                        "content": r["content"][:500],  # Truncate to 500 chars
+                        "score": r.get("score", 0)
+                    }
+                    for r in response.get("results", [])[:max_results]
+                ],
+                "source": "tavily"
+            }
+
+        except ImportError:
+            logger.warning("[Search] Tavily package not installed, falling back to Serper")
+        except Exception as tavily_error:
+            logger.warning(f"[Search] Tavily failed: {tavily_error}, falling back to Serper")
+
+    # Fallback to Serper
+    serper_api_key = os.getenv("SERPER_API_KEY")
+
+    if serper_api_key:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    "https://google.serper.dev/search",
+                    headers={
+                        "X-API-KEY": serper_api_key,
+                        "Content-Type": "application/json"
+                    },
+                    json={"q": query, "num": max_results}
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                logger.info(f"[Search] Serper search successful for: {query}")
+
+                # Extract answer from knowledge graph or answer box
+                answer = ""
+                if "answerBox" in data:
+                    answer = data["answerBox"].get("answer", "") or data["answerBox"].get("snippet", "")
+                elif "knowledgeGraph" in data:
+                    answer = data["knowledgeGraph"].get("description", "")
+
+                return {
+                    "query": query,
+                    "answer": answer,
+                    "results": [
+                        {
+                            "title": r.get("title", ""),
+                            "url": r.get("link", ""),
+                            "content": r.get("snippet", ""),
+                            "score": 0
+                        }
+                        for r in data.get("organic", [])[:max_results]
+                    ],
+                    "source": "serper"
+                }
+
+        except Exception as serper_error:
+            logger.error(f"[Search] Serper failed: {serper_error}")
+            return {
+                "error": f"Internet search unavailable. Serper error: {str(serper_error)}",
+                "query": query,
+                "answer": "",
+                "results": []
+            }
+
+    # No API keys configured
+    logger.error("[Search] No search API keys configured (TAVILY_API_KEY or SERPER_API_KEY)")
+    return {
+        "error": "Internet search is not configured. Please set TAVILY_API_KEY or SERPER_API_KEY environment variable.",
+        "query": query,
+        "answer": "",
+        "results": []
+    }
+
+
 # Export registry
 __all__ = ['tool_registry', 'ToolRegistry', 'SkillTool', 'ToolParameter']

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, FlaskConical, Settings, MessageSquare, Users, ChevronDown, LogOut, BookOpen, Shield, LifeBuoy, Sparkles, Database, Wand2, UsersRound } from 'lucide-react'
+import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, LifeBuoy, Sparkles, Database, UsersRound, Zap } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoIcon } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
@@ -44,15 +44,15 @@ export default function Header({ user, currentPage }: HeaderProps) {
 
   const navItems = [
     // { href: '/dashboard', label: 'Dashboard', key: 'dashboard', icon: LayoutDashboard }, // Hidden for demo - points to outdated pages
-    { href: '/context', label: 'Context', key: 'context', icon: Database },
+    { href: '/workbench', label: 'Workbench', key: 'workbench', icon: Sparkles },
+    { href: '/skills', label: 'Skills', key: 'skills', icon: Zap },
+    { href: '/context', label: 'Knowledge', key: 'context', icon: Database },
     { href: '/personas', label: 'Personas', key: 'personas', icon: Users },
-    { href: '/workbench', label: 'Workbench', key: 'workbench', highlight: true, icon: Sparkles },
   ]
 
   const adminNavItems = [
     { href: '/admin/tenants', label: 'Admin Panel', key: 'admin', icon: Shield },
     { href: '/admin/support', label: 'Support', key: 'support', icon: LifeBuoy },
-    { href: '/admin/advisers', label: 'Skills', key: 'advisers-admin', icon: Wand2 },
     { href: '/admin/advisers-platform', label: 'Skills Analytics', key: 'advisers-platform', icon: Sparkles },
   ]
 
@@ -89,19 +89,6 @@ export default function Header({ user, currentPage }: HeaderProps) {
                     </Link>
                   )
                 })}
-                {fullUser?.role === 'TENANT_ADMIN' && (
-                  <Link
-                    href="/admin/advisers"
-                    className={`flex items-center gap-1.5 text-sm transition-colors ${
-                      currentPage === 'advisers-admin' || router.pathname.startsWith('/admin/advisers')
-                        ? 'text-blue-500 dark:text-blue-300 font-semibold'
-                        : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
-                    }`}
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                    Skills
-                  </Link>
-                )}
               </nav>
             )}
             {user && fullUser?.role === 'SUPER_ADMIN' && (
