@@ -11,7 +11,7 @@ import {
   Moon,
   Sun
 } from 'lucide-react'
-import { LogoIcon } from '@/components/Logo'
+import { LogoIcon, LogoWordmark } from '@/components/Logo'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Home() {
@@ -28,10 +28,7 @@ export default function Home() {
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <LogoIcon size={60} />
-              <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                Evols
-              </span>
+              <LogoWordmark iconSize={60} />
             </div>
             <div className="flex items-center space-x-6">
               <a href="https://github.com/akshay-saraswat/evols"
@@ -389,6 +386,9 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="container mx-auto px-6 py-12 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400">
+          <div className="mb-4">
+            <LogoWordmark iconSize={40} />
+          </div>
           <div className="flex items-center space-x-6">
             <Link href="/docs" className="hover:text-blue-500 transition">Documentation</Link>
             <Link href="/support" className="hover:text-blue-500 transition">Contact Support</Link>

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { Mail, Lock, AlertCircle } from 'lucide-react'
-import { LogoIcon } from '@/components/Logo'
+import { LogoIcon, LogoWordmark } from '@/components/Logo'
 import { isAuthenticated } from '@/utils/auth'
 
 export default function Login() {
@@ -98,11 +98,8 @@ export default function Login() {
             {/* Left Column - Illustration */}
             <div className="hidden lg:flex flex-col items-center justify-center">
               {/* Logo */}
-              <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-8">
-                <LogoIcon size={60} />
-                <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                  Evols
-                </span>
+              <Link href="/" className="mb-8">
+                <LogoWordmark iconSize={60} />
               </Link>
               <svg viewBox="0 0 300 350" className="w-full max-w-md mb-10 drop-shadow-lg">
                 <defs>
@@ -176,11 +173,8 @@ export default function Login() {
             <div className="w-full">
               {/* Logo */}
               <div className="text-center mb-8 lg:hidden">
-                <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-2">
-                  <LogoIcon size={60} />
-                  <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                    Evols
-                  </span>
+                <Link href="/" className="mb-2">
+                  <LogoWordmark iconSize={60} />
                 </Link>
                 <p className="text-gray-600 dark:text-gray-300">Sign in to your account</p>
               </div>

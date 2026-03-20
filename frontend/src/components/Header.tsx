@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, LifeBuoy, Sparkles, Database, UsersRound, Zap } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
-import { LogoIcon } from '@/components/Logo'
+import { LogoIcon, LogoWordmark } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
 import { ProductSelector } from '@/components/ProductSelector'
 import { TenantSwitcher } from '@/components/TenantSwitcher'
@@ -61,11 +61,8 @@ export default function Header({ user, currentPage }: HeaderProps) {
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <LogoIcon size={48} />
-              <span className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                Evols
-              </span>
+            <Link href="/" className="group">
+              <LogoWordmark iconSize={48} />
             </Link>
             {user && fullUser?.role !== 'SUPER_ADMIN' && <ProductSelector />}
             {user && fullUser?.role !== 'SUPER_ADMIN' && (
