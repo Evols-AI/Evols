@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useProducts } from '@/hooks/useProducts'
+import OnboardingTour from '@/components/OnboardingTour'
 
 interface Adviser {
   id: number
@@ -255,6 +256,8 @@ export default function Workbench() {
       <Head>
         <title>Workbench — Evols</title>
       </Head>
+
+      <OnboardingTour />
 
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
         <Header user={user} currentPage="workbench" />
