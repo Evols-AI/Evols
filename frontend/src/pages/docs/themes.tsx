@@ -1,7 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { ArrowLeft, TrendingUp, Users, BarChart3, RefreshCw } from 'lucide-react'
-import { LogoIcon } from '@/components/Logo'
 
 export default function ThemesDocumentation() {
   return (
@@ -15,9 +14,11 @@ export default function ThemesDocumentation() {
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <Link href="/docs" className="flex items-center space-x-2">
-                <LogoIcon size={48} />
-                <span className="text-2xl font-bold text-gray-900 dark:text-white">Evols Docs</span>
+              <Link href="/docs" className="flex items-center">
+                <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                  Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
+                </span>
+                <span className="text-lg font-medium text-gray-600 dark:text-gray-400 ml-2">Docs</span>
               </Link>
               <Link href="/docs" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
                 <ArrowLeft className="w-4 h-4" />

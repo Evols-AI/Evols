@@ -2,7 +2,6 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Send, User, Mail, MessageSquare, AlertCircle, CheckCircle, Moon, Sun, ChevronDown, Check } from 'lucide-react'
-import { LogoIcon } from '@/components/Logo'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Support() {
@@ -67,10 +66,9 @@ export default function Support() {
                 {/* Header */}
                 <header className="container mx-auto px-6 py-8">
                     <nav className="flex items-center justify-between">
-                        <Link href="/" className="flex items-center space-x-2 border-b-2 border-transparent">
-                            <LogoIcon size={60} />
+                        <Link href="/" className="flex items-center border-b-2 border-transparent">
                             <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                                Evols
+                                Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
                             </span>
                         </Link>
                         <div className="flex items-center space-x-6">

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { Sparkles, Mail, Lock, User, Building, AlertCircle, CheckCircle } from 'lucide-react'
-import { LogoIcon, LogoWordmark } from '@/components/Logo'
+import { LogoWordmark } from '@/components/Logo'
 import { isAuthenticated } from '@/utils/auth'
 
 export default function Register() {

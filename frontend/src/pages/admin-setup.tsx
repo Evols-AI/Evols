@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { AlertCircle, CheckCircle, Shield } from 'lucide-react'
-import { LogoIcon } from '@/components/Logo'
 
 export default function AdminSetup() {
   const router = useRouter()
@@ -80,7 +79,9 @@ export default function AdminSetup() {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <LogoIcon size={80} />
+              <span className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
+              </span>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Platform Admin Setup

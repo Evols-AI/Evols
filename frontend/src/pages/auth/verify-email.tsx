@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { CheckCircle, XCircle, Loader, Mail } from 'lucide-react'
-import { LogoIcon } from '@/components/Logo'
 
 export default function VerifyEmail() {
   const router = useRouter()
@@ -70,10 +69,9 @@ export default function VerifyEmail() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-4">
-              <LogoIcon size={60} />
+            <Link href="/" className="inline-flex items-center justify-center mb-4">
               <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                Evols
+                Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
               </span>
             </Link>
           </div>

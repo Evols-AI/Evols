@@ -2,7 +2,6 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect } from 'react'
 import { Sparkles, MessageSquare, CheckCircle } from 'lucide-react'
-import { LogoIcon } from '@/components/Logo'
 
 declare global {
   interface Window {
@@ -70,9 +69,10 @@ export default function BookDemo() {
         {/* Header */}
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <LogoIcon size={60} />
-              <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">Evols</span>
+            <Link href="/" className="flex items-center">
+              <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
+              </span>
             </Link>
             <div className="flex items-center space-x-6">
               <Link href="/login" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Login</Link>

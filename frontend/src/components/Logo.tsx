@@ -43,11 +43,10 @@ export function LogoIcon({ size = 32, className = '' }: LogoIconProps) {
   )
 }
 
-/** Full wordmark: icon + "Evols" text */
+/** Full wordmark: "Evols" text only */
 export function LogoWordmark({ iconSize = 32, className = '' }: { iconSize?: number; className?: string }) {
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
-      <LogoIcon size={iconSize} />
+    <div className={`flex items-center ${className}`}>
       <span
         className="font-bold tracking-tight bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent"
         style={{ fontSize: iconSize * 0.7 }}
