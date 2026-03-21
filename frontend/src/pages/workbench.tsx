@@ -158,10 +158,11 @@ export default function Workbench() {
     }
   }
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || sending) return
+  const sendMessage = async (messageOverride?: string) => {
+    const messageToSend = messageOverride || inputMessage
+    if (!messageToSend.trim() || sending) return
 
-    const userMessage = inputMessage
+    const userMessage = messageToSend
     setInputMessage('')
     setSending(true)
 
@@ -377,13 +378,7 @@ export default function Workbench() {
                     {/* Bootstrap CTA */}
                     <div className="mb-8">
                       <button
-                        onClick={() => {
-                          setInputMessage("@pm-os-bootstrap Let's bootstrap my PM OS.")
-                          setTimeout(() => {
-                            const sendButton = document.querySelector('button[type="submit"]') as HTMLButtonElement
-                            sendButton?.click()
-                          }, 100)
-                        }}
+                        onClick={() => sendMessage("@pm-os-bootstrap Let's bootstrap my PM OS.")}
                         className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors shadow-sm"
                       >
                         <Sparkles className="w-5 h-5" />
@@ -394,7 +389,7 @@ export default function Workbench() {
                       </p>
                     </div>
 
-                    <div className="max-w-2xl mx-auto text-left space-y-3 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="max-w-2xl mx-auto text-center space-y-3 text-sm text-gray-600 dark:text-gray-400">
                       <p>• Ask anything about your product — roadmap, strategy, features, customers</p>
                       <p>• Invoke expert skills with @mentions (browse Skills page to discover 80+ capabilities)</p>
                       <p>• AI recommendations grounded in your product strategy and customer intelligence</p>
