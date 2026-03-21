@@ -63,7 +63,9 @@ const onboardingSteps: OnboardingStep[] = [
     tips: [
       'AI automatically creates personas from feedback',
       'Personas include goals, pain points, and quotes',
-      'Use them in decision workbench for perspective',
+      'Promote to Managed: Converts AI-generated persona into a permanent, reusable persona that won\'t be cleared',
+      'Managed personas are more stable for long-term decisions and tracking',
+      'Use managed personas in decision workbench for consistent perspective',
       'Update manually if needed'
     ]
   },
