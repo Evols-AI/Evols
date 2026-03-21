@@ -32,6 +32,12 @@ from app.models.skill import (
 )
 from app.models.product_knowledge import ProductKnowledge
 from app.models.skill_memory import SkillMemory
+from app.models.work_context import (
+    WorkContext, ActiveProject, KeyRelationship,
+    PMDecision, Task, WeeklyFocus, MeetingNote,
+    CapacityStatus, ProjectStatus, ProjectRole,
+    TaskPriority, TaskStatus, DecisionCategory, MeetingType
+)
 
 # Backward compatibility aliases
 Adviser = Skill
@@ -124,4 +130,19 @@ __all__ = [
     # Unified PM OS
     "ProductKnowledge",
     "SkillMemory",
+    # Work Context
+    "WorkContext",
+    "ActiveProject",
+    "KeyRelationship",
+    "PMDecision",
+    "Task",
+    "WeeklyFocus",
+    "MeetingNote",
+    "CapacityStatus",
+    "ProjectStatus",
+    "ProjectRole",
+    "TaskPriority",
+    "TaskStatus",
+    "DecisionCategory",
+    "MeetingType",
 ]

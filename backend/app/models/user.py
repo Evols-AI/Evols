@@ -62,6 +62,12 @@ class User(BaseModel):
     conversations = relationship("SkillConversation", back_populates="user", cascade="all, delete-orphan")
     decisions = relationship("Decision", back_populates="created_by_user", foreign_keys="Decision.created_by")
 
+    # Personal PM work context relationships
+    work_context = relationship("WorkContext", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    pm_decisions = relationship("PMDecision", back_populates="user", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
+    meeting_notes = relationship("MeetingNote", back_populates="user", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"
 
