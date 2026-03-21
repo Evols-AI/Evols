@@ -14,6 +14,11 @@ from app.models.feedback import Feedback
 from app.models.theme import Theme
 from app.models.initiative import Initiative
 from app.models.context import ContextSource, ExtractedEntity, EntityType
+from app.models.user import User
+from app.models.work_context import (
+    WorkContext, ActiveProject, KeyRelationship, Task,
+    CapacityStatus, ProjectStatus, ProjectRole, TaskPriority, TaskStatus
+)
 
 
 class ToolParameter(BaseModel):
@@ -111,18 +116,35 @@ class ToolRegistry:
         arguments: Dict[str, Any],
         tenant_id: int,
         db: AsyncSession,
-        product_id: Optional[int] = None
+        product_id: Optional[int] = None,
+        user = None
     ) -> Any:
         """Execute a tool with automatic tenant isolation and optional product scoping"""
         from loguru import logger
+        import inspect
 
         tool = self.get_tool(tool_name)
         if not tool:
             raise ValueError(f"Tool '{tool_name}' not found")
 
-        # Inject tenant_id and db into arguments
-        arguments['tenant_id'] = tenant_id
-        arguments['db'] = db
+        # Get the function signature to check what parameters it accepts
+        sig = inspect.signature(tool.handler)
+        accepts_tenant_id = 'tenant_id' in sig.parameters
+        accepts_user = 'user' in sig.parameters
+
+        # Inject tenant_id or user depending on what the tool accepts
+        if accepts_user and user is not None:
+            # Work context tools use 'user' instead of 'tenant_id'
+            arguments['user'] = user
+            arguments['db'] = db
+            logger.info(f"[ToolRegistry] Injecting user={user.id} into {tool_name}")
+        elif accepts_tenant_id:
+            # Regular tools use 'tenant_id'
+            arguments['tenant_id'] = tenant_id
+            arguments['db'] = db
+        else:
+            # Tool doesn't accept tenant_id or user, just inject db
+            arguments['db'] = db
 
         # Inject product_id if provided and tool accepts it
         if product_id is not None:
@@ -1526,6 +1548,406 @@ async def search_internet(
         "query": query,
         "answer": "",
         "results": []
+    }
+
+
+# ===================================
+# WORK CONTEXT TOOLS
+# ===================================
+
+@tool_registry.register(
+    name="update_role_info",
+    description="Update user's role, team, and manager information when you learn about it in conversation",
+    parameters=[
+        ToolParameter(name="title", type="string", description="Job title or role", required=False),
+        ToolParameter(name="team", type="string", description="Team name", required=False),
+        ToolParameter(name="team_description", type="string", description="What the team does", required=False),
+        ToolParameter(name="manager_name", type="string", description="Manager's name", required=False),
+        ToolParameter(name="manager_title", type="string", description="Manager's title", required=False),
+        ToolParameter(name="team_size", type="integer", description="Number of people on team", required=False),
+        ToolParameter(name="team_composition", type="string", description="Team makeup (e.g., '5 engineers, 2 designers')", required=False)
+    ]
+)
+async def update_role_info(
+    user: User,
+    db: AsyncSession,
+    title: Optional[str] = None,
+    team: Optional[str] = None,
+    team_description: Optional[str] = None,
+    manager_name: Optional[str] = None,
+    manager_title: Optional[str] = None,
+    team_size: Optional[int] = None,
+    team_composition: Optional[str] = None
+) -> Dict[str, Any]:
+    """Update role and team information"""
+    result = await db.execute(
+        select(WorkContext).filter(WorkContext.user_id == user.id)
+    )
+    work_context = result.scalar_one_or_none()
+
+    if not work_context:
+        work_context = WorkContext(user_id=user.id)
+        db.add(work_context)
+        await db.commit()
+        await db.refresh(work_context)
+
+    if title:
+        work_context.title = title
+    if team:
+        work_context.team = team
+    if team_description:
+        work_context.team_description = team_description
+    if manager_name:
+        work_context.manager_name = manager_name
+    if manager_title:
+        work_context.manager_title = manager_title
+    if team_size:
+        work_context.team_size = team_size
+    if team_composition:
+        work_context.team_composition = team_composition
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "Updated role and team information",
+        "data": {
+            "title": work_context.title,
+            "team": work_context.team,
+            "manager": work_context.manager_name
+        }
+    }
+
+
+@tool_registry.register(
+    name="update_capacity",
+    description="Update user's capacity assessment when you detect capacity signals (sustainable, stretched, overloaded, unsustainable)",
+    parameters=[
+        ToolParameter(name="status", type="string", description="Current capacity state", required=True, enum=["sustainable", "stretched", "overloaded", "unsustainable"]),
+        ToolParameter(name="factors", type="string", description="What's driving the capacity state", required=False)
+    ]
+)
+async def update_capacity(
+    user: User,
+    db: AsyncSession,
+    status: str,
+    factors: Optional[str] = None
+) -> Dict[str, Any]:
+    """Update capacity assessment"""
+    result = await db.execute(
+        select(WorkContext).filter(WorkContext.user_id == user.id)
+    )
+    work_context = result.scalar_one_or_none()
+
+    if not work_context:
+        work_context = WorkContext(user_id=user.id)
+        db.add(work_context)
+        await db.commit()
+        await db.refresh(work_context)
+
+    try:
+        work_context.capacity_status = CapacityStatus(status)
+        if factors:
+            work_context.capacity_factors = factors
+
+        await db.commit()
+
+        return {
+            "success": True,
+            "message": f"Updated capacity to {status}",
+            "data": {"status": status, "factors": factors}
+        }
+    except ValueError:
+        return {
+            "success": False,
+            "error": f"Invalid capacity status: {status}. Must be one of: sustainable, stretched, overloaded, unsustainable"
+        }
+
+
+@tool_registry.register(
+    name="add_or_update_project",
+    description="Add or update an active project when mentioned in conversation",
+    parameters=[
+        ToolParameter(name="name", type="string", description="Project name", required=True),
+        ToolParameter(name="status", type="string", description="Project status (RAG)", required=True, enum=["green", "yellow", "red", "completed", "paused"]),
+        ToolParameter(name="role", type="string", description="User's role in project", required=True, enum=["owner", "contributor", "advisor"]),
+        ToolParameter(name="next_milestone", type="string", description="Next milestone description", required=False),
+        ToolParameter(name="key_stakeholders", type="array", description="List of stakeholder names", required=False, items={"type": "string"}),
+        ToolParameter(name="notes", type="string", description="Additional context", required=False)
+    ]
+)
+async def add_or_update_project(
+    user: User,
+    db: AsyncSession,
+    name: str,
+    status: str,
+    role: str,
+    next_milestone: Optional[str] = None,
+    key_stakeholders: Optional[List[str]] = None,
+    notes: Optional[str] = None
+) -> Dict[str, Any]:
+    """Add or update an active project"""
+    result = await db.execute(
+        select(WorkContext).filter(WorkContext.user_id == user.id)
+    )
+    work_context = result.scalar_one_or_none()
+
+    if not work_context:
+        work_context = WorkContext(user_id=user.id)
+        db.add(work_context)
+        await db.commit()
+        await db.refresh(work_context)
+
+    # Check if project exists
+    project_result = await db.execute(
+        select(ActiveProject).filter(
+            ActiveProject.user_id == user.id,
+            ActiveProject.name == name
+        )
+    )
+    project = project_result.scalar_one_or_none()
+
+    try:
+        if project:
+            # Update existing
+            project.status = ProjectStatus(status)
+            project.role = ProjectRole(role)
+            if next_milestone:
+                project.next_milestone = next_milestone
+            if key_stakeholders:
+                project.key_stakeholders = key_stakeholders
+            if notes:
+                project.notes = notes
+            message = f"Updated project: {name}"
+        else:
+            # Create new
+            project = ActiveProject(
+                work_context_id=work_context.id,
+                user_id=user.id,
+                name=name,
+                status=ProjectStatus(status),
+                role=ProjectRole(role),
+                next_milestone=next_milestone,
+                key_stakeholders=key_stakeholders,
+                notes=notes
+            )
+            db.add(project)
+            message = f"Added project: {name}"
+
+        await db.commit()
+
+        return {
+            "success": True,
+            "message": message,
+            "data": {"name": name, "status": status, "role": role}
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": f"Invalid project data: {str(e)}"
+        }
+
+
+@tool_registry.register(
+    name="add_or_update_relationship",
+    description="Add or update a key stakeholder/relationship when mentioned in conversation",
+    parameters=[
+        ToolParameter(name="name", type="string", description="Person's name", required=True),
+        ToolParameter(name="role", type="string", description="Their job title", required=False),
+        ToolParameter(name="relationship_type", type="string", description="Type: manager, peer, stakeholder, direct_report", required=False),
+        ToolParameter(name="cares_about", type="string", description="What motivates them", required=False),
+        ToolParameter(name="current_dynamic", type="string", description="Current relationship state", required=False),
+        ToolParameter(name="communication_preference", type="string", description="How they prefer to communicate", required=False)
+    ]
+)
+async def add_or_update_relationship(
+    user: User,
+    db: AsyncSession,
+    name: str,
+    role: Optional[str] = None,
+    relationship_type: Optional[str] = None,
+    cares_about: Optional[str] = None,
+    current_dynamic: Optional[str] = None,
+    communication_preference: Optional[str] = None
+) -> Dict[str, Any]:
+    """Add or update a key relationship"""
+    result = await db.execute(
+        select(WorkContext).filter(WorkContext.user_id == user.id)
+    )
+    work_context = result.scalar_one_or_none()
+
+    if not work_context:
+        work_context = WorkContext(user_id=user.id)
+        db.add(work_context)
+        await db.commit()
+        await db.refresh(work_context)
+
+    # Check if relationship exists
+    rel_result = await db.execute(
+        select(KeyRelationship).filter(
+            KeyRelationship.user_id == user.id,
+            KeyRelationship.name == name
+        )
+    )
+    relationship = rel_result.scalar_one_or_none()
+
+    if relationship:
+        # Update existing
+        if role:
+            relationship.role = role
+        if relationship_type:
+            relationship.relationship_type = relationship_type
+        if cares_about:
+            relationship.cares_about = cares_about
+        if current_dynamic:
+            relationship.current_dynamic = current_dynamic
+        if communication_preference:
+            relationship.communication_preference = communication_preference
+        message = f"Updated relationship: {name}"
+    else:
+        # Create new
+        relationship = KeyRelationship(
+            work_context_id=work_context.id,
+            user_id=user.id,
+            name=name,
+            role=role,
+            relationship_type=relationship_type,
+            cares_about=cares_about,
+            current_dynamic=current_dynamic,
+            communication_preference=communication_preference
+        )
+        db.add(relationship)
+        message = f"Added relationship: {name}"
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": message,
+        "data": {"name": name, "relationship_type": relationship_type}
+    }
+
+
+@tool_registry.register(
+    name="add_task",
+    description="Add a task to the user's task board when action items come up in conversation",
+    parameters=[
+        ToolParameter(name="title", type="string", description="Task description (start with verb)", required=True),
+        ToolParameter(name="priority", type="string", description="Task priority tier", required=True, enum=["critical", "high_leverage", "stakeholder", "sweep", "backlog"]),
+        ToolParameter(name="description", type="string", description="Additional details", required=False),
+        ToolParameter(name="why_critical", type="string", description="Why critical (for critical tasks)", required=False),
+        ToolParameter(name="impact", type="string", description="Expected impact (for high_leverage tasks)", required=False),
+        ToolParameter(name="stakeholder_name", type="string", description="Who it's for (for stakeholder tasks)", required=False),
+        ToolParameter(name="source", type="string", description="Where this task came from", required=False)
+    ]
+)
+async def add_task(
+    user: User,
+    db: AsyncSession,
+    title: str,
+    priority: str,
+    description: Optional[str] = None,
+    why_critical: Optional[str] = None,
+    impact: Optional[str] = None,
+    stakeholder_name: Optional[str] = None,
+    source: Optional[str] = None
+) -> Dict[str, Any]:
+    """Add a task to the user's task board"""
+    try:
+        task = Task(
+            user_id=user.id,
+            title=title,
+            priority=TaskPriority(priority),
+            status=TaskStatus.TODO,
+            description=description,
+            why_critical=why_critical,
+            impact=impact,
+            stakeholder_name=stakeholder_name,
+            source=source
+        )
+        db.add(task)
+        await db.commit()
+
+        return {
+            "success": True,
+            "message": f"Added task: {title}",
+            "data": {"title": title, "priority": priority}
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": f"Invalid task data: {str(e)}"
+        }
+
+
+@tool_registry.register(
+    name="get_work_context_summary",
+    description="Get summary of what you know about the user's work context",
+    parameters=[]
+)
+async def get_work_context_summary(
+    user: User,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """Get current work context summary"""
+    result = await db.execute(
+        select(WorkContext).filter(WorkContext.user_id == user.id)
+    )
+    work_context = result.scalar_one_or_none()
+
+    if not work_context:
+        work_context = WorkContext(user_id=user.id)
+        db.add(work_context)
+        await db.commit()
+        await db.refresh(work_context)
+
+    # Get counts
+    projects_result = await db.execute(
+        select(ActiveProject).filter(ActiveProject.user_id == user.id)
+    )
+    projects = projects_result.scalars().all()
+
+    relationships_result = await db.execute(
+        select(KeyRelationship).filter(KeyRelationship.user_id == user.id)
+    )
+    relationships = relationships_result.scalars().all()
+
+    tasks_result = await db.execute(
+        select(Task).filter(
+            Task.user_id == user.id,
+            Task.status != TaskStatus.COMPLETED
+        )
+    )
+    tasks = tasks_result.scalars().all()
+
+    return {
+        "role": {
+            "title": work_context.title,
+            "team": work_context.team,
+            "manager": work_context.manager_name
+        },
+        "capacity": {
+            "status": work_context.capacity_status.value if work_context.capacity_status else None,
+            "factors": work_context.capacity_factors
+        },
+        "active_projects": [
+            {
+                "name": p.name,
+                "status": p.status.value,
+                "role": p.role.value
+            }
+            for p in projects
+        ],
+        "key_relationships": [
+            {
+                "name": r.name,
+                "role": r.role,
+                "type": r.relationship_type
+            }
+            for r in relationships
+        ],
+        "active_tasks": len(tasks),
+        "has_context": bool(work_context.title or work_context.team or len(projects) > 0)
     }
 
 

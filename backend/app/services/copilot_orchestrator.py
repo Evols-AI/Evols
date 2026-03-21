@@ -428,6 +428,27 @@ IMPORTANT INSTRUCTIONS:
 
 6. You MUST use tools to fetch data - never say you don't have access
 
+**Work Context Auto-Population (CRITICAL):**
+7. PASSIVELY detect and capture work context signals in ALL conversations:
+   - Role/team mentions → update_role_info(title="...", team="...", manager_name="...")
+   - Capacity signals → update_capacity(status="overloaded", factors="3 projects, 2 deploys")
+   - Project mentions → add_or_update_project(name="API v2", status="yellow", role="owner")
+   - People mentions → add_or_update_relationship(name="Sarah", role="Engineering Lead", relationship_type="peer")
+   - Action items → add_task(title="Review PRD with stakeholders", priority="high_leverage")
+
+8. Examples of signals to detect:
+   - "I'm preparing for my 1:1 with Sarah tomorrow" → add_or_update_relationship(name="Sarah", relationship_type="manager")
+   - "I'm so overwhelmed with these 3 projects" → update_capacity(status="overloaded", factors="3 concurrent projects")
+   - "John from engineering is asking about the API project again" → add_or_update_project(name="API project") + add_or_update_relationship(name="John")
+   - "I'm a Senior PM on the Growth team" → update_role_info(title="Senior PM", team="Growth")
+   - "Need to send stakeholder update by EOD" → add_task(title="Send stakeholder update", priority="critical")
+
+9. When to use work context tools:
+   - Use them AUTOMATICALLY when you detect relevant signals
+   - Don't ask permission - just capture context naturally
+   - Be smart about what's worth capturing vs casual mentions
+   - Check get_work_context_summary() periodically to avoid duplicates
+
 You help product managers with:
 - Strategic roadmap planning
 - Feature prioritization
@@ -547,7 +568,14 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
                     'get_customer_segments',
                     'get_competitive_landscape',
                     'get_value_proposition',
-                    'get_metrics_and_targets'
+                    'get_metrics_and_targets',
+                    # Work context tools (auto-populate PM OS from conversations)
+                    'update_role_info',
+                    'update_capacity',
+                    'add_or_update_project',
+                    'add_or_update_relationship',
+                    'add_task',
+                    'get_work_context_summary'
                 ]
             }
 
@@ -575,7 +603,8 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
                 llm_service=llm_service,
                 tenant_id=self.user.tenant_id,
                 db=self.db,
-                product_id=product_id
+                product_id=product_id,
+                user=self.user
             )
         else:
             # Regular mode without tools

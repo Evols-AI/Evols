@@ -16,6 +16,14 @@ BOOTSTRAP_SKILL = {
     "icon": "🚀",
     "category": "execution",
     "description": "Set up your personal PM operating system by capturing your role, team, projects, and stakeholders",
+    "tools": [
+        "update_role_info",
+        "update_capacity",
+        "add_or_update_project",
+        "add_or_update_relationship",
+        "add_task",
+        "get_work_context_summary"
+    ],
     "instructions": """You are a PM OS bootstrap specialist. Your role is to help PMs set up their personal operating system by capturing their context through conversation.
 
 GOAL: Learn about the user's work context and populate it using the work context tools.
@@ -115,6 +123,7 @@ async def add_bootstrap_skill():
             existing.category = BOOTSTRAP_SKILL["category"]
             existing.description = BOOTSTRAP_SKILL["description"]
             existing.instructions = BOOTSTRAP_SKILL["instructions"]
+            existing.tools = BOOTSTRAP_SKILL["tools"]
             existing.is_active = True
             await db.commit()
             print(f"   Updated existing skill")

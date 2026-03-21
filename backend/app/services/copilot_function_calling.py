@@ -51,7 +51,8 @@ async def handle_function_calling(
     llm_service,
     tenant_id: int,
     db,
-    product_id: Optional[int] = None
+    product_id: Optional[int] = None,
+    user = None
 ) -> Tuple[str, Optional[List[Dict]]]:
     """
     Handle function calling agent loop.
@@ -129,13 +130,14 @@ async def handle_function_calling(
                     logger.info(f"[Function Calling] Executing tool: {tool_name} with args: {tool_args_for_logging}")
 
                     try:
-                        # Execute tool (this mutates tool_args to add db, tenant_id, and optionally product_id)
+                        # Execute tool (this mutates tool_args to add db, tenant_id, and optionally product_id, user)
                         tool_result = await tool_registry.execute_tool(
                             tool_name=tool_name,
                             arguments=tool_args,
                             tenant_id=tenant_id,
                             db=db,
-                            product_id=product_id
+                            product_id=product_id,
+                            user=user
                         )
 
                         # Ensure result is JSON-serializable by doing a round-trip
