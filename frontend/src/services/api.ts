@@ -261,6 +261,51 @@ export const api = {
   changeMyPassword: (data: { current_password: string; new_password: string }) =>
     apiClient.post('/api/v1/users/me/change-password', data),
 
+  // Work Context (Personal PM Operating System)
+  workContext: {
+    // Work Context
+    getWorkContext: () => apiClient.get('/api/v1/work-context/work-context'),
+    updateWorkContext: (data: any) => apiClient.put('/api/v1/work-context/work-context', data),
+
+    // Active Projects
+    getActiveProjects: () => apiClient.get('/api/v1/work-context/active-projects'),
+    createActiveProject: (data: any) => apiClient.post('/api/v1/work-context/active-projects', data),
+    updateActiveProject: (id: number, data: any) => apiClient.put(`/api/v1/work-context/active-projects/${id}`, data),
+    deleteActiveProject: (id: number) => apiClient.delete(`/api/v1/work-context/active-projects/${id}`),
+
+    // Key Relationships
+    getKeyRelationships: () => apiClient.get('/api/v1/work-context/key-relationships'),
+    createKeyRelationship: (data: any) => apiClient.post('/api/v1/work-context/key-relationships', data),
+    updateKeyRelationship: (id: number, data: any) => apiClient.put(`/api/v1/work-context/key-relationships/${id}`, data),
+    deleteKeyRelationship: (id: number) => apiClient.delete(`/api/v1/work-context/key-relationships/${id}`),
+
+    // PM Decisions
+    getPMDecisions: (params?: any) => apiClient.get('/api/v1/work-context/pm-decisions', { params }),
+    getPMDecision: (id: number) => apiClient.get(`/api/v1/work-context/pm-decisions/${id}`),
+    createPMDecision: (data: any) => apiClient.post('/api/v1/work-context/pm-decisions', data),
+    updatePMDecision: (id: number, data: any) => apiClient.put(`/api/v1/work-context/pm-decisions/${id}`, data),
+    deletePMDecision: (id: number) => apiClient.delete(`/api/v1/work-context/pm-decisions/${id}`),
+
+    // Tasks
+    getTasks: (params?: any) => apiClient.get('/api/v1/work-context/tasks', { params }),
+    getTask: (id: number) => apiClient.get(`/api/v1/work-context/tasks/${id}`),
+    createTask: (data: any) => apiClient.post('/api/v1/work-context/tasks', data),
+    updateTask: (id: number, data: any) => apiClient.put(`/api/v1/work-context/tasks/${id}`, data),
+    deleteTask: (id: number) => apiClient.delete(`/api/v1/work-context/tasks/${id}`),
+
+    // Weekly Focus
+    getWeeklyFocus: (params?: any) => apiClient.get('/api/v1/work-context/weekly-focus', { params }),
+    getCurrentWeeklyFocus: () => apiClient.get('/api/v1/work-context/weekly-focus/current'),
+    updateWeeklyFocus: (id: number, data: any) => apiClient.put(`/api/v1/work-context/weekly-focus/${id}`, data),
+
+    // Meeting Notes
+    getMeetingNotes: (params?: any) => apiClient.get('/api/v1/work-context/meeting-notes', { params }),
+    getMeetingNote: (id: number) => apiClient.get(`/api/v1/work-context/meeting-notes/${id}`),
+    createMeetingNote: (data: any) => apiClient.post('/api/v1/work-context/meeting-notes', data),
+    updateMeetingNote: (id: number, data: any) => apiClient.put(`/api/v1/work-context/meeting-notes/${id}`, data),
+    deleteMeetingNote: (id: number) => apiClient.delete(`/api/v1/work-context/meeting-notes/${id}`),
+  },
+
   // Generic helpers
   get: (path: string, params?: any) => apiClient.get(`/api/v1${path}`, { params }),
   post: (path: string, data: any, config?: any) => apiClient.post(`/api/v1${path}`, data, config),
