@@ -5,16 +5,21 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Briefcase, Users, TrendingUp, Calendar, BookOpen, CheckSquare, Lightbulb } from 'lucide-react'
+import { Briefcase, TrendingUp, Calendar, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, PageHeader, Card, Loading } from '@/components/PageContainer'
+import TaskModal from '@/components/work-context/TaskModal'
+import DecisionModal from '@/components/work-context/DecisionModal'
+import WeeklyFocusModal from '@/components/work-context/WeeklyFocusModal'
+import { useProducts } from '@/hooks/useProducts'
 
 type TabType = 'overview' | 'tasks' | 'decisions' | 'meetings' | 'weekly-focus'
 
 export default function WorkContext() {
   const router = useRouter()
+  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedTab, setSelectedTab] = useState<TabType>('overview')
@@ -25,6 +30,17 @@ export default function WorkContext() {
   const [decisions, setDecisions] = useState<any[]>([])
   const [meetings, setMeetings] = useState<any[]>([])
   const [weeklyFocus, setWeeklyFocus] = useState<any>(null)
+
+  // Modal states
+  const [taskModalOpen, setTaskModalOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<any>(null)
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false)
+  const [selectedDecision, setSelectedDecision] = useState<any>(null)
+  const [weeklyFocusModalOpen, setWeeklyFocusModalOpen] = useState(false)
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null)
+  const [deletingDecisionId, setDeletingDecisionId] = useState<number | null>(null)
+
+  const productId = selectedProductIds[0]
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -70,6 +86,46 @@ export default function WorkContext() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDeleteTask = async (taskId: number) => {
+    if (!confirm('Delete this task?')) return
+
+    setDeletingTaskId(taskId)
+    try {
+      await api.workContext.deleteTask(taskId)
+      await loadData()
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      alert('Failed to delete task')
+    } finally {
+      setDeletingTaskId(null)
+    }
+  }
+
+  const handleDeleteDecision = async (decisionId: number) => {
+    if (!confirm('Delete this decision?')) return
+
+    setDeletingDecisionId(decisionId)
+    try {
+      await api.workContext.deletePMDecision(decisionId)
+      await loadData()
+    } catch (error) {
+      console.error('Error deleting decision:', error)
+      alert('Failed to delete decision')
+    } finally {
+      setDeletingDecisionId(null)
+    }
+  }
+
+  const openTaskModal = (task?: any) => {
+    setSelectedTask(task || null)
+    setTaskModalOpen(true)
+  }
+
+  const openDecisionModal = (decision?: any) => {
+    setSelectedDecision(decision || null)
+    setDecisionModalOpen(true)
   }
 
   const getCapacityColor = (status?: string) => {
@@ -162,17 +218,6 @@ export default function WorkContext() {
               Decisions ({decisions.length})
             </button>
             <button
-              onClick={() => setSelectedTab('meetings')}
-              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
-                selectedTab === 'meetings'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <Users className="w-4 h-4 inline mr-2" />
-              Meetings ({meetings.length})
-            </button>
-            <button
               onClick={() => setSelectedTab('weekly-focus')}
               className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
                 selectedTab === 'weekly-focus'
@@ -239,9 +284,18 @@ export default function WorkContext() {
             {/* This Week's Focus */}
             {weeklyFocus && (weeklyFocus.focus_1 || weeklyFocus.focus_2 || weeklyFocus.focus_3) && (
               <Card>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Three Things That Matter This Week
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Three Things That Matter This Week
+                  </h3>
+                  <button
+                    onClick={() => setWeeklyFocusModalOpen(true)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {weeklyFocus.focus_1 && (
                     <div className="flex items-start gap-2">
@@ -329,6 +383,16 @@ export default function WorkContext() {
         {/* Tasks Tab */}
         {selectedTab === 'tasks' && (
           <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={() => openTaskModal()}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              >
+                <Plus className="w-4 h-4" />
+                New Task
+              </button>
+            </div>
+
             {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
               const priorityTasks = tasks.filter(t => t.priority === priority && t.status !== 'completed')
               if (priorityTasks.length === 0) return null
@@ -340,8 +404,8 @@ export default function WorkContext() {
                   </h3>
                   <div className="space-y-2">
                     {priorityTasks.map((task) => (
-                      <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                        <div className="flex-1">
+                      <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg group">
+                        <div className="flex-1 min-w-0">
                           <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
                           {task.description && (
                             <div className="text-sm text-gray-700 dark:text-gray-400 mt-1">{task.description}</div>
@@ -352,81 +416,134 @@ export default function WorkContext() {
                             </div>
                           )}
                         </div>
-                        <span className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                          {task.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                            {task.status}
+                          </span>
+                          <button
+                            onClick={() => openTaskModal(task)}
+                            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
+                            title="Edit task"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTask(task.id)}
+                            disabled={deletingTaskId === task.id}
+                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
+                            title="Delete task"
+                          >
+                            {deletingTaskId === task.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </Card>
               )
             })}
+
+            {tasks.filter(t => t.status !== 'completed').length === 0 && (
+              <Card>
+                <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  No active tasks. Click "New Task" to add one.
+                </p>
+              </Card>
+            )}
           </div>
         )}
 
         {/* Decisions Tab */}
         {selectedTab === 'decisions' && (
           <div className="space-y-4">
-            {decisions.map((decision) => (
-              <Card key={decision.id}>
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    #{decision.decision_number}: {decision.title}
-                  </h3>
-                  <span className="text-xs px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    {decision.category}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-700 dark:text-gray-400 mb-3">{decision.context}</div>
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900 dark:text-white mb-1">Decision:</div>
-                  <div className="text-gray-700 dark:text-gray-400">{decision.decision}</div>
-                </div>
-                <div className="text-xs text-gray-600 dark:text-gray-500 mt-3">
-                  {new Date(decision.decision_date).toLocaleDateString()}
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+            <div className="flex justify-end">
+              <button
+                onClick={() => openDecisionModal()}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              >
+                <Plus className="w-4 h-4" />
+                Log Decision
+              </button>
+            </div>
 
-        {/* Meetings Tab */}
-        {selectedTab === 'meetings' && (
-          <div className="space-y-4">
-            {meetings.map((meeting) => (
-              <Card key={meeting.id}>
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{meeting.title}</h3>
-                  <span className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                    {meeting.meeting_type.replace(/_/g, ' ')}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-700 dark:text-gray-400 mb-2">
-                  {new Date(meeting.meeting_date).toLocaleDateString()}
-                </div>
-                {meeting.notes && (
-                  <div className="text-sm text-gray-700 dark:text-gray-400 mt-2">
-                    {meeting.notes.substring(0, 200)}...
+            {decisions.length > 0 ? (
+              decisions.map((decision) => (
+                <Card key={decision.id}>
+                  <div className="flex items-start justify-between mb-2 group">
+                    <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
+                      #{decision.decision_number}: {decision.title}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                        {decision.category}
+                      </span>
+                      <button
+                        onClick={() => openDecisionModal(decision)}
+                        className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
+                        title="Edit decision"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDecision(decision.id)}
+                        disabled={deletingDecisionId === decision.id}
+                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
+                        title="Delete decision"
+                      >
+                        {deletingDecisionId === decision.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                )}
+                  <div className="text-sm text-gray-700 dark:text-gray-400 mb-3">{decision.context}</div>
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900 dark:text-white mb-1">Decision:</div>
+                    <div className="text-gray-700 dark:text-gray-400">{decision.decision}</div>
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-500 mt-3">
+                    {new Date(decision.decision_date).toLocaleDateString()}
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  No decisions logged yet. Click "Log Decision" to add one.
+                </p>
               </Card>
-            ))}
+            )}
           </div>
         )}
 
         {/* Weekly Focus Tab */}
         {selectedTab === 'weekly-focus' && weeklyFocus && (
           <Card>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Week of {new Date(weeklyFocus.week_start_date).toLocaleDateString()}
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Week of {new Date(weeklyFocus.week_start_date).toLocaleDateString()}
+              </h3>
+              <button
+                onClick={() => setWeeklyFocusModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </button>
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Focus #1
                 </label>
                 <div className="text-gray-900 dark:text-white">
-                  {weeklyFocus.focus_1 || 'Not set'}
+                  {weeklyFocus.focus_1 || <span className="text-gray-500 italic">Not set</span>}
                 </div>
               </div>
               <div>
@@ -434,7 +551,7 @@ export default function WorkContext() {
                   Focus #2
                 </label>
                 <div className="text-gray-900 dark:text-white">
-                  {weeklyFocus.focus_2 || 'Not set'}
+                  {weeklyFocus.focus_2 || <span className="text-gray-500 italic">Not set</span>}
                 </div>
               </div>
               <div>
@@ -442,7 +559,7 @@ export default function WorkContext() {
                   Focus #3
                 </label>
                 <div className="text-gray-900 dark:text-white">
-                  {weeklyFocus.focus_3 || 'Not set'}
+                  {weeklyFocus.focus_3 || <span className="text-gray-500 italic">Not set</span>}
                 </div>
               </div>
               {weeklyFocus.notes && (
@@ -459,6 +576,36 @@ export default function WorkContext() {
           </Card>
         )}
       </PageContainer>
+
+      {/* Modals */}
+      <TaskModal
+        isOpen={taskModalOpen}
+        onClose={() => {
+          setTaskModalOpen(false)
+          setSelectedTask(null)
+        }}
+        onSuccess={loadData}
+        task={selectedTask}
+        productId={productId}
+      />
+
+      <DecisionModal
+        isOpen={decisionModalOpen}
+        onClose={() => {
+          setDecisionModalOpen(false)
+          setSelectedDecision(null)
+        }}
+        onSuccess={loadData}
+        decision={selectedDecision}
+        productId={productId}
+      />
+
+      <WeeklyFocusModal
+        isOpen={weeklyFocusModalOpen}
+        onClose={() => setWeeklyFocusModalOpen(false)}
+        onSuccess={loadData}
+        weeklyFocus={weeklyFocus}
+      />
     </>
   )
 }
