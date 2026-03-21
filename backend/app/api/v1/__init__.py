@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import auth, feedback, themes, personas, decisions
 from app.api.v1.endpoints import workbench, llm_settings, settings, knowledge_base, projects, jobs, roadmap, products
 from app.api.v1.endpoints import admin, users, support, advisers, copilot, copilot_cleanup, context, invites
-from app.api.v1.endpoints import knowledge, memory
+from app.api.v1.endpoints import knowledge, memory, work_context
 
 api_router = APIRouter()
 
@@ -35,3 +35,4 @@ api_router.include_router(copilot_cleanup.router, prefix="/copilot/cleanup", tag
 api_router.include_router(context.router, prefix="/context", tags=["Context"])
 api_router.include_router(knowledge.router, prefix="/knowledge", tags=["Knowledge"])
 api_router.include_router(memory.router, prefix="/memory", tags=["Memory"])
+api_router.include_router(work_context.router, prefix="/work-context", tags=["Work Context"])

@@ -207,7 +207,7 @@ class PMDecision(BaseModel):
     review_date = Column(DateTime, nullable=True)
 
     # Relationships
-    user = relationship("User", back_populates="decisions")
+    user = relationship("User", back_populates="pm_decisions")
     product = relationship("Product")
 
     def __repr__(self):
