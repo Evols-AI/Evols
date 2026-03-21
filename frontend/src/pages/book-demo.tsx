@@ -168,9 +168,9 @@ export default function BookDemo() {
                     <animateTransform attributeName="transform" type="translate" values="85,180; 85,175; 85,180" dur="4s" repeatCount="indefinite" />
                   </g>
                 </svg>
-                <h1 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">See Evols in Action</h1>
+                <h1 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">See Your AI PM Copilot in Action</h1>
                 <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                  Book a 30-minute personalized demo to see how Evols can transform your product decision-making.
+                  Book a 30-minute personalized demo to see how an AI copilot can become your PM operating system.
                 </p>
                 <div className="space-y-6">
                   <div className="flex items-start space-x-4">
@@ -178,8 +178,8 @@ export default function BookDemo() {
                       <Sparkles className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">AI-Powered Insights</h3>
-                      <p className="text-gray-600 dark:text-gray-400">See how AI clustering and digital twin personas work with your data</p>
+                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">80+ PM Skills</h3>
+                      <p className="text-gray-600 dark:text-gray-400">See conversational AI execute strategy docs, PRDs, meeting prep, and weekly updates</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -187,8 +187,8 @@ export default function BookDemo() {
                       <MessageSquare className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">Tailored to Your Needs</h3>
-                      <p className="text-gray-600 dark:text-gray-400">We'll customize the demo based on your specific use case and goals</p>
+                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">Auto Work Context</h3>
+                      <p className="text-gray-600 dark:text-gray-400">Watch AI automatically capture your role, projects, and tasks from natural conversation</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -196,8 +196,8 @@ export default function BookDemo() {
                       <CheckCircle className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">No Pressure</h3>
-                      <p className="text-gray-600 dark:text-gray-400">Just a friendly conversation about how we can help you make better product decisions</p>
+                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">Bring Your Docs</h3>
+                      <p className="text-gray-600 dark:text-gray-400">See how Evols extracts intelligence from your actual documents and meeting notes</p>
                     </div>
                   </div>
                 </div>

@@ -78,15 +78,14 @@ export default function Home() {
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent leading-tight pb-2">
-                All Your Product Intel.
+                Your AI-Powered
                 <br />
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">One Intelligent OS.</span>
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">PM Operating System.</span>
               </h1>
 
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto lg:mx-0">
-                Stop paying for scattered roadmapping, research, and analysis tools.
-                Evols consolidates your entire product stack, automatically clusters feedback into actionable themes,
-                and helps you make revenue-generating decisions with AI digital twins.
+                An intelligent copilot with 80+ PM skills that learns your work context, manages your tasks,
+                extracts intelligence from documents, and helps you execute faster with conversational AI.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
@@ -265,20 +264,20 @@ export default function Home() {
         <section className="container mx-auto px-6 py-20">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <FeatureCard icon={<Sparkles className="w-8 h-8" />}
-              title="AI Clustering"
-              description="Auto-cluster feedback into themes with revenue impact and urgency scores"
+              title="AI Workbench"
+              description="Conversational copilot with 80+ PM skills for strategy, execution, and analysis"
             />
             <FeatureCard icon={<Users className="w-8 h-8" />}
-              title="Digital Twins"
-              description="Simulate persona responses for validation and trade-off decisions"
+              title="Auto Work Context"
+              description="AI captures your role, capacity, projects, and relationships from conversations"
             />
             <FeatureCard icon={<GitBranch className="w-8 h-8" />}
-              title="Decision Briefs"
-              description="Generate evidence-backed briefs with citations and recommendations"
+              title="Smart Intelligence"
+              description="Extract insights from documents, meeting notes, and feedback automatically"
             />
             <FeatureCard icon={<TrendingUp className="w-8 h-8" />}
-              title="Knowledge Graph"
-              description="Visualize connections between feedback, themes, and roadmap"
+              title="Task Management"
+              description="Kanban board with AI-powered task creation from action items in conversations"
             />
           </div>
         </section>
@@ -292,12 +291,12 @@ export default function Home() {
                   Why Evols?
                 </h2>
                 <div className="space-y-6">
-                  <ValueProp text="Consolidate fragmented evidence from feedback tools, CRM, and analytics" />
-                  <ValueProp text="Save weeks of manual synthesis with AI-powered clustering" />
-                  <ValueProp text="Generate decision briefs in minutes, not days" />
-                  <ValueProp text="Validate ideas with persona digital twins before building" />
-                  <ValueProp text="Track decisions and outcomes to build institutional memory" />
-                  <ValueProp text="Defend product bets with evidence-backed recommendations" />
+                  <ValueProp text="Conversational AI that learns your context and remembers past work" />
+                  <ValueProp text="80+ PM skills from strategy docs to meeting prep to weekly updates" />
+                  <ValueProp text="Auto-capture work context from conversations - no manual forms" />
+                  <ValueProp text="Extract intelligence from documents, meeting notes, and feedback" />
+                  <ValueProp text="Manage tasks in kanban board with AI-detected action items" />
+                  <ValueProp text="Product knowledge base with semantic search and RAG" />
                 </div>
               </div>
               <div className="hidden md:flex items-center justify-center">
@@ -326,11 +325,11 @@ export default function Home() {
         <section className="container mx-auto px-6 py-20 pb-32">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">
-              All-in-One Power. <br /><span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">None of the Extra Costs.</span>
+              Replace Your Entire PM Stack. <br /><span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">With One AI Copilot.</span>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400">
-              Save thousands every year by replacing multiple fragmented tools with one simple platform.
-              Consolidate your product stack and reclaim your time.
+              Why pay for separate task managers, note-taking apps, document assistants, and workflow tools?
+              Get an AI copilot that handles it all through conversation.
             </p>
           </div>
 
@@ -338,16 +337,16 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-gray-700">
               {/* Other Tools Column */}
               <div className="p-8 md:col-span-2 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-6 uppercase tracking-wider">With Legacy Tools (Team of 5)</h3>
+                <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-6 uppercase tracking-wider">With Separate Tools (Per PM)</h3>
                 <div className="space-y-6">
-                  <ComparisonItem name="Roadmapping (Productboard, Roadmunk)" price="$3,000" />
-                  <ComparisonItem name="Research Repository (Dovetail, EnjoyHQ)" price="$2,500" />
-                  <ComparisonItem name="AI Synthesis & Analysis (LLM Wrappers)" price="$2,000" />
-                  <ComparisonItem name="Workflow Integration (Unito, Zapier)" price="$1,500" />
-                  <ComparisonItem name="Persona Generation (Delve.ai, SparkToro)" price="$2,000" />
+                  <ComparisonItem name="Task Management (Asana, Linear, ClickUp)" price="$1,200" />
+                  <ComparisonItem name="Note Taking (Notion, Obsidian, Roam)" price="$600" />
+                  <ComparisonItem name="AI Assistant (ChatGPT, Claude, custom wrappers)" price="$2,400" />
+                  <ComparisonItem name="Document Intelligence (Multiple LLM tools)" price="$1,800" />
+                  <ComparisonItem name="Workflow Automation (Zapier, Make)" price="$1,500" />
                   <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center font-bold text-gray-900 dark:text-gray-100">
-                    <span className="text-xl">Legacy SaaS Total</span>
-                    <span className="text-2xl text-red-500 line-through">$11,000/yr</span>
+                    <span className="text-xl">Tool Stack Total</span>
+                    <span className="text-2xl text-red-500 line-through">$7,500/yr</span>
                   </div>
                 </div>
               </div>

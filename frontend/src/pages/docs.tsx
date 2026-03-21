@@ -100,36 +100,36 @@ export default function Docs() {
             </div>
             <h1 className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">Evols Documentation</h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Everything you need to know to get started with Evols
+              Everything you need to know about your AI-powered PM operating system
             </p>
           </div>
 
           {/* Quick Links Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             <DocCard icon={<Sparkles className="w-6 h-6" />}
-              title="Themes"
-              description="How urgency and impact scores are calculated"
-              href="/docs/themes"
+              title="Workbench"
+              description="Conversational AI copilot with 80+ PM skills"
+              href="#workbench"
+            />
+            <DocCard icon={<Briefcase className="w-6 h-6" />}
+              title="Work Context"
+              description="Auto-populated PM OS with role, tasks, and capacity"
+              href="#work-context"
+            />
+            <DocCard icon={<Book className="w-6 h-6" />}
+              title="Skills"
+              description="Strategy, execution, and analysis skills library"
+              href="#skills"
+            />
+            <DocCard icon={<Code className="w-6 h-6" />}
+              title="Knowledge"
+              description="Document intelligence and semantic search"
+              href="#knowledge"
             />
             <DocCard icon={<Users className="w-6 h-6" />}
               title="Personas"
-              description="Learn about digital twin personas and metrics"
-              href="/docs/personas"
-            />
-            <DocCard icon={<Briefcase className="w-6 h-6" />}
-              title="Decision Workbench"
-              description="PM vs Founder mode decision-making guide"
-              href="/docs/workbench"
-            />
-            <DocCard icon={<Book className="w-6 h-6" />}
-              title="Roadmap"
-              description="Strategic roadmap planning with initiatives and projects"
-              href="/docs/roadmap"
-            />
-            <DocCard icon={<Code className="w-6 h-6" />}
-              title="Knowledge Base"
-              description="Product RAG and capability management"
-              href="/docs/knowledge-base"
+              description="Customer personas and feedback analysis"
+              href="#personas"
             />
             <DocCard icon={<Server className="w-6 h-6" />}
               title="API Reference"
@@ -143,8 +143,8 @@ export default function Docs() {
               href="#getting-started"
             />
             <DocCard icon={<Book className="w-6 h-6" />}
-              title="API Usage"
-              description="Authentication and API examples"
+              title="Authentication"
+              description="API authentication and examples"
               href="#api"
             />
           </div>
@@ -181,72 +181,76 @@ docker-compose up -d`}</code>
             {/* Core Features */}
             <Section id="features" title="Core Features">
               <div className="space-y-6">
-                <FeatureDoc title="AI-Powered VoC Clustering"
-                  description="Automatically categorize and cluster voice of customer data into themes with dynamic urgency and impact scoring."
+                <FeatureDoc title="AI Workbench"
+                  description="Conversational AI copilot with 80+ PM skills for strategy, execution, and communication."
                   features={[
-                    'Auto-categorization (features, bugs, tech debt)',
-                    'Theme clustering using embeddings (75% similarity threshold)',
-                    'Dynamic urgency scores based on category distribution',
-                    'Dynamic impact scores from account count + feedback volume',
-                    'Incremental refresh - only processes new feedback'
+                    '80+ skills from unified-pm-os and custom library',
+                    'Conversational interface with memory of past work',
+                    'Function calling for data access and actions',
+                    'Skills include: PRD writer, OST generator, meeting prep, weekly updates',
+                    'Custom skill creation with tool access',
+                    'Multi-product context support'
                   ]}
-                  link="/docs/themes"
-                  linkText="Learn how scores are calculated →"
+                  link="#workbench"
+                  linkText="Learn about Workbench →"
                 />
-                <FeatureDoc title="Persona Digital Twins"
-                  description="Generate and simulate customer personas with dynamic revenue and usage metrics from VoC data."
+                <FeatureDoc title="Work Context (PM OS)"
+                  description="Your personal PM operating system that auto-populates from conversations."
                   features={[
-                    'Auto-generate personas from customer segments',
-                    'Revenue contribution calculated from feedback data',
-                    'Usage frequency extracted from activity patterns',
-                    'Persona lifecycle (New → Active → Inactive)',
-                    'Incremental updates with duplicate prevention (85% similarity)',
-                    'Chat interface and trade-off voting'
+                    'AI auto-captures role, team, manager, capacity from conversations',
+                    'Project tracking with status and stakeholders',
+                    'Relationship management (peers, stakeholders, reports)',
+                    'Task board with kanban swimlanes (TODO, In Progress, Done)',
+                    'Priority tiers: Critical, High Leverage, Stakeholder, Sweep, Backlog',
+                    'PM decision log with options analysis'
                   ]}
-                  link="/docs/personas"
-                  linkText="Learn about persona metrics →"
+                  link="#work-context"
+                  linkText="Learn about Work Context →"
                 />
-                <FeatureDoc title="Decision Workbench"
-                  description="AI-powered decision-making tool with PM and Founder modes for different decision contexts."
+                <FeatureDoc title="Skills Library"
+                  description="Extensive library of PM skills for every workflow stage."
                   features={[
-                    'PM Mode: Roadmap decisions using VoC data',
-                    'Founder Mode: Strategic decisions with market data',
-                    'AI-generated options with pros/cons',
-                    'Persona voting and validation',
-                    'Decision briefs with charts and recommendations'
+                    'Strategy: Product strategy docs, competitive analysis, market research',
+                    'Discovery: OST generator, assumption testing, validation frameworks',
+                    'Execution: PRD writer, technical specs, API documentation',
+                    'Communication: Stakeholder updates, meeting prep, feedback synthesis',
+                    'Daily Discipline: Calendar review, action item harvester, say-no playbook',
+                    'Browse 80+ skills or create custom ones'
                   ]}
-                  link="/docs/workbench"
-                  linkText="Learn about PM vs Founder mode →"
+                  link="#skills"
+                  linkText="Browse skills →"
                 />
-                <FeatureDoc title="Strategic Roadmap"
-                  description="Plan and visualize your product strategy with initiatives, projects, and AI-powered strategic allocation."
+                <FeatureDoc title="Knowledge Management"
+                  description="Extract intelligence from documents and enable semantic search across your product knowledge."
                   features={[
-                    'Initiative and project hierarchy',
-                    'Priority matrix for strategic planning',
-                    'Strategy Radar: Retention vs Growth vs Infrastructure',
-                    'ARR and retention impact tracking',
-                    'Multi-product roadmap support'
-                  ]}
-                  link="/docs/roadmap"
-                  linkText="Learn about roadmap planning →"
-                />
-                <FeatureDoc title="Knowledge Base (Product RAG)"
-                  description="AI-powered knowledge management with RAG for product capabilities and documentation."
-                  features={[
-                    'Product capability management',
+                    'Upload documents, meeting notes, PDFs, CSVs',
+                    'AI extraction of entities: personas, features, pain points, use cases',
                     'Semantic search with embeddings',
-                    'RAG integration with personas and workbench',
-                    'External documentation ingestion',
-                    'Multi-product capability scoping'
+                    'Source grouping by date and type',
+                    'Product knowledge base with strategy docs',
+                    'RAG integration with Workbench for context-aware responses'
                   ]}
-                  link="/docs/knowledge-base"
-                  linkText="Learn about Product RAG →"
+                  link="#knowledge"
+                  linkText="Learn about Knowledge →"
+                />
+                <FeatureDoc title="Personas & Feedback"
+                  description="Customer personas with feedback analysis and persona-based feature voting."
+                  features={[
+                    'Create customer personas manually or from feedback',
+                    'Feedback themes with clustering',
+                    'Persona voting for features and initiatives',
+                    'Feedback sentiment analysis',
+                    'Customer segment tracking',
+                    'Entity extraction from feedback'
+                  ]}
+                  link="#personas"
+                  linkText="Learn about Personas →"
                 />
               </div>
             </Section>
 
             {/* API Usage */}
-            <Section id="api" title="API Usage">
+            <Section id="api" title="API & Authentication">
               <div className="prose dark:prose-invert max-w-none">
                 <h3>Authentication</h3>
                 <p>Register a new user and get an access token:</p>
@@ -254,22 +258,32 @@ docker-compose up -d`}</code>
                   <code>{`curl -X POST http://localhost:8000/api/v1/auth/register \\
   -H "Content-Type: application/json" \\
   -d '{
-    "email": "admin@company.com",
+    "email": "pm@company.com",
     "password": "SecurePassword123!",
-    "full_name": "Admin User",
+    "full_name": "Product Manager",
     "tenant_slug": "my-company"
   }'`}</code>
                 </pre>
 
-                <h3>Upload VoC</h3>
+                <h3>Upload Documents</h3>
+                <p>Upload documents for knowledge extraction:</p>
                 <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
-                  <code>{`curl -X POST http://localhost:8000/api/v1/feedback/ \\
+                  <code>{`curl -X POST http://localhost:8000/api/v1/context/upload \\
+  -H "Authorization: Bearer YOUR_TOKEN" \\
+  -F "file=@meeting_notes.pdf" \\
+  -F "source_type=meeting_notes" \\
+  -F "source_name=Q1 Strategy Meeting"`}</code>
+                </pre>
+
+                <h3>Chat with Workbench</h3>
+                <p>Start a conversation with AI skills:</p>
+                <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+                  <code>{`curl -X POST http://localhost:8000/api/v1/copilot/chat \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -d '{
-    "source": "manual_upload",
-    "content": "We need better onboarding",
-    "customer_segment": "Enterprise"
+    "message": "@prd-writer Create a PRD for mobile app notifications",
+    "conversation_id": null
   }'`}</code>
                 </pre>
 
