@@ -253,18 +253,16 @@ export default function OnboardingTour() {
 
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
-          {/* Don't show again checkbox (only on last step) */}
-          {isLastStep && (
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={dontShowAgain}
-                onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              Don't show this tour again
-            </label>
-          )}
+          {/* Don't show again checkbox (show on all steps) */}
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={dontShowAgain}
+              onChange={(e) => setDontShowAgain(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            Don't show this tour again
+          </label>
 
           {/* Navigation buttons */}
           <div className="flex items-center justify-between gap-3">
