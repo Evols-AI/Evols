@@ -518,7 +518,7 @@ function SourcesView({
         <div key={`group-${group.id}`}>
           <button
             onClick={() => handleToggleGroup(group.id)}
-            className="w-full text-left"
+            className="w-full text-left text-gray-900 dark:text-white"
           >
             <Card>
               <div className="p-6">
@@ -526,18 +526,18 @@ function SourcesView({
                   <div className="flex items-center gap-3">
                     <Database className="w-6 h-6 text-blue-500" />
                     <div>
-                      <h3 className="font-semibold text-lg">{group.name}</h3>
+                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{group.name}</h3>
                       {group.description && (
-                        <p className="text-sm text-muted mt-1">{group.description}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-400 mt-1">{group.description}</p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <div className="text-sm text-muted">
+                      <div className="text-sm text-gray-700 dark:text-gray-400">
                         {group.sources_count} sources
                       </div>
-                      <div className="text-sm text-muted">
+                      <div className="text-sm text-gray-700 dark:text-gray-400">
                         {group.total_entities} entities
                       </div>
                     </div>
@@ -549,7 +549,7 @@ function SourcesView({
                       <Trash2 className="w-4 h-4" />
                     </button>
                     <svg
-                      className={`w-5 h-5 transition-transform ${
+                      className={`w-5 h-5 text-gray-700 dark:text-gray-400 transition-transform ${
                         expandedGroups.has(group.id) ? 'rotate-180' : ''
                       }`}
                       fill="none"
@@ -835,9 +835,9 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold mb-1">{source.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{source.name}</h3>
             {source.description && (
-              <p className="text-sm text-muted mb-2 line-clamp-2">{source.description}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-400 mb-2 line-clamp-2">{source.description}</p>
             )}
             {source.content_summary && (
               <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 mb-3">
@@ -871,7 +871,7 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
                   ⏱️ Scheduled: {new Date(source.deletion_scheduled_for).toLocaleDateString()}
                 </span>
               )}
-              <span className="text-xs text-muted">
+              <span className="text-xs text-gray-700 dark:text-gray-400">
                 {new Date(source.created_at).toLocaleDateString()}
               </span>
             </div>
@@ -935,16 +935,16 @@ function EntityCard({ entity, onPromote }: { entity: any; onPromote: (entity: an
             {getEntityIcon(entity.entity_type)}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm mb-1">{entity.name}</h4>
-            <p className="text-xs text-muted line-clamp-2">{entity.description}</p>
+            <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-1">{entity.name}</h4>
+            <p className="text-xs text-gray-700 dark:text-gray-400 line-clamp-2">{entity.description}</p>
           </div>
         </div>
 
         {entity.confidence_score && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted">Confidence</span>
-              <span className="font-medium">{Math.round(entity.confidence_score * 100)}%</span>
+              <span className="text-gray-700 dark:text-gray-400">Confidence</span>
+              <span className="font-medium text-gray-900 dark:text-white">{Math.round(entity.confidence_score * 100)}%</span>
             </div>
           </div>
         )}

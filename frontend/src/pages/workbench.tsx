@@ -366,7 +366,7 @@ export default function Workbench() {
               <div className="max-w-4xl mx-auto px-6 py-6">
                 {messages.length === 0 ? (
                   <div className="text-center py-16">
-                    <Sparkles className="w-16 h-16 mx-auto mb-4 text-blue-500 opacity-50" />
+                    <Sparkles className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       Welcome to Workbench
                     </h2>
