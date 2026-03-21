@@ -204,7 +204,7 @@ export default function WorkContext() {
               }`}
             >
               <CheckSquare className="w-4 h-4 inline mr-2" />
-              Tasks ({tasks.filter(t => t.status !== 'completed').length})
+              Tasks ({tasks.filter(t => t.status === 'todo' || t.status === 'in_progress').length})
             </button>
             <button
               onClick={() => setSelectedTab('decisions')}
@@ -393,64 +393,211 @@ export default function WorkContext() {
               </button>
             </div>
 
-            {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
-              const priorityTasks = tasks.filter(t => t.priority === priority && t.status !== 'completed')
-              if (priorityTasks.length === 0) return null
-
-              return (
-                <Card key={priority}>
-                  <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
-                    {getPriorityLabel(priority)} ({priorityTasks.length})
+            {/* Kanban Board with Swimlanes */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* TODO Column */}
+              <div className="flex flex-col">
+                <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-blue-500">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    📋 To Do ({tasks.filter(t => t.status === 'todo').length})
                   </h3>
-                  <div className="space-y-2">
-                    {priorityTasks.map((task) => (
-                      <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg group">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-white">{task.title}</div>
-                          {task.description && (
-                            <div className="text-sm text-gray-700 dark:text-gray-400 mt-1">{task.description}</div>
-                          )}
-                          {task.deadline && (
-                            <div className="text-xs text-gray-600 dark:text-gray-500 mt-1">
-                              Due: {new Date(task.deadline).toLocaleDateString()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                            {task.status}
-                          </span>
-                          <button
-                            onClick={() => openTaskModal(task)}
-                            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
-                            title="Edit task"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTask(task.id)}
-                            disabled={deletingTaskId === task.id}
-                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
-                            title="Delete task"
-                          >
-                            {deletingTaskId === task.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )
-            })}
+                </div>
+                <div className="flex-1 bg-gray-50 dark:bg-gray-900/30 rounded-b-lg p-4 space-y-3 min-h-[500px]">
+                  {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
+                    const priorityTasks = tasks.filter(t => t.priority === priority && t.status === 'todo')
+                    if (priorityTasks.length === 0) return null
 
-            {tasks.filter(t => t.status !== 'completed').length === 0 && (
+                    return (
+                      <div key={priority} className="space-y-2">
+                        <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                          {getPriorityLabel(priority)}
+                        </div>
+                        {priorityTasks.map((task) => (
+                          <div key={task.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 group hover:shadow-md transition">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0 font-medium text-sm text-gray-900 dark:text-white">
+                                {task.title}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => openTaskModal(task)}
+                                  className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTask(task.id)}
+                                  disabled={deletingTaskId === task.id}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition"
+                                  title="Delete"
+                                >
+                                  {deletingTaskId === task.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                            {task.description && (
+                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{task.description}</div>
+                            )}
+                            {task.deadline && (
+                              <div className="text-xs text-gray-500 dark:text-gray-500">
+                                📅 {new Date(task.deadline).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
+                  {tasks.filter(t => t.status === 'todo').length === 0 && (
+                    <div className="text-center text-gray-400 dark:text-gray-600 text-sm py-8">
+                      No tasks in To Do
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* IN PROGRESS Column */}
+              <div className="flex flex-col">
+                <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-yellow-500">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    🚀 In Progress ({tasks.filter(t => t.status === 'in_progress').length})
+                  </h3>
+                </div>
+                <div className="flex-1 bg-gray-50 dark:bg-gray-900/30 rounded-b-lg p-4 space-y-3 min-h-[500px]">
+                  {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
+                    const priorityTasks = tasks.filter(t => t.priority === priority && t.status === 'in_progress')
+                    if (priorityTasks.length === 0) return null
+
+                    return (
+                      <div key={priority} className="space-y-2">
+                        <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                          {getPriorityLabel(priority)}
+                        </div>
+                        {priorityTasks.map((task) => (
+                          <div key={task.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 group hover:shadow-md transition">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0 font-medium text-sm text-gray-900 dark:text-white">
+                                {task.title}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => openTaskModal(task)}
+                                  className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTask(task.id)}
+                                  disabled={deletingTaskId === task.id}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition"
+                                  title="Delete"
+                                >
+                                  {deletingTaskId === task.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                            {task.description && (
+                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{task.description}</div>
+                            )}
+                            {task.deadline && (
+                              <div className="text-xs text-gray-500 dark:text-gray-500">
+                                📅 {new Date(task.deadline).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
+                  {tasks.filter(t => t.status === 'in_progress').length === 0 && (
+                    <div className="text-center text-gray-400 dark:text-gray-600 text-sm py-8">
+                      No tasks in progress
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* DONE Column */}
+              <div className="flex flex-col">
+                <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-green-500">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    ✅ Done ({tasks.filter(t => t.status === 'completed').length})
+                  </h3>
+                </div>
+                <div className="flex-1 bg-gray-50 dark:bg-gray-900/30 rounded-b-lg p-4 space-y-3 min-h-[500px]">
+                  {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
+                    const priorityTasks = tasks.filter(t => t.priority === priority && t.status === 'completed')
+                    if (priorityTasks.length === 0) return null
+
+                    return (
+                      <div key={priority} className="space-y-2">
+                        <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                          {getPriorityLabel(priority)}
+                        </div>
+                        {priorityTasks.map((task) => (
+                          <div key={task.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 group hover:shadow-md transition opacity-75">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0 font-medium text-sm text-gray-900 dark:text-white line-through">
+                                {task.title}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => openTaskModal(task)}
+                                  className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTask(task.id)}
+                                  disabled={deletingTaskId === task.id}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition"
+                                  title="Delete"
+                                >
+                                  {deletingTaskId === task.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                            {task.description && (
+                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{task.description}</div>
+                            )}
+                            {task.deadline && (
+                              <div className="text-xs text-gray-500 dark:text-gray-500">
+                                📅 {new Date(task.deadline).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
+                  {tasks.filter(t => t.status === 'completed').length === 0 && (
+                    <div className="text-center text-gray-400 dark:text-gray-600 text-sm py-8">
+                      No completed tasks
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {tasks.length === 0 && (
               <Card>
                 <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-                  No active tasks. Click "New Task" to add one.
+                  No tasks yet. Click "New Task" to add one.
                 </p>
               </Card>
             )}
