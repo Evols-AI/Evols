@@ -373,6 +373,27 @@ export default function Workbench() {
                     <p className="text-gray-600 dark:text-gray-400 mb-6">
                       Your AI workspace for product management
                     </p>
+
+                    {/* Bootstrap CTA */}
+                    <div className="mb-8">
+                      <button
+                        onClick={() => {
+                          setInputMessage("@pm-os-bootstrap Let's bootstrap my PM OS.")
+                          setTimeout(() => {
+                            const sendButton = document.querySelector('button[type="submit"]') as HTMLButtonElement
+                            sendButton?.click()
+                          }, 100)
+                        }}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+                      >
+                        <Sparkles className="w-5 h-5" />
+                        Set up my PM OS
+                      </button>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Quick setup to capture your role, team, and projects
+                      </p>
+                    </div>
+
                     <div className="max-w-2xl mx-auto text-left space-y-3 text-sm text-gray-600 dark:text-gray-400">
                       <p>• Ask anything about your product — roadmap, strategy, features, customers</p>
                       <p>• Invoke expert skills with @mentions (browse Skills page to discover 80+ capabilities)</p>
