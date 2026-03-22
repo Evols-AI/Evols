@@ -12,7 +12,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.skill import Skill
 
 BOOTSTRAP_SKILL = {
-    "name": "pm-os-bootstrap",
+    "name": "pm-setup",
     "icon": "🚀",
     "category": "execution",
     "description": "Set up your personal PM operating system by capturing your role, team, projects, and stakeholders",

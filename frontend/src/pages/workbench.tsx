@@ -375,10 +375,10 @@ export default function Workbench() {
                       Your AI workspace for product management
                     </p>
 
-                    {/* Bootstrap CTA */}
+                    {/* Setup CTA */}
                     <div className="mb-8">
                       <button
-                        onClick={() => sendMessage("@pm-os-bootstrap Let's bootstrap my PM OS.")}
+                        onClick={() => sendMessage("@pm-setup Let's set up my PM workspace.")}
                         className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors shadow-sm"
                       >
                         <Sparkles className="w-5 h-5" />
@@ -557,7 +557,7 @@ export default function Workbench() {
                     disabled={sending}
                   />
                   <button
-                    onClick={sendMessage}
+                    onClick={() => sendMessage()}
                     disabled={!inputMessage.trim() || sending}
                     className="px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-medium flex items-center gap-2"
                   >
