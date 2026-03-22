@@ -109,27 +109,27 @@ export default function Docs() {
             <DocCard icon={<Sparkles className="w-6 h-6" />}
               title="Workbench"
               description="Conversational AI copilot with 80+ PM skills"
-              href="#workbench"
+              href="/docs/workbench"
             />
             <DocCard icon={<Briefcase className="w-6 h-6" />}
               title="Work Context"
               description="Auto-populated PM OS with role, tasks, and capacity"
-              href="#work-context"
+              href="#features"
             />
             <DocCard icon={<Book className="w-6 h-6" />}
               title="Skills"
               description="Strategy, execution, and analysis skills library"
-              href="#skills"
+              href="#features"
             />
             <DocCard icon={<Code className="w-6 h-6" />}
               title="Knowledge"
               description="Document intelligence and semantic search"
-              href="#knowledge"
+              href="/docs/knowledge-base"
             />
             <DocCard icon={<Users className="w-6 h-6" />}
               title="Personas"
               description="Customer personas and feedback analysis"
-              href="#personas"
+              href="/docs/personas"
             />
             <DocCard icon={<Server className="w-6 h-6" />}
               title="API Reference"
@@ -191,8 +191,8 @@ docker-compose up -d`}</code>
                     'Custom skill creation with tool access',
                     'Multi-product context support'
                   ]}
-                  link="#workbench"
-                  linkText="Learn about Workbench →"
+                  link="/docs/workbench"
+                  linkText="Learn more about Workbench →"
                 />
                 <FeatureDoc title="Work Context (PM OS)"
                   description="Your personal PM operating system that auto-populates from conversations."
@@ -204,8 +204,6 @@ docker-compose up -d`}</code>
                     'Priority tiers: Critical, High Leverage, Stakeholder, Sweep, Backlog',
                     'PM decision log with options analysis'
                   ]}
-                  link="#work-context"
-                  linkText="Learn about Work Context →"
                 />
                 <FeatureDoc title="Skills Library"
                   description="Extensive library of PM skills for every workflow stage."
@@ -217,8 +215,6 @@ docker-compose up -d`}</code>
                     'Daily Discipline: Calendar review, action item harvester, say-no playbook',
                     'Browse 80+ skills or create custom ones'
                   ]}
-                  link="#skills"
-                  linkText="Browse skills →"
                 />
                 <FeatureDoc title="Knowledge Management"
                   description="Extract intelligence from documents and enable semantic search across your product knowledge."
@@ -230,8 +226,8 @@ docker-compose up -d`}</code>
                     'Product knowledge base with strategy docs',
                     'RAG integration with Workbench for context-aware responses'
                   ]}
-                  link="#knowledge"
-                  linkText="Learn about Knowledge →"
+                  link="/docs/knowledge-base"
+                  linkText="Learn more about Knowledge Base →"
                 />
                 <FeatureDoc title="Personas & Feedback"
                   description="Customer personas with feedback analysis and persona-based feature voting."
@@ -243,8 +239,8 @@ docker-compose up -d`}</code>
                     'Customer segment tracking',
                     'Entity extraction from feedback'
                   ]}
-                  link="#personas"
-                  linkText="Learn about Personas →"
+                  link="/docs/personas"
+                  linkText="Learn more about Personas →"
                 />
               </div>
             </Section>
