@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Sparkles, MessageSquare, ArrowRight, History, Eye, Copy } from 'lucide-react'
+import { Sparkles, MessageSquare, ArrowRight, History, Eye, Copy, Zap } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -100,7 +100,7 @@ export default function Skills() {
         <PageHeader
           title="AI Skills"
           description="Expert-curated skills to help with specific product management tasks"
-          icon={Sparkles}
+          icon={Zap}
           action={{
             label: 'View History',
             onClick: () => router.push('/skills/history'),
@@ -116,7 +116,7 @@ export default function Skills() {
 
         {skills.length === 0 ? (
           <EmptyState
-            icon={Sparkles}
+            icon={Zap}
             title="No skills available"
             description="Contact your administrator to set up skills"
           />

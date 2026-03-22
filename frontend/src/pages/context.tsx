@@ -222,9 +222,12 @@ export default function Context() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  Knowledge
-                </h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <Database className="w-8 h-8 text-blue-500" />
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    Knowledge
+                  </h1>
+                </div>
                 <p className="text-gray-600 dark:text-gray-400">
                   Product strategy, customer intelligence, and extracted insights from all sources
                 </p>

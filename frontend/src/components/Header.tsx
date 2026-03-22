@@ -46,9 +46,9 @@ export default function Header({ user, currentPage }: HeaderProps) {
     // { href: '/dashboard', label: 'Dashboard', key: 'dashboard', icon: LayoutDashboard }, // Hidden for demo - points to outdated pages
     { href: '/workbench', label: 'Workbench', key: 'workbench', icon: Sparkles },
     { href: '/work-context', label: 'Work Context', key: 'work-context', icon: Briefcase },
-    { href: '/skills', label: 'Skills', key: 'skills', icon: Zap },
     { href: '/context', label: 'Knowledge', key: 'context', icon: Database },
     { href: '/personas', label: 'Personas', key: 'personas', icon: Users },
+    { href: '/skills', label: 'Skills', key: 'skills', icon: Zap },
   ]
 
   const adminNavItems = [

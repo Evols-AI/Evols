@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import {
   BookOpen, Plus, Link as LinkIcon, FileText, Github, Server,
-  Upload, X, Loader2, Network, Search, MessageSquare, ExternalLink, Trash2, RefreshCw, Package
+  Upload, X, Loader2, Network, Search, MessageSquare, ExternalLink, Trash2, RefreshCw, Package, Database
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
@@ -161,9 +161,12 @@ export default function KnowledgeBase() {
           {/* Page Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Product RAG
-              </h1>
+              <div className="flex items-center gap-3">
+                <Database className="w-8 h-8 text-blue-500" />
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Product RAG
+                </h1>
+              </div>
               {!showCreateProduct && (
                 <button
                   onClick={() => {
