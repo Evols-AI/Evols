@@ -149,12 +149,12 @@ export default function Register() {
               <svg viewBox="0 0 300 350" className="w-full max-w-md mb-10 drop-shadow-lg">
                 <defs>
                   <linearGradient id="signupGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="0%" stopColor="#9333ea" />
                     <stop offset="100%" stopColor="#ec4899" />
                   </linearGradient>
                   <linearGradient id="signupGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#9333ea" />
                   </linearGradient>
                   <filter id="signupGlow" x="-20%" y="-20%" width="140%" height="140%">
                     <feGaussianBlur stdDeviation="8" result="blur" />
@@ -204,7 +204,7 @@ export default function Register() {
                 <path d="M 200 120 Q 230 100 240 70" stroke="url(#signupGrad1)" strokeWidth="3" fill="none" strokeDasharray="5,5">
                   <animate attributeName="stroke-dashoffset" values="10;0" dur="1s" repeatCount="indefinite" />
                 </path>
-                <circle cx="240" cy="70" r="8" fill="#8b5cf6" filter="url(#signupGlow)" />
+                <circle cx="240" cy="70" r="8" fill="#9333ea" filter="url(#signupGlow)" />
               </svg>
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">

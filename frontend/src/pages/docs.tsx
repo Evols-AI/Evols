@@ -36,8 +36,8 @@ export default function Docs() {
             <svg viewBox="0 0 400 300" className="w-80 mx-auto mb-10 drop-shadow-lg">
               <defs>
                 <linearGradient id="docsPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#6366f1" />
-                  <stop offset="100%" stopColor="#8b5cf6" />
+                  <stop offset="0%" stopColor="#ec4899" />
+                  <stop offset="100%" stopColor="#9333ea" />
                 </linearGradient>
                 <linearGradient id="docsSecondary" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#3b82f6" />

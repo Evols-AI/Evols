@@ -111,8 +111,8 @@ export default function Home() {
               <svg viewBox="0 0 900 500" className="w-full max-w-4xl drop-shadow-lg overflow-visible">
                 <defs>
                   <linearGradient id="heroPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#6366f1" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
+                    <stop offset="0%" stopColor="#ec4899" />
+                    <stop offset="100%" stopColor="#9333ea" />
                   </linearGradient>
                   <linearGradient id="heroSecondary" x1="100%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#3b82f6" />
@@ -303,8 +303,8 @@ export default function Home() {
                 <svg viewBox="0 0 400 400" className="w-full max-w-md drop-shadow-lg">
                   <defs>
                     <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style={{ stopColor: '#6366f1', stopOpacity: 1 }} />
-                      <stop offset="100%" style={{ stopColor: '#8b5cf6', stopOpacity: 1 }} />
+                      <stop offset="0%" style={{ stopColor: '#ec4899', stopOpacity: 1 }} />
+                      <stop offset="100%" style={{ stopColor: '#9333ea', stopOpacity: 1 }} />
                     </linearGradient>
                   </defs>
                   <rect x="80" y="80" width="240" height="180" rx="12" fill="url(#grad2)" opacity="0.9" />

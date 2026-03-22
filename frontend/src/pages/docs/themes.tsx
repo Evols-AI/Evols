@@ -33,19 +33,19 @@ export default function ThemesDocumentation() {
           <svg viewBox="0 0 350 300" className="w-72 mx-auto mb-8 drop-shadow-lg">
             <defs>
               <linearGradient id="themesGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{stopColor:'#6366f1',stopOpacity:1}} />
-                <stop offset="100%" style={{stopColor:'#8b5cf6',stopOpacity:1}} />
+                <stop offset="0%" style={{stopColor:'#ec4899',stopOpacity:1}} />
+                <stop offset="100%" style={{stopColor:'#9333ea',stopOpacity:1}} />
               </linearGradient>
             </defs>
-            <circle cx="90" cy="80" r="35" fill="#6366f1" opacity="0.7"/>
-            <circle cx="180" cy="100" r="30" fill="#6366f1" opacity="0.7"/>
-            <circle cx="260" cy="90" r="25" fill="#6366f1" opacity="0.7"/>
-            <circle cx="120" cy="160" r="28" fill="#8b5cf6" opacity="0.7"/>
-            <circle cx="210" cy="180" r="32" fill="#8b5cf6" opacity="0.7"/>
+            <circle cx="90" cy="80" r="35" fill="#ec4899" opacity="0.7"/>
+            <circle cx="180" cy="100" r="30" fill="#ec4899" opacity="0.7"/>
+            <circle cx="260" cy="90" r="25" fill="#ec4899" opacity="0.7"/>
+            <circle cx="120" cy="160" r="28" fill="#9333ea" opacity="0.7"/>
+            <circle cx="210" cy="180" r="32" fill="#9333ea" opacity="0.7"/>
             <circle cx="150" cy="230" r="26" fill="#10b981" opacity="0.7"/>
-            <line x1="90" y1="80" x2="180" y2="100" stroke="#6366f1" strokeWidth="1.5" opacity="0.4"/>
-            <line x1="180" y1="100" x2="260" y2="90" stroke="#6366f1" strokeWidth="1.5" opacity="0.4"/>
-            <line x1="120" y1="160" x2="210" y2="180" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.4"/>
+            <line x1="90" y1="80" x2="180" y2="100" stroke="#ec4899" strokeWidth="1.5" opacity="0.4"/>
+            <line x1="180" y1="100" x2="260" y2="90" stroke="#ec4899" strokeWidth="1.5" opacity="0.4"/>
+            <line x1="120" y1="160" x2="210" y2="180" stroke="#9333ea" strokeWidth="1.5" opacity="0.4"/>
             <rect x="50" y="40" width="80" height="50" rx="6" fill="url(#themesGrad)" opacity="0.15"/>
             <rect x="140" y="130" width="80" height="50" rx="6" fill="url(#themesGrad)" opacity="0.15"/>
           </svg>

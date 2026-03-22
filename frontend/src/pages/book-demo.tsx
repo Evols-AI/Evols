@@ -91,12 +91,12 @@ export default function BookDemo() {
                 <svg viewBox="0 0 400 300" className="w-full max-w-md mx-auto mb-10 drop-shadow-lg">
                   <defs>
                     <linearGradient id="calPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#8b5cf6" />
+                      <stop offset="0%" stopColor="#9333ea" />
                       <stop offset="100%" stopColor="#3b82f6" />
                     </linearGradient>
                     <linearGradient id="calSecondary" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#ec4899" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#9333ea" />
                     </linearGradient>
                     <filter id="calGlow" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation="8" result="blur" />

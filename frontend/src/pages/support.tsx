@@ -113,12 +113,12 @@ export default function Support() {
                                 <svg viewBox="0 0 400 350" className="w-full max-w-md mx-auto mb-10 drop-shadow-lg">
                                     <defs>
                                         <linearGradient id="supportGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stopColor="#8b5cf6" />
+                                            <stop offset="0%" stopColor="#9333ea" />
                                             <stop offset="100%" stopColor="#ec4899" />
                                         </linearGradient>
                                         <linearGradient id="supportGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
                                             <stop offset="0%" stopColor="#3b82f6" />
-                                            <stop offset="100%" stopColor="#8b5cf6" />
+                                            <stop offset="100%" stopColor="#9333ea" />
                                         </linearGradient>
                                         <filter id="supportGlow" x="-20%" y="-20%" width="140%" height="140%">
                                             <feGaussianBlur stdDeviation="8" result="blur" />

@@ -105,7 +105,7 @@ export default function Login() {
                 <defs>
                   <linearGradient id="loginGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#ec4899" />
                   </linearGradient>
                   <linearGradient id="loginGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#10b981" />

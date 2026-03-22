@@ -33,8 +33,8 @@ export default function PersonasDocumentation() {
           <svg viewBox="0 0 350 300" className="w-72 mx-auto mb-8 drop-shadow-lg">
             <defs>
               <linearGradient id="personasGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{stopColor:'#6366f1',stopOpacity:1}} />
-                <stop offset="100%" style={{stopColor:'#8b5cf6',stopOpacity:1}} />
+                <stop offset="0%" style={{stopColor:'#ec4899',stopOpacity:1}} />
+                <stop offset="100%" style={{stopColor:'#9333ea',stopOpacity:1}} />
               </linearGradient>
             </defs>
             <circle cx="100" cy="80" r="40" fill="url(#personasGrad)" opacity="0.8"/>
