@@ -11,7 +11,7 @@ import {
   Moon,
   Sun
 } from 'lucide-react'
-import { LogoIcon, LogoWordmark } from '@/components/Logo'
+import { LogoWordmark } from '@/components/Logo'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Home() {
@@ -80,7 +80,7 @@ export default function Home() {
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent leading-tight pb-2">
                 Your AI-Powered
                 <br />
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">PM Operating System.</span>
+                <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">PM Operating System.</span>
               </h1>
 
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto lg:mx-0">
@@ -325,7 +325,7 @@ export default function Home() {
         <section className="container mx-auto px-6 py-20 pb-32">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">
-              Replace Your Entire PM Stack. <br /><span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">With One AI Copilot.</span>
+              Replace Your Entire PM Stack. <br /><span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">With One AI Copilot.</span>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400">
               Why pay for separate task managers, note-taking apps, document assistants, and workflow tools?

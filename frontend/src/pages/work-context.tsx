@@ -163,7 +163,7 @@ export default function WorkContext() {
   if (loading) {
     return (
       <>
-        <Header />
+        <Header user={user} currentPage="work-context" />
         <PageContainer>
           <Loading />
         </PageContainer>
@@ -173,7 +173,7 @@ export default function WorkContext() {
 
   return (
     <>
-      <Header />
+      <Header user={user} currentPage="work-context" />
       <PageContainer>
         <PageHeader
           title="Work Context"
