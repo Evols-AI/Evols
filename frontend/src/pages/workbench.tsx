@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { Send, Loader2, Sparkles, Plus, MessageSquare, Trash2, ChevronRight, History } from 'lucide-react'
+import { Send, Loader2, Sparkles, Plus, MessageSquare, Trash2, ChevronRight, ChevronLeft, History } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -264,73 +264,6 @@ export default function Workbench() {
         <Header user={user} currentPage="workbench" />
 
         <div className="flex-1 flex overflow-hidden relative">
-          {/* Left Sidebar - Conversation History (Toggleable) */}
-          {showHistorySidebar && (
-            <div className="w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
-              {/* Sidebar Header */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">History</h2>
-                  <button
-                    onClick={() => setShowHistorySidebar(false)}
-                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition"
-                    title="Close"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-            {/* Conversation List */}
-            <div className="flex-1 overflow-y-auto">
-              {conversations.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">No conversations yet</p>
-                  <p className="text-xs mt-1">Start chatting to begin</p>
-                </div>
-              ) : (
-                <div className="py-2">
-                  {conversations.map((conv) => (
-                    <div
-                      key={conv.id}
-                      onClick={() => loadConversation(conv.id)}
-                      className={`mx-2 mb-2 p-3 rounded-lg cursor-pointer transition group ${
-                        activeConversation === conv.id
-                          ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {conv.name || 'New Conversation'}
-                          </h3>
-                          {conv.last_message_preview && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                              {conv.last_message_preview}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            {formatDate(conv.last_message_at || conv.created_at)}
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => deleteConversation(conv.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            </div>
-          )}
-
           {/* Main Chat Area */}
           <div className="flex-1 flex flex-col">
             {/* Chat Header */}
@@ -581,6 +514,73 @@ export default function Workbench() {
               </div>
             </div>
           </div>
+
+          {/* Right Sidebar - Conversation History (Toggleable) */}
+          {showHistorySidebar && (
+            <div className="w-80 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 flex flex-col">
+              {/* Sidebar Header */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">History</h2>
+                  <button
+                    onClick={() => setShowHistorySidebar(false)}
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition"
+                    title="Close"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Conversation List */}
+              <div className="flex-1 overflow-y-auto">
+                {conversations.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No conversations yet</p>
+                    <p className="text-xs mt-1">Start chatting to begin</p>
+                  </div>
+                ) : (
+                  <div className="py-2">
+                    {conversations.map((conv) => (
+                      <div
+                        key={conv.id}
+                        onClick={() => loadConversation(conv.id)}
+                        className={`mx-2 mb-2 p-3 rounded-lg cursor-pointer transition group ${
+                          activeConversation === conv.id
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {conv.name || 'New Conversation'}
+                            </h3>
+                            {conv.last_message_preview && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                                {conv.last_message_preview}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              {formatDate(conv.last_message_at || conv.created_at)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => deleteConversation(conv.id, e)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
