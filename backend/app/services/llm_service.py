@@ -201,6 +201,7 @@ class LLMService:
         skip_cache: bool = False,
         tools: Optional[List[Dict[str, Any]]] = None,
         messages: Optional[List[Dict[str, str]]] = None,
+        tool_choice: Optional[str] = None,
     ) -> LLMResponse:
         """
         Generate text from prompt
@@ -295,7 +296,9 @@ class LLMService:
         # Add tools if provided (OpenAI function calling)
         if tools:
             request_params["tools"] = tools
-            request_params["tool_choice"] = "auto"
+            final_tool_choice = tool_choice or "auto"
+            request_params["tool_choice"] = final_tool_choice
+            logger.info(f"[LLMService] Setting tool_choice={final_tool_choice} (input was: {tool_choice})")
 
         # Use raw_client for normal generation (instructor-patched client is for structured outputs)
         response = await self.raw_client.chat.completions.create(**request_params)

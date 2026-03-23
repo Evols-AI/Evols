@@ -105,15 +105,26 @@ async def handle_function_calling(
         try:
             logger.info(f"[Function Calling] Iteration {iteration + 1}/{max_iterations}")
 
+            # Force tool calling for pm-setup skill
+            tool_choice = None
+            skill_name = skill_config.get('name', '')
+            logger.info(f"[Function Calling] Skill name: {skill_name}, iteration: {iteration}")
+            if skill_name == 'pm-setup':
+                tool_choice = "required"
+                logger.info(f"[Function Calling] FORCING REQUIRED tool use for pm-setup skill")
+
             # Call LLM with function calling
+            logger.info(f"[Function Calling] Calling LLM with tool_choice={tool_choice}")
             response = await llm_service.generate(
                 messages=messages,
                 max_tokens=4096,
                 temperature=0.7,
-                tools=tool_schemas if tool_schemas else None
+                tools=tool_schemas if tool_schemas else None,
+                tool_choice=tool_choice
             )
 
             logger.info(f"[Function Calling] LLM response - has tool_calls attr: {hasattr(response, 'tool_calls')}, tool_calls value: {getattr(response, 'tool_calls', None)}, finish_reason: {response.finish_reason}")
+            logger.info(f"[Function Calling] LLM response content preview: {response.content[:500] if response.content else 'None'}")
 
             # Check if LLM wants to call a function
             if hasattr(response, 'tool_calls') and response.tool_calls:
@@ -244,6 +255,12 @@ async def handle_function_calling(
 
             # No more tool calls, return final response
             logger.info(f"[Function Calling] LLM provided final response after {iteration + 1} iterations")
+
+            # Detect if LLM is writing about calling tools instead of actually calling them
+            if response.content and ('Call:' in response.content or 'call(' in response.content):
+                logger.error(f"[Function Calling] ⚠️ LLM appears to be DESCRIBING tool calls in text instead of MAKING them!")
+                logger.error(f"[Function Calling] This usually means the skill instructions have misleading examples")
+                logger.error(f"[Function Calling] Content: {response.content[:1000]}")
 
             # Clean up response - extract only the <result> content if XML tags present
             cleaned_response = _extract_result_from_response(response.content)

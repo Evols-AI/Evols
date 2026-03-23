@@ -58,7 +58,7 @@ class CopilotOrchestrator:
         Detect which skill should handle this message.
         Returns (skill_id, skill_type) or (None, None) for general conversation.
         """
-        # Check for @mention (highest priority)
+        # Check for @mention (highest priority - explicit skill override)
         mention_match = re.search(r'@(\w+)', message)
         if mention_match:
             skill_name = mention_match.group(1).lower()
@@ -66,7 +66,16 @@ class CopilotOrchestrator:
             if skill:
                 return (skill[0], skill[1])
 
-        # Auto-classify based on keywords
+        # Check if we should continue with previous skill (second priority - conversation continuity)
+        if conversation_history:
+            last_assistant_msg = next(
+                (msg for msg in reversed(conversation_history) if msg.role == 'assistant' and msg.skill_id),
+                None
+            )
+            if last_assistant_msg:
+                return (last_assistant_msg.skill_id, last_assistant_msg.skill_type)
+
+        # Auto-classify based on keywords (third priority - new conversation)
         skill = await self._classify_by_keywords(message)
         if skill:
             return skill
@@ -75,15 +84,6 @@ class CopilotOrchestrator:
         skill = await self._classify_by_llm(message)
         if skill:
             return skill
-
-        # Check if we should continue with previous skill
-        if conversation_history:
-            last_assistant_msg = next(
-                (msg for msg in reversed(conversation_history) if msg.role == 'assistant' and msg.skill_id),
-                None
-            )
-            if last_assistant_msg:
-                return (last_assistant_msg.skill_id, last_assistant_msg.skill_type)
 
         return (None, None)
 
@@ -340,10 +340,37 @@ Do not explain, just output the skill name or "none"."""
                 logger.warning(f"Failed to load enhanced context for product {product_id}: {e}")
 
         if skill_config:
+            # Build tool usage instructions if tools are available
+            tool_usage_rules = ""
+            if skill_config.get('tools') and len(skill_config['tools']) > 0:
+                tool_list = ", ".join(skill_config['tools'])
+                tool_usage_rules = f"""
+
+🔴 TOOL USAGE REQUIREMENT 🔴
+You have access to these tools: {tool_list}
+
+MANDATORY RULES:
+1. You MUST call relevant tools to get real data - DO NOT write placeholder text
+2. FORBIDDEN patterns - NEVER write:
+   - [OUR FEATURE], [OUR PRICING], [DATA], [INSERT X]
+   - "Data not available", "Fill this in later"
+   - Empty bullet points or table cells
+   - Any bracketed placeholder text
+3. If a tool exists for data you need, CALL IT FIRST before responding
+4. If no tool provides the data, either:
+   - Ask the user for it explicitly, OR
+   - Note specifically what's missing (e.g., "Product pricing not configured yet")
+5. Fill ALL tables, bullets, and sections with ACTUAL data from tool results
+"""
+
             return f"""You are {skill_config['name']}, an expert AI assistant for product managers.
+
+🚫 CRITICAL CONVERSATION RULE 🚫
+You are the ASSISTANT only. NEVER write "User:" or "A:" labels. NEVER simulate or predict what the user will say next. NEVER role-play both sides of a conversation. You respond as yourself - the AI assistant - and nothing else.
 
 {skill_config['instructions']}
 {enhanced_context}
+{tool_usage_rules}
 
 CRITICAL RULES:
 - NEVER make up data, scores, metrics, or customer quotes that you don't have
@@ -361,6 +388,10 @@ Remember:
 """
         else:
             return f"""You are EvolsAI, an expert AI copilot for product managers.
+
+🚫 CRITICAL CONVERSATION RULE 🚫
+You are the ASSISTANT only. NEVER write "User:" or "A:" labels. NEVER simulate or predict what the user will say next. NEVER role-play both sides of a conversation. You respond as yourself - the AI assistant - and nothing else.
+
 {enhanced_context}
 
 IMPORTANT: You are currently analyzing data for a SPECIFIC PRODUCT. All your queries are automatically scoped to this product only. You will NOT see data from other products.
@@ -427,6 +458,20 @@ IMPORTANT INSTRUCTIONS:
    - feature_request = requested features (NEUTRAL)
 
 6. You MUST use tools to fetch data - never say you don't have access
+
+🔴 TOOL USAGE REQUIREMENT 🔴
+MANDATORY RULES:
+1. You MUST call relevant tools to get real data - DO NOT write placeholder text
+2. FORBIDDEN patterns - NEVER write:
+   - [OUR FEATURE], [OUR PRICING], [DATA], [INSERT X]
+   - "Data not available", "Fill this in later"
+   - Empty bullet points or table cells
+   - Any bracketed placeholder text like [ANYTHING]
+3. If a tool exists for data you need, CALL IT FIRST before responding
+4. If no tool provides the data, either:
+   - Ask the user for it explicitly, OR
+   - Note specifically what's missing (e.g., "Product pricing not configured yet")
+5. Fill ALL tables, bullets, and sections with ACTUAL data from tool results or user input
 
 **Work Context Auto-Population (CRITICAL):**
 7. PASSIVELY detect and capture work context signals in ALL conversations:
@@ -614,6 +659,34 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
                 system_prompt=system_prompt,
                 llm_service=llm_service
             )
+
+        # Detect placeholder patterns in response
+        placeholder_patterns = [
+            r'\[OUR [A-Z_\s]+\]',  # [OUR FEATURE], [OUR PRICING]
+            r'\[THEIR [A-Z_\s]+\]',  # [THEIR APPROACH]
+            r'\[DATA[A-Z_\s]*\]',  # [DATA], [DATA NOT AVAILABLE]
+            r'\[INSERT [A-Z_\s]+\]',  # [INSERT X]
+            r'\[[A-Z][A-Z_\s]{3,}\]',  # [ANY UPPERCASE PLACEHOLDER]
+            r'\[\.\.\.\]',  # [...]
+        ]
+
+        import re
+        detected_placeholders = []
+        for pattern in placeholder_patterns:
+            matches = re.findall(pattern, assistant_content)
+            if matches:
+                detected_placeholders.extend(matches)
+
+        if detected_placeholders:
+            logger.warning(f"[Copilot] ⚠️ Response contains {len(detected_placeholders)} placeholder(s): {detected_placeholders[:5]}")
+            logger.warning(f"[Copilot] Skill: {actual_skill_config.get('name') if actual_skill_config else 'general'}")
+            logger.warning(f"[Copilot] Available tools: {tools_config.get('tools') if tools_config else 'none'}")
+            logger.warning(f"[Copilot] Tool calls made: {len(tool_calls) if tool_calls else 0}")
+
+            # Add warning to response for user visibility
+            if len(detected_placeholders) > 3:
+                placeholder_warning = f"\n\n---\n⚠️ *Note: This response contains placeholder text that should have been filled with actual data. The AI may need more specific instructions or access to data sources.*"
+                assistant_content += placeholder_warning
 
         # Save assistant message
         metadata = {}
