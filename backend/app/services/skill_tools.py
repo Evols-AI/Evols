@@ -16,7 +16,7 @@ from app.models.initiative import Initiative
 from app.models.context import ContextSource, ExtractedEntity, EntityType
 from app.models.user import User
 from app.models.work_context import (
-    WorkContext, ActiveProject, KeyRelationship, Task,
+    WorkContext, ActiveProject, KeyRelationship, Task, WeeklyFocus,
     CapacityStatus, ProjectStatus, ProjectRole, TaskPriority, TaskStatus
 )
 
@@ -1742,9 +1742,16 @@ async def add_or_update_project(
             "data": {"name": name, "status": status, "role": role}
         }
     except ValueError as e:
+        await db.rollback()
         return {
             "success": False,
             "error": f"Invalid project data: {str(e)}"
+        }
+    except Exception as e:
+        await db.rollback()
+        return {
+            "success": False,
+            "error": f"Failed to save project: {str(e)}"
         }
 
 
@@ -1877,6 +1884,87 @@ async def add_task(
         return {
             "success": False,
             "error": f"Invalid task data: {str(e)}"
+        }
+
+
+@tool_registry.register(
+    name="set_weekly_focus",
+    description="Set the three things that matter this week for the user",
+    parameters=[
+        ToolParameter(name="focus_1", type="string", description="First priority for the week", required=False),
+        ToolParameter(name="focus_2", type="string", description="Second priority for the week", required=False),
+        ToolParameter(name="focus_3", type="string", description="Third priority for the week", required=False),
+        ToolParameter(name="notes", type="string", description="Additional notes about this week", required=False)
+    ]
+)
+async def set_weekly_focus(
+    user: User,
+    db: AsyncSession,
+    focus_1: Optional[str] = None,
+    focus_2: Optional[str] = None,
+    focus_3: Optional[str] = None,
+    notes: Optional[str] = None
+) -> Dict[str, Any]:
+    """Set weekly focus for the current week"""
+    from datetime import datetime, timedelta
+    from app.models.work_context import WeeklyFocus
+
+    # Get start of current week (Monday)
+    today = datetime.now()
+    week_start = today - timedelta(days=today.weekday())
+    week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Check if focus already exists for this week
+    result = await db.execute(
+        select(WeeklyFocus).filter(
+            WeeklyFocus.user_id == user.id,
+            WeeklyFocus.week_start_date == week_start
+        )
+    )
+    weekly_focus = result.scalar_one_or_none()
+
+    try:
+        if weekly_focus:
+            # Update existing
+            if focus_1 is not None:
+                weekly_focus.focus_1 = focus_1
+            if focus_2 is not None:
+                weekly_focus.focus_2 = focus_2
+            if focus_3 is not None:
+                weekly_focus.focus_3 = focus_3
+            if notes is not None:
+                weekly_focus.notes = notes
+            message = "Updated weekly focus"
+        else:
+            # Create new
+            weekly_focus = WeeklyFocus(
+                user_id=user.id,
+                week_start_date=week_start,
+                focus_1=focus_1,
+                focus_2=focus_2,
+                focus_3=focus_3,
+                notes=notes
+            )
+            db.add(weekly_focus)
+            message = "Set weekly focus"
+
+        await db.commit()
+
+        return {
+            "success": True,
+            "message": message,
+            "data": {
+                "week_start": week_start.isoformat(),
+                "focus_1": focus_1,
+                "focus_2": focus_2,
+                "focus_3": focus_3
+            }
+        }
+    except Exception as e:
+        await db.rollback()
+        return {
+            "success": False,
+            "error": f"Failed to set weekly focus: {str(e)}"
         }
 
 

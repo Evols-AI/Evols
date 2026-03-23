@@ -106,7 +106,7 @@ class WorkContext(BaseModel):
     protected_time = Column(Text, nullable=True)
 
     # Capacity
-    capacity_status = Column(SQLEnum(CapacityStatus), nullable=True)
+    capacity_status = Column(SQLEnum(CapacityStatus, values_callable=lambda x: [e.value for e in x]), nullable=True)
     capacity_factors = Column(Text, nullable=True)
 
     # Signals & Landscape
@@ -135,10 +135,10 @@ class ActiveProject(BaseModel):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
 
     name = Column(String(255), nullable=False)
-    status = Column(SQLEnum(ProjectStatus), nullable=False, default=ProjectStatus.GREEN)
+    status = Column(SQLEnum(ProjectStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=ProjectStatus.GREEN)
     next_milestone = Column(String(500), nullable=True)
     next_milestone_date = Column(DateTime, nullable=True)
-    role = Column(SQLEnum(ProjectRole), nullable=False)
+    role = Column(SQLEnum(ProjectRole, values_callable=lambda x: [e.value for e in x]), nullable=False)
     key_stakeholders = Column(JSON, nullable=True)  # Array of stakeholder names
     notes = Column(Text, nullable=True)
 
