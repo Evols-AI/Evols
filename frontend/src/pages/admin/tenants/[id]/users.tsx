@@ -114,6 +114,32 @@ export default function TenantUsers() {
     }
   }
 
+  const handleDeleteUser = async (userId: number, userEmail: string) => {
+    if (!confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('token')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${id}/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ detail: 'Failed to delete user' }))
+        throw new Error(data.detail || 'Failed to delete user')
+      }
+
+      await loadUsers()
+    } catch (err: any) {
+      alert(`Error: ${err.message}`)
+    }
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
@@ -226,7 +252,8 @@ export default function TenantUsers() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
-                        className="text-red-600 dark:text-red-400 hover:text-red-700"
+                        onClick={() => handleDeleteUser(user.id, user.email)}
+                        className="text-red-600 dark:text-red-400 hover:text-red-700 transition-colors"
                         title="Delete user"
                       >
                         <Trash2 className="w-4 h-4" />

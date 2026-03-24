@@ -514,3 +514,59 @@ async def update_tenant_user(
         is_verified=user.is_verified,
         tenant_id=user.tenant_id,
     )
+
+
+@router.delete("/tenants/{tenant_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_tenant_user(
+    tenant_id: int,
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Delete a user from any tenant (SUPER_ADMIN only)
+
+    Warning: This will permanently delete the user and all their associated data.
+    """
+    require_super_admin(current_user)
+
+    # Verify tenant exists
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == tenant_id)
+    )
+    tenant = result.scalar_one_or_none()
+
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant not found"
+        )
+
+    # Get the user
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.tenant_id == tenant_id)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found in this tenant"
+        )
+
+    # Prevent deleting SUPER_ADMIN users
+    if user.role == UserRole.SUPER_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete SUPER_ADMIN users"
+        )
+
+    # Prevent self-deletion
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete your own account"
+        )
+
+    await db.delete(user)
+    await db.commit()
