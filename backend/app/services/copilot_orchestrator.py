@@ -314,6 +314,36 @@ Do not explain, just output the skill name or "none"."""
         max_seq = result.scalar()
         return (max_seq or 0) + 1
 
+    async def _get_skill_catalog(self) -> str:
+        """Get formatted catalog of available skills for AI routing"""
+        result = await self.db.execute(
+            select(Skill)
+            .where(Skill.is_active == True)
+            .order_by(Skill.category, Skill.name)
+        )
+        skills = result.scalars().all()
+
+        # Group by category
+        catalog = {}
+        for skill in skills:
+            category = skill.category or 'other'
+            if category not in catalog:
+                catalog[category] = []
+            catalog[category].append({
+                'name': skill.name,
+                'description': skill.description[:120] if skill.description else ''
+            })
+
+        # Format as markdown (condensed for token efficiency)
+        formatted = "\n## Available Specialized Skills (@skill-name to invoke)\n\n"
+
+        for category, skills_list in sorted(catalog.items()):
+            skill_names = [f"@{s['name']}" for s in skills_list[:8]]  # Limit per category
+            formatted += f"**{category}**: {', '.join(skill_names)}\n"
+
+        formatted += "\nUse @skill-name to route to specialized skills instead of trying to do the work yourself.\n"
+        return formatted
+
     async def build_system_prompt(
         self,
         skill_config: Optional[Dict[str, Any]] = None,
@@ -410,6 +440,13 @@ CRITICAL RULES:
 - Only use real data from the user's input or from tool calls
 - Be conversational and helpful, but truthful above all
 
+💡 USER CONTEXT AWARENESS 💡
+You have automatic access to user's work context:
+- Call get_work_context_summary() to get their name, title, team, manager, projects, stakeholders
+- Use this to personalize outputs - NO placeholders like [Your Name], [Your Title]
+- Fill in author/contact fields with actual user information
+- Reference their actual projects and stakeholders when relevant
+
 Remember:
 - Ask clarifying questions when you need more information
 - Use the available tools to access real data
@@ -418,6 +455,9 @@ Remember:
 - Reference the product knowledge and past work when relevant to provide personalized, context-aware advice
 """
         else:
+            # Get skill catalog for routing intelligence
+            skill_catalog = await self._get_skill_catalog()
+
             return f"""You are EvolsAI, an expert AI copilot for product managers.
 
 🚫 CRITICAL CONVERSATION RULE 🚫
@@ -426,6 +466,8 @@ You are the ASSISTANT only. NEVER write "User:" or "A:" labels. NEVER simulate o
 {enhanced_context}
 
 IMPORTANT: You are currently analyzing data for a SPECIFIC PRODUCT. All your queries are automatically scoped to this product only. You will NOT see data from other products.
+
+{skill_catalog}
 
 You have access to comprehensive tools including:
 
@@ -532,13 +574,27 @@ MANDATORY RULES:
    - Be smart about what's worth capturing vs casual mentions
    - Check get_work_context_summary() periodically to avoid duplicates
 
-**When to Suggest Skills:**
-When users ask for structured deliverables or frameworks, suggest the relevant skill:
-- PRD/requirements doc → "I recommend using @create-prd for a comprehensive PRD..."
-- Competitive analysis → "Try @competitive-battlecard or @competitor-analysis..."
-- User personas → "Use @user-personas to create detailed personas..."
-- Feature prioritization → "Use @prioritize-features for structured prioritization..."
-- Strategic frameworks → Suggest the matching skill (SWOT, OST, etc.)
+🎯 INTELLIGENT SKILL ROUTING 🎯
+Don't try to do everything yourself - route to specialized skills when appropriate:
+
+**When to Route to Skills:**
+1. Structured deliverables (PRDs, battlecards, roadmaps) → Use @skill-name
+2. Strategic frameworks (OST, SWOT, Ansoff, Porter's) → Route to framework skill
+3. Research/analysis (interviews, experiments, segmentation) → Use discovery skills
+4. Complex workflows (prioritization, metric definition) → Use the dedicated skill
+
+**How to Route:**
+- Tell user: "I recommend using @skill-name for this..."
+- Explain why: "...because it has a comprehensive framework for X"
+- Continue conversation normally if they don't use the skill
+
+**When to Help Directly:**
+- Quick questions, explanations, advice
+- Brainstorming and ideation
+- Follow-up questions on previous work
+- General PM guidance
+
+Don't reinvent the wheel - if a specialized skill exists, suggest it!
 
 You help product managers with:
 - Strategic roadmap planning
@@ -633,8 +689,25 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
             actual_skill_config = await self.load_skill_config(skill_id, skill_type)
 
         # Determine which tools to use (skill tools or default general tools)
+        # ALWAYS add work context tools to any skill so they can access user info
+        work_context_tools = [
+            'get_work_context_summary',
+            'update_role_info',
+            'update_capacity',
+            'add_or_update_project',
+            'add_or_update_relationship',
+            'add_task',
+            'set_weekly_focus'
+        ]
+
         if actual_skill_config:
-            tools_config = actual_skill_config
+            # Merge skill tools with universal work context tools
+            skill_tools = actual_skill_config.get('tools', [])
+            # Add work context tools if not already present
+            for wc_tool in work_context_tools:
+                if wc_tool not in skill_tools:
+                    skill_tools.append(wc_tool)
+            tools_config = {**actual_skill_config, 'tools': skill_tools}
         else:
             # Provide default tools for general copilot
             tools_config = {
