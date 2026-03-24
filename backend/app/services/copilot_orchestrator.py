@@ -66,7 +66,18 @@ class CopilotOrchestrator:
             if skill:
                 return (skill[0], skill[1])
 
-        # Check if we should continue with previous skill (second priority - conversation continuity)
+        # Auto-classify based on keywords (second priority - detect skill by content)
+        skill = await self._classify_by_keywords(message)
+        if skill:
+            return skill
+
+        # Try LLM-based intelligent routing (third priority - intelligent classification)
+        skill = await self._classify_by_llm(message)
+        if skill:
+            return skill
+
+        # Check if we should continue with previous skill (fallback - conversation continuity)
+        # Only continue if no other skill was detected by keywords or LLM
         if conversation_history:
             last_assistant_msg = next(
                 (msg for msg in reversed(conversation_history) if msg.role == 'assistant' and msg.skill_id),
@@ -74,16 +85,6 @@ class CopilotOrchestrator:
             )
             if last_assistant_msg:
                 return (last_assistant_msg.skill_id, last_assistant_msg.skill_type)
-
-        # Auto-classify based on keywords (third priority - new conversation)
-        skill = await self._classify_by_keywords(message)
-        if skill:
-            return skill
-
-        # Try LLM-based intelligent routing (fallback)
-        skill = await self._classify_by_llm(message)
-        if skill:
-            return skill
 
         return (None, None)
 
