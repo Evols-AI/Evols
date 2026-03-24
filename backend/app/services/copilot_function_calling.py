@@ -10,37 +10,103 @@ import re
 from app.services.skill_tools import tool_registry
 
 
-def _extract_result_from_response(response: str) -> str:
+def _clean_response_formatting(response: str) -> str:
     """
-    Extract clean response from LLM output.
-    Some LLMs wrap their response in XML-like tags for internal reasoning.
-    Extract only the user-facing content.
+    Clean and format LLM response for end users.
+    Removes internal reasoning tags, tool mentions, HTML tags, and formatting issues.
     """
     if not response:
         return response
 
-    # Check if response contains XML-like reflection/result tags
+    original = response
+
+    # 1. Extract <result> content if present (internal reasoning wrapper)
     result_match = re.search(r'<result>(.*?)</result>', response, re.DOTALL | re.IGNORECASE)
     if result_match:
-        # Extract only the <result> content
-        result_content = result_match.group(1).strip()
-        logger.info("[Response Cleaning] Extracted <result> content from XML-wrapped response")
-        return result_content
+        response = result_match.group(1).strip()
+        logger.info("[Response Cleaning] Extracted <result> content from XML wrapper")
 
-    # If no <result> tags but has other XML tags, try to strip them
-    if '<' in response and '>' in response:
-        # Remove common internal reasoning tags
-        cleaned = re.sub(r'<search_quality_reflection>.*?</search_quality_reflection>', '', response, flags=re.DOTALL | re.IGNORECASE)
-        cleaned = re.sub(r'<search_quality_score>.*?</search_quality_score>', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
-        cleaned = re.sub(r'<thinking>.*?</thinking>', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
-        cleaned = cleaned.strip()
+    # 2. Remove internal reasoning tags
+    reasoning_tags = [
+        r'<search_quality_reflection>.*?</search_quality_reflection>',
+        r'<search_quality_score>.*?</search_quality_score>',
+        r'<thinking>.*?</thinking>',
+        r'<analysis>.*?</analysis>',
+    ]
+    for tag_pattern in reasoning_tags:
+        response = re.sub(tag_pattern, '', response, flags=re.DOTALL | re.IGNORECASE)
 
-        if cleaned != response:
-            logger.info("[Response Cleaning] Stripped internal reasoning tags from response")
-            return cleaned
+    # 3. Remove tool usage mentions (noise for users)
+    tool_mention_patterns = [
+        r'The\s+\w+\s+tool\s+(provided|returned|gave|showed).*?\.(\s|$)',
+        r'I(?:\'ll| will)\s+(?:use|call|invoke)\s+(?:the\s+)?\w+\s+tool.*?\.(\s|$)',
+        r'Using\s+(?:the\s+)?\w+\s+tool.*?\.(\s|$)',
+        r'I\s+(?:called|used|invoked)\s+(?:the\s+)?\w+\s+tool.*?\.(\s|$)',
+        r'After\s+(?:calling|using|invoking)\s+(?:the\s+)?\w+\s+tool.*?\.(\s|$)',
+    ]
+    for pattern in tool_mention_patterns:
+        response = re.sub(pattern, '', response, flags=re.IGNORECASE)
 
-    # No special formatting, return as-is
+    # 4. Convert HTML tags to markdown
+    # Headers: <h1> -> #, <h2> -> ##, <h3> -> ###, etc.
+    response = re.sub(r'<h1>(.*?)</h1>', r'# \1', response, flags=re.IGNORECASE)
+    response = re.sub(r'<h2>(.*?)</h2>', r'## \1', response, flags=re.IGNORECASE)
+    response = re.sub(r'<h3>(.*?)</h3>', r'### \1', response, flags=re.IGNORECASE)
+    response = re.sub(r'<h4>(.*?)</h4>', r'#### \1', response, flags=re.IGNORECASE)
+
+    # Bold and italic: <strong> -> **, <em> -> *
+    response = re.sub(r'<strong>(.*?)</strong>', r'**\1**', response, flags=re.IGNORECASE)
+    response = re.sub(r'<b>(.*?)</b>', r'**\1**', response, flags=re.IGNORECASE)
+    response = re.sub(r'<em>(.*?)</em>', r'*\1*', response, flags=re.IGNORECASE)
+    response = re.sub(r'<i>(.*?)</i>', r'*\1*', response, flags=re.IGNORECASE)
+
+    # Lists: <ul> and <ol> tags
+    response = re.sub(r'<ul>\s*', '\n', response, flags=re.IGNORECASE)
+    response = re.sub(r'</ul>\s*', '\n', response, flags=re.IGNORECASE)
+    response = re.sub(r'<ol>\s*', '\n', response, flags=re.IGNORECASE)
+    response = re.sub(r'</ol>\s*', '\n', response, flags=re.IGNORECASE)
+    response = re.sub(r'<li>\s*', '- ', response, flags=re.IGNORECASE)
+    response = re.sub(r'</li>\s*', '\n', response, flags=re.IGNORECASE)
+
+    # Paragraphs: <p> tags
+    response = re.sub(r'<p>\s*', '\n\n', response, flags=re.IGNORECASE)
+    response = re.sub(r'</p>\s*', '\n', response, flags=re.IGNORECASE)
+
+    # Line breaks: <br>
+    response = re.sub(r'<br\s*/?>', '\n', response, flags=re.IGNORECASE)
+
+    # Code: <code> -> `
+    response = re.sub(r'<code>(.*?)</code>', r'`\1`', response, flags=re.IGNORECASE)
+
+    # 5. Remove any remaining HTML/XML tags
+    response = re.sub(r'<[^>]+>', '', response)
+
+    # 6. Clean up whitespace issues
+    # Remove extra blank lines (more than 2 consecutive newlines)
+    response = re.sub(r'\n\n\n+', '\n\n', response)
+
+    # Remove trailing/leading whitespace per line
+    lines = response.split('\n')
+    lines = [line.rstrip() for line in lines]
+    response = '\n'.join(lines)
+
+    # Remove blank lines after numbered lists or bullets
+    response = re.sub(r'(\d+\.)\s*\n+([A-Z])', r'\1 \2', response)
+    response = re.sub(r'([-*])\s*\n+([A-Z])', r'\1 \2', response)
+
+    # 7. Final cleanup
+    response = response.strip()
+
+    if response != original:
+        logger.info("[Response Cleaning] Applied formatting cleanup (removed tool mentions, converted HTML, fixed whitespace)")
+
     return response
+
+
+# Legacy function name for backwards compatibility
+def _extract_result_from_response(response: str) -> str:
+    """Legacy function name - calls _clean_response_formatting"""
+    return _clean_response_formatting(response)
 
 
 async def handle_function_calling(
@@ -294,4 +360,7 @@ async def generate_without_tools(
         max_tokens=4096,
         temperature=0.7
     )
-    return response.content, None
+
+    # Apply response cleaning
+    cleaned_content = _clean_response_formatting(response.content)
+    return cleaned_content, None

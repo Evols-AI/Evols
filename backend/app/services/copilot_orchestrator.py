@@ -384,6 +384,13 @@ MANDATORY RULES:
    - Ask the user for it explicitly, OR
    - Note specifically what's missing (e.g., "Product pricing not configured yet")
 5. Fill ALL tables, bullets, and sections with ACTUAL data from tool results
+
+📝 OUTPUT FORMATTING RULES 📝
+1. NEVER mention tool usage to users - they don't need to know the internal mechanics
+2. DO NOT write: "The get_X tool provided...", "I called the X tool...", "Using the X tool..."
+3. DO NOT use HTML tags - use markdown formatting instead
+4. Present analysis and insights directly without explaining your process
+5. Keep formatting clean: proper markdown, no extra blank lines
 """
 
             return f"""You are {skill_config['name']}, an expert AI assistant for product managers.
@@ -495,6 +502,13 @@ MANDATORY RULES:
    - Ask the user for it explicitly, OR
    - Note specifically what's missing (e.g., "Product pricing not configured yet")
 5. Fill ALL tables, bullets, and sections with ACTUAL data from tool results or user input
+
+📝 OUTPUT FORMATTING RULES 📝
+1. NEVER mention tool usage to users - they don't need to know the internal mechanics
+2. DO NOT write: "The get_X tool provided...", "I called the X tool...", "Using the X tool..."
+3. DO NOT use HTML tags - use markdown formatting instead
+4. Present analysis and insights directly without explaining your process
+5. Keep formatting clean: proper markdown, no extra blank lines
 
 **Work Context Auto-Population (CRITICAL):**
 7. PASSIVELY detect and capture work context signals in ALL conversations:
