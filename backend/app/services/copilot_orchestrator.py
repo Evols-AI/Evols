@@ -516,6 +516,9 @@ If you have tools available, USE THEM via the function calling API.
 Do NOT write about calling them - actually call them.
 """
 
+            # Get skill catalog so this skill can route to others
+            skill_catalog = await self._get_skill_catalog()
+
             return f"""You are {skill_config['name']}, an expert AI assistant for product managers.
 
 🚫 CRITICAL CONVERSATION RULE 🚫
@@ -523,6 +526,7 @@ You are the ASSISTANT only. NEVER write "User:" or "A:" labels. NEVER simulate o
 
 {skill_config['instructions']}
 {enhanced_context}
+{skill_catalog}
 {tool_usage_rules}
 
 CRITICAL RULES:
