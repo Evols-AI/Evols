@@ -7,13 +7,13 @@ Turn customer feedback into prioritized roadmaps automatically. Help senior PMs 
 ## Overview
 
 Evols is an AI-native Product Decision OS that helps product managers:
-- **Get AI assistance for PM tasks** via interactive Skills (PRD writing, user research, competitive analysis, etc.)
+- **Get AI assistance for PM tasks** via interactive Skills (PRD writing, user research, competitive analysis, sprint planning, etc.)
 - **Consolidate fragmented evidence** from 20+ data sources (meetings, docs, tickets, surveys, repos)
 - **Extract intelligence automatically** with entity recognition and semantic search
 - **Auto-cluster feedback** into themes with revenue impact and urgency
-- **Generate evidence-backed decision briefs** with clear options, tradeoffs, and recommendations
+- **Generate prioritized roadmaps** with RICE scoring and data-driven recommendations
 - **Simulate persona digital twins** for product validation and trade-off decisions
-- **Track decisions and outcomes** to build institutional product memory
+- **Track work context** (projects, tasks, decisions, relationships) to build institutional product memory
 - **Maintain privacy and compliance** with data retention policies, encryption, and audit logs
 
 ## Features
@@ -55,25 +55,13 @@ Evols is an AI-native Product Decision OS that helps product managers:
    - **Real-time progress tracking** with status updates
    - **Auto-generate prioritized projects** (boulders & pebbles) with RICE scoring
 
-4. **Decision Workbench**
-   - Visual workspace for exploring opportunities
-   - Filter by segment, time window, and initiatives
-   - AI-generated roadmap options with pros/cons
-   - Interactive editing and regeneration
-
-5. **Decision Brief Generator**
-   - One-click export to Markdown/PDF
-   - Problem context, options, tradeoffs, recommendation
-   - Full citations back to feedback and accounts
-   - Confidence scores for all claims
-
-6. **Persona Digital Twins**
+4. **Persona Digital Twins**
    - Auto-generate personas from customer segments
    - LLM-powered response simulation
    - "Ask Persona" chat interface
    - Trade-off voting with confidence scores
 
-7. **Multi-Tenancy & Auth**
+5. **Multi-Tenancy & Auth**
    - Three role types: SUPER_ADMIN, TENANT_ADMIN, USER
    - Session management and multi-device support
    - API key management for LLM providers
@@ -111,9 +99,9 @@ Evols/
 ## Tech Stack
 
 ### Backend
-- **Framework**: FastAPI (Python 3.11+)
+- **Framework**: FastAPI (Python 3.13+)
 - **Database**: PostgreSQL with pgvector
-- **AI/ML**: OpenAI API, Azure OpenAI, or bring-your-own-LLM
+- **AI/ML**: AWS Bedrock, OpenAI API, Azure OpenAI, or bring-your-own-LLM
 - **Embeddings**: sentence-transformers, OpenAI embeddings
 - **Clustering**: scikit-learn, HDBSCAN
 - **Auth**: JWT, OAuth2
@@ -134,7 +122,7 @@ Evols/
 ## Getting Started
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.13+
 - Node.js 18+
 - PostgreSQL 15+
 - Docker & Docker Compose
@@ -309,13 +297,16 @@ Theme (Feedback Clusters) → Initiative (Strategic Bets) → Project (Work Item
 ### v1.0 (Completed)
 - ✅ Data ingestion and knowledge graph
 - ✅ Feedback clustering and theme generation
-- ✅ Decision workbench and brief generator
 - ✅ Persona digital twins and simulation
 - ✅ Multi-tenant architecture
 
 ### v1.1 (Current) - *Released March 2026*
 - ✅ **AI Skills system** - Interactive AI assistants for PM tasks with A/B testing
 - ✅ **Context management system** - Unified data ingestion with 20+ source types
+- ✅ **Work Context & PM OS** - Personal work context tracking (projects, tasks, relationships, decisions, weekly focus)
+- ✅ **Sprint planning skill** - AI-assisted sprint planning with automatic task creation on task board
+- ✅ **Tool calling API** - Skills can invoke tools (add_task, update_project, get_work_context, etc.)
+- ✅ **Conversation continuity** - Multi-turn skill workflows without routing interruption
 - ✅ **Data retention & privacy** - User-controlled policies with encryption and audit logs
 - ✅ **Deduplication system** - Three-phase deduplication (content hash, semantic similarity, source grouping)
 - ✅ **Support ticket system** - Built-in customer support with admin dashboard
