@@ -1557,8 +1557,9 @@ async def search_internet(
 
 @tool_registry.register(
     name="update_role_info",
-    description="Update user's role, team, and manager information when you learn about it in conversation",
+    description="Update user's name, role, team, and manager information when you learn about it in conversation",
     parameters=[
+        ToolParameter(name="name", type="string", description="User's full name or preferred name", required=False),
         ToolParameter(name="title", type="string", description="Job title or role", required=False),
         ToolParameter(name="team", type="string", description="Team name", required=False),
         ToolParameter(name="team_description", type="string", description="What the team does", required=False),
@@ -1571,6 +1572,7 @@ async def search_internet(
 async def update_role_info(
     user: User,
     db: AsyncSession,
+    name: Optional[str] = None,
     title: Optional[str] = None,
     team: Optional[str] = None,
     team_description: Optional[str] = None,
@@ -1579,7 +1581,7 @@ async def update_role_info(
     team_size: Optional[int] = None,
     team_composition: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Update role and team information"""
+    """Update name, role and team information"""
     result = await db.execute(
         select(WorkContext).filter(WorkContext.user_id == user.id)
     )
@@ -1591,6 +1593,8 @@ async def update_role_info(
         await db.commit()
         await db.refresh(work_context)
 
+    if name:
+        work_context.name = name
     if title:
         work_context.title = title
     if team:
@@ -1610,8 +1614,9 @@ async def update_role_info(
 
     return {
         "success": True,
-        "message": "Updated role and team information",
+        "message": "Updated name, role and team information",
         "data": {
+            "name": work_context.name,
             "title": work_context.title,
             "team": work_context.team,
             "manager": work_context.manager_name

@@ -244,11 +244,11 @@ class LLMService:
         # Generate fresh response
         try:
             if self.provider in ["openai", "azure_openai"]:
-                response = await self._generate_openai(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages)
+                response = await self._generate_openai(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages, tool_choice=tool_choice)
             elif self.provider == "anthropic":
                 response = await self._generate_anthropic(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages)
             elif self.provider == "aws_bedrock":
-                response = await self._generate_bedrock(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages)
+                response = await self._generate_bedrock(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages, tool_choice=tool_choice)
             else:
                 raise ValueError(f"Unsupported provider: {self.provider}")
 
@@ -273,7 +273,8 @@ class LLMService:
         max_tokens: int,
         model: str,
         tools: Optional[List[Dict[str, Any]]] = None,
-        messages_array: Optional[List[Dict[str, Any]]] = None
+        messages_array: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None
     ) -> LLMResponse:
         """Generate with OpenAI (native async)"""
         # Use provided messages array or build from prompt
@@ -416,11 +417,182 @@ class LLMService:
         max_tokens: int,
         model: str,
         tools: Optional[List[Dict[str, Any]]] = None,
+        messages_array: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None
+    ) -> LLMResponse:
+        """Generate with AWS Bedrock using Converse API"""
+        model_id = model
+
+        # Use Converse API for Claude models (more reliable for tool calling)
+        if "anthropic.claude" in model_id:
+            return await self._generate_bedrock_converse(
+                prompt, system_prompt, temperature, max_tokens, model_id, tools, messages_array, tool_choice
+            )
+
+        # Fallback to InvokeModel for non-Claude models
+        return await self._generate_bedrock_invoke_model(
+            prompt, system_prompt, temperature, max_tokens, model_id, tools, messages_array
+        )
+
+    async def _generate_bedrock_converse(
+        self,
+        prompt: Optional[str],
+        system_prompt: Optional[str],
+        temperature: float,
+        max_tokens: int,
+        model_id: str,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        messages_array: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None
+    ) -> LLMResponse:
+        """Generate with AWS Bedrock Converse API (more reliable for tool calling)"""
+
+        # Prepare messages
+        if messages_array:
+            # Extract system message if present
+            system = []
+            messages = []
+            for msg in messages_array:
+                if msg.get("role") == "system":
+                    system.append({"text": msg.get("content", "")})
+                else:
+                    # Handle both string content and block-based content
+                    content = msg.get("content")
+                    if isinstance(content, str):
+                        messages.append({
+                            "role": msg["role"],
+                            "content": [{"text": content}]
+                        })
+                    elif isinstance(content, list):
+                        # Already in block format
+                        messages.append({
+                            "role": msg["role"],
+                            "content": content
+                        })
+                    else:
+                        messages.append(msg)
+        else:
+            system = [{"text": system_prompt}] if system_prompt else []
+            messages = [{"role": "user", "content": [{"text": prompt}]}]
+
+        # Build request parameters
+        request_params = {
+            "modelId": model_id,
+            "messages": messages,
+            "inferenceConfig": {
+                "maxTokens": max_tokens,
+                "temperature": temperature,
+            }
+        }
+
+        # Add system prompt if present
+        if system:
+            request_params["system"] = system
+
+        # Add tools if provided (Converse API format)
+        if tools:
+            # Convert OpenAI format to Converse API format
+            converse_tools = []
+            for tool in tools:
+                if tool.get("type") == "function":
+                    func = tool.get("function", {})
+                    tool_name = func.get("name")
+                    params_schema = func.get("parameters", {})
+
+                    converse_tools.append({
+                        "toolSpec": {
+                            "name": tool_name,
+                            "description": func.get("description"),
+                            "inputSchema": {
+                                "json": params_schema
+                            }
+                        }
+                    })
+
+            request_params["toolConfig"] = {
+                "tools": converse_tools
+            }
+
+            # Handle tool_choice - Converse API uses toolChoice
+            if tool_choice:
+                if tool_choice == "required":
+                    # Force tool use - use "any" for Converse API
+                    request_params["toolConfig"]["toolChoice"] = {"any": {}}
+                elif tool_choice == "auto":
+                    request_params["toolConfig"]["toolChoice"] = {"auto": {}}
+                # Note: "none" would be {"none": {}}
+
+            logger.info(f"[Bedrock Converse] Using tools: {[t['toolSpec']['name'] for t in converse_tools]}")
+            if tool_choice:
+                logger.info(f"[Bedrock Converse] Tool choice: {tool_choice}")
+
+        # Call Converse API
+        try:
+            response = await asyncio.to_thread(
+                self.client.converse,
+                **request_params
+            )
+        except Exception as e:
+            logger.error(f"[Bedrock Converse] API call failed: {e}")
+            raise
+
+        # Parse response
+        output = response.get("output", {})
+        message = output.get("message", {})
+        content_blocks = message.get("content", [])
+
+        # Extract text and tool calls
+        text_content = ""
+        tool_calls = []
+
+        for block in content_blocks:
+            if "text" in block:
+                text_content += block["text"]
+            elif "toolUse" in block:
+                tool_use = block["toolUse"]
+                tool_calls.append(
+                    ToolCall(
+                        id=tool_use.get("toolUseId", ""),
+                        type="function",
+                        function={
+                            "name": tool_use.get("name", ""),
+                            "arguments": json.dumps(tool_use.get("input", {}))
+                        }
+                    )
+                )
+
+        # Get usage stats
+        usage_data = response.get("usage", {})
+        usage = {
+            "prompt_tokens": usage_data.get("inputTokens", 0),
+            "completion_tokens": usage_data.get("outputTokens", 0),
+            "total_tokens": usage_data.get("totalTokens", 0)
+        }
+
+        # Get stop reason
+        stop_reason = response.get("stopReason", "end_turn")
+
+        logger.info(f"[Bedrock Converse] Response - text length: {len(text_content)}, tool calls: {len(tool_calls)}, stop_reason: {stop_reason}")
+
+        return LLMResponse(
+            content=text_content,
+            model=model_id,
+            usage=usage,
+            finish_reason=stop_reason,
+            tool_calls=tool_calls if tool_calls else None
+        )
+
+    async def _generate_bedrock_invoke_model(
+        self,
+        prompt: Optional[str],
+        system_prompt: Optional[str],
+        temperature: float,
+        max_tokens: int,
+        model_id: str,
+        tools: Optional[List[Dict[str, Any]]] = None,
         messages_array: Optional[List[Dict[str, Any]]] = None
     ) -> LLMResponse:
-        """Generate with AWS Bedrock"""
-        # Format request based on model family
-        model_id = model
+        """Generate with AWS Bedrock InvokeModel API (fallback for non-Claude models)"""
 
         # Build the prompt
         if system_prompt:
@@ -430,10 +602,11 @@ class LLMService:
 
         # Prepare request body based on model type
         if "anthropic.claude" in model_id:
-            # Anthropic Claude models on Bedrock
+            # This shouldn't be called for Claude models (should use Converse API)
+            logger.warning(f"[Bedrock] Using InvokeModel for Claude - should use Converse API instead")
+
             # Use provided messages array or build from prompt
             if messages_array:
-                # Extract system message if present
                 system = ""
                 messages = []
                 for msg in messages_array:
@@ -452,9 +625,8 @@ class LLMService:
                 "messages": messages
             }
 
-            # Add tools if provided (Bedrock Anthropic tool use)
+            # Add tools if provided
             if tools:
-                # Convert OpenAI format to Anthropic/Bedrock format
                 bedrock_tools = []
                 for tool in tools:
                     if tool.get("type") == "function":

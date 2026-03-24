@@ -354,6 +354,42 @@ Do not explain, just output the skill name or "none"."""
         # NEW: Build enhanced context if product_id is provided
         enhanced_context = ""
 
+        # Load user's work context for personalization (performance optimization)
+        # Converse API can call tools for this, but pre-loading is faster
+        try:
+            from app.models.work_context import WorkContext, ActiveProject, KeyRelationship
+            result = await self.db.execute(
+                select(WorkContext).filter(WorkContext.user_id == self.user.id)
+            )
+            work_context = result.scalar_one_or_none()
+
+            if work_context:
+                enhanced_context += "\n## Your Work Context (Pre-loaded)\n\n"
+                enhanced_context += "**Your Information:**\n"
+                # Use name from WorkContext, fallback to user.full_name, then 'User'
+                user_name = work_context.name or (self.user.full_name if hasattr(self.user, 'full_name') else 'User')
+                enhanced_context += f"- Name: {user_name}\n"
+                if work_context.title:
+                    enhanced_context += f"- Title: {work_context.title}\n"
+                if work_context.team:
+                    enhanced_context += f"- Team: {work_context.team}\n"
+                if work_context.manager_name:
+                    enhanced_context += f"- Manager: {work_context.manager_name}\n"
+
+                # Get active projects
+                projects_result = await self.db.execute(
+                    select(ActiveProject).filter(ActiveProject.user_id == self.user.id)
+                )
+                projects = projects_result.scalars().all()
+                if projects:
+                    enhanced_context += f"\n**Your Active Projects:** {len(projects)} projects\n"
+                    for p in projects[:5]:  # Show up to 5
+                        enhanced_context += f"- {p.name} ({p.status.value}, {p.role.value})\n"
+
+                enhanced_context += "\n💡 Use this information to personalize outputs. NO placeholders like [Your Name] needed.\n\n"
+        except Exception as e:
+            logger.warning(f"Failed to load work context: {e}")
+
         if product_id:
             try:
                 # Get product knowledge
@@ -389,6 +425,50 @@ Do not explain, just output the skill name or "none"."""
                         created_date = work['created_at'].strftime('%Y-%m-%d') if work.get('created_at') else 'recent'
                         enhanced_context += f"- **{work['skill_name']}** ({created_date}): {work['summary']}\n"
                     enhanced_context += "\nReference this past work when relevant to provide continuity.\n\n"
+
+                # For PRD-related skills, pre-load feedback data (performance optimization)
+                # Converse API can call tools for this, but pre-loading is faster
+                if skill_config and skill_config.get('name') in ['create-prd', 'prd-writer', 'prioritize-features']:
+                    try:
+                        from app.models.feedback import Feedback
+                        from app.models.theme import Theme
+
+                        # Get recent feedback
+                        feedback_result = await self.db.execute(
+                            select(Feedback)
+                            .filter(Feedback.product_id == product_id)
+                            .order_by(Feedback.created_at.desc())
+                            .limit(10)
+                        )
+                        feedback_items = feedback_result.scalars().all()
+
+                        # Get themes
+                        themes_result = await self.db.execute(
+                            select(Theme)
+                            .filter(Theme.product_id == product_id)
+                            .order_by(Theme.feedback_count.desc())
+                            .limit(5)
+                        )
+                        themes = themes_result.scalars().all()
+
+                        if feedback_items or themes:
+                            enhanced_context += "\n## Recent Customer Feedback (Pre-loaded)\n\n"
+
+                        if themes:
+                            enhanced_context += "**Top Themes:**\n"
+                            for theme in themes:
+                                enhanced_context += f"- {theme.name} ({theme.feedback_count} mentions)\n"
+                            enhanced_context += "\n"
+
+                        if feedback_items:
+                            enhanced_context += f"**Recent Feedback:** {len(feedback_items)} items\n"
+                            for fb in feedback_items[:5]:
+                                source = fb.source_name or 'feedback'
+                                enhanced_context += f"- [{source}] {fb.summary or fb.raw_text[:100]}...\n"
+                            enhanced_context += "\n"
+
+                    except Exception as e:
+                        logger.warning(f"Failed to load feedback data: {e}")
 
             except Exception as e:
                 logger.warning(f"Failed to load enhanced context for product {product_id}: {e}")

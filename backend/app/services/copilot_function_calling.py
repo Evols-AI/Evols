@@ -171,13 +171,13 @@ async def handle_function_calling(
         try:
             logger.info(f"[Function Calling] Iteration {iteration + 1}/{max_iterations}")
 
-            # Force tool calling for pm-setup skill
+            # Force tool calling for pm-setup skill on first iteration only
             tool_choice = None
             skill_name = skill_config.get('name', '')
             logger.info(f"[Function Calling] Skill name: {skill_name}, iteration: {iteration}")
-            if skill_name == 'pm-setup':
+            if skill_name == 'pm-setup' and iteration == 0:
                 tool_choice = "required"
-                logger.info(f"[Function Calling] FORCING REQUIRED tool use for pm-setup skill")
+                logger.info(f"[Function Calling] FORCING REQUIRED tool use for pm-setup skill (first iteration)")
 
             # Call LLM with function calling
             logger.info(f"[Function Calling] Calling LLM with tool_choice={tool_choice}")
@@ -255,7 +255,8 @@ async def handle_function_calling(
 
                 # Format tool results for the LLM
                 # OpenAI format: assistant message with tool_calls, then tool messages
-                # Anthropic format: assistant message, then user message with tool results
+                # Anthropic InvokeModel format: assistant message with tool_use blocks, then user message with tool_result blocks
+                # Bedrock Converse format: assistant message with toolUse blocks, then user message with toolResult blocks
                 provider = llm_service.provider
 
                 if provider in ["openai", "azure_openai"]:
@@ -275,10 +276,50 @@ async def handle_function_calling(
                                 "name": tc.function['name'],
                                 "content": json.dumps(tc_result.get('result', tc_result.get('error')), default=str)
                             })
+                elif provider == "aws_bedrock":
+                    # Bedrock Converse API format
+                    # Assistant message with toolUse blocks, then user message with toolResult blocks
+                    tool_results = []
+                    for tc in response.tool_calls:
+                        tc_result = next((t for t in tool_calls_made if t['tool'] == tc.function['name']), None)
+                        if tc_result:
+                            # Converse API requires content as array of text/json blocks
+                            result_content = json.dumps(tc_result.get('result', tc_result.get('error')), default=str)
+                            tool_results.append({
+                                "toolResult": {
+                                    "toolUseId": tc.id,
+                                    "content": [{"text": result_content}]
+                                }
+                            })
+
+                    # Add assistant message (with toolUse blocks)
+                    content_blocks = []
+                    if response.content:
+                        content_blocks.append({"text": response.content})
+
+                    content_blocks.extend([
+                        {
+                            "toolUse": {
+                                "toolUseId": tc.id,
+                                "name": tc.function['name'],
+                                "input": json.loads(tc.function['arguments'])
+                            }
+                        }
+                        for tc in response.tool_calls
+                    ])
+
+                    messages.append({
+                        "role": "assistant",
+                        "content": content_blocks
+                    })
+
+                    # Add user message with tool results
+                    messages.append({
+                        "role": "user",
+                        "content": tool_results
+                    })
                 else:
-                    # Anthropic/Bedrock format
-                    # Assistant message with tool_use blocks (already in response.content as blocks)
-                    # Then user message with tool_result blocks
+                    # Anthropic InvokeModel format (direct API, not Bedrock)
                     tool_results = []
                     for tc in response.tool_calls:
                         tc_result = next((t for t in tool_calls_made if t['tool'] == tc.function['name']), None)
@@ -290,7 +331,6 @@ async def handle_function_calling(
                             })
 
                     # Add assistant message (with tool_use) - need to reconstruct content blocks
-                    # Only add text block if there's actual content (Bedrock rejects empty text blocks)
                     content_blocks = []
                     if response.content:
                         content_blocks.append({"type": "text", "text": response.content})

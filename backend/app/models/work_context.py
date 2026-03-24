@@ -90,6 +90,7 @@ class WorkContext(BaseModel):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
 
     # Role & Position
+    name = Column(String(255), nullable=True)  # User's preferred name (can differ from account full_name)
     title = Column(String(255), nullable=True)
     team = Column(String(255), nullable=True)
     team_description = Column(Text, nullable=True)
