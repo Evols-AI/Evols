@@ -142,6 +142,7 @@ class CopilotOrchestrator:
         # Define keyword patterns for each skill type
         patterns = {
             'roadmap': ['roadmap', 'prioritize', 'priority', 'quarter', 'planning', 'strategy', 'q1', 'q2', 'q3', 'q4', 'arr', 'revenue'],
+            'sprint-plan': ['sprint', 'sprint planning', 'plan a sprint', 'sprint plan', 'plan sprint', 'capacity planning', 'story selection', 'sprint goal', 'sprint capacity', 'commit to sprint', 'sprint commitment'],
             'rice': ['rice', 'score', 'scoring', 'ranking', 'calculate', 'prioritization', 'reach', 'impact', 'confidence', 'effort'],
             'prd': ['prd', 'spec', 'specification', 'requirements', 'user story', 'user stories', 'acceptance criteria', 'feature spec', 'write prd', 'create prd', 'draft prd', 'write a prd', 'create a prd', 'help me write', 'write requirements'],
             'create-prd': ['write prd', 'create prd', 'draft prd', 'write a prd', 'create a prd', 'help me write', 'write requirements'],
