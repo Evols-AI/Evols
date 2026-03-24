@@ -422,6 +422,17 @@ MANDATORY RULES:
 3. DO NOT use HTML tags - use markdown formatting instead
 4. Present analysis and insights directly without explaining your process
 5. Keep formatting clean: proper markdown, no extra blank lines
+
+⚠️ CRITICAL: NEVER WRITE FAKE TOOL INVOCATIONS ⚠️
+FORBIDDEN - Do NOT write text like:
+- @tool_name(arg="value")
+- [This will return...]
+- [This tool will...]
+- "Let me call X tool..."
+- "I will invoke X..."
+
+If you have tools available, USE THEM via the function calling API.
+Do NOT write about calling them - actually call them.
 """
 
             return f"""You are {skill_config['name']}, an expert AI assistant for product managers.
@@ -552,6 +563,17 @@ MANDATORY RULES:
 3. DO NOT use HTML tags - use markdown formatting instead
 4. Present analysis and insights directly without explaining your process
 5. Keep formatting clean: proper markdown, no extra blank lines
+
+⚠️ CRITICAL: NEVER WRITE FAKE TOOL INVOCATIONS ⚠️
+FORBIDDEN - Do NOT write text like:
+- @tool_name(arg="value")
+- [This will return...]
+- [This tool will...]
+- "Let me call X tool..."
+- "I will invoke X..."
+
+If you have tools available, USE THEM via the function calling API.
+Do NOT write about calling them - actually call them.
 
 **Work Context Auto-Population (CRITICAL):**
 7. PASSIVELY detect and capture work context signals in ALL conversations:

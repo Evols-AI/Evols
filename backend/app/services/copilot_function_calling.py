@@ -323,10 +323,34 @@ async def handle_function_calling(
             logger.info(f"[Function Calling] LLM provided final response after {iteration + 1} iterations")
 
             # Detect if LLM is writing about calling tools instead of actually calling them
-            if response.content and ('Call:' in response.content or 'call(' in response.content):
-                logger.error(f"[Function Calling] ⚠️ LLM appears to be DESCRIBING tool calls in text instead of MAKING them!")
-                logger.error(f"[Function Calling] This usually means the skill instructions have misleading examples")
-                logger.error(f"[Function Calling] Content: {response.content[:1000]}")
+            fake_tool_patterns = [
+                r'@\w+\(',  # @get_something(
+                r'Call:',
+                r'call\(',
+                r'\[This will return',
+                r'\[This tool will',
+                r'I will call',
+                r'Let me call',
+                r'I\'ll invoke',
+            ]
+
+            is_fake_call = False
+            for pattern in fake_tool_patterns:
+                if re.search(pattern, response.content or ''):
+                    is_fake_call = True
+                    logger.error(f"[Function Calling] ⚠️ LLM is DESCRIBING tool calls instead of MAKING them!")
+                    logger.error(f"[Function Calling] Pattern detected: {pattern}")
+                    logger.error(f"[Function Calling] Content preview: {response.content[:500]}")
+                    break
+
+            if is_fake_call:
+                # Return error message to user explaining what went wrong
+                return (
+                    "I apologize, but I encountered an issue generating your PRD. "
+                    "Please try using the skill directly with: @create-prd [your feature description]\n\n"
+                    "This will ensure I properly gather your product context and work information to create a complete PRD.",
+                    tool_calls_made
+                )
 
             # Clean up response - extract only the <result> content if XML tags present
             cleaned_response = _extract_result_from_response(response.content)
