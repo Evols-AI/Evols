@@ -88,23 +88,46 @@ class CopilotOrchestrator:
         return (None, None)
 
     async def _find_skill_by_name(self, name: str) -> Optional[Tuple[int, str]]:
-        """Find skill by name (fuzzy match)"""
-        # Try custom skills first
+        """Find skill by name (exact match, then fuzzy match)"""
+        name_lower = name.lower()
+
+        # Try exact match first on custom skills
         result = await self.db.execute(
             select(CustomSkill)
             .where(CustomSkill.tenant_id == self.user.tenant_id)
             .where(CustomSkill.is_active == True)
-            .where(func.lower(CustomSkill.name).contains(name))
+            .where(func.lower(CustomSkill.name) == name_lower)
         )
         custom_skill = result.scalars().first()
         if custom_skill:
             return (custom_skill.id, SkillType.CUSTOM)
 
-        # Try default skills
+        # Try exact match on default skills
         result = await self.db.execute(
             select(Skill)
             .where(Skill.is_active == True)
-            .where(func.lower(Skill.name).contains(name))
+            .where(func.lower(Skill.name) == name_lower)
+        )
+        skill = result.scalars().first()
+        if skill:
+            return (skill.id, SkillType.DEFAULT)
+
+        # Fallback to fuzzy match (contains) for custom skills
+        result = await self.db.execute(
+            select(CustomSkill)
+            .where(CustomSkill.tenant_id == self.user.tenant_id)
+            .where(CustomSkill.is_active == True)
+            .where(func.lower(CustomSkill.name).contains(name_lower))
+        )
+        custom_skill = result.scalars().first()
+        if custom_skill:
+            return (custom_skill.id, SkillType.CUSTOM)
+
+        # Fallback to fuzzy match for default skills
+        result = await self.db.execute(
+            select(Skill)
+            .where(Skill.is_active == True)
+            .where(func.lower(Skill.name).contains(name_lower))
         )
         skill = result.scalars().first()
         if skill:
