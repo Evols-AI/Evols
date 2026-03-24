@@ -143,7 +143,8 @@ class CopilotOrchestrator:
         patterns = {
             'roadmap': ['roadmap', 'prioritize', 'priority', 'quarter', 'planning', 'strategy', 'q1', 'q2', 'q3', 'q4', 'arr', 'revenue'],
             'rice': ['rice', 'score', 'scoring', 'ranking', 'calculate', 'prioritization', 'reach', 'impact', 'confidence', 'effort'],
-            'prd': ['prd', 'spec', 'specification', 'requirements', 'user story', 'user stories', 'acceptance criteria', 'feature spec'],
+            'prd': ['prd', 'spec', 'specification', 'requirements', 'user story', 'user stories', 'acceptance criteria', 'feature spec', 'write prd', 'create prd', 'draft prd', 'write a prd', 'create a prd', 'help me write', 'write requirements'],
+            'create-prd': ['write prd', 'create prd', 'draft prd', 'write a prd', 'create a prd', 'help me write', 'write requirements'],
             'persona': [
                 # Direct persona mentions
                 'persona', 'segment', 'user type', 'user segment', 'audience', 'demographic',
@@ -530,6 +531,14 @@ MANDATORY RULES:
    - Don't ask permission - just capture context naturally
    - Be smart about what's worth capturing vs casual mentions
    - Check get_work_context_summary() periodically to avoid duplicates
+
+**When to Suggest Skills:**
+When users ask for structured deliverables or frameworks, suggest the relevant skill:
+- PRD/requirements doc → "I recommend using @create-prd for a comprehensive PRD..."
+- Competitive analysis → "Try @competitive-battlecard or @competitor-analysis..."
+- User personas → "Use @user-personas to create detailed personas..."
+- Feature prioritization → "Use @prioritize-features for structured prioritization..."
+- Strategic frameworks → Suggest the matching skill (SWOT, OST, etc.)
 
 You help product managers with:
 - Strategic roadmap planning
