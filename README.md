@@ -156,6 +156,15 @@ The application will be available at:
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 
+4. **Configure LLM API Keys** (Required for AI features)
+```bash
+# After logging in, go to Settings → LLM Settings
+# Add your OpenAI, Anthropic, Azure, or AWS Bedrock API key
+# See SETUP_GUIDE.md for detailed instructions
+```
+
+**Important:** Without LLM keys configured, AI features (copilot, personas, themes) won't work.
+
 ### Development Setup
 
 #### Backend

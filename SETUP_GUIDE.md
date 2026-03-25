@@ -224,6 +224,224 @@ curl -H "Authorization: Bearer ${TENANT_TOKEN}" \
 
 ---
 
+## ✅ Step 4: Configure LLM API Keys
+
+**IMPORTANT:** Before you can use any AI features (workbench, personas, themes, etc.), you must configure your LLM API keys in Settings.
+
+### Why Configure LLM Keys?
+
+Evols uses a **Bring Your Own Keys (BYOK)** model:
+- ✅ You control your own LLM costs
+- ✅ Keys are encrypted and stored securely per tenant
+- ✅ Each tenant configures their own keys
+- ✅ No API keys are stored in environment variables
+
+### Supported LLM Providers
+
+Evols supports 4 LLM providers:
+
+1. **OpenAI** - GPT-4, GPT-4o, GPT-3.5-turbo
+2. **Anthropic** - Claude 3.5 Sonnet, Claude 3 Opus
+3. **Azure OpenAI** - Your deployed models
+4. **AWS Bedrock** - Claude, Titan, Llama models
+
+### How to Configure (Web UI)
+
+1. **Login** to your account (as any user - USER, TENANT_ADMIN, etc.)
+
+2. **Go to Settings:**
+   ```
+   http://localhost:3000/settings
+   ```
+   Or click your profile icon → Settings
+
+3. **Navigate to "LLM Settings" tab**
+
+4. **Select your provider** and fill in the required fields:
+
+#### Option A: OpenAI
+
+```
+Provider: OpenAI
+API Key: sk-proj-xxxxxxxxxxxxx
+Model: gpt-4o (recommended) or gpt-4-turbo
+Embedding Model: text-embedding-3-small
+```
+
+**Get API Key:**
+- Sign up at https://platform.openai.com/
+- Go to https://platform.openai.com/api-keys
+- Click "Create new secret key"
+
+#### Option B: Anthropic
+
+```
+Provider: Anthropic
+API Key: sk-ant-xxxxxxxxxxxxx
+Model: claude-3-5-sonnet-20241022 (recommended)
+```
+
+**Get API Key:**
+- Sign up at https://console.anthropic.com/
+- Go to https://console.anthropic.com/settings/keys
+- Click "Create Key"
+
+#### Option C: Azure OpenAI
+
+```
+Provider: Azure OpenAI
+API Key: xxxxxxxxxxxxxxxxxxxxxxxx
+Endpoint: https://your-resource.openai.azure.com/
+Deployment Name: your-gpt4-deployment
+API Version: 2024-02-15-preview
+Model: gpt-4
+Embedding Model: text-embedding-ada-002
+```
+
+**Get Credentials:**
+- Create Azure OpenAI resource in Azure Portal
+- Deploy models (GPT-4, embeddings)
+- Get endpoint and API key from Azure Portal
+
+#### Option D: AWS Bedrock
+
+**API Key Method:**
+```
+Provider: AWS Bedrock
+Auth Method: API Key
+AWS Access Key ID: AKIAXXXXXXXXX
+AWS Secret Access Key: xxxxxxxxxxxxx
+Region: us-east-1
+Model: anthropic.claude-3-5-sonnet-20241022-v2:0
+```
+
+**Credentials Method:**
+```
+Provider: AWS Bedrock
+Auth Method: AWS Credentials
+Region: us-east-1
+Model: anthropic.claude-3-5-sonnet-20241022-v2:0
+```
+
+**Get Credentials:**
+- Enable Bedrock in AWS Console
+- Request model access for Claude/Titan
+- Create IAM user with Bedrock permissions
+- Generate access keys
+
+5. **Click "Test Connection"**
+   - Verifies your credentials work
+   - Makes a test LLM call
+   - Shows success/error message
+
+6. **Click "Save Settings"**
+   - Encrypts and stores your keys
+   - Keys are now available for all tenant users
+
+### How to Configure (API)
+
+```bash
+# Login first
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@company.com","password":"YourPassword"}' \
+  > /tmp/token.json
+
+TOKEN=$(cat /tmp/token.json | python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])")
+
+# Configure OpenAI
+curl -X POST http://localhost:8000/api/v1/llm-settings \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "openai",
+    "api_key": "sk-proj-xxxxxxxxxxxxx",
+    "model": "gpt-4o",
+    "embedding_model": "text-embedding-3-small"
+  }'
+
+# Test connection
+curl -X POST http://localhost:8000/api/v1/llm-settings/test \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "openai",
+    "api_key": "sk-proj-xxxxxxxxxxxxx",
+    "model": "gpt-4o"
+  }'
+```
+
+### Verify LLM Configuration
+
+```bash
+# Get current LLM settings
+curl -H "Authorization: Bearer ${TOKEN}" \
+  http://localhost:8000/api/v1/llm-settings
+
+# Response (API key is masked):
+{
+  "id": 1,
+  "tenant_id": 1,
+  "provider": "openai",
+  "model": "gpt-4o",
+  "embedding_model": "text-embedding-3-small",
+  "api_key": "sk-proj-***REDACTED***"
+}
+```
+
+### Per-Tenant Configuration
+
+- Each tenant configures their own LLM keys independently
+- Keys are encrypted with AES-256-GCM
+- Keys are isolated per tenant (never shared)
+- Any user in the tenant can update LLM settings
+
+### What Happens Without LLM Keys?
+
+Without configured LLM keys:
+- ❌ Cannot use Workbench AI copilot
+- ❌ Cannot generate personas
+- ❌ Cannot cluster feedback into themes
+- ❌ Cannot auto-generate initiatives
+- ❌ Cannot use any AI-powered features
+- ✅ Can still upload feedback, manage users, view data
+
+### Troubleshooting LLM Setup
+
+**Problem: "Test connection failed"**
+- Double-check your API key is correct
+- Verify you have credits/quota in your provider account
+- For Azure: ensure endpoint URL is correct
+- For Bedrock: verify model access is approved
+
+**Problem: "Invalid API key format"**
+- OpenAI keys start with `sk-proj-` or `sk-`
+- Anthropic keys start with `sk-ant-`
+- Azure keys are 32 alphanumeric characters
+- AWS keys: Access Key starts with `AKIA`
+
+**Problem: "Model not available"**
+- OpenAI: Check you have access to GPT-4
+- Bedrock: Request model access in AWS Console
+- Azure: Verify model is deployed in your resource
+
+### Recommended Models (March 2024)
+
+**For Best Quality:**
+- OpenAI: `gpt-4o` or `gpt-4-turbo`
+- Anthropic: `claude-3-5-sonnet-20241022`
+- Bedrock: `anthropic.claude-3-5-sonnet-20241022-v2:0`
+
+**For Cost Efficiency:**
+- OpenAI: `gpt-4o-mini` or `gpt-3.5-turbo`
+- Bedrock: `anthropic.claude-3-haiku-20240307-v1:0`
+
+**For Embeddings:**
+- OpenAI: `text-embedding-3-small` (recommended)
+- Azure: `text-embedding-ada-002`
+
+---
+
 ## 📊 Role Comparison Table
 
 | Operation | USER | TENANT_ADMIN | SUPER_ADMIN |
@@ -245,16 +463,20 @@ curl -H "Authorization: Bearer ${TENANT_TOKEN}" \
 
 **Currently Available:**
 - ✅ `/admin-setup` - One-time SUPER_ADMIN creation page
-- ✅ `/settings` - User settings (appearance, LLM config)
-- ✅ API endpoints for all admin operations
+- ✅ `/admin/tenants` - SUPER_ADMIN tenant management (view, create, edit tenants & users)
+- ✅ `/admin/support` - SUPER_ADMIN support ticket management
+- ✅ `/admin/advisers-platform` - SUPER_ADMIN skills analytics
+- ✅ `/settings` - User settings including:
+  - **LLM Configuration** (OpenAI, Anthropic, Azure, Bedrock) - **REQUIRED**
+  - Appearance (theme, display preferences)
+  - Profile management
+- ✅ API endpoints for all operations
 
-**Not Yet Implemented:**
-- ❌ Admin dashboard UI for SUPER_ADMIN
-- ❌ Tenant management UI
-- ❌ User management UI for TENANT_ADMIN
-
-**Current Workaround:**
-All admin operations must be done via API endpoints or create admin UI pages.
+**Admin UI Features:**
+- Full tenant CRUD operations
+- User management within tenants
+- LLM API key configuration per tenant
+- Support ticket tracking
 
 ---
 
@@ -435,7 +657,11 @@ Visit: http://localhost:3000/admin-setup
 # 3. Create users (as TENANT_ADMIN)
 curl -X POST http://localhost:8000/api/v1/users/ ...
 
-# 4. Login and use platform
+# 4. Configure LLM API Keys (REQUIRED for AI features)
+Visit: http://localhost:3000/settings → LLM Settings tab
+Add your OpenAI/Anthropic/Azure/Bedrock API key
+
+# 5. Login and use platform
 http://localhost:3000/login
 ```
 
