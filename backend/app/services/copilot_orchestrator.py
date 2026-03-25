@@ -18,6 +18,7 @@ from app.services.llm_service import get_llm_service
 from app.core.security import decrypt_llm_config
 from app.services.copilot_function_calling import handle_function_calling, generate_without_tools
 from app.services.unified_pm_os import SkillAdapter, KnowledgeManager, MemoryManager
+from app.services.skill_loader_service import get_skill_loader
 
 
 class CopilotOrchestrator:
@@ -53,10 +54,10 @@ class CopilotOrchestrator:
         self,
         message: str,
         conversation_history: List[SkillMessage] = None
-    ) -> Tuple[Optional[int], Optional[str]]:
+    ) -> Tuple[Optional[str], Optional[str]]:
         """
         Detect which skill should handle this message.
-        Returns (skill_id, skill_type) or (None, None) for general conversation.
+        Returns (skill_name, skill_type) or (None, None) for general conversation.
         """
         # Check for @mention (highest priority - explicit skill override)
         mention_match = re.search(r'@(\w+)', message)
@@ -75,11 +76,13 @@ class CopilotOrchestrator:
         # Continue with the current skill unless explicitly overridden by @mention or keywords
         if conversation_history:
             last_assistant_msg = next(
-                (msg for msg in reversed(conversation_history) if msg.role == 'assistant' and msg.skill_id),
+                (msg for msg in reversed(conversation_history) if msg.role == 'assistant' and (msg.skill_name or msg.skill_id)),
                 None
             )
             if last_assistant_msg:
-                return (last_assistant_msg.skill_id, last_assistant_msg.skill_type)
+                # Prefer skill_name (file-based), fallback to skill_id (legacy DB-based)
+                skill_identifier = last_assistant_msg.skill_name or str(last_assistant_msg.skill_id)
+                return (skill_identifier, last_assistant_msg.skill_type)
 
         # Try LLM-based intelligent routing (fallback - intelligent classification)
         # Only use LLM routing when there's no active conversation
@@ -89,8 +92,8 @@ class CopilotOrchestrator:
 
         return (None, None)
 
-    async def _find_skill_by_name(self, name: str) -> Optional[Tuple[int, str]]:
-        """Find skill by name (exact match, then fuzzy match)"""
+    async def _find_skill_by_name(self, name: str) -> Optional[Tuple[str, str]]:
+        """Find skill by name (exact match, then fuzzy match). Returns (skill_name, skill_type)"""
         name_lower = name.lower()
 
         # Try exact match first on custom skills
@@ -102,17 +105,13 @@ class CopilotOrchestrator:
         )
         custom_skill = result.scalars().first()
         if custom_skill:
-            return (custom_skill.id, SkillType.CUSTOM)
+            return (custom_skill.name, SkillType.CUSTOM)
 
-        # Try exact match on default skills
-        result = await self.db.execute(
-            select(Skill)
-            .where(Skill.is_active == True)
-            .where(func.lower(Skill.name) == name_lower)
-        )
-        skill = result.scalars().first()
-        if skill:
-            return (skill.id, SkillType.DEFAULT)
+        # Try exact match on file-based default skills
+        skill_loader = get_skill_loader()
+        skill_data = skill_loader.get_skill_by_name(name)
+        if skill_data:
+            return (skill_data['name'], SkillType.DEFAULT)
 
         # Fallback to fuzzy match (contains) for custom skills
         result = await self.db.execute(
@@ -123,17 +122,7 @@ class CopilotOrchestrator:
         )
         custom_skill = result.scalars().first()
         if custom_skill:
-            return (custom_skill.id, SkillType.CUSTOM)
-
-        # Fallback to fuzzy match for default skills
-        result = await self.db.execute(
-            select(Skill)
-            .where(Skill.is_active == True)
-            .where(func.lower(Skill.name).contains(name_lower))
-        )
-        skill = result.scalars().first()
-        if skill:
-            return (skill.id, SkillType.DEFAULT)
+            return (custom_skill.name, SkillType.CUSTOM)
 
         return None
 
@@ -280,33 +269,46 @@ Do not explain, just output the skill name or "none"."""
             logger.warning(f"[Copilot] LLM-based skill classification failed: {e}")
             return None
 
-    async def load_skill_config(self, skill_id: int, skill_type: str) -> Dict[str, Any]:
-        """Load skill configuration from database"""
+    async def load_skill_config(self, skill_name: str, skill_type: str) -> Dict[str, Any]:
+        """Load skill configuration from files or database"""
         if skill_type == SkillType.CUSTOM:
+            # Load custom skill from database
             result = await self.db.execute(
-                select(CustomSkill).where(CustomSkill.id == skill_id)
+                select(CustomSkill)
+                .where(CustomSkill.name == skill_name)
+                .where(CustomSkill.tenant_id == self.user.tenant_id)
             )
             skill = result.scalars().first()
+
+            if not skill:
+                return None
+
+            return {
+                'name': skill.name,
+                'type': skill_type,
+                'description': skill.description,
+                'icon': skill.icon,
+                'instructions': skill.instructions,
+                'tools': skill.tools or [],
+                'output_template': skill.output_template
+            }
         else:
-            result = await self.db.execute(
-                select(Skill).where(Skill.id == skill_id)
-            )
-            skill = result.scalars().first()
+            # Load framework skill from files
+            skill_loader = get_skill_loader()
+            skill_data = skill_loader.get_skill_by_name(skill_name)
 
-        if not skill:
-            return None
+            if not skill_data:
+                return None
 
-        # Load from database (all skills have full instructions)
-        return {
-            'id': skill.id,
-            'type': skill_type,
-            'name': skill.name,
-            'description': skill.description,
-            'icon': skill.icon,
-            'instructions': skill.instructions,
-            'tools': skill.tools,
-            'output_template': skill.output_template
-        }
+            return {
+                'name': skill_data['name'],
+                'type': skill_type,
+                'description': skill_data.get('description', ''),
+                'icon': '⚡',  # Default icon
+                'instructions': skill_data['instructions'],
+                'tools': skill_data.get('tools', []),
+                'output_template': skill_data.get('output_template')
+            }
 
     async def get_next_sequence_number(self, conversation_id: str) -> int:
         """Get next sequence number for message"""

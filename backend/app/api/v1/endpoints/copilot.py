@@ -15,6 +15,7 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.skill import SkillConversation, SkillMessage, Skill, CustomSkill, SkillType
 from app.services.copilot_orchestrator import CopilotOrchestrator
+from app.services.intelligent_copilot import IntelligentCopilot
 
 
 router = APIRouter()
@@ -88,13 +89,14 @@ async def chat(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Send a message to the AI copilot.
-    Can include @mention to invoke specific skill.
+    Send a message to the AI copilot with intelligent skill routing.
+    Uses Cline-style context-aware decision making.
     """
-    orchestrator = CopilotOrchestrator(db, current_user)
+    # Use new intelligent copilot with full context awareness
+    copilot = IntelligentCopilot(db, current_user)
 
     try:
-        result = await orchestrator.chat(
+        result = await copilot.chat(
             conversation_id=request.conversation_id,
             message=request.message,
             product_id=request.product_id
@@ -258,21 +260,21 @@ async def list_available_skills(
     """
     List all available skills for @mention autocomplete
     """
+    from app.services.skill_loader_service import get_skill_loader
+
     skills = []
 
-    # Get default skills
-    result = await db.execute(
-        select(Skill).where(Skill.is_active == True)
-    )
-    default_skills = result.scalars().all()
+    # Get default skills from files
+    skill_loader = get_skill_loader()
+    file_skills = skill_loader.get_all_skills()
 
-    for skill in default_skills:
+    for idx, skill in enumerate(file_skills, start=1):
         skills.append(SkillListItem(
-            id=skill.id,
+            id=idx,  # Use index as ID for file-based skills
             type=SkillType.DEFAULT,
-            name=skill.name,
-            description=skill.description,
-            icon=skill.icon,
+            name=skill['name'],
+            description=skill.get('description', ''),
+            icon='⚡',  # Default icon for file-based skills
             is_custom=False
         ))
 
@@ -286,7 +288,7 @@ async def list_available_skills(
 
     for skill in custom_skills:
         skills.append(SkillListItem(
-            id=skill.id,
+            id=skill.id + 10000,  # Offset custom skill IDs to avoid conflicts
             type=SkillType.CUSTOM,
             name=skill.name,
             description=skill.description,

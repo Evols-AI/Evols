@@ -229,7 +229,8 @@ class SkillMessage(BaseModel):
     content = Column(Text, nullable=False)
 
     # Which skill generated this message (for assistant messages only)
-    skill_id = Column(Integer, nullable=True)
+    skill_id = Column(Integer, nullable=True)  # Legacy: for DB-stored skills
+    skill_name = Column(String(255), nullable=True, index=True)  # For file-based skills
     skill_type = Column(String(20), nullable=True)  # 'default' or 'custom'
 
     tool_calls = Column(JSON, nullable=True)  # LLM tool calls made
