@@ -152,11 +152,9 @@ Create PRD in sections, validating each:
 4. Use cases and requirements
 5. Milestones and appendix
 
-### Step 3: Output Options
+### Step 3: Output
 
-- **Google Doc**: Use `create_document` and `write_document` tools
-- **Local Markdown**: Write to project directory
-- **Both**: Create local source of truth + shareable Google Doc
+Generate the PRD as markdown in your response. The user can copy it to their preferred location.
 
 ## Best Practices
 

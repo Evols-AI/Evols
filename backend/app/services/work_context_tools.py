@@ -184,6 +184,33 @@ class WorkContextTools:
         """
         work_context = await self._get_or_create_work_context()
 
+        # Normalize status to valid enum value - handle complex strings like "In progress (40% complete)"
+        from loguru import logger
+        original_status = status
+        status_lower = status.lower().strip()
+
+        # First check if already valid
+        if status_lower in ['green', 'yellow', 'red', 'completed', 'paused']:
+            status = status_lower
+        else:
+            # Extract keywords from complex strings using keyword detection
+            # Check for keywords in order of specificity
+            if 'block' in status_lower or 'stuck' in status_lower or 'delay' in status_lower or 'red' in status_lower:
+                status = 'red'
+            elif 'complet' in status_lower or 'done' in status_lower or 'finish' in status_lower:
+                status = 'completed'
+            elif 'pause' in status_lower or 'hold' in status_lower or 'cancel' in status_lower or 'stop' in status_lower:
+                status = 'paused'
+            elif 'risk' in status_lower or 'yellow' in status_lower or 'plan' in status_lower:
+                status = 'yellow'
+            elif 'progress' in status_lower or 'active' in status_lower or 'track' in status_lower or 'health' in status_lower or 'green' in status_lower or 'good' in status_lower:
+                status = 'green'
+            else:
+                # Default unknown statuses to green (assume healthy unless told otherwise)
+                status = 'green'
+
+        logger.info(f"[WorkContext.add_or_update_project] Status mapping: '{original_status}' -> '{status}'")
+
         # Check if project exists
         result = await self.db.execute(
             select(ActiveProject).filter(
@@ -231,9 +258,18 @@ class WorkContextTools:
                 "data": {"name": name, "status": status, "role": role}
             }
         except ValueError as e:
+            from loguru import logger
+            logger.error(f"[WorkContext] Failed to save project '{name}': {str(e)}")
             return {
                 "success": False,
                 "error": f"Invalid project data: {str(e)}"
+            }
+        except Exception as e:
+            from loguru import logger
+            logger.error(f"[WorkContext] Unexpected error saving project '{name}': {str(e)}")
+            return {
+                "success": False,
+                "error": f"Failed to save project: {str(e)}"
             }
 
     async def add_or_update_relationship(

@@ -116,13 +116,12 @@ class ContextAggregator:
 
         return {
             'exists': True,
-            'role': work_context.role_title,
+            'role': work_context.title,
+            'team': work_context.team,
             'team_size': work_context.team_size,
-            'capacity': work_context.capacity_percentage,
-            'projects': work_context.current_projects or [],
-            'key_relationships': work_context.key_relationships or [],
-            'current_focus': work_context.current_focus,
-            'tasks': work_context.tasks or []
+            'capacity': work_context.capacity_status.value if work_context.capacity_status else None,
+            'manager': work_context.manager_name,
+            'working_hours': work_context.working_hours
         }
 
     async def _get_product_knowledge(self) -> Dict[str, Any]:

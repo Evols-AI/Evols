@@ -124,6 +124,9 @@ async def handle_function_calling(
     Handle function calling agent loop.
     Returns (final_response, tool_calls_made)
     """
+    # Extract user_id upfront to avoid detached session issues
+    user_id = user.id if user else None
+
     # Get available tools for this skill
     available_tools = skill_config.get('tools', [])
     if not available_tools:
@@ -165,19 +168,16 @@ async def handle_function_calling(
     messages.append({"role": "user", "content": user_message})
 
     tool_calls_made = []
-    max_iterations = 5
+    max_iterations = 15  # Increased to support skills that call many tools (e.g., pm-setup)
 
     for iteration in range(max_iterations):
         try:
             logger.info(f"[Function Calling] Iteration {iteration + 1}/{max_iterations}")
 
-            # Force tool calling for pm-setup skill on first iteration only
+            # Let AI decide tool usage based on strong skill instructions
             tool_choice = None
             skill_name = skill_config.get('name', '')
             logger.info(f"[Function Calling] Skill name: {skill_name}, iteration: {iteration}")
-            if skill_name == 'pm-setup' and iteration == 0:
-                tool_choice = "required"
-                logger.info(f"[Function Calling] FORCING REQUIRED tool use for pm-setup skill (first iteration)")
 
             # Call LLM with function calling
             logger.info(f"[Function Calling] Calling LLM with tool_choice={tool_choice}")
@@ -204,17 +204,35 @@ async def handle_function_calling(
                     # Save original args before execute_tool mutates them (injects db, tenant_id)
                     tool_args_for_logging = tool_args.copy()
 
+                    # Validate tool name before execution (AWS Bedrock requires [a-zA-Z0-9_-]+)
+                    if not re.match(r'^[a-zA-Z0-9_-]+$', tool_name):
+                        logger.error(f"[Function Calling] Invalid tool name '{tool_name}' - contains invalid characters. Skipping.")
+                        tool_result = {"error": f"Invalid tool name: {tool_name}"}
+                        tool_calls_made.append({
+                            "tool": tool_name,
+                            "arguments": tool_args,
+                            "error": f"Invalid tool name: {tool_name}"
+                        })
+                        # Add error to conversation so AI knows not to call this again
+                        messages.append({
+                            "role": "tool",
+                            "name": "error",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps({"error": f"Tool '{tool_name}' does not exist. Available tools: {', '.join(available_tools)}"})
+                        })
+                        continue
+
                     logger.info(f"[Function Calling] Executing tool: {tool_name} with args: {tool_args_for_logging}")
 
                     try:
-                        # Execute tool (this mutates tool_args to add db, tenant_id, and optionally product_id, user)
+                        # Execute tool (this mutates tool_args to add db, tenant_id, and optionally product_id, user_id)
                         tool_result = await tool_registry.execute_tool(
                             tool_name=tool_name,
                             arguments=tool_args,
                             tenant_id=tenant_id,
                             db=db,
                             product_id=product_id,
-                            user=user
+                            user_id=user_id
                         )
 
                         # Ensure result is JSON-serializable by doing a round-trip
@@ -242,7 +260,12 @@ async def handle_function_calling(
                             "result": tool_result
                         })
 
-                        logger.info(f"[Function Calling] Tool {tool_name} executed successfully")
+                        # Check if tool returned an error (success: false)
+                        if isinstance(tool_result, dict) and tool_result.get('success') == False:
+                            error_msg = tool_result.get('error', 'Unknown error')
+                            logger.error(f"[Function Calling] Tool {tool_name} returned error: {error_msg}")
+                        else:
+                            logger.info(f"[Function Calling] Tool {tool_name} executed successfully")
 
                     except Exception as e:
                         logger.error(f"[Function Calling] Tool execution failed: {e}")

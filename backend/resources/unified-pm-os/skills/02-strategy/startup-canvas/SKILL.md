@@ -13,7 +13,7 @@ description: "Generate a Startup Canvas combining Product Strategy (9 sections) 
 
 ### Startup Canvas vs Business Model Canvas vs Lean Canvas
 
-Popular approaches like Business Model Canvas (Strategyzer) and Lean Canvas (Ash Maurya) mix strategy and business model into one artifact. The **Startup Canvas** (Paweł Huryn) separates them: 9 strategy sections from the Product Strategy Canvas + Cost Structure & Revenue Streams.
+Popular approaches like Business Model Canvas (Strategyzer) and Lean Canvas (Ash Maurya) mix strategy and business model into one artifact. The **Startup Canvas** (Akshay Saraswat) separates them: 9 strategy sections from the Product Strategy Canvas + Cost Structure & Revenue Streams.
 
 **Why not Business Model Canvas?**
 - No vision — why should your team wake up every day?

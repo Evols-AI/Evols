@@ -117,7 +117,7 @@ class ToolRegistry:
         tenant_id: int,
         db: AsyncSession,
         product_id: Optional[int] = None,
-        user = None
+        user_id: Optional[int] = None
     ) -> Any:
         """Execute a tool with automatic tenant isolation and optional product scoping"""
         from loguru import logger
@@ -133,8 +133,15 @@ class ToolRegistry:
         accepts_user = 'user' in sig.parameters
 
         # Inject tenant_id or user depending on what the tool accepts
-        if accepts_user and user is not None:
+        if accepts_user and user_id is not None:
             # Work context tools use 'user' instead of 'tenant_id'
+            # Load fresh user from database for each tool call to avoid detached session issues
+            from app.models.user import User as UserModel
+            from sqlalchemy import select
+
+            result = await db.execute(select(UserModel).where(UserModel.id == user_id))
+            user = result.scalar_one()
+
             arguments['user'] = user
             arguments['db'] = db
             logger.info(f"[ToolRegistry] Injecting user={user.id} into {tool_name}")
@@ -1692,13 +1699,16 @@ async def add_or_update_project(
     notes: Optional[str] = None
 ) -> Dict[str, Any]:
     """Add or update an active project"""
+    # Extract user_id immediately to avoid detached session issues
+    user_id = user.id
+
     result = await db.execute(
-        select(WorkContext).filter(WorkContext.user_id == user.id)
+        select(WorkContext).filter(WorkContext.user_id == user_id)
     )
     work_context = result.scalar_one_or_none()
 
     if not work_context:
-        work_context = WorkContext(user_id=user.id)
+        work_context = WorkContext(user_id=user_id)
         db.add(work_context)
         await db.commit()
         await db.refresh(work_context)
@@ -1706,11 +1716,49 @@ async def add_or_update_project(
     # Check if project exists
     project_result = await db.execute(
         select(ActiveProject).filter(
-            ActiveProject.user_id == user.id,
+            ActiveProject.user_id == user_id,
             ActiveProject.name == name
         )
     )
     project = project_result.scalar_one_or_none()
+
+    # Normalize status to valid enum value - handle complex strings like "In progress (40% complete)"
+    from loguru import logger
+    original_status = status
+    status_lower = status.lower().strip()
+
+    # First check if already valid
+    if status_lower in ['green', 'yellow', 'red', 'completed', 'paused']:
+        status = status_lower
+    else:
+        # Extract keywords from complex strings using keyword detection
+        # Check for keywords in order of specificity
+        if 'block' in status_lower or 'stuck' in status_lower or 'delay' in status_lower or 'red' in status_lower:
+            status = 'red'
+        elif 'complet' in status_lower or 'done' in status_lower or 'finish' in status_lower:
+            status = 'completed'
+        elif 'pause' in status_lower or 'hold' in status_lower or 'cancel' in status_lower or 'stop' in status_lower:
+            status = 'paused'
+        elif 'risk' in status_lower or 'yellow' in status_lower or 'plan' in status_lower:
+            status = 'yellow'
+        elif 'progress' in status_lower or 'active' in status_lower or 'track' in status_lower or 'health' in status_lower or 'green' in status_lower or 'good' in status_lower:
+            status = 'green'
+        else:
+            # Default unknown statuses to green (assume healthy unless told otherwise)
+            status = 'green'
+
+    logger.info(f"[add_or_update_project] Status mapping: '{original_status}' -> '{status}'")
+
+    # Normalize key_stakeholders to always be a list
+    if key_stakeholders is not None:
+        if isinstance(key_stakeholders, str):
+            # If it's a string, split by comma and strip whitespace
+            key_stakeholders = [s.strip() for s in key_stakeholders.split(',') if s.strip()]
+            logger.info(f"[add_or_update_project] Converted string stakeholders to list: {key_stakeholders}")
+        elif not isinstance(key_stakeholders, list):
+            # If it's neither string nor list, convert to list
+            key_stakeholders = [str(key_stakeholders)]
+            logger.info(f"[add_or_update_project] Converted non-list stakeholders to list: {key_stakeholders}")
 
     try:
         if project:
@@ -1728,7 +1776,7 @@ async def add_or_update_project(
             # Create new
             project = ActiveProject(
                 work_context_id=work_context.id,
-                user_id=user.id,
+                user_id=user_id,
                 name=name,
                 status=ProjectStatus(status),
                 role=ProjectRole(role),
@@ -1741,18 +1789,27 @@ async def add_or_update_project(
 
         await db.commit()
 
+        from loguru import logger
+        logger.info(f"[add_or_update_project] Successfully saved project '{name}' with status={status}, role={role}")
+
         return {
             "success": True,
             "message": message,
             "data": {"name": name, "status": status, "role": role}
         }
     except ValueError as e:
+        from loguru import logger
+        logger.error(f"[add_or_update_project] ValueError for project '{name}': {str(e)}")
+        logger.error(f"[add_or_update_project] Arguments - status={status}, role={role}")
         await db.rollback()
         return {
             "success": False,
             "error": f"Invalid project data: {str(e)}"
         }
     except Exception as e:
+        from loguru import logger
+        logger.error(f"[add_or_update_project] Exception for project '{name}': {str(e)}")
+        logger.error(f"[add_or_update_project] Arguments - status={status}, role={role}")
         await db.rollback()
         return {
             "success": False,
@@ -1783,13 +1840,16 @@ async def add_or_update_relationship(
     communication_preference: Optional[str] = None
 ) -> Dict[str, Any]:
     """Add or update a key relationship"""
+    # Extract user_id immediately to avoid detached session issues
+    user_id = user.id
+
     result = await db.execute(
-        select(WorkContext).filter(WorkContext.user_id == user.id)
+        select(WorkContext).filter(WorkContext.user_id == user_id)
     )
     work_context = result.scalar_one_or_none()
 
     if not work_context:
-        work_context = WorkContext(user_id=user.id)
+        work_context = WorkContext(user_id=user_id)
         db.add(work_context)
         await db.commit()
         await db.refresh(work_context)
@@ -1797,7 +1857,7 @@ async def add_or_update_relationship(
     # Check if relationship exists
     rel_result = await db.execute(
         select(KeyRelationship).filter(
-            KeyRelationship.user_id == user.id,
+            KeyRelationship.user_id == user_id,
             KeyRelationship.name == name
         )
     )
@@ -1820,7 +1880,7 @@ async def add_or_update_relationship(
         # Create new
         relationship = KeyRelationship(
             work_context_id=work_context.id,
-            user_id=user.id,
+            user_id=user_id,
             name=name,
             role=role,
             relationship_type=relationship_type,

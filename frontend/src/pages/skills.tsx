@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Sparkles, MessageSquare, ArrowRight, History, Eye, Copy, Zap } from 'lucide-react'
+import { Sparkles, MessageSquare, ArrowRight, History, Zap } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -24,8 +24,8 @@ export default function Skills() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [viewingSkillDetails, setViewingSkillDetails] = useState<any>(null)
-  const [loadingDetails, setLoadingDetails] = useState(false)
+  const [viewingSkill, setViewingSkill] = useState<any>(null)
+  const [loadingSkillDetails, setLoadingSkillDetails] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -40,8 +40,8 @@ export default function Skills() {
 
   const loadSkills = async () => {
     try {
-      const response = await api.get('/advisers/')
-      setSkills(response.data.advisers)
+      const response = await api.get('/copilot/skills')
+      setSkills(response.data)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load skills')
     } finally {
@@ -55,34 +55,18 @@ export default function Skills() {
     router.push(`/workbench?skill=${skillSlug}`)
   }
 
-  const cloneSkill = async (skillId: number, skillName: string) => {
-    const newName = prompt(`Enter name for cloned skill:`, `${skillName} (Custom)`)
-    if (!newName) return
-
+  const viewSkillDetails = async (skillName: string) => {
+    setLoadingSkillDetails(true)
     try {
-      await api.post(`/advisers/admin/clone/${skillId}`, null, {
-        params: { new_name: newName }
-      })
-      alert('Skill cloned successfully!')
-      loadSkills()
-    } catch (err: any) {
-      alert(`Failed to clone skill: ${err.response?.data?.detail || err.message}`)
-    }
-  }
-
-  const viewSkillDetails = async (skillId: number) => {
-    setLoadingDetails(true)
-    try {
-      const response = await api.get(`/advisers/admin/default/${skillId}`)
-      setViewingSkillDetails(response.data)
+      const response = await api.get(`/copilot/skills/${skillName}`)
+      setViewingSkill(response.data)
     } catch (err: any) {
       alert(`Failed to load skill details: ${err.response?.data?.detail || err.message}`)
     } finally {
-      setLoadingDetails(false)
+      setLoadingSkillDetails(false)
     }
   }
 
-  const isTenantAdmin = user?.role === 'TENANT_ADMIN'
 
   return (
     <>
@@ -153,7 +137,7 @@ export default function Skills() {
               {skills.filter((skill: Skill) =>
                 selectedCategory === 'all' || skill.category === selectedCategory
               ).map((skill: Skill) => (
-              <Card key={`${skill.type}-${skill.id}`} hover>
+              <Card key={`${skill.type}-${skill.id}`} hover onClick={() => viewSkillDetails(skill.name)}>
                 <div className="p-5">
                   {/* Icon, Name & Badge - Same Row */}
                   <div className="flex items-start justify-between mb-3">
@@ -175,38 +159,18 @@ export default function Skills() {
                     {skill.description}
                   </p>
 
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    {/* Open in Workbench Button - Everyone */}
-                    <button
-                      onClick={() => openInWorkbench(skill.name)}
-                      className="btn-primary w-full justify-center"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      Open in Workbench
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-
-                    {/* Admin Actions - Tenant Admin Only */}
-                    {isTenantAdmin && !skill.is_custom && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => viewSkillDetails(skill.id)}
-                          className="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View
-                        </button>
-                        <button
-                          onClick={() => cloneSkill(skill.id, skill.name)}
-                          className="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-                        >
-                          <Copy className="w-4 h-4" />
-                          Clone
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {/* Action Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openInWorkbench(skill.name)
+                    }}
+                    className="btn-primary w-full justify-center"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Open in Workbench
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </Card>
             ))}
@@ -228,7 +192,6 @@ export default function Skills() {
                 <li>• Each skill guides you with relevant questions and generates tailored recommendations</li>
                 <li>• Continue the conversation naturally - you can invoke multiple skills as needed</li>
                 <li>• All conversations are saved in Workbench history</li>
-                {isTenantAdmin && <li>• Admins can clone and customize any skill for their organization</li>}
               </ul>
             </div>
           </div>
@@ -238,20 +201,27 @@ export default function Skills() {
       </div>
 
       {/* Skill Details Modal */}
-      {viewingSkillDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setViewingSkillDetails(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      {viewingSkill && !loadingSkillDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setViewingSkill(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    {viewingSkillDetails.name}
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400">{viewingSkillDetails.description}</p>
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">{viewingSkill.icon || '⚡'}</div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                      {viewingSkill.name}
+                    </h2>
+                    {viewingSkill.category && (
+                      <span className="inline-block px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 capitalize">
+                        {viewingSkill.category.replace(/-/g, ' ')}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
-                  onClick={() => setViewingSkillDetails(null)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  onClick={() => setViewingSkill(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none"
                 >
                   ✕
                 </button>
@@ -259,24 +229,59 @@ export default function Skills() {
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Tools</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {viewingSkillDetails.tools?.map((tool: string, i: number) => (
-                      <span key={i} className="px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                        {tool}
-                      </span>
-                    ))}
-                  </div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Description</h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {viewingSkill.description}
+                  </p>
                 </div>
 
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Instructions</h3>
-                  <pre className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                    {viewingSkillDetails.instructions}
-                  </pre>
+                {viewingSkill.instructions && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Instructions</h3>
+                    <pre className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
+                      {viewingSkill.instructions}
+                    </pre>
+                  </div>
+                )}
+
+                {viewingSkill.tools && viewingSkill.tools.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Available Tools</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {viewingSkill.tools.map((tool: string, i: number) => (
+                        <span key={i} className="px-2 py-1 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                          {tool}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setViewingSkill(null)
+                      openInWorkbench(viewingSkill.name)
+                    }}
+                    className="btn-primary w-full justify-center"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Open in Workbench
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Modal */}
+      {loadingSkillDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8">
+            <div className="loading-spinner mx-auto mb-4"></div>
+            <p className="text-center text-gray-600 dark:text-gray-400">Loading skill details...</p>
           </div>
         </div>
       )}

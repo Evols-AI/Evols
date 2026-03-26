@@ -40,7 +40,7 @@ The user will provide an interview transcript — either as an attached file (te
 - [Unexpected findings or notable quotes]
 
 **Action Items**:
-- [Date, Owner, Action — e.g., "2025-01-15, Paweł Huryn, Follow up with customer about pricing"]
+- [Date, Owner, Action — e.g., "2025-01-15, Akshay Saraswat, Follow up with customer about pricing"]
 ```
 
 Save the summary as a markdown document in the user's workspace.

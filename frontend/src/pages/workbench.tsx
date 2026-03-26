@@ -53,6 +53,7 @@ export default function Workbench() {
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
+  const [pollingForResponse, setPollingForResponse] = useState(false)
 
   // @mention autocomplete
   const [showAdviserPicker, setShowAdviserPicker] = useState(false)
@@ -62,6 +63,7 @@ export default function Workbench() {
 
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const lastLoadedConversationRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -74,9 +76,13 @@ export default function Workbench() {
     loadConversations()
     loadAdvisers()
 
-    // Check for skill query parameter and pre-fill input
-    const { skill } = router.query
-    if (skill && typeof skill === 'string') {
+    // Check for conversation_id in URL and load it (only if not already loaded)
+    const { conversation_id, skill } = router.query
+    if (conversation_id && typeof conversation_id === 'string' && conversation_id !== lastLoadedConversationRef.current) {
+      loadConversation(conversation_id)
+      lastLoadedConversationRef.current = conversation_id
+    } else if (skill && typeof skill === 'string' && !conversation_id) {
+      // Only pre-fill skill if there's no active conversation
       setInputMessage(`@${skill} `)
       inputRef.current?.focus()
     }
@@ -86,6 +92,18 @@ export default function Workbench() {
     // Auto-scroll to bottom when messages change
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Cleanup polling on unmount or conversation change
+  useEffect(() => {
+    return () => {
+      // Clear polling interval when component unmounts or conversation changes
+      if ((window as any).responsePollingInterval) {
+        clearInterval((window as any).responsePollingInterval)
+        ;(window as any).responsePollingInterval = null
+      }
+      setPollingForResponse(false)
+    }
+  }, [activeConversation])
 
   // Watch for @ symbol in input
   useEffect(() => {
@@ -129,17 +147,79 @@ export default function Workbench() {
   const loadConversation = async (conversationId: string) => {
     try {
       const response = await api.get(`/copilot/conversations/${conversationId}`)
-      setMessages(response.data.messages)
+      const messages = response.data.messages
+      setMessages(messages)
       setActiveConversation(conversationId)
+
+      // Update URL to include conversation_id for persistence
+      router.push(`/workbench?conversation_id=${conversationId}`, undefined, { shallow: true })
+
+      // Check if AI is still thinking (last message is from user)
+      if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
+        // Show thinking indicator
+        const thinkingMessage: Message = {
+          id: Date.now(),
+          role: 'assistant',
+          content: '...',
+          created_at: new Date().toISOString()
+        }
+        setMessages(prev => [...prev, thinkingMessage])
+
+        // Start polling for the response
+        startPollingForResponse(conversationId)
+      }
     } catch (err: any) {
       alert(`Failed to load conversation: ${err.response?.data?.detail || err.message}`)
     }
   }
 
+  const startPollingForResponse = (conversationId: string) => {
+    setPollingForResponse(true)
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await api.get(`/copilot/conversations/${conversationId}`)
+        const latestMessages = response.data.messages
+
+        // Check if we got a new assistant response
+        const lastMessage = latestMessages[latestMessages.length - 1]
+        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content !== '...') {
+          // Response received! Update messages and stop polling
+          setMessages(latestMessages)
+          setPollingForResponse(false)
+          clearInterval(pollInterval)
+        }
+      } catch (err) {
+        console.error('Polling error:', err)
+        // Continue polling even on error
+      }
+    }, 2000) // Poll every 2 seconds
+
+    // Store interval ID for cleanup
+    ;(window as any).responsePollingInterval = pollInterval
+
+    // Safety timeout: stop polling after 5 minutes
+    setTimeout(() => {
+      clearInterval(pollInterval)
+      setPollingForResponse(false)
+    }, 300000)
+  }
+
   const createNewConversation = () => {
+    // Stop any active polling
+    if ((window as any).responsePollingInterval) {
+      clearInterval((window as any).responsePollingInterval)
+      ;(window as any).responsePollingInterval = null
+    }
+    setPollingForResponse(false)
+
     setActiveConversation(null)
     setMessages([])
     inputRef.current?.focus()
+    lastLoadedConversationRef.current = null
+
+    // Clear conversation_id from URL
+    router.push('/workbench', undefined, { shallow: true })
   }
 
   const deleteConversation = async (conversationId: string, e: React.MouseEvent) => {
@@ -152,6 +232,10 @@ export default function Workbench() {
       if (activeConversation === conversationId) {
         setActiveConversation(null)
         setMessages([])
+        lastLoadedConversationRef.current = null
+
+        // Clear conversation_id from URL
+        router.push('/workbench', undefined, { shallow: true })
       }
     } catch (err: any) {
       alert(`Failed to delete: ${err.response?.data?.detail || err.message}`)
@@ -195,6 +279,9 @@ export default function Workbench() {
       if (!activeConversation) {
         setActiveConversation(response.data.conversation_id)
         await loadConversations()
+
+        // Update URL to include conversation_id for persistence
+        router.push(`/workbench?conversation_id=${response.data.conversation_id}`, undefined, { shallow: true })
       }
 
       // Replace optimistic messages with real messages
@@ -491,14 +578,14 @@ export default function Workbench() {
                     placeholder="Ask me anything... (use @ to mention skills)"
                     className="input flex-1 resize-none"
                     rows={1}
-                    disabled={sending}
+                    disabled={sending || pollingForResponse}
                   />
                   <button
                     onClick={() => sendMessage()}
-                    disabled={!inputMessage.trim() || sending}
+                    disabled={!inputMessage.trim() || sending || pollingForResponse}
                     className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {sending ? (
+                    {(sending || pollingForResponse) ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
                         Sending

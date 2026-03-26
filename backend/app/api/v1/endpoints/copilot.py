@@ -105,6 +105,10 @@ async def chat(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        import traceback
+        from loguru import logger
+        logger.error(f"[Copilot Chat] Error: {e}")
+        logger.error(f"[Copilot Chat] Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
 
@@ -297,3 +301,22 @@ async def list_available_skills(
         ))
 
     return skills
+
+
+@router.get("/skills/{skill_name}")
+async def get_skill_details(
+    skill_name: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get full details for a specific skill including instructions
+    """
+    from app.services.skill_loader_service import get_skill_loader
+
+    skill_loader = get_skill_loader()
+    skill_data = skill_loader.get_skill_by_name(skill_name)
+
+    if not skill_data:
+        raise HTTPException(status_code=404, detail="Skill not found")
+
+    return skill_data
