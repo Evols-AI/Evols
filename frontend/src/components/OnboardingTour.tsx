@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, ChevronLeft, ChevronRight, Check, BookOpen, Database, MessageSquare, Users, Sparkles } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Check, BookOpen, Database, MessageSquare, Users, Sparkles, Settings } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { getCurrentUser } from '@/utils/auth'
 
@@ -17,7 +17,7 @@ const onboardingSteps: OnboardingStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to Evols!',
-    description: 'Let\'s set up your product workspace in 4 quick steps. This will help our AI provide better recommendations tailored to your product.',
+    description: 'Let\'s set up your product workspace in 5 quick steps. This will help our AI provide better recommendations tailored to your product.',
     icon: Sparkles,
     tips: [
       'Each step takes 2-5 minutes',
@@ -26,8 +26,22 @@ const onboardingSteps: OnboardingStep[] = [
     ]
   },
   {
+    id: 'llm-setup',
+    title: 'Step 1: Configure AI Provider',
+    description: 'Set up your LLM API keys (OpenAI, Anthropic, Azure, or AWS Bedrock). This is required for the platform to function - all AI features depend on this configuration.',
+    icon: Settings,
+    actionLabel: 'Configure LLM Settings',
+    actionRoute: '/settings',
+    tips: [
+      'Choose from OpenAI, Anthropic, Azure OpenAI, or AWS Bedrock',
+      'You can use your own API keys (BYOK) for full control',
+      'Test connection before saving to verify configuration',
+      'You can change providers anytime in Settings'
+    ]
+  },
+  {
     id: 'knowledge',
-    title: 'Step 1: Product Knowledge',
+    title: 'Step 2: Product Knowledge',
     description: 'Define your product strategy, customer segments, competitive landscape, and key metrics. This helps AI understand your product context.',
     icon: BookOpen,
     actionLabel: 'Add Product Knowledge',
@@ -41,7 +55,7 @@ const onboardingSteps: OnboardingStep[] = [
   },
   {
     id: 'context',
-    title: 'Step 2: Customer Intelligence',
+    title: 'Step 3: Customer Intelligence',
     description: 'Upload customer feedback, interview transcripts, surveys, or meeting notes. Our AI will extract insights, pain points, and feature requests.',
     icon: Database,
     actionLabel: 'Upload Feedback',
@@ -55,7 +69,7 @@ const onboardingSteps: OnboardingStep[] = [
   },
   {
     id: 'personas',
-    title: 'Step 3: Customer Personas',
+    title: 'Step 4: Customer Personas',
     description: 'Review AI-extracted personas from your feedback. These represent your actual customers and can vote on product decisions.',
     icon: Users,
     actionLabel: 'View Personas',
@@ -71,7 +85,7 @@ const onboardingSteps: OnboardingStep[] = [
   },
   {
     id: 'workbench',
-    title: 'Step 4: Start Using Skills',
+    title: 'Step 5: Start Using Skills',
     description: 'You\'re all set! Use @ mentions in Workbench to invoke expert skills like @opportunity-solution-tree, @swot-analysis, or @create-prd.',
     icon: MessageSquare,
     actionLabel: 'Go to Workbench',
@@ -98,23 +112,32 @@ export default function OnboardingTour() {
     if (!user) return
 
     const dismissedKey = `onboarding_dismissed_${user.id}`
+    const shownKey = `onboarding_shown_${user.id}`
     const isDismissed = localStorage.getItem(dismissedKey) === 'true'
+    const hasBeenShown = localStorage.getItem(shownKey) === 'true'
 
-    // Show onboarding if not dismissed and user is on main pages
-    const shouldShow = !isDismissed && ['/dashboard', '/workbench', '/'].includes(router.pathname)
+    // Show onboarding ONLY on first visit to main pages (not on every navigation)
+    const isMainPage = ['/dashboard', '/workbench', '/'].includes(router.pathname)
+    const shouldShow = !isDismissed && !hasBeenShown && isMainPage
 
     if (shouldShow) {
+      // Mark as shown so it doesn't appear again on navigation
+      localStorage.setItem(shownKey, 'true')
+
       // Small delay to let page load
       setTimeout(() => setIsOpen(true), 500)
     }
   }, [router.pathname])
 
   const handleClose = () => {
-    if (dontShowAgain) {
-      const user = getCurrentUser()
-      if (user) {
+    const user = getCurrentUser()
+    if (user) {
+      if (dontShowAgain) {
+        // Permanently dismiss the tour
         localStorage.setItem(`onboarding_dismissed_${user.id}`, 'true')
       }
+      // Always mark as shown when closing (prevents re-showing on navigation)
+      localStorage.setItem(`onboarding_shown_${user.id}`, 'true')
     }
     setIsOpen(false)
   }
