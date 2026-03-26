@@ -10,8 +10,7 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "clean": "npm run kill-port && rm -rf .next",
-    "kill-port": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
-    "predev": "npm run kill-port"
+    "kill-port": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.1.2",
