@@ -84,19 +84,21 @@ export default function Skills() {
 
   const isTenantAdmin = user?.role === 'TENANT_ADMIN'
 
-  if (loading) {
-    return <Loading />
-  }
-
   return (
     <>
       <Head>
         <title>Skills - Evols</title>
       </Head>
 
-      <Header user={user} currentPage="skills" />
+      <div className="min-h-screen" style={{ background: 'hsl(var(--background))' }}>
+        <Header user={user} currentPage="skills" />
 
-      <PageContainer>
+        {loading ? (
+          <PageContainer>
+            <Loading />
+          </PageContainer>
+        ) : (
+          <PageContainer>
         <PageHeader
           title="AI Skills"
           description="Expert-curated skills to help with specific product management tasks"
@@ -231,7 +233,9 @@ export default function Skills() {
             </div>
           </div>
         </div>
-      </PageContainer>
+          </PageContainer>
+        )}
+      </div>
 
       {/* Skill Details Modal */}
       {viewingSkillDetails && (
