@@ -58,7 +58,12 @@ export default function Header({ user, currentPage }: HeaderProps) {
   ]
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <header className="sticky top-0 z-50 border-b" style={{
+      background: 'hsl(var(--card) / 0.95)',
+      borderColor: 'hsl(var(--border))',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)'
+    }}>
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
@@ -76,11 +81,10 @@ export default function Header({ user, currentPage }: HeaderProps) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-1.5 text-sm transition-colors ${
-                        isActive
-                          ? 'text-blue-500 dark:text-blue-300 font-semibold'
-                          : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
-                      }`}
+                      className="flex items-center gap-1.5 text-sm transition-colors font-medium"
+                      style={{
+                        color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                      }}
                     >
                       {Icon && <Icon className="w-3.5 h-3.5" />}
                       {item.label}
@@ -99,11 +103,10 @@ export default function Header({ user, currentPage }: HeaderProps) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-1.5 text-sm transition-colors ${
-                        isActive
-                          ? 'text-blue-500 dark:text-blue-300 font-semibold'
-                          : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
-                      }`}
+                      className="flex items-center gap-1.5 text-sm transition-colors font-medium"
+                      style={{
+                        color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                      }}
                     >
                       {Icon && <Icon className="w-3.5 h-3.5" />}
                       {item.label}
@@ -116,38 +119,43 @@ export default function Header({ user, currentPage }: HeaderProps) {
           <div className="flex items-center space-x-4">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              className="p-2 rounded-lg transition hover-lift"
               aria-label="Toggle theme"
             >
               {theme === 'light' ? (
-                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <Moon className="w-5 h-5" style={{ color: 'hsl(var(--muted-foreground))' }} />
               ) : (
-                <Sun className="w-5 h-5 text-gray-300" />
+                <Sun className="w-5 h-5" style={{ color: 'hsl(var(--muted-foreground))' }} />
               )}
             </button>
             {user && (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-sm transition-colors font-medium"
+                  style={{ color: 'hsl(var(--muted-foreground))' }}
                 >
                   <span>{user.full_name || user.email || 'User'}</span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg border py-1 z-[100]" style={{
+                    background: 'hsl(var(--card))',
+                    borderColor: 'hsl(var(--border))'
+                  }}>
                     {/* Tenant Switcher - only shown for multi-tenant users */}
                     <div className="px-2 py-1">
                       <TenantSwitcher />
                     </div>
 
-                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    <div className="border-t my-1" style={{ borderColor: 'hsl(var(--border))' }}></div>
 
                     {fullUser?.role === 'TENANT_ADMIN' && (
                       <Link
                         href="/settings?tab=team"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 text-sm transition-colors hover-lift rounded-lg mx-1"
+                        style={{ color: 'hsl(var(--foreground))' }}
                         onClick={() => setIsDropdownOpen(false)}
                       >
                         <UsersRound className="w-4 h-4" />
@@ -156,7 +164,8 @@ export default function Header({ user, currentPage }: HeaderProps) {
                     )}
                     <Link
                       href="/settings"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-sm transition-colors hover-lift rounded-lg mx-1"
+                      style={{ color: 'hsl(var(--foreground))' }}
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <Settings className="w-4 h-4" />
@@ -164,7 +173,8 @@ export default function Header({ user, currentPage }: HeaderProps) {
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm transition-colors hover-lift rounded-lg mx-1 text-left"
+                      style={{ color: 'hsl(var(--destructive))' }}
                     >
                       <LogOut className="w-4 h-4" />
                       Logout

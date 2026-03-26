@@ -139,11 +139,7 @@ export default function Skills() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedCategory === cat.id
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
+                  className={selectedCategory === cat.id ? 'btn-primary' : 'btn-secondary'}
                 >
                   {cat.name} {cat.count > 0 && `(${cat.count})`}
                 </button>
@@ -182,7 +178,7 @@ export default function Skills() {
                     {/* Open in Workbench Button - Everyone */}
                     <button
                       onClick={() => openInWorkbench(skill.name)}
-                      className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg transition-colors font-medium"
+                      className="btn-primary w-full justify-center"
                     >
                       <MessageSquare className="w-4 h-4" />
                       Open in Workbench

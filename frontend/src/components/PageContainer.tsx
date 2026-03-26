@@ -35,8 +35,8 @@ export function PageHeader({ title, subtitle, description, icon, action, classNa
     <div className={`page-header ${className}`}>
       <div>
         <div className="flex items-center gap-3">
-          {Icon && <Icon className="w-8 h-8 text-blue-500" />}
-          <h1 className="page-title">
+          {Icon && <Icon className="w-8 h-8" style={{ color: 'hsl(var(--primary))' }} />}
+          <h1 className="page-title mb-0">
             {title}
           </h1>
         </div>
@@ -51,7 +51,7 @@ export function PageHeader({ title, subtitle, description, icon, action, classNa
           {typeof action === 'object' && action !== null && 'label' in action ? (
             <button
               onClick={action.onClick}
-              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+              className="btn-primary"
             >
               {action.icon && <action.icon className="w-5 h-5" />}
               {action.label}
@@ -128,7 +128,7 @@ export function EmptyState({ icon, illustration, title, description, action }: E
           {typeof action === 'object' && action !== null && 'label' in action ? (
             <button
               onClick={action.onClick}
-              className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+              className="btn-primary"
             >
               {action.icon && <action.icon className="w-5 h-5" />}
               {action.label}

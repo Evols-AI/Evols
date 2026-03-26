@@ -396,19 +396,19 @@ export default function Personas() {
         <title>Personas - Evols</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen" style={{ background: 'hsl(var(--background))' }}>
         <Header user={user} currentPage="personas" />
 
         <PageContainer>
           {/* Page Header */}
-          <div className="mb-6">
+          <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              <Users className="w-8 h-8 text-blue-500" />
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <Users className="w-8 h-8" style={{ color: 'hsl(var(--primary))' }} />
+              <h1 className="page-title mb-0">
                 Digital Twin Personas
               </h1>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="page-subtitle mt-2">
               AI-powered customer personas from your feedback
             </p>
           </div>

@@ -246,8 +246,8 @@ export default function Workbench() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-950">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="flex items-center justify-center h-screen" style={{ background: 'hsl(var(--background))' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'hsl(var(--primary))' }} />
       </div>
     )
   }
@@ -260,69 +260,63 @@ export default function Workbench() {
 
       <OnboardingTour />
 
-      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="flex flex-col h-screen relative z-2">
         <Header user={user} currentPage="workbench" />
 
         <div className="flex-1 flex overflow-hidden relative">
           {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col">
-            {/* Chat Header */}
-            <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-8 h-8 text-blue-500" />
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    Workbench
-                  </h1>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowHistorySidebar(!showHistorySidebar)}
-                    className="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
-                    title="Toggle history"
-                  >
-                    <History className="w-4 h-4" />
-                    <span className="text-sm font-medium">History</span>
-                  </button>
-                  <button
-                    onClick={createNewConversation}
-                    className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition font-medium"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New
-                  </button>
-                </div>
+          <div className="flex-1 flex flex-col relative">
+            {/* Action Bar */}
+            <div className="container mx-auto px-8 pt-6 max-w-7xl">
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setShowHistorySidebar(!showHistorySidebar)}
+                  className="btn-ghost"
+                  title="Toggle history"
+                >
+                  <History className="w-4 h-4" />
+                  <span>History</span>
+                </button>
+                <button
+                  onClick={createNewConversation}
+                  className="btn-primary"
+                >
+                  <Plus className="w-4 h-4" />
+                  New
+                </button>
               </div>
             </div>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto">
-              <div className="max-w-4xl mx-auto px-6 py-6">
+              <div className="max-w-4xl mx-auto px-8 py-6">
                 {messages.length === 0 ? (
-                  <div className="text-center py-16">
-                    <Sparkles className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  <div className="empty-state">
+                    <div className="empty-state-icon">
+                      <Sparkles className="w-20 h-20" />
+                    </div>
+                    <h2 className="empty-state-title">
                       Welcome to Workbench
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    <p className="empty-state-description">
                       Your AI workspace for product management
                     </p>
 
                     {/* Setup CTA */}
-                    <div className="mb-8">
+                    <div className="flex flex-col items-center mb-8">
                       <button
                         onClick={() => sendMessage("@pm-setup Let's set up my PM workspace.")}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+                        className="btn-primary px-6 py-3"
                       >
                         <Sparkles className="w-5 h-5" />
                         Set up my PM OS
                       </button>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      <p className="text-sm mt-3 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
                         Quick setup to capture your role, team, and projects
                       </p>
                     </div>
 
-                    <div className="max-w-2xl mx-auto text-center space-y-3 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="max-w-2xl mx-auto text-center space-y-2 text-sm text-body">
                       <p>• Ask anything about your product — roadmap, strategy, features, customers</p>
                       <p>• Invoke expert skills with @mentions (browse Skills page to discover 80+ capabilities)</p>
                       <p>• AI recommendations grounded in your product strategy and customer intelligence</p>
@@ -336,34 +330,43 @@ export default function Workbench() {
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
-                          className={`max-w-[75%] rounded-2xl px-5 py-3 ${
+                          className="max-w-[75%] rounded-2xl px-5 py-3 border"
+                          style={
                             msg.role === 'user'
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                          }`}
+                              ? {
+                                  background: 'hsl(var(--primary))',
+                                  color: 'hsl(var(--primary-foreground))',
+                                  borderColor: 'hsl(var(--primary))'
+                                }
+                              : {
+                                  background: 'hsl(var(--card))',
+                                  color: 'hsl(var(--card-foreground))',
+                                  borderColor: 'hsl(var(--border))'
+                                }
+                          }
                         >
                           {msg.role === 'assistant' && msg.adviser && (
-                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2 mb-2 pb-2 border-b" style={{ borderColor: 'hsl(var(--border))' }}>
                               <span className="text-lg">{msg.adviser.icon}</span>
-                              <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                              <span className="text-xs font-semibold" style={{ color: 'hsl(var(--muted-foreground))' }}>
                                 {msg.adviser.name}
                               </span>
                               {msg.content === '...' && (
-                                <Loader2 className="w-3 h-3 animate-spin text-gray-400 ml-auto" />
+                                <Loader2 className="w-3 h-3 animate-spin ml-auto" style={{ color: 'hsl(var(--muted-foreground))' }} />
                               )}
                             </div>
                           )}
                           {msg.role === 'assistant' && !msg.adviser && (
-                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
-                              <Sparkles className="w-4 h-4 text-blue-500" />
-                              <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                            <div className="flex items-center gap-2 mb-2 pb-2 border-b" style={{ borderColor: 'hsl(var(--border))' }}>
+                              <Sparkles className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
+                              <span className="text-xs font-semibold" style={{ color: 'hsl(var(--muted-foreground))' }}>
                                 Evols AI
                               </span>
                             </div>
                           )}
                           <div className="prose dark:prose-invert prose-sm max-w-none">
                             {msg.content === '...' ? (
-                              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                              <div className="flex items-center gap-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 <span className="text-sm">Thinking...</span>
                               </div>
@@ -434,13 +437,13 @@ export default function Workbench() {
             </div>
 
             {/* Input Area */}
-            <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-4">
+            <div className="px-8 py-6 relative">
               <div className="max-w-4xl mx-auto relative">
                 {/* @mention Autocomplete */}
                 {showAdviserPicker && (
-                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                  <div className="absolute bottom-full left-0 right-0 mb-2 card shadow-lg max-h-80 overflow-y-auto z-[60]">
                     {filteredAdvisers.length === 0 ? (
-                      <div className="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+                      <div className="p-4 text-sm text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
                         No skills found
                       </div>
                     ) : (
@@ -448,25 +451,26 @@ export default function Workbench() {
                         <div
                           key={`${adviser.type}-${adviser.id}`}
                           onClick={() => insertMention(adviser)}
-                          className="flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition border-b border-gray-100 dark:border-gray-700 last:border-0"
+                          className="flex items-start gap-3 p-3 cursor-pointer transition hover-lift border-b last:border-0"
+                          style={{ borderColor: 'hsl(var(--border))' }}
                         >
                           <span className="text-2xl">{adviser.icon}</span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              <span className="text-sm font-medium" style={{ color: 'hsl(var(--foreground))' }}>
                                 {adviser.name}
                               </span>
                               {adviser.is_custom && (
-                                <span className="px-1.5 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                                <span className="badge-purple">
                                   Custom
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                            <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
                               {adviser.description}
                             </p>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--muted-foreground))' }} />
                         </div>
                       ))
                     )}
@@ -485,14 +489,14 @@ export default function Workbench() {
                       }
                     }}
                     placeholder="Ask me anything... (use @ to mention skills)"
-                    className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    className="input flex-1 resize-none"
                     rows={1}
                     disabled={sending}
                   />
                   <button
                     onClick={() => sendMessage()}
                     disabled={!inputMessage.trim() || sending}
-                    className="px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-medium flex items-center gap-2"
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {sending ? (
                       <>
@@ -508,7 +512,7 @@ export default function Workbench() {
                   </button>
                 </div>
 
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-xs mt-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
                   Pro tip: Type @ to invoke skills, or browse the Skills page to discover all capabilities
                 </p>
               </div>
@@ -517,17 +521,22 @@ export default function Workbench() {
 
           {/* Right Sidebar - Conversation History (Toggleable) */}
           {showHistorySidebar && (
-            <div className="w-80 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 flex flex-col">
+            <div className="w-80 border-l flex flex-col relative z-10" style={{
+              background: 'hsl(var(--card) / 0.95)',
+              borderColor: 'hsl(var(--border))',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)'
+            }}>
               {/* Sidebar Header */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+              <div className="p-4 border-b" style={{ borderColor: 'hsl(var(--border))' }}>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">History</h2>
+                  <h2 className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>History</h2>
                   <button
                     onClick={() => setShowHistorySidebar(false)}
-                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition"
+                    className="p-1.5 rounded transition hover-lift"
                     title="Close"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4" style={{ color: 'hsl(var(--muted-foreground))' }} />
                   </button>
                 </div>
               </div>
@@ -535,47 +544,51 @@ export default function Workbench() {
               {/* Conversation List */}
               <div className="flex-1 overflow-y-auto">
                 {conversations.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <div className="p-8 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">No conversations yet</p>
                     <p className="text-xs mt-1">Start chatting to begin</p>
                   </div>
                 ) : (
                   <div className="py-2">
-                    {conversations.map((conv) => (
-                      <div
-                        key={conv.id}
-                        onClick={() => loadConversation(conv.id)}
-                        className={`mx-2 mb-2 p-3 rounded-lg cursor-pointer transition group ${
-                          activeConversation === conv.id
-                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {conv.name || 'New Conversation'}
-                            </h3>
-                            {conv.last_message_preview && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                                {conv.last_message_preview}
+                    {conversations.map((conv) => {
+                      const isActive = activeConversation === conv.id
+                      return (
+                        <div
+                          key={conv.id}
+                          onClick={() => loadConversation(conv.id)}
+                          className="mx-2 mb-2 p-3 rounded-xl cursor-pointer transition group border"
+                          style={{
+                            background: isActive ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+                            borderColor: isActive ? 'hsl(var(--primary) / 0.3)' : 'transparent'
+                          }}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-sm font-medium truncate" style={{ color: 'hsl(var(--foreground))' }}>
+                                {conv.name || 'New Conversation'}
+                              </h3>
+                              {conv.last_message_preview && (
+                                <p className="text-xs mt-1 line-clamp-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                                  {conv.last_message_preview}
+                                </p>
+                              )}
+                              <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground) / 0.7)' }}>
+                                {formatDate(conv.last_message_at || conv.created_at)}
                               </p>
-                            )}
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                              {formatDate(conv.last_message_at || conv.created_at)}
-                            </p>
+                            </div>
+                            <button
+                              onClick={(e) => deleteConversation(conv.id, e)}
+                              className="opacity-0 group-hover:opacity-100 p-1 rounded transition hover-lift"
+                              style={{ color: 'hsl(var(--destructive))' }}
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <button
-                            onClick={(e) => deleteConversation(conv.id, e)}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

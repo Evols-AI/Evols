@@ -557,18 +557,18 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen" style={{ background: 'hsl(var(--background))' }}>
       <Header user={user} currentPage="settings" />
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your account preferences</p>
+      <div className="page-container">
+        <div className="card">
+        <div className="border-b" style={{ borderColor: 'hsl(var(--border))' }}>
+          <div className="px-8 py-6">
+            <h1 className="page-title mb-0">Settings</h1>
+            <p className="page-subtitle mt-2">Manage your account preferences</p>
           </div>
 
           {/* Tabs */}
-          <div className="flex space-x-1 px-6 overflow-x-auto">
+          <div className="flex space-x-1 px-8 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -576,9 +576,11 @@ export default function Settings() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-medium whitespace-nowrap ${
-                    isActive ? 'border-blue-500 text-blue-500 dark:text-blue-300' : 'border-transparent text-gray-600 hover:text-gray-900 dark:hover:text-gray-200'
-                  }`}
+                  className="flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-medium whitespace-nowrap transition-colors"
+                  style={{
+                    borderColor: isActive ? 'hsl(var(--primary))' : 'transparent',
+                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                  }}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -594,27 +596,27 @@ export default function Settings() {
             <div className="max-w-2xl space-y-4">
               <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Profile Information</h3>
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Full Name</label>
+                <label className="block text-sm font-medium mb-2 text-heading">Full Name</label>
                 <input
                   type="text"
                   value={profileData.full_name}
                   onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                  className="input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Email</label>
+                <label className="block text-sm font-medium mb-2 text-heading">Email</label>
                 <input
                   type="email"
                   value={profileData.email}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+                  className="input w-full opacity-50 cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Email cannot be changed</p>
+                <p className="text-xs text-muted mt-1">Email cannot be changed</p>
               </div>
               <button
                 onClick={handleSaveProfile}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                className="btn-primary"
               >
                 Save Profile
               </button>
@@ -641,32 +643,32 @@ export default function Settings() {
           {activeTab === 'security' && (
             <div className="max-w-2xl space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Change Password</h3>
+                <h3 className="text-lg font-semibold mb-4 text-heading">Change Password</h3>
                 <div className="space-y-4">
                   <input
                     type="password"
                     placeholder="Current Password"
                     value={passwordData.current_password}
                     onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="input w-full"
                   />
                   <input
                     type="password"
                     placeholder="New Password"
                     value={passwordData.new_password}
                     onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="input w-full"
                   />
                   <input
                     type="password"
                     placeholder="Confirm Password"
                     value={passwordData.confirm_password}
                     onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="input w-full"
                   />
                   <button
                     onClick={handleChangePassword}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    className="btn-primary"
                   >
                     Update Password
                   </button>
