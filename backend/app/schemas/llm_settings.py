@@ -68,8 +68,8 @@ class AWSBedrockConfig(BaseModel):
     # Common fields
     region: str = Field(default="us-east-1", description="AWS region")
     model_id: str = Field(
-        default="anthropic.claude-v2",
-        description="Bedrock model ID (e.g., anthropic.claude-v2)"
+        default="anthropic.claude-3-sonnet-20240229-v1:0",
+        description="Bedrock model ID (e.g., anthropic.claude-3-sonnet-20240229-v1:0)"
     )
 
     def model_post_init(self, __context):
@@ -127,37 +127,31 @@ OPENAI_MODELS = [
     "gpt-4o",
     "gpt-4o-mini",
     "gpt-4-turbo",
-    "gpt-3.5-turbo",
 ]
 
 OPENAI_EMBEDDING_MODELS = [
     "text-embedding-3-small",
     "text-embedding-3-large",
-    "text-embedding-ada-002",
 ]
 
 ANTHROPIC_MODELS = [
+    # Claude 4 (latest)
+    "claude-opus-4-20250514",
+    # Claude 3.5 (recommended)
     "claude-3-5-sonnet-20241022",
     "claude-3-5-haiku-20241022",
+    # Claude 3 (3.5 Opus not yet available)
     "claude-3-opus-20240229",
-    "claude-3-sonnet-20240229",
-    "claude-3-haiku-20240307",
 ]
 
 AWS_BEDROCK_MODELS = [
-    "anthropic.claude-v2",
-    "anthropic.claude-v2:1",
-    "anthropic.claude-3-sonnet-20240229-v1:0",
+    # Claude 3 models (stable - work with Converse API on-demand)
     "anthropic.claude-3-haiku-20240307-v1:0",
-    "anthropic.claude-instant-v1",
+    "anthropic.claude-3-sonnet-20240229-v1:0",
+    "anthropic.claude-3-opus-20240229-v1:0",
+    # Amazon Titan models
     "amazon.titan-text-express-v1",
     "amazon.titan-text-lite-v1",
-    "ai21.j2-ultra-v1",
-    "ai21.j2-mid-v1",
-    "cohere.command-text-v14",
-    "cohere.command-light-text-v14",
-    "meta.llama2-70b-chat-v1",
-    "meta.llama2-13b-chat-v1",
 ]
 
 AWS_REGIONS = [

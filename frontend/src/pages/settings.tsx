@@ -196,7 +196,7 @@ export default function Settings() {
         break
       case 'aws_bedrock':
         setAwsAuthMethod('api_key')
-        setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-v2' })
+        setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-3-sonnet-20240229-v1:0' })
         break
     }
   }
@@ -205,9 +205,9 @@ export default function Settings() {
     setAwsAuthMethod(method)
     setTestResult(null)
     if (method === 'api_key') {
-      setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-v2' })
+      setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-3-sonnet-20240229-v1:0' })
     } else {
-      setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'credentials', aws_access_key_id: '', aws_secret_access_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-v2' })
+      setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'credentials', aws_access_key_id: '', aws_secret_access_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-3-sonnet-20240229-v1:0' })
     }
   }
 
@@ -720,30 +720,6 @@ export default function Settings() {
                 </div>
               )}
 
-              {/* Refresh Models Section */}
-              <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-400 mb-1">Dynamic Model Lists</p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      Fetch latest models from your configured provider. Supports OpenAI and AWS Bedrock.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleRefreshModels}
-                    disabled={refreshing || !currentLLMSettings}
-                    className="ml-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                    {refreshing ? 'Refreshing...' : 'Refresh Models'}
-                  </button>
-                </div>
-                {refreshResult && (
-                  <div className="mt-3 text-xs text-blue-700 dark:text-blue-300">
-                    {refreshResult}
-                  </div>
-                )}
-              </div>
 
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Provider</label>
@@ -782,7 +758,18 @@ export default function Settings() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Model</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100">Model</label>
+                      <button
+                        onClick={handleRefreshModels}
+                        disabled={refreshing || !currentLLMSettings}
+                        title="Refresh model list from OpenAI"
+                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                        {refreshing ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                    </div>
                     <div className="relative">
                       <select
                         value={llmConfig.model}
@@ -793,6 +780,11 @@ export default function Settings() {
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
                     </div>
+                    {refreshResult && (
+                      <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                        {refreshResult}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -977,7 +969,18 @@ export default function Settings() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Model ID</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100">Model ID</label>
+                      <button
+                        onClick={handleRefreshModels}
+                        disabled={refreshing || !currentLLMSettings}
+                        title="Refresh model list from AWS Bedrock"
+                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                        {refreshing ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                    </div>
                     <div className="relative">
                       <select
                         value={llmConfig.model}
@@ -988,6 +991,11 @@ export default function Settings() {
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
                     </div>
+                    {refreshResult && (
+                      <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                        {refreshResult}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

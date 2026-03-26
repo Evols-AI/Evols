@@ -62,19 +62,18 @@ class LLMConfig(BaseModel):
 # Maps premium models to their cheaper alternatives per provider
 MODEL_TIERS = {
     # AWS Bedrock - Anthropic Claude models
-    "anthropic.claude-opus-4-20250514-v1:0": "anthropic.claude-3-5-sonnet-20241022-v2:0",
-    "anthropic.claude-3-5-sonnet-20241022-v2:0": "anthropic.claude-3-5-haiku-20241022-v1:0",
+    "anthropic.claude-3-opus-20240229-v1:0": "anthropic.claude-3-sonnet-20240229-v1:0",
     "anthropic.claude-3-sonnet-20240229-v1:0": "anthropic.claude-3-haiku-20240307-v1:0",
 
     # Anthropic API - Claude models
     "claude-opus-4-20250514": "claude-3-5-sonnet-20241022",
     "claude-3-5-sonnet-20241022": "claude-3-5-haiku-20241022",
-    "claude-3-sonnet-20240229": "claude-3-haiku-20240307",
+    "claude-3-opus-20240229": "claude-3-5-sonnet-20241022",
 
     # OpenAI - GPT models
-    "gpt-4": "gpt-3.5-turbo",
-    "gpt-4-turbo": "gpt-3.5-turbo",
-    "gpt-4-turbo-preview": "gpt-3.5-turbo",
+    "gpt-4": "gpt-4o-mini",
+    "gpt-4-turbo": "gpt-4o-mini",
+    "gpt-4-turbo-preview": "gpt-4o-mini",
     "gpt-4o": "gpt-4o-mini",
     "gpt-4o-2024-11-20": "gpt-4o-mini",
 
