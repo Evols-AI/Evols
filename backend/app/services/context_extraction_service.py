@@ -240,7 +240,9 @@ Return a JSON array with usually ONE entity (sometimes zero, rarely two if truly
       "job_role": "inferred or stated role (e.g., 'K-12 Teacher', 'VP Engineering')",
       "technical_literacy": "high|medium|low (inferred from questions, terminology)",
       "key_constraints": ["budget constraints", "time constraints", etc],
-      "workload_indicators": ["150 students", "50 reports", etc]
+      "workload_indicators": ["150 students", "50 reports", etc],
+      "revenue_contribution": numeric value if mentioned (e.g., 50000 for $50K ARR, 100000 for $100K deal size),
+      "usage_frequency": "Daily|Weekly|Monthly" (inferred from usage patterns mentioned like "every day", "check weekly", "monthly review")
     }},
     "context_snippet": "Original text where found (max 200 chars)"
   }}
@@ -265,7 +267,9 @@ Output:
       "job_role": "K-12 Teacher",
       "technical_literacy": "low",
       "key_constraints": ["$50/month budget", "150 students to manage"],
-      "workload_indicators": ["150 students"]
+      "workload_indicators": ["150 students"],
+      "revenue_contribution": 600,
+      "usage_frequency": "Daily"
     }},
     "context_snippet": "I only have $50/month for my classroom budget... I have 150 students."
   }}
@@ -296,6 +300,33 @@ Output:
   }}
 ]
 
+**Example with revenue and usage patterns:**
+Input:
+- Content: "As VP of Engineering at our $50M ARR company, I check the dashboard every morning. Our team of 50 engineers needs real-time data."
+- Metadata: Segment: Enterprise
+
+Output:
+[
+  {{
+    "type": "persona",
+    "name": "Enterprise VP of Engineering",
+    "description": "VP of Engineering at high-revenue company ($50M ARR) managing 50 engineers. Daily user requiring real-time data access. High technical literacy and authority to make purchasing decisions.",
+    "confidence": 0.90,
+    "category": "enterprise",
+    "attributes": {{
+      "sentiment": "neutral",
+      "urgency": "medium",
+      "job_role": "VP of Engineering",
+      "technical_literacy": "high",
+      "key_constraints": ["Needs real-time data", "Managing large team"],
+      "workload_indicators": ["50 engineers"],
+      "revenue_contribution": 50000000,
+      "usage_frequency": "Daily"
+    }},
+    "context_snippet": "As VP of Engineering at our $50M ARR company, I check the dashboard every morning..."
+  }}
+]
+
 **IMPORTANT:** Return an empty array [] if the content has no extractable entities. Most feedback should produce EXACTLY ONE entity.
 
 **Metadata Guidelines:**
@@ -305,6 +336,8 @@ Output:
 - metric: Specific measurements mentioned (e.g., "30 seconds", "404 error", "$100K")
 - context_snippet: Quote the key phrase from the original text (max 200 chars)
 - confidence: Use 0.75 for most clear mentions, 0.6 for inferred, 0.9+ only for direct quotes with attribution
+- revenue_contribution (personas only): Extract numeric ARR/MRR/deal size if mentioned (e.g., "$50K ARR" → 50000, "$2M contract" → 2000000)
+- usage_frequency (personas only): Infer from usage patterns ("every day"/"daily" → Daily, "weekly check-in" → Weekly, "monthly review" → Monthly)
 """
         return base_prompt
 

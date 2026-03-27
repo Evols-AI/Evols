@@ -322,7 +322,9 @@ export default function Personas() {
         product_id: selectedProductIds[0] || null,
         extra_data: {
           promoted_from_entity_id: persona.entityId,
-          original_source: 'extracted_entity'
+          original_source: 'extracted_entity',
+          ...(persona.attributes?.revenue_contribution && { revenue_contribution: persona.attributes.revenue_contribution }),
+          ...(persona.attributes?.usage_frequency && { usage_frequency: persona.attributes.usage_frequency })
         }
       }
 
