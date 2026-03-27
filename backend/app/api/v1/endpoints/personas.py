@@ -36,8 +36,25 @@ async def create_persona(
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """Create a persona manually"""
+    persona_dict = persona_data.model_dump()
+
+    # If promoted from extracted entity, set feedback count based on source
+    if persona_dict.get('extra_data', {}).get('promoted_from_entity_id'):
+        entity_id = persona_dict['extra_data']['promoted_from_entity_id']
+
+        # Query the extracted entity to get its source
+        from app.models import ExtractedEntity
+        entity_result = await db.execute(
+            select(ExtractedEntity).where(ExtractedEntity.id == entity_id)
+        )
+        entity = entity_result.scalar_one_or_none()
+
+        # Set feedback count to 1 (the source document) if not already set
+        if entity and persona_dict.get('based_on_feedback_count', 0) == 0:
+            persona_dict['based_on_feedback_count'] = 1
+
     persona = Persona(
-        **persona_data.model_dump(),
+        **persona_dict,
         tenant_id=tenant_id,
     )
     db.add(persona)

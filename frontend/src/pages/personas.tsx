@@ -867,8 +867,8 @@ function PersonaCard({
           </div>
         </div>
 
-        <div className="text-xs text-muted mb-4">
-          Based on {persona.based_on_feedback_count || 0} feedback items
+        <div className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+          Based on {persona.based_on_feedback_count || 0} anecdotes
           {persona.based_on_interview_count > 0 && `, ${persona.based_on_interview_count} interviews`}
           {persona.based_on_deal_count > 0 && `, ${persona.based_on_deal_count} deals`}
         </div>
