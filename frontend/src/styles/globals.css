@@ -55,15 +55,15 @@
     --popover: 222 47% 14%;
     --popover-foreground: 210 40% 98%;
     --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 217 32% 17%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217 32% 17%;
     --muted-foreground: 215 20% 65%;
     --accent: 217 91% 60%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 222 47% 11%;
+    --destructive-foreground: 0 0% 100%;
     --border: 217 32% 17%;
     --input: 217 32% 17%;
     --ring: 217 91% 60%;
@@ -92,7 +92,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'GT Alpina Standard', Georgia, serif;
+    font-family: 'GT Alpina Standard', Georgia, sans-serif;
     font-weight: 400;
     letter-spacing: -0.02em;
     line-height: 1.2;
@@ -114,7 +114,7 @@
   .page-title {
     @apply text-3xl md:text-4xl;
     color: hsl(var(--foreground));
-    font-family: 'GT Alpina Standard', Georgia, serif;
+    font-family: 'GT Alpina Standard', Georgia, sans-serif;
     font-weight: 400;
     letter-spacing: -0.02em;
     line-height: 1.1;
@@ -157,7 +157,7 @@
   .card-header {
     @apply text-xl;
     color: hsl(var(--card-foreground));
-    font-family: 'GT Alpina Standard', Georgia, serif;
+    font-family: 'GT Alpina Standard', Georgia, sans-serif;
     font-weight: 400;
     letter-spacing: -0.02em;
   }
@@ -360,7 +360,7 @@
   .empty-state-title {
     @apply text-3xl md:text-4xl mb-4;
     color: hsl(var(--foreground));
-    font-family: 'GT Alpina Standard', Georgia, serif;
+    font-family: 'GT Alpina Standard', Georgia, sans-serif;
     font-weight: 400;
     letter-spacing: -0.02em;
     line-height: 1.1;
@@ -453,3 +453,4 @@ body::before {
   );
   background-size: 1000px 100%;
 }
+

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, LifeBuoy, Sparkles, Database, UsersRound, Zap, Briefcase } from 'lucide-react'
+import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, LifeBuoy, Sparkles, UsersRound, Zap, Briefcase, Brain } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoWordmark } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
@@ -46,7 +46,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
     // { href: '/dashboard', label: 'Dashboard', key: 'dashboard', icon: LayoutDashboard }, // Hidden for demo - points to outdated pages
     { href: '/workbench', label: 'Workbench', key: 'workbench', icon: Sparkles },
     { href: '/work-context', label: 'Work Context', key: 'work-context', icon: Briefcase },
-    { href: '/context', label: 'Knowledge', key: 'context', icon: Database },
+    { href: '/context', label: 'Knowledge', key: 'context', icon: Brain },
     { href: '/personas', label: 'Personas', key: 'personas', icon: Users },
     { href: '/skills', label: 'Skills', key: 'skills', icon: Zap },
   ]

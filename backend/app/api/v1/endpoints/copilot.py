@@ -3,12 +3,13 @@ Copilot API Endpoints
 Main chat interface for AI copilot with auto-routing to skills
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+import io
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user

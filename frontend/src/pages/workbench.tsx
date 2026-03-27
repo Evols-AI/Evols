@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { Send, Loader2, Sparkles, Plus, MessageSquare, Trash2, ChevronRight, ChevronLeft, History } from 'lucide-react'
+import { Send, Loader2, Sparkles, Plus, MessageSquare, Trash2, ChevronRight, ChevronLeft, History, Paperclip, X, FileText, Image as ImageIcon, File } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -63,7 +63,20 @@ export default function Workbench() {
 
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const lastLoadedConversationRef = useRef<string | null>(null)
+
+  // File attachments
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+
+  // Rotating placeholders for empty state
+  const placeholders = [
+    "Ask anything about your product — roadmap, strategy, features, customers...",
+    "Invoke expert skills with @mentions (browse Skills page to discover 80+ capabilities)",
+    "Get AI recommendations grounded in your product strategy and customer intelligence"
+  ]
+  const [placeholderIndex, setPlaceholderIndex] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -93,6 +106,27 @@ export default function Workbench() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Auto-resize textarea when input message changes (e.g., pre-filled from URL)
+  useEffect(() => {
+    if (inputRef.current && inputMessage) {
+      autoResizeTextarea(inputRef.current)
+    }
+  }, [inputMessage])
+
+  // Rotate placeholders every 3 seconds
+  useEffect(() => {
+    if (messages.length === 0) {
+      const interval = setInterval(() => {
+        setIsTransitioning(true)
+        setTimeout(() => {
+          setPlaceholderIndex((prev) => (prev + 1) % placeholders.length)
+          setIsTransitioning(false)
+        }, 300) // Half of transition duration
+      }, 3000)
+      return () => clearInterval(interval)
+    }
+  }, [messages.length, placeholders.length])
+
   // Cleanup polling on unmount or conversation change
   useEffect(() => {
     return () => {
@@ -104,6 +138,7 @@ export default function Workbench() {
       setPollingForResponse(false)
     }
   }, [activeConversation])
+
 
   // Watch for @ symbol in input
   useEffect(() => {
@@ -242,13 +277,76 @@ export default function Workbench() {
     }
   }
 
+  // Auto-resize textarea
+  const autoResizeTextarea = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto'
+
+    // Calculate new height (min 2.5rem for single line, max 12rem for ~8 lines)
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 40), 192)
+    textarea.style.height = `${newHeight}px`
+  }
+
+  // Handle input change with auto-resize
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputMessage(e.target.value)
+    autoResizeTextarea(e.target)
+  }
+
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const validFiles = files.filter(file => {
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      return ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'md', 'csv', 'xls', 'xlsx'].includes(ext || '')
+    })
+
+    if (validFiles.length !== files.length) {
+      alert('Some files were skipped. Only txt, pdf, png, jpg, jpeg, md, csv, xls, xlsx files are supported.')
+    }
+
+    setAttachedFiles(prev => [...prev, ...validFiles])
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Remove attached file
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Get file icon based on type
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase()
+    if (['png', 'jpg', 'jpeg'].includes(ext || '')) {
+      return <ImageIcon className="w-4 h-4" />
+    }
+    if (['txt', 'md', 'csv'].includes(ext || '')) {
+      return <FileText className="w-4 h-4" />
+    }
+    return <File className="w-4 h-4" />
+  }
+
   const sendMessage = async (messageOverride?: string) => {
     const messageToSend = messageOverride || inputMessage
     if (!messageToSend.trim() || sending) return
 
     const userMessage = messageToSend
+    const filesToSend = [...attachedFiles]
+
     setInputMessage('')
+    setAttachedFiles([])
     setSending(true)
+
+    // Reset textarea height after sending
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+    }
 
     // Optimistically add user message to UI
     const optimisticMessage: Message = {
@@ -269,11 +367,33 @@ export default function Workbench() {
     setMessages(prev => [...prev, thinkingMessage])
 
     try {
-      const response = await api.post('/copilot/chat', {
-        message: userMessage,
-        conversation_id: activeConversation,
-        product_id: selectedProductIds[0] || null  // Pass current product context
-      })
+      // If there are files, send as FormData, otherwise send as JSON
+      let response
+      if (filesToSend.length > 0) {
+        const formData = new FormData()
+        formData.append('message', userMessage)
+        if (activeConversation) {
+          formData.append('conversation_id', activeConversation)
+        }
+        if (selectedProductIds[0]) {
+          formData.append('product_id', selectedProductIds[0].toString())
+        }
+        filesToSend.forEach((file) => {
+          formData.append('files', file)
+        })
+
+        response = await api.post('/copilot/chat', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+      } else {
+        response = await api.post('/copilot/chat', {
+          message: userMessage,
+          conversation_id: activeConversation,
+          product_id: selectedProductIds[0] || null  // Pass current product context
+        })
+      }
 
       // Update conversation ID if this was a new conversation
       if (!activeConversation) {
@@ -330,6 +450,7 @@ export default function Workbench() {
 
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
+
 
   if (loading) {
     return (
@@ -389,24 +510,177 @@ export default function Workbench() {
                       Your AI workspace for product management
                     </p>
 
-                    {/* Setup CTA */}
-                    <div className="flex flex-col items-center mb-8">
-                      <button
-                        onClick={() => sendMessage("@pm-setup Let's set up my PM workspace.")}
-                        className="btn-primary px-6 py-3"
-                      >
-                        <Sparkles className="w-5 h-5" />
-                        Set up my PM OS
-                      </button>
-                      <p className="text-sm mt-3 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                        Quick setup to capture your role, team, and projects
-                      </p>
+                    {/* Centered Input */}
+                    <div className="w-full max-w-3xl mx-auto mb-8">
+                      {/* @mention Autocomplete */}
+                      {showAdviserPicker && (
+                        <div className="absolute bottom-full left-0 right-0 mb-2 card shadow-lg max-h-80 overflow-y-auto z-[60]">
+                          {filteredAdvisers.length === 0 ? (
+                            <div className="p-4 text-sm text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                              No skills found
+                            </div>
+                          ) : (
+                            filteredAdvisers.map((adviser) => (
+                              <div
+                                key={`${adviser.type}-${adviser.id}`}
+                                onClick={() => insertMention(adviser)}
+                                className="flex items-start gap-3 p-3 cursor-pointer transition hover-lift border-b last:border-0"
+                                style={{ borderColor: 'hsl(var(--border))' }}
+                              >
+                                <span className="text-2xl">{adviser.icon}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium" style={{ color: 'hsl(var(--foreground))' }}>
+                                      {adviser.name}
+                                    </span>
+                                    {adviser.is_custom && (
+                                      <span className="badge-purple">
+                                        Custom
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                                    {adviser.description}
+                                  </p>
+                                </div>
+                                <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      <div className="relative">
+                        {/* File Attachments Display */}
+                        {attachedFiles.length > 0 && (
+                          <div className="mb-2 flex flex-wrap gap-2">
+                            {attachedFiles.map((file, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg border"
+                                style={{
+                                  background: 'hsl(var(--muted))',
+                                  borderColor: 'hsl(var(--border))'
+                                }}
+                              >
+                                {getFileIcon(file.name)}
+                                <span className="text-sm truncate max-w-[200px]" style={{ color: 'hsl(var(--foreground))' }}>
+                                  {file.name}
+                                </span>
+                                <button
+                                  onClick={() => removeFile(index)}
+                                  className="ml-1 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10"
+                                  style={{ color: 'hsl(var(--muted-foreground))' }}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Input Container */}
+                        <div className="card p-2">
+                          <div className="relative">
+                            <textarea
+                              ref={inputRef}
+                              value={inputMessage}
+                              onChange={handleInputChange}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  sendMessage()
+                                }
+                              }}
+                              className="w-full resize-none overflow-hidden bg-transparent border-none focus:outline-none focus:ring-0 px-2 py-2"
+                              style={{
+                                minHeight: '2.5rem',
+                                color: 'hsl(var(--foreground))',
+                                fontSize: '0.9375rem'
+                              }}
+                              rows={1}
+                              disabled={sending || pollingForResponse}
+                            />
+                            {/* Animated Placeholder Overlay */}
+                            {!inputMessage && (
+                              <div
+                                className="absolute inset-0 flex items-center justify-center pointer-events-none text-sm text-center px-2"
+                                style={{
+                                  color: 'hsl(var(--muted-foreground) / 0.6)',
+                                  transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+                                  opacity: isTransitioning ? 0 : 1,
+                                  transform: isTransitioning ? 'translateY(-10px)' : 'translateY(0)'
+                                }}
+                              >
+                                {placeholders[placeholderIndex]}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Bottom Bar with Buttons */}
+                          <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+                            <div className="flex items-center gap-2">
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept=".txt,.pdf,.png,.jpg,.jpeg,.md,.csv,.xls,.xlsx"
+                                onChange={handleFileSelect}
+                                className="hidden"
+                              />
+                              <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={sending || pollingForResponse}
+                                className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{ color: 'hsl(var(--muted-foreground))' }}
+                                title="Attach files"
+                              >
+                                <Paperclip className="w-5 h-5" />
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={() => sendMessage()}
+                              disabled={!inputMessage.trim() || sending || pollingForResponse}
+                              className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              style={{
+                                background: inputMessage.trim() && !sending && !pollingForResponse
+                                  ? 'hsl(var(--primary))'
+                                  : 'hsl(var(--muted))',
+                                color: inputMessage.trim() && !sending && !pollingForResponse
+                                  ? 'hsl(var(--primary-foreground))'
+                                  : 'hsl(var(--muted-foreground))'
+                              }}
+                            >
+                              {(sending || pollingForResponse) ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span className="text-sm font-medium">Sending</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Send</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="max-w-2xl mx-auto text-center space-y-2 text-sm text-body">
-                      <p>• Ask anything about your product — roadmap, strategy, features, customers</p>
-                      <p>• Invoke expert skills with @mentions (browse Skills page to discover 80+ capabilities)</p>
-                      <p>• AI recommendations grounded in your product strategy and customer intelligence</p>
+                    {/* Setup CTA */}
+                    <div className="flex flex-col items-center">
+                      <button
+                        onClick={() => sendMessage("@pm-setup Let's set up my PM workspace.")}
+                        className="btn-secondary px-6 py-2.5"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Set up my PM OS
+                      </button>
+                      <p className="text-xs mt-3 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        Quick setup to capture your role, team, and projects
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -523,87 +797,155 @@ export default function Workbench() {
               </div>
             </div>
 
-            {/* Input Area */}
-            <div className="px-8 py-6 relative">
-              <div className="max-w-4xl mx-auto relative">
-                {/* @mention Autocomplete */}
-                {showAdviserPicker && (
-                  <div className="absolute bottom-full left-0 right-0 mb-2 card shadow-lg max-h-80 overflow-y-auto z-[60]">
-                    {filteredAdvisers.length === 0 ? (
-                      <div className="p-4 text-sm text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                        No skills found
-                      </div>
-                    ) : (
-                      filteredAdvisers.map((adviser) => (
-                        <div
-                          key={`${adviser.type}-${adviser.id}`}
-                          onClick={() => insertMention(adviser)}
-                          className="flex items-start gap-3 p-3 cursor-pointer transition hover-lift border-b last:border-0"
-                          style={{ borderColor: 'hsl(var(--border))' }}
-                        >
-                          <span className="text-2xl">{adviser.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium" style={{ color: 'hsl(var(--foreground))' }}>
-                                {adviser.name}
-                              </span>
-                              {adviser.is_custom && (
-                                <span className="badge-purple">
-                                  Custom
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                              {adviser.description}
-                            </p>
-                          </div>
-                          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--muted-foreground))' }} />
+            {/* Input Area - Only show when there are messages */}
+            {messages.length > 0 && (
+              <div className="px-8 py-6 relative">
+                <div className="max-w-4xl mx-auto relative">
+                  {/* @mention Autocomplete */}
+                  {showAdviserPicker && (
+                    <div className="absolute bottom-full left-0 right-0 mb-2 card shadow-lg max-h-80 overflow-y-auto z-[60]">
+                      {filteredAdvisers.length === 0 ? (
+                        <div className="p-4 text-sm text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                          No skills found
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        filteredAdvisers.map((adviser) => (
+                          <div
+                            key={`${adviser.type}-${adviser.id}`}
+                            onClick={() => insertMention(adviser)}
+                            className="flex items-start gap-3 p-3 cursor-pointer transition hover-lift border-b last:border-0"
+                            style={{ borderColor: 'hsl(var(--border))' }}
+                          >
+                            <span className="text-2xl">{adviser.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium" style={{ color: 'hsl(var(--foreground))' }}>
+                                  {adviser.name}
+                                </span>
+                                {adviser.is_custom && (
+                                  <span className="badge-purple">
+                                    Custom
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                                {adviser.description}
+                              </p>
+                            </div>
+                            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* File Attachments Display */}
+                  {attachedFiles.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {attachedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg border"
+                          style={{
+                            background: 'hsl(var(--muted))',
+                            borderColor: 'hsl(var(--border))'
+                          }}
+                        >
+                          {getFileIcon(file.name)}
+                          <span className="text-sm truncate max-w-[200px]" style={{ color: 'hsl(var(--foreground))' }}>
+                            {file.name}
+                          </span>
+                          <button
+                            onClick={() => removeFile(index)}
+                            className="ml-1 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10"
+                            style={{ color: 'hsl(var(--muted-foreground))' }}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Input Container */}
+                  <div className="card p-2">
+                    <textarea
+                      ref={inputRef}
+                      value={inputMessage}
+                      onChange={handleInputChange}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          sendMessage()
+                        }
+                      }}
+                      placeholder="Ask me anything... (use @ to mention skills)"
+                      className="w-full resize-none overflow-hidden bg-transparent border-none focus:outline-none focus:ring-0 px-2 py-2"
+                      style={{
+                        minHeight: '2.5rem',
+                        color: 'hsl(var(--foreground))',
+                        fontSize: '0.9375rem'
+                      }}
+                      rows={1}
+                      disabled={sending || pollingForResponse}
+                    />
+
+                    {/* Bottom Bar with Buttons */}
+                    <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          multiple
+                          accept=".txt,.pdf,.png,.jpg,.jpeg,.md,.csv,.xls,.xlsx"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={sending || pollingForResponse}
+                          className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ color: 'hsl(var(--muted-foreground))' }}
+                          title="Attach files"
+                        >
+                          <Paperclip className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => sendMessage()}
+                        disabled={!inputMessage.trim() || sending || pollingForResponse}
+                        className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        style={{
+                          background: inputMessage.trim() && !sending && !pollingForResponse
+                            ? 'hsl(var(--primary))'
+                            : 'hsl(var(--muted))',
+                          color: inputMessage.trim() && !sending && !pollingForResponse
+                            ? 'hsl(var(--primary-foreground))'
+                            : 'hsl(var(--muted-foreground))'
+                        }}
+                      >
+                        {(sending || pollingForResponse) ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-sm font-medium">Sending</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            <span className="text-sm font-medium">Send</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                )}
 
-                <div className="flex gap-3">
-                  <textarea
-                    ref={inputRef}
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        sendMessage()
-                      }
-                    }}
-                    placeholder="Ask me anything... (use @ to mention skills)"
-                    className="input flex-1 resize-none"
-                    rows={1}
-                    disabled={sending || pollingForResponse}
-                  />
-                  <button
-                    onClick={() => sendMessage()}
-                    disabled={!inputMessage.trim() || sending || pollingForResponse}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {(sending || pollingForResponse) ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Sending
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-5 h-5" />
-                        Send
-                      </>
-                    )}
-                  </button>
+                  <p className="text-xs mt-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    Pro tip: Type @ to invoke skills, or browse the Skills page to discover all capabilities
+                  </p>
                 </div>
-
-                <p className="text-xs mt-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                  Pro tip: Type @ to invoke skills, or browse the Skills page to discover all capabilities
-                </p>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Sidebar - Conversation History (Toggleable) */}
@@ -652,14 +994,9 @@ export default function Workbench() {
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-sm font-medium truncate" style={{ color: 'hsl(var(--foreground))' }}>
-                                {conv.name || 'New Conversation'}
-                              </h3>
-                              {conv.last_message_preview && (
-                                <p className="text-xs mt-1 line-clamp-2" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                                  {conv.last_message_preview}
-                                </p>
-                              )}
+                              <p className="text-sm font-medium line-clamp-2" style={{ color: 'hsl(var(--foreground))' }}>
+                                {conv.last_message_preview || 'Empty conversation'}
+                              </p>
                               <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground) / 0.7)' }}>
                                 {formatDate(conv.last_message_at || conv.created_at)}
                               </p>
