@@ -333,7 +333,7 @@ export default function Workbench() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen" style={{ background: 'hsl(var(--background))' }}>
+      <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'hsl(var(--primary))' }} />
       </div>
     )
@@ -347,7 +347,7 @@ export default function Workbench() {
 
       <OnboardingTour />
 
-      <div className="flex flex-col h-screen relative z-2">
+      <div className="flex flex-col h-screen">
         <Header user={user} currentPage="workbench" />
 
         <div className="flex-1 flex overflow-hidden relative">

@@ -396,7 +396,7 @@ export default function Personas() {
         <title>Personas - Evols</title>
       </Head>
 
-      <div className="min-h-screen" style={{ background: 'hsl(var(--background))' }}>
+      <div className="min-h-screen">
         <Header user={user} currentPage="personas" />
 
         <PageContainer>

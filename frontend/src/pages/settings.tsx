@@ -557,7 +557,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'hsl(var(--background))' }}>
+    <div className="min-h-screen">
       <Header user={user} currentPage="settings" />
       <div className="page-container">
         <div className="card">

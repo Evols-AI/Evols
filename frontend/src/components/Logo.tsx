@@ -48,10 +48,10 @@ export function LogoWordmark({ iconSize = 32, className = '' }: { iconSize?: num
   return (
     <div className={`flex items-center ${className}`}>
       <span
-        className="font-bold tracking-tight bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent"
+        className="logo-text bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent"
         style={{ fontSize: iconSize * 0.7 }}
       >
-        Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
+        Evols
       </span>
     </div>
   )

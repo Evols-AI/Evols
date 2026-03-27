@@ -74,7 +74,7 @@ export default function Skills() {
         <title>Skills - Evols</title>
       </Head>
 
-      <div className="min-h-screen" style={{ background: 'hsl(var(--background))' }}>
+      <div className="min-h-screen">
         <Header user={user} currentPage="skills" />
 
         {loading ? (

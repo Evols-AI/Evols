@@ -214,7 +214,7 @@ export default function Context() {
         <title>Knowledge - Evols</title>
       </Head>
 
-      <div className="min-h-screen" style={{ background: 'hsl(var(--background))' }}>
+      <div className="min-h-screen">
         <Header user={user} currentPage="context" />
 
         <PageContainer>

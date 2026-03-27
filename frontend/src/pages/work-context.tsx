@@ -172,7 +172,7 @@ export default function WorkContext() {
   }
 
   return (
-    <>
+    <div className="min-h-screen">
       <Header user={user} currentPage="work-context" />
       <PageContainer>
         <PageHeader
@@ -753,6 +753,6 @@ export default function WorkContext() {
         onSuccess={loadData}
         weeklyFocus={weeklyFocus}
       />
-    </>
+    </div>
   )
 }
