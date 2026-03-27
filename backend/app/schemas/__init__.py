@@ -9,4 +9,3 @@ from app.schemas.initiative import *
 from app.schemas.persona import *
 from app.schemas.decision import *
 from app.schemas.skill import *
-from app.schemas.adviser import *  # Backward compatibility

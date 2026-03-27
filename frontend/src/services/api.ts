@@ -173,22 +173,6 @@ export const api = {
   getModelOptions: () => apiClient.get('/api/v1/llm-settings/models'),
   refreshModels: (provider: string) => apiClient.post('/api/v1/llm-settings/models/refresh', null, { params: { provider } }),
 
-  // Product RAG (Knowledge Base)
-  getKnowledgeSources: (params?: any) => apiClient.get('/api/v1/knowledge-base/sources', { params }),
-  addKnowledgeSource: (data: any) => apiClient.post('/api/v1/knowledge-base/sources', data),
-  uploadKnowledgeSource: (formData: FormData) => apiClient.post('/api/v1/knowledge-base/sources/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  deleteKnowledgeSource: (sourceId: number) => apiClient.delete(`/api/v1/knowledge-base/sources/${sourceId}`),
-  refreshKnowledgeSource: (sourceId: number) => apiClient.post(`/api/v1/knowledge-base/sources/${sourceId}/refresh`),
-  getCapabilities: (params?: any) => apiClient.get('/api/v1/knowledge-base/capabilities', { params }),
-  getCapability: (capabilityId: number) => apiClient.get(`/api/v1/knowledge-base/capabilities/${capabilityId}`),
-  deduplicateCapabilities: () => apiClient.post('/api/v1/knowledge-base/capabilities/deduplicate'),
-
-  // Product RAG Refresh Settings
-  getKnowledgeRefreshSettings: () => apiClient.get('/api/v1/settings/knowledge-refresh'),
-  updateKnowledgeRefreshSettings: (data: any) => apiClient.put('/api/v1/settings/knowledge-refresh', data),
-
   // Context (Unified Context System)
   context: {
     // Context Sources

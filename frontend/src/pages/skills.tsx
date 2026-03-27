@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Sparkles, MessageSquare, ArrowRight, History, Zap } from 'lucide-react'
+import { Sparkles, MessageSquare, ArrowRight, Zap } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -87,11 +87,6 @@ export default function Skills() {
           title="AI Skills"
           description="Expert-curated skills to help with specific product management tasks"
           icon={Zap}
-          action={{
-            label: 'View History',
-            onClick: () => router.push('/skills/history'),
-            icon: History
-          }}
         />
 
         {error && (
