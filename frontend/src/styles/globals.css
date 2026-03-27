@@ -112,7 +112,7 @@
   }
 
   .page-title {
-    @apply text-3xl md:text-4xl;
+    @apply text-lg md:text-xl;
     color: hsl(var(--foreground));
     font-family: 'GT Alpina Standard', Georgia, sans-serif;
     font-weight: 400;
@@ -121,7 +121,7 @@
   }
 
   .page-subtitle {
-    @apply text-base md:text-lg leading-relaxed;
+    @apply text-xs md:text-sm leading-relaxed;
     color: hsl(var(--muted-foreground));
     font-family: 'Manrope', sans-serif;
     font-weight: 400;

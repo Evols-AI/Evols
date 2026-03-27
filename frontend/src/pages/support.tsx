@@ -66,9 +66,9 @@ export default function Support() {
                 {/* Header */}
                 <header className="container mx-auto px-6 py-8">
                     <nav className="flex items-center justify-between">
-                        <Link href="/" className="flex items-center border-b-2 border-transparent">
-                            <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                                Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
+                        <Link href="/" className="flex items-center">
+                            <span className="logo-text text-4xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                                Evols
                             </span>
                         </Link>
                         <div className="flex items-center space-x-6">

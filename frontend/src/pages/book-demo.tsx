@@ -70,8 +70,8 @@ export default function BookDemo() {
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">
             <Link href="/" className="flex items-center">
-              <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
+              <span className="logo-text text-4xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                Evols
               </span>
             </Link>
             <div className="flex items-center space-x-6">
@@ -216,7 +216,12 @@ export default function BookDemo() {
         </div>
 
         {/* Footer */}
-        <footer className="container mx-auto px-6 py-12 text-center text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-12">
+        <footer className="container mx-auto px-6 py-12 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-12">
+          <div className="flex items-center space-x-6">
+            <Link href="/docs" className="hover:text-blue-500 transition">Documentation</Link>
+            <Link href="/support" className="hover:text-blue-500 transition">Contact Support</Link>
+            <Link href="/register" className="hover:text-blue-500 transition">Sign Up</Link>
+          </div>
           <p>© 2026 Evols. Evolve your product roadmap.</p>
         </footer>
       </div>

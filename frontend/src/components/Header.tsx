@@ -135,7 +135,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
                   className="flex items-center gap-2 text-sm transition-colors font-medium"
                   style={{ color: 'hsl(var(--muted-foreground))' }}
                 >
-                  <span>{user.full_name || user.email || 'User'}</span>
+                  <span>{(user.full_name || user.email || 'User').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}</span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -145,11 +145,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
                     borderColor: 'hsl(var(--border))'
                   }}>
                     {/* Tenant Switcher - only shown for multi-tenant users */}
-                    <div className="px-2 py-1">
-                      <TenantSwitcher />
-                    </div>
-
-                    <div className="border-t my-1" style={{ borderColor: 'hsl(var(--border))' }}></div>
+                    <TenantSwitcher />
 
                     {fullUser?.role === 'TENANT_ADMIN' && (
                       <Link

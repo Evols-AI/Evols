@@ -78,7 +78,7 @@ export function TenantSwitcher() {
   const currentTenant = tenants.find(t => t.tenant_id === currentUser?.tenant_id)
 
   return (
-    <div className="relative">
+    <div className="relative px-2 pt-1 pb-2 border-b mb-1" style={{ borderColor: 'hsl(var(--border))' }}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors w-full"

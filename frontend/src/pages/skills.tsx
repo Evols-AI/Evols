@@ -139,7 +139,7 @@ export default function Skills() {
                     <div className="flex items-center gap-3 flex-1">
                       <div className="text-3xl flex-shrink-0">{skill.icon}</div>
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white leading-tight">
-                        {skill.name}
+                        {skill.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                       </h3>
                     </div>
                     {skill.is_custom && (
@@ -205,7 +205,7 @@ export default function Skills() {
                   <div className="text-3xl">{viewingSkill.icon || '⚡'}</div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                      {viewingSkill.name}
+                      {viewingSkill.name.split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                     </h2>
                     {viewingSkill.category && (
                       <span className="inline-block px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 capitalize">

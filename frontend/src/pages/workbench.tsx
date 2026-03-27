@@ -71,7 +71,7 @@ export default function Workbench() {
 
   // Rotating placeholders for empty state
   const placeholders = [
-    "Ask anything about your product — roadmap, strategy, features, customers...",
+    "Ask anything about your product - roadmap, strategy, features, customers...",
     "Invoke expert skills with @mentions (browse Skills page to discover 80+ capabilities)",
     "Get AI recommendations grounded in your product strategy and customer intelligence"
   ]

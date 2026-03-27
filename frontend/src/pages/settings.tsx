@@ -563,7 +563,10 @@ export default function Settings() {
         <div className="card">
         <div className="border-b" style={{ borderColor: 'hsl(var(--border))' }}>
           <div className="px-8 py-6">
-            <h1 className="page-title mb-0">Settings</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <User className="w-8 h-8" style={{ color: 'hsl(var(--primary))' }} />
+              <h1 className="page-title mb-0">Settings</h1>
+            </div>
             <p className="page-subtitle mt-2">Manage your account preferences</p>
           </div>
 
