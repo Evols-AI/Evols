@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import {
   Database, Plus, Upload, FileText, MessageSquare, Mail, Slack,
   Github, BookOpen, Cloud, X, Loader2, Filter, Search, Calendar,
-  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Sparkles, Check, RefreshCw, Book, Brain
+  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Sparkles, Check, RefreshCw, Book, Brain, ChevronDown
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
@@ -995,6 +995,7 @@ export function AddContextModal({
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [retentionPolicy, setRetentionPolicy] = useState('30_days')
+  const [showRetentionDropdown, setShowRetentionDropdown] = useState(false)
   const [error, setError] = useState('')
 
   const sourceTypes = [
@@ -1234,101 +1235,130 @@ export function AddContextModal({
             {/* Data Retention Policy */}
             <div>
               <label className="block text-sm font-medium mb-2">Data Retention Policy</label>
-              <div className="space-y-3">
-                <label className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                  retentionPolicy === 'delete_immediately'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                }`}>
-                  <input
-                    type="radio"
-                    name="retention"
-                    value="delete_immediately"
-                    checked={retentionPolicy === 'delete_immediately'}
-                    onChange={(e) => setRetentionPolicy(e.target.value)}
-                    className="mt-1 mr-3"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">🔒 Maximum Privacy</span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Delete original file after AI extraction completes. You'll keep extracted insights and short quotes.
-                    </p>
-                  </div>
-                </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowRetentionDropdown(!showRetentionDropdown)}
+                  className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                >
+                  <span className="flex items-center gap-2 text-sm">
+                    {retentionPolicy === 'delete_immediately' && '🔒 Maximum Privacy'}
+                    {retentionPolicy === '30_days' && (
+                      <>
+                        ⚖️ Balanced
+                        <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
+                          Recommended
+                        </span>
+                      </>
+                    )}
+                    {retentionPolicy === '90_days' && '📅 Extended Retention'}
+                    {retentionPolicy === 'retain_encrypted' && '📁 Full Retention (Encrypted)'}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${showRetentionDropdown ? 'rotate-180' : ''}`} />
+                </button>
 
-                <label className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                  retentionPolicy === '30_days'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                }`}>
-                  <input
-                    type="radio"
-                    name="retention"
-                    value="30_days"
-                    checked={retentionPolicy === '30_days'}
-                    onChange={(e) => setRetentionPolicy(e.target.value)}
-                    className="mt-1 mr-3"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">⚖️ Balanced</span>
-                      <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
-                        Recommended
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Keep original for 30 days, then auto-delete. Allows re-extraction if needed.
-                    </p>
-                  </div>
-                </label>
+                {showRetentionDropdown && (
+                  <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                    <div className="p-1 space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRetentionPolicy('delete_immediately');
+                          setShowRetentionDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-3 rounded transition-colors ${
+                          retentionPolicy === 'delete_immediately'
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">🔒 Maximum Privacy</span>
+                          {retentionPolicy === 'delete_immediately' && (
+                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Delete original file after AI extraction completes.
+                        </p>
+                      </button>
 
-                <label className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                  retentionPolicy === '90_days'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                }`}>
-                  <input
-                    type="radio"
-                    name="retention"
-                    value="90_days"
-                    checked={retentionPolicy === '90_days'}
-                    onChange={(e) => setRetentionPolicy(e.target.value)}
-                    className="mt-1 mr-3"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">📅 Extended Retention</span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Keep original for 90 days, then auto-delete.
-                    </p>
-                  </div>
-                </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRetentionPolicy('30_days');
+                          setShowRetentionDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-3 rounded transition-colors ${
+                          retentionPolicy === '30_days'
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">⚖️ Balanced</span>
+                            <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
+                              Recommended
+                            </span>
+                          </div>
+                          {retentionPolicy === '30_days' && (
+                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Keep original for 30 days, then auto-delete.
+                        </p>
+                      </button>
 
-                <label className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                  retentionPolicy === 'retain_encrypted'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                }`}>
-                  <input
-                    type="radio"
-                    name="retention"
-                    value="retain_encrypted"
-                    checked={retentionPolicy === 'retain_encrypted'}
-                    onChange={(e) => setRetentionPolicy(e.target.value)}
-                    className="mt-1 mr-3"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">📁 Full Retention (Encrypted)</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRetentionPolicy('90_days');
+                          setShowRetentionDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-3 rounded transition-colors ${
+                          retentionPolicy === '90_days'
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">📅 Extended Retention</span>
+                          {retentionPolicy === '90_days' && (
+                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Keep original for 90 days, then auto-delete.
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRetentionPolicy('retain_encrypted');
+                          setShowRetentionDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-3 rounded transition-colors ${
+                          retentionPolicy === 'retain_encrypted'
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">📁 Full Retention (Encrypted)</span>
+                          {retentionPolicy === 'retain_encrypted' && (
+                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Keep original file indefinitely, encrypted.
+                        </p>
+                      </button>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Keep original file indefinitely, encrypted. Best for audit/compliance requirements.
-                    </p>
                   </div>
-                </label>
+                )}
               </div>
             </div>
 
