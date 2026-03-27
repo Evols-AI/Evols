@@ -2034,6 +2034,93 @@ async def set_weekly_focus(
 
 
 @tool_registry.register(
+    name="log_pm_decision",
+    description="Log a product management decision to the user's decision log with context, options, and reasoning",
+    parameters=[
+        ToolParameter(name="title", type="string", description="Decision title (e.g., 'Prioritize mobile app over web redesign')", required=True),
+        ToolParameter(name="category", type="string", description="Decision category: product, technical, organizational, career, process, or stakeholder", required=True),
+        ToolParameter(name="context", type="string", description="What prompted this decision", required=True),
+        ToolParameter(name="options_considered", type="array", description="Array of options with pros/cons: [{\"option\": \"...\", \"pros\": \"...\", \"cons\": \"...\"}]", required=True),
+        ToolParameter(name="decision", type="string", description="What was decided", required=True),
+        ToolParameter(name="reasoning", type="string", description="Why this option was chosen", required=True),
+        ToolParameter(name="tradeoffs", type="string", description="What we're giving up or risks accepted", required=False),
+        ToolParameter(name="stakeholders", type="array", description="Array of stakeholder names involved", required=False),
+        ToolParameter(name="expected_outcome", type="string", description="What we expect to happen as a result", required=False),
+        ToolParameter(name="product_id", type="integer", description="Product ID if decision is product-specific", required=False)
+    ]
+)
+async def log_pm_decision(
+    user: User,
+    db: AsyncSession,
+    title: str,
+    category: str,
+    context: str,
+    options_considered: List[Dict[str, str]],
+    decision: str,
+    reasoning: str,
+    tradeoffs: Optional[str] = None,
+    stakeholders: Optional[List[str]] = None,
+    expected_outcome: Optional[str] = None,
+    product_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Log a PM decision to the database"""
+    from datetime import datetime
+    from app.models.work_context import PMDecision, DecisionCategory
+
+    try:
+        # Validate category
+        valid_categories = ['product', 'technical', 'organizational', 'career', 'process', 'stakeholder']
+        if category.lower() not in valid_categories:
+            return {
+                "success": False,
+                "error": f"Invalid category. Must be one of: {', '.join(valid_categories)}"
+            }
+
+        # Get next decision number for this user
+        result = await db.execute(
+            select(func.max(PMDecision.decision_number)).filter(PMDecision.user_id == user.id)
+        )
+        max_num = result.scalar()
+        next_num = (max_num or 0) + 1
+
+        # Create decision
+        pm_decision = PMDecision(
+            user_id=user.id,
+            product_id=product_id,
+            decision_number=next_num,
+            title=title,
+            category=DecisionCategory(category.lower()),
+            context=context,
+            options_considered=options_considered,
+            decision=decision,
+            reasoning=reasoning,
+            tradeoffs=tradeoffs,
+            stakeholders=stakeholders,
+            expected_outcome=expected_outcome,
+            decision_date=datetime.utcnow()
+        )
+        db.add(pm_decision)
+        await db.commit()
+        await db.refresh(pm_decision)
+
+        return {
+            "success": True,
+            "message": f"Logged decision #{next_num}: {title}",
+            "data": {
+                "decision_number": next_num,
+                "title": title,
+                "category": category
+            }
+        }
+    except Exception as e:
+        await db.rollback()
+        return {
+            "success": False,
+            "error": f"Failed to log decision: {str(e)}"
+        }
+
+
+@tool_registry.register(
     name="get_work_context_summary",
     description="Get summary of what you know about the user's work context",
     parameters=[]

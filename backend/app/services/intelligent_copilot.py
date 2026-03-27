@@ -320,6 +320,18 @@ PRIORITY MAPPING:
 - Planning/discovery phase → priority="high_leverage"
 - Next quarter → priority="backlog"
 
+DECISION LOGGING:
+- When user makes a strategic decision, discusses tradeoffs, or chooses between options → call log_pm_decision
+- Capture: title, category (product/technical/organizational/career/process/stakeholder), context, options considered with pros/cons, final decision, reasoning, tradeoffs, stakeholders, expected outcome
+- Examples:
+  * "Should we prioritize mobile app or web redesign?" → After discussion, log_pm_decision(title="Prioritize mobile app over web redesign", category="product", context="Limited eng resources for Q2", options_considered=[{option: "Mobile first", pros: "80% users on mobile, higher engagement", cons: "Web users wait longer"}, {option: "Web first", pros: "Easier to build", cons: "Misses mobile opportunity"}], decision="Prioritize mobile app", reasoning="Higher user engagement and business impact on mobile", tradeoffs="Web redesign delayed by 2 quarters", expected_outcome="20% increase in mobile DAU")
+  * "Deciding between PostgreSQL vs MongoDB" → log_pm_decision(title="Use PostgreSQL for user data", category="technical", context="Need to choose database for new service", options_considered=[...], decision="PostgreSQL", reasoning="ACID compliance and relational data model fit our use case")
+
+WEEKLY FOCUS:
+- When user sets priorities for the week, mentions "focus this week", or plans weekly goals → call set_weekly_focus
+- Maximum 3 focus items (most important things this week)
+- Example: "This week I need to finish PRD, get eng review, and baseline metrics" → set_weekly_focus(focus_1="Finish PRD for voice bot", focus_2="Get engineering review", focus_3="Baseline key metrics")
+
 IF in other skills (prd-writer, brainstorm-ideas, create-prd, etc.):
 → **EXTRACT FULL WORK CONTEXT BEFORE DOING SKILL WORK**
 
@@ -395,6 +407,29 @@ Example: "@brainstorm-ideas Let's brainstorm for Disney theme parks"
 ✅ You: [FIRST call add_or_update_project 3 times]
 ✅ You: "Saved 3 projects to your work context"
 ✅ Result: Database has 3 projects
+
+**DECISION LOGGING EXAMPLE:**
+
+User: "I'm torn between building mobile app first vs web redesign. Mobile has 80% of our users but web is easier to build. What do you think?"
+You: [Discuss tradeoffs, help analyze]
+User: "You're right, let's go with mobile first."
+You: [CALL log_pm_decision]
+  log_pm_decision(
+    title="Prioritize mobile app over web redesign",
+    category="product",
+    context="Q2 planning - limited engineering resources, need to choose focus",
+    options_considered=[
+      {option: "Mobile app first", pros: "80% users on mobile, higher engagement potential", cons: "More complex build, longer timeline"},
+      {option: "Web redesign first", pros: "Faster to build, existing codebase", cons: "Only 20% of user base"}
+    ],
+    decision="Build mobile app first",
+    reasoning="Mobile represents majority of user base and higher engagement opportunity",
+    tradeoffs="Web redesign delayed by 2 quarters",
+    stakeholders=["Engineering team", "Design team"],
+    expected_outcome="20% increase in mobile DAU"
+  )
+You: "Decision logged! I've saved this to your decision log with the full context."
+Result: Decision saved to Work Context > Decisions tab
 
 CHECK DUPLICATES:
 1. Call get_work_context_summary first to see what exists
@@ -696,6 +731,18 @@ PRIORITY MAPPING:
 - Planning/discovery phase → priority="high_leverage"
 - Next quarter → priority="backlog"
 
+DECISION LOGGING:
+- When user makes a strategic decision, discusses tradeoffs, or chooses between options → call log_pm_decision
+- Capture: title, category (product/technical/organizational/career/process/stakeholder), context, options considered with pros/cons, final decision, reasoning, tradeoffs, stakeholders, expected outcome
+- Examples:
+  * "Should we prioritize mobile app or web redesign?" → After discussion, log_pm_decision(title="Prioritize mobile app over web redesign", category="product", context="Limited eng resources for Q2", options_considered=[{option: "Mobile first", pros: "80% users on mobile, higher engagement", cons: "Web users wait longer"}, {option: "Web first", pros: "Easier to build", cons: "Misses mobile opportunity"}], decision="Prioritize mobile app", reasoning="Higher user engagement and business impact on mobile", tradeoffs="Web redesign delayed by 2 quarters", expected_outcome="20% increase in mobile DAU")
+  * "Deciding between PostgreSQL vs MongoDB" → log_pm_decision(title="Use PostgreSQL for user data", category="technical", context="Need to choose database for new service", options_considered=[...], decision="PostgreSQL", reasoning="ACID compliance and relational data model fit our use case")
+
+WEEKLY FOCUS:
+- When user sets priorities for the week, mentions "focus this week", or plans weekly goals → call set_weekly_focus
+- Maximum 3 focus items (most important things this week)
+- Example: "This week I need to finish PRD, get eng review, and baseline metrics" → set_weekly_focus(focus_1="Finish PRD for voice bot", focus_2="Get engineering review", focus_3="Baseline key metrics")
+
 IF in other skills (prd-writer, brainstorm-ideas, create-prd, etc.):
 → **EXTRACT FULL WORK CONTEXT BEFORE DOING SKILL WORK**
 
@@ -771,6 +818,29 @@ Example: "@brainstorm-ideas Let's brainstorm for Disney theme parks"
 ✅ You: [FIRST call add_or_update_project 3 times]
 ✅ You: "Saved 3 projects to your work context"
 ✅ Result: Database has 3 projects
+
+**DECISION LOGGING EXAMPLE:**
+
+User: "I'm torn between building mobile app first vs web redesign. Mobile has 80% of our users but web is easier to build. What do you think?"
+You: [Discuss tradeoffs, help analyze]
+User: "You're right, let's go with mobile first."
+You: [CALL log_pm_decision]
+  log_pm_decision(
+    title="Prioritize mobile app over web redesign",
+    category="product",
+    context="Q2 planning - limited engineering resources, need to choose focus",
+    options_considered=[
+      {option: "Mobile app first", pros: "80% users on mobile, higher engagement potential", cons: "More complex build, longer timeline"},
+      {option: "Web redesign first", pros: "Faster to build, existing codebase", cons: "Only 20% of user base"}
+    ],
+    decision="Build mobile app first",
+    reasoning="Mobile represents majority of user base and higher engagement opportunity",
+    tradeoffs="Web redesign delayed by 2 quarters",
+    stakeholders=["Engineering team", "Design team"],
+    expected_outcome="20% increase in mobile DAU"
+  )
+You: "Decision logged! I've saved this to your decision log with the full context."
+Result: Decision saved to Work Context > Decisions tab
 
 CHECK DUPLICATES:
 1. Call get_work_context_summary first to see what exists
