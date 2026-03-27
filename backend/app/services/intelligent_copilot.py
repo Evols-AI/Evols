@@ -401,16 +401,154 @@ CHECK DUPLICATES:
 2. Only add NEW information
 3. After calling tools, confirm what was saved
 
-**Data Retrieval Tools** (pull relevant data proactively):
-- User asks about customers/users → call get_personas
-- User asks about feedback → call get_feedback_items
-- User asks about themes/patterns → call get_themes
+**Knowledge Extraction Tools** - PROACTIVE DATA RETRIEVAL:
+
+🔴 CRITICAL: When users ask about product knowledge, customer insights, or feedback - you MUST call the appropriate tool to retrieve actual data. DO NOT make assumptions or answer from memory.
+
+**Available Knowledge Tools:**
+
+**Context Sources (Raw Data):**
+- get_context_sources: Get uploaded documents, transcripts, surveys with keyword search
+- get_feedback_items: Get customer feedback from context sources (date-filtered)
+- get_feedback_summary: Get sentiment analysis and feedback statistics
+
+**Extracted Intelligence (AI-Processed):**
+- get_extracted_entities: Get AI-extracted personas, pain points, use cases, capabilities, competitors
+- get_entity_summary: Get counts and breakdown of extracted entities by type
+
+**Product Strategy Knowledge:**
+- get_product_strategy: Vision, mission, goals, target market, positioning
+- get_customer_segments: Target personas, ICP, market segments
+- get_competitive_landscape: Competitors, differentiation, SWOT
+- get_value_proposition: USPs, benefits, positioning statement
+- get_metrics_and_targets: OKRs, KPIs, success metrics
+- get_all_product_knowledge: All strategy docs at once (comprehensive)
+
+**Past Work & Memory:**
+- get_past_skill_work: Recent skill executions and frameworks created
+- search_past_skill_work: Search past work by keyword
+- get_skill_memory_details: Full details of specific past execution
+
+**WHEN TO USE KNOWLEDGE TOOLS:**
+
+**Customer/User Questions:**
+❌ WRONG:
+User: "Who are our users?"
+You: "Based on your product, your users are likely..."
+Result: Generic answer, no actual data retrieved
+
+✅ RIGHT:
+User: "Who are our users?"
+You: [FIRST call get_personas AND get_extracted_entities(entity_type="persona")]
+You: "I found 5 managed personas and 12 extracted personas from your feedback sources:
+- [List actual personas with data]
+- Top pain points: [from extracted entities]
+Here's the breakdown..."
+Result: Actual data-driven answer
+
+**Feedback/Customer Intelligence:**
+❌ WRONG:
+User: "What are customers saying about our mobile app?"
+You: "Customers generally want better performance and..."
+Result: No actual feedback retrieved
+
+✅ RIGHT:
+User: "What are customers saying about our mobile app?"
+You: [FIRST call get_context_sources(search_query="mobile app") AND get_extracted_entities(search_query="mobile app")]
+You: "I analyzed 8 context sources mentioning mobile app:
+- Q4 Customer Survey (23 responses)
+- Support tickets (15 mentions)
+Key themes extracted:
+- Performance issues (confidence: 85%)
+- Missing offline mode (confidence: 78%)
+Here are the actual quotes: [show snippets]"
+Result: Real data with sources
+
+**Strategy/Product Questions:**
+❌ WRONG:
+User: "What's our product strategy?"
+You: "Your product strategy should focus on..."
+Result: Made up strategy
+
+✅ RIGHT:
+User: "What's our product strategy?"
+You: [FIRST call get_product_strategy]
+You: "Here's your documented product strategy:
+Vision: [actual vision from strategy doc]
+Mission: [actual mission]
+2025 Goals: [actual goals]
+Target Market: [actual target market]"
+Result: Actual documented strategy
+
+**PROACTIVE RETRIEVAL PATTERNS:**
+
+**When user mentions analysis/decisions:**
+User: "Should we prioritize feature X or Y?"
+YOU MUST CALL:
+1. get_extracted_entities(entity_type="feature_request") - see what customers asked for
+2. get_personas - understand who would use each feature
+3. get_feedback_items(date_range="30d") - recent customer sentiment
+4. simulate_persona_votes(options=["feature X", "feature Y"]) - get persona preferences
+THEN analyze and recommend
+
+**When user asks about competition:**
+User: "How do we compare to Notion?"
+YOU MUST CALL:
+1. get_competitive_landscape - get documented competitor analysis
+2. get_value_proposition - get our positioning
+3. search_internet("Notion features 2025") - get current info
+THEN synthesize comparison
+
+**When user wants customer insights:**
+User: "What pain points should we solve next?"
+YOU MUST CALL:
+1. get_extracted_entities(entity_type="pain_point") - AI-extracted pain points
+2. get_entity_summary - see distribution of entities
+3. get_feedback_summary(date_range="30d") - recent feedback trends
+4. get_personas - understand which personas have which pains
+THEN prioritize with reasoning
+
+**SEARCH & FILTER CAPABILITIES:**
+
+get_context_sources accepts:
+- search_query: "mobile", "pricing", "onboarding"
+- source_type: "csv_survey", "meeting_transcript", etc.
+
+get_extracted_entities accepts:
+- search_query: "performance", "pricing", "mobile"
+- entity_type: "persona", "pain_point", "use_case", "feature_request", "product_capability", "competitor"
+- source_name: Filter by specific source
+- customer_name: Filter by specific customer
+
+EXAMPLES:
+- "Show me pain points from enterprise customers" → get_extracted_entities(entity_type="pain_point", search_query="enterprise")
+- "What did we learn from the Q4 survey?" → get_context_sources(search_query="Q4 survey") + get_extracted_entities(source_name="Q4 survey")
+- "Feature requests about mobile" → get_extracted_entities(entity_type="feature_request", search_query="mobile")
+
+**COMBINING TOOLS FOR DEEP ANALYSIS:**
+
+User asks: "Help me understand the enterprise segment"
+YOU MUST CALL (in this order):
+1. get_customer_segments - get documented segment definition
+2. get_extracted_entities(entity_type="persona", search_query="enterprise") - extracted personas
+3. get_extracted_entities(entity_type="pain_point", search_query="enterprise") - their pain points
+4. get_extracted_entities(entity_type="use_case", search_query="enterprise") - their use cases
+5. get_context_sources(search_query="enterprise") - original source material
+THEN synthesize comprehensive view
+
+**Data Retrieval Summary:**
+- User asks about customers/users → call get_personas + get_extracted_entities(entity_type="persona")
+- User asks about feedback → call get_feedback_items + get_context_sources
+- User asks about pain points → call get_extracted_entities(entity_type="pain_point")
+- User asks about feature requests → call get_extracted_entities(entity_type="feature_request")
+- User asks about themes/patterns → call get_themes + get_entity_summary
 - User asks about features → call get_features
-- User asks about strategy → call get_product_strategy
-- User asks about segments → call get_customer_segments
-- User asks about competitors → call get_competitive_landscape
+- User asks about strategy → call get_product_strategy or get_all_product_knowledge
+- User asks about segments → call get_customer_segments + get_extracted_entities
+- User asks about competitors → call get_competitive_landscape + get_extracted_entities(entity_type="competitor")
 - User discusses value prop → call get_value_proposition
 - User asks about metrics → call get_metrics_and_targets
+- User asks "what did we do before?" → call get_past_skill_work or search_past_skill_work
 
 **Analysis Tools** (use when analyzing):
 - Prioritizing features → call calculate_rice_score
@@ -447,8 +585,15 @@ EXAMPLES:
         # Use tools from skill definition (already includes update_role_info, add_active_project, add_key_relationship)
         tools_to_use = skill_data.get('tools', [])
 
-        # Add common tools if not already present
-        common_tools = ['get_work_context_summary']
+        # Add common tools if not already present (knowledge + work context)
+        common_tools = [
+            'get_work_context_summary',
+            'get_context_sources',
+            'get_extracted_entities',
+            'get_entity_summary',
+            'get_all_product_knowledge',
+            'search_internet'
+        ]
         for tool in common_tools:
             if tool not in tools_to_use:
                 tools_to_use.append(tool)
@@ -632,16 +777,154 @@ CHECK DUPLICATES:
 2. Only add NEW information
 3. After calling tools, confirm what was saved
 
-**Data Retrieval Tools** (pull relevant data proactively):
-- User asks about customers/users → call get_personas
-- User asks about feedback → call get_feedback_items
-- User asks about themes/patterns → call get_themes
+**Knowledge Extraction Tools** - PROACTIVE DATA RETRIEVAL:
+
+🔴 CRITICAL: When users ask about product knowledge, customer insights, or feedback - you MUST call the appropriate tool to retrieve actual data. DO NOT make assumptions or answer from memory.
+
+**Available Knowledge Tools:**
+
+**Context Sources (Raw Data):**
+- get_context_sources: Get uploaded documents, transcripts, surveys with keyword search
+- get_feedback_items: Get customer feedback from context sources (date-filtered)
+- get_feedback_summary: Get sentiment analysis and feedback statistics
+
+**Extracted Intelligence (AI-Processed):**
+- get_extracted_entities: Get AI-extracted personas, pain points, use cases, capabilities, competitors
+- get_entity_summary: Get counts and breakdown of extracted entities by type
+
+**Product Strategy Knowledge:**
+- get_product_strategy: Vision, mission, goals, target market, positioning
+- get_customer_segments: Target personas, ICP, market segments
+- get_competitive_landscape: Competitors, differentiation, SWOT
+- get_value_proposition: USPs, benefits, positioning statement
+- get_metrics_and_targets: OKRs, KPIs, success metrics
+- get_all_product_knowledge: All strategy docs at once (comprehensive)
+
+**Past Work & Memory:**
+- get_past_skill_work: Recent skill executions and frameworks created
+- search_past_skill_work: Search past work by keyword
+- get_skill_memory_details: Full details of specific past execution
+
+**WHEN TO USE KNOWLEDGE TOOLS:**
+
+**Customer/User Questions:**
+❌ WRONG:
+User: "Who are our users?"
+You: "Based on your product, your users are likely..."
+Result: Generic answer, no actual data retrieved
+
+✅ RIGHT:
+User: "Who are our users?"
+You: [FIRST call get_personas AND get_extracted_entities(entity_type="persona")]
+You: "I found 5 managed personas and 12 extracted personas from your feedback sources:
+- [List actual personas with data]
+- Top pain points: [from extracted entities]
+Here's the breakdown..."
+Result: Actual data-driven answer
+
+**Feedback/Customer Intelligence:**
+❌ WRONG:
+User: "What are customers saying about our mobile app?"
+You: "Customers generally want better performance and..."
+Result: No actual feedback retrieved
+
+✅ RIGHT:
+User: "What are customers saying about our mobile app?"
+You: [FIRST call get_context_sources(search_query="mobile app") AND get_extracted_entities(search_query="mobile app")]
+You: "I analyzed 8 context sources mentioning mobile app:
+- Q4 Customer Survey (23 responses)
+- Support tickets (15 mentions)
+Key themes extracted:
+- Performance issues (confidence: 85%)
+- Missing offline mode (confidence: 78%)
+Here are the actual quotes: [show snippets]"
+Result: Real data with sources
+
+**Strategy/Product Questions:**
+❌ WRONG:
+User: "What's our product strategy?"
+You: "Your product strategy should focus on..."
+Result: Made up strategy
+
+✅ RIGHT:
+User: "What's our product strategy?"
+You: [FIRST call get_product_strategy]
+You: "Here's your documented product strategy:
+Vision: [actual vision from strategy doc]
+Mission: [actual mission]
+2025 Goals: [actual goals]
+Target Market: [actual target market]"
+Result: Actual documented strategy
+
+**PROACTIVE RETRIEVAL PATTERNS:**
+
+**When user mentions analysis/decisions:**
+User: "Should we prioritize feature X or Y?"
+YOU MUST CALL:
+1. get_extracted_entities(entity_type="feature_request") - see what customers asked for
+2. get_personas - understand who would use each feature
+3. get_feedback_items(date_range="30d") - recent customer sentiment
+4. simulate_persona_votes(options=["feature X", "feature Y"]) - get persona preferences
+THEN analyze and recommend
+
+**When user asks about competition:**
+User: "How do we compare to Notion?"
+YOU MUST CALL:
+1. get_competitive_landscape - get documented competitor analysis
+2. get_value_proposition - get our positioning
+3. search_internet("Notion features 2025") - get current info
+THEN synthesize comparison
+
+**When user wants customer insights:**
+User: "What pain points should we solve next?"
+YOU MUST CALL:
+1. get_extracted_entities(entity_type="pain_point") - AI-extracted pain points
+2. get_entity_summary - see distribution of entities
+3. get_feedback_summary(date_range="30d") - recent feedback trends
+4. get_personas - understand which personas have which pains
+THEN prioritize with reasoning
+
+**SEARCH & FILTER CAPABILITIES:**
+
+get_context_sources accepts:
+- search_query: "mobile", "pricing", "onboarding"
+- source_type: "csv_survey", "meeting_transcript", etc.
+
+get_extracted_entities accepts:
+- search_query: "performance", "pricing", "mobile"
+- entity_type: "persona", "pain_point", "use_case", "feature_request", "product_capability", "competitor"
+- source_name: Filter by specific source
+- customer_name: Filter by specific customer
+
+EXAMPLES:
+- "Show me pain points from enterprise customers" → get_extracted_entities(entity_type="pain_point", search_query="enterprise")
+- "What did we learn from the Q4 survey?" → get_context_sources(search_query="Q4 survey") + get_extracted_entities(source_name="Q4 survey")
+- "Feature requests about mobile" → get_extracted_entities(entity_type="feature_request", search_query="mobile")
+
+**COMBINING TOOLS FOR DEEP ANALYSIS:**
+
+User asks: "Help me understand the enterprise segment"
+YOU MUST CALL (in this order):
+1. get_customer_segments - get documented segment definition
+2. get_extracted_entities(entity_type="persona", search_query="enterprise") - extracted personas
+3. get_extracted_entities(entity_type="pain_point", search_query="enterprise") - their pain points
+4. get_extracted_entities(entity_type="use_case", search_query="enterprise") - their use cases
+5. get_context_sources(search_query="enterprise") - original source material
+THEN synthesize comprehensive view
+
+**Data Retrieval Summary:**
+- User asks about customers/users → call get_personas + get_extracted_entities(entity_type="persona")
+- User asks about feedback → call get_feedback_items + get_context_sources
+- User asks about pain points → call get_extracted_entities(entity_type="pain_point")
+- User asks about feature requests → call get_extracted_entities(entity_type="feature_request")
+- User asks about themes/patterns → call get_themes + get_entity_summary
 - User asks about features → call get_features
-- User asks about strategy → call get_product_strategy
-- User asks about segments → call get_customer_segments
-- User asks about competitors → call get_competitive_landscape
+- User asks about strategy → call get_product_strategy or get_all_product_knowledge
+- User asks about segments → call get_customer_segments + get_extracted_entities
+- User asks about competitors → call get_competitive_landscape + get_extracted_entities(entity_type="competitor")
 - User discusses value prop → call get_value_proposition
 - User asks about metrics → call get_metrics_and_targets
+- User asks "what did we do before?" → call get_past_skill_work or search_past_skill_work
 
 **Analysis Tools** (use when analyzing):
 - Prioritizing features → call calculate_rice_score
@@ -681,11 +964,23 @@ IMPORTANT: You have access to function calling tools to get data and context."""
             'get_work_context_summary',
             'get_themes',
             'get_feedback_items',
+            'get_feedback_summary',
             'get_personas',
             'get_features',
             'get_product_strategy',
             'get_customer_segments',
-            'calculate_rice_score'
+            'get_competitive_landscape',
+            'get_value_proposition',
+            'get_metrics_and_targets',
+            'get_all_product_knowledge',
+            'get_context_sources',
+            'get_extracted_entities',
+            'get_entity_summary',
+            'get_past_skill_work',
+            'search_past_skill_work',
+            'calculate_rice_score',
+            'simulate_persona_votes',
+            'search_internet'
         ]
 
         # Create skill_config for handle_function_calling

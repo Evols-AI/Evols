@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import {
   Database, Plus, Upload, FileText, MessageSquare, Mail, Slack,
   Github, BookOpen, Cloud, X, Loader2, Filter, Search, Calendar,
-  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Sparkles, Check, RefreshCw, Book
+  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Sparkles, Check, RefreshCw, Book, Brain
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
@@ -223,7 +223,7 @@ export default function Context() {
             <div className="flex items-center justify-between mb-2">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <Database className="w-8 h-8" style={{ color: 'hsl(var(--primary))' }} />
+                  <Brain className="w-8 h-8" style={{ color: 'hsl(var(--primary))' }} />
                   <h1 className="page-title mb-0">
                     Knowledge
                   </h1>
@@ -505,7 +505,7 @@ function SourcesView({
     return (
       <Card>
         <EmptyState
-          icon={Database}
+          icon={Brain}
           title="No context sources yet"
           description="Start building your context by adding customer feedback, product docs, meeting transcripts, or any other relevant data"
           action={null}
@@ -674,7 +674,7 @@ function EntitiesView({
       {filteredByType.length === 0 ? (
         <Card>
           <EmptyState
-            icon={Lightbulb}
+            icon={Brain}
             title="No extracted entities yet"
             description="Add context sources and our AI will automatically extract personas, pain points, capabilities, and more"
             action={null}
