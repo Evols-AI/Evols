@@ -57,7 +57,7 @@ export default function WeeklyFocusModal({ isOpen, onClose, onSuccess, weeklyFoc
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h2 className="page-title text-gray-900 dark:text-white">
               Three Things That Matter This Week
             </h2>
             {weeklyFocus && (

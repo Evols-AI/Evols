@@ -15,7 +15,7 @@ export default function RoadmapDocs() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center">
-                <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="text-2xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
                   Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
                 </span>
               </Link>
@@ -38,7 +38,7 @@ export default function RoadmapDocs() {
                 <Map className="w-4 h-4" />
                 <span>Roadmap</span>
               </div>
-              <h1 className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">Roadmap Management</h1>
+              <h1 className="text-5xl mb-4 text-gray-900 dark:text-white">Roadmap Management</h1>
               <p className="text-xl text-gray-600 dark:text-gray-300">
                 Strategic roadmap planning with initiatives, projects, and AI-powered strategic allocation analysis
               </p>
@@ -59,7 +59,7 @@ export default function RoadmapDocs() {
                 <div className="flex items-start space-x-3 mb-4">
                   <Target className="w-6 h-6 text-blue-500 mt-1" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Initiatives</h3>
+                    <h3 className="text-lg text-gray-900 dark:text-white mb-2">Initiatives</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
                       High-level strategic objectives that group related projects together. Each initiative represents
                       a major business goal or strategic direction.
@@ -67,7 +67,7 @@ export default function RoadmapDocs() {
                   </div>
                 </div>
 
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Key Metrics:</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">Key Metrics:</h4>
                 <ul className="space-y-2 mb-4">
                   <li className="flex items-start space-x-2">
                     <span className="text-blue-500 mt-1">•</span>
@@ -95,7 +95,7 @@ export default function RoadmapDocs() {
                   </li>
                 </ul>
 
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Status Tracking:</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">Status Tracking:</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded">
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">PLANNED</span>
@@ -117,13 +117,13 @@ export default function RoadmapDocs() {
               </div>
 
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Projects</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white mb-4">Projects</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Specific deliverables and work items that implement an initiative. Projects are the tactical
                   execution layer that brings strategic initiatives to life.
                 </p>
 
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Project Attributes:</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">Project Attributes:</h4>
                 <ul className="space-y-2">
                   <li className="flex items-start space-x-2">
                     <span className="text-blue-500 mt-1">•</span>
@@ -162,20 +162,20 @@ export default function RoadmapDocs() {
 
                 <div className="grid md:grid-cols-2 gap-4 mb-6">
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Expected ARR Impact (Y-axis)</h4>
+                    <h4 className="text-gray-900 dark:text-white mb-2">Expected ARR Impact (Y-axis)</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Revenue potential - higher initiatives appear at the top
                     </p>
                   </div>
                   <div className="bg-gradient-to-br from-blue-50 to-blue-50 dark:from-blue-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Project Count (X-axis)</h4>
+                    <h4 className="text-gray-900 dark:text-white mb-2">Project Count (X-axis)</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Complexity/effort - more projects means more implementation work
                     </p>
                   </div>
                 </div>
 
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Quadrant Interpretation:</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">Quadrant Interpretation:</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-200 dark:border-green-800">
                     <span className="text-xs font-medium text-green-700 dark:text-green-400">HIGH VALUE / LOW EFFORT</span>
@@ -203,7 +203,7 @@ export default function RoadmapDocs() {
                 <div className="flex items-start space-x-3 mb-4">
                   <Radar className="w-6 h-6 text-blue-500 mt-1" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Strategic Allocation</h3>
+                    <h3 className="text-lg text-gray-900 dark:text-white mb-2">Strategic Allocation</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
                       AI-powered analysis that categorizes initiatives into three strategic buckets based on their
                       expected business impact:
@@ -213,7 +213,7 @@ export default function RoadmapDocs() {
 
                 <div className="space-y-4">
                   <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                    <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2">🔄 Retention</h4>
+                    <h4 className="text-green-700 dark:text-green-400 mb-2">🔄 Retention</h4>
                     <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                       Initiatives focused on keeping existing customers happy and reducing churn
                     </p>
@@ -223,7 +223,7 @@ export default function RoadmapDocs() {
                   </div>
 
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">📈 Growth</h4>
+                    <h4 className="text-blue-700 dark:text-blue-400 mb-2">📈 Growth</h4>
                     <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                       Initiatives aimed at acquiring new customers and expanding revenue
                     </p>
@@ -233,7 +233,7 @@ export default function RoadmapDocs() {
                   </div>
 
                   <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-                    <h4 className="font-semibold text-purple-700 dark:text-purple-400 mb-2">🏗️ Infrastructure</h4>
+                    <h4 className="text-purple-700 dark:text-purple-400 mb-2">🏗️ Infrastructure</h4>
                     <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                       Technical debt, platform improvements, and foundational work
                     </p>
@@ -244,7 +244,7 @@ export default function RoadmapDocs() {
                 </div>
 
                 <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">View Options:</h4>
+                  <h4 className="text-gray-900 dark:text-white mb-2">View Options:</h4>
                   <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
                     <li className="flex items-center space-x-2">
                       <span className="text-blue-500">▶</span>
@@ -266,7 +266,7 @@ export default function RoadmapDocs() {
             {/* Filtering & Sorting */}
             <Section title="Filtering & Sorting">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Available Options:</h4>
+                <h4 className="text-gray-900 dark:text-white mb-4">Available Options:</h4>
 
                 <div className="space-y-3">
                   <div className="flex items-start space-x-2">
@@ -322,7 +322,7 @@ export default function RoadmapDocs() {
 function Section({ title, children }: { title: string, children: React.ReactNode }) {
   return (
     <section className="mb-12">
-      <h2 className="text-3xl font-bold mb-6 pb-2 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+      <h2 className="text-3xl mb-6 pb-2 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
         {title}
       </h2>
       {children}

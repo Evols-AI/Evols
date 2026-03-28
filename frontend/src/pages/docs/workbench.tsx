@@ -5,7 +5,7 @@ import { ArrowLeft, Briefcase, Rocket, Target, Users, TrendingUp, BarChart3, Glo
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-12">
-      <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h2>
+      <h2 className="text-2xl mb-4 text-gray-900 dark:text-white">{title}</h2>
       <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
         {children}
       </div>
@@ -26,7 +26,7 @@ export default function WorkbenchDocumentation() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center">
-                <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="text-2xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
                   Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
                 </span>
                 <span className="text-lg font-medium text-gray-600 dark:text-gray-400 ml-2">Docs</span>
@@ -63,7 +63,7 @@ export default function WorkbenchDocumentation() {
             <path d="M 180 150 L 220 150" stroke="white" strokeWidth="3" fill="none" opacity="0.3"/>
           </svg>
 
-          <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">Decision Workbench</h1>
+          <h1 className="text-4xl mb-4 text-gray-900 dark:text-white">Decision Workbench</h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
             Make data-driven decisions with AI-powered analysis, customer insights, and persona validation — optimized for both Product Managers and Founders.
           </p>
@@ -79,7 +79,7 @@ export default function WorkbenchDocumentation() {
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Briefcase className="w-5 h-5 text-blue-500 dark:text-blue-300" />
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">PM Mode</h3>
+                  <h3 className="text-blue-900 dark:text-blue-100">PM Mode</h3>
                 </div>
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   For product managers making roadmap decisions based on existing customer feedback and themes.
@@ -88,7 +88,7 @@ export default function WorkbenchDocumentation() {
               <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Rocket className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  <h3 className="font-semibold text-purple-900 dark:text-purple-100">Founder Mode</h3>
+                  <h3 className="text-purple-900 dark:text-purple-100">Founder Mode</h3>
                 </div>
                 <p className="text-sm text-purple-800 dark:text-purple-200">
                   For founders making strategic startup decisions using real-time market data from Reddit and other sources.
@@ -101,7 +101,7 @@ export default function WorkbenchDocumentation() {
           <Section title="PM Mode: Product Roadmap Decisions">
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">When to Use PM Mode</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white mb-3">When to Use PM Mode</h3>
                 <p className="mb-3">Perfect for product managers working on established products with existing customer data:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li><strong>Feature prioritization:</strong> "What should we build next for Enterprise customers?"</li>
@@ -112,7 +112,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <h3 className="text-lg text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-blue-500" />
                   How PM Mode Works
                 </h3>
@@ -141,7 +141,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Key Benefits</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white mb-3">Key Benefits</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
                     <TrendingUp className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -180,7 +180,7 @@ export default function WorkbenchDocumentation() {
           <Section title="Founder Mode: Strategic Startup Decisions">
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">When to Use Founder Mode</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white mb-3">When to Use Founder Mode</h3>
                 <p className="mb-3">Ideal for founders making strategic decisions about their startup, especially pre-launch or early-stage:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li><strong>Product direction:</strong> "Should we build a B2B SaaS or consumer app?"</li>
@@ -193,7 +193,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <h3 className="text-lg text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                   <Globe className="w-5 h-5 text-purple-600" />
                   How Founder Mode Works
                 </h3>
@@ -222,7 +222,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Key Benefits</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white mb-3">Key Benefits</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
                     <Globe className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -256,7 +256,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                <h4 className="text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
                   💡 Pro Tip
                 </h4>
                 <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -323,7 +323,7 @@ export default function WorkbenchDocumentation() {
           <Section title="Getting Started">
             <div className="space-y-6">
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-5">
-                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">🚀 First Time Using the Workbench?</h3>
+                <h3 className="text-blue-900 dark:text-blue-100 mb-3">🚀 First Time Using the Workbench?</h3>
                 <ol className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
                   <li>1. <strong>Choose your mode:</strong> PM Mode for roadmap decisions, Founder Mode for strategic startup decisions</li>
                   <li>2. <strong>Frame your decision:</strong> Be specific about what you're trying to decide</li>
@@ -335,7 +335,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2 flex items-center gap-2">
+                <h4 className="text-yellow-900 dark:text-yellow-100 mb-2 flex items-center gap-2">
                   ⚡ Best Practices
                 </h4>
                 <ul className="space-y-2 text-sm text-yellow-800 dark:text-yellow-200">
@@ -352,7 +352,7 @@ export default function WorkbenchDocumentation() {
           <Section title="Frequently Asked Questions">
             <div className="space-y-4">
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Can I switch between PM and Founder mode?</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">Can I switch between PM and Founder mode?</h4>
                 <p className="text-sm">
                   Yes! Use the mode toggle at the top of the workbench. Each mode maintains separate form state,
                   so you can switch without losing your work.
@@ -360,7 +360,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Do I need existing personas to use the workbench?</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">Do I need existing personas to use the workbench?</h4>
                 <p className="text-sm">
                   <strong>PM Mode:</strong> Yes, you need existing customer personas from your VoC data.<br />
                   <strong>Founder Mode:</strong> No! You can generate personas from market data, or use existing ones if available.
@@ -368,7 +368,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">How does Founder Mode pull market data?</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">How does Founder Mode pull market data?</h4>
                 <p className="text-sm">
                   Founder Mode scrapes real discussions from Reddit using your product description and competitor names.
                   It extracts customer pain points, competitive insights, market trends, and opportunities from actual conversations.
@@ -376,7 +376,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">What happens to past decisions?</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">What happens to past decisions?</h4>
                 <p className="text-sm">
                   All decisions are automatically saved after persona voting. Access them anytime from the "Past Decisions"
                   section in the sidebar. Click any past decision to view its full decision brief.
@@ -384,7 +384,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Can I regenerate options if I don't like them?</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">Can I regenerate options if I don't like them?</h4>
                 <p className="text-sm">
                   Yes! After viewing generated options, you can add additional constraints and regenerate to get different options.
                 </p>
@@ -394,7 +394,7 @@ export default function WorkbenchDocumentation() {
 
           {/* Footer CTA */}
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 text-center">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Ready to Make Better Decisions?</h3>
+            <h3 className="text-xl text-gray-900 dark:text-white mb-2">Ready to Make Better Decisions?</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-4">
               Start using the Decision Workbench to validate your product decisions with real data and customer insights.
             </p>

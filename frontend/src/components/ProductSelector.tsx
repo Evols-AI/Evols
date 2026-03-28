@@ -254,7 +254,7 @@ export const ProductSelector: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full relative" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="page-title text-gray-900 dark:text-white">
                   Add New Product
                 </h2>
                 <button

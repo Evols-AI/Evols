@@ -101,7 +101,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          <h2 className="page-title text-gray-900 dark:text-white">
             {task ? 'Edit Task' : 'New Task'}
           </h2>
           <button

@@ -180,7 +180,7 @@ export default function SupportTicketsAdmin() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                <h1 className="text-3xl text-gray-900 dark:text-white mb-2">
                   Support Tickets
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -199,7 +199,7 @@ export default function SupportTicketsAdmin() {
                 {showStatusDropdown && (
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
                     <div className="p-2">
-                      <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
                         Filter by Status
                       </div>
                       {[
@@ -234,29 +234,29 @@ export default function SupportTicketsAdmin() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{tickets.length}</div>
+              <div className="text-2xl text-gray-900 dark:text-white">{tickets.length}</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Open</div>
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-2xl text-blue-600 dark:text-blue-400">
                 {tickets.filter(t => t.status === 'open').length}
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">In Progress</div>
-              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+              <div className="text-2xl text-yellow-600 dark:text-yellow-400">
                 {tickets.filter(t => t.status === 'in_progress').length}
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Resolved</div>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-2xl text-green-600 dark:text-green-400">
                 {tickets.filter(t => t.status === 'resolved').length}
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Closed</div>
-              <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+              <div className="text-2xl text-gray-600 dark:text-gray-400">
                 {tickets.filter(t => t.status === 'closed').length}
               </div>
             </div>
@@ -267,7 +267,7 @@ export default function SupportTicketsAdmin() {
             {filteredTickets.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
                 <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                <h3 className="text-xl text-gray-900 dark:text-white mb-2">
                   No tickets found
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -284,7 +284,7 @@ export default function SupportTicketsAdmin() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-2xl">{getTopicIcon(ticket.topic)}</span>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                        <h3 className="text-lg text-gray-900 dark:text-white capitalize">
                           {ticket.topic.replace('_', ' ')}
                         </h3>
                         {getStatusBadge(ticket.status)}

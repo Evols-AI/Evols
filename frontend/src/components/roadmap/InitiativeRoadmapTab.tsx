@@ -166,7 +166,7 @@ function SwimlaneColumn({
       }}
     >
       <div className="mb-4">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
+        <h3 className="text-lg text-gray-900 dark:text-white">{title}</h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
           {initiatives.length} initiative{initiatives.length !== 1 ? 's' : ''}
@@ -222,7 +222,7 @@ function InitiativeSwimCard({ initiative, projects, onDragStart, isDisabled, onE
         <Grip className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+            <h4 className="text-gray-900 dark:text-white text-sm truncate">
               {initiative.title}
             </h4>
             <button

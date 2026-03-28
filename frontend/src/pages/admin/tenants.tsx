@@ -126,7 +126,7 @@ export default function TenantsAdmin() {
         <div className="max-w-md p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
           <div className="flex items-center gap-3 text-red-600 dark:text-red-400 mb-4">
             <AlertCircle className="w-6 h-6" />
-            <h2 className="text-xl font-bold">Access Denied</h2>
+            <h2 className="text-xl">Access Denied</h2>
           </div>
           <p className="text-gray-700 dark:text-gray-300 mb-4">{error}</p>
           <button
@@ -153,7 +153,7 @@ export default function TenantsAdmin() {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-3xl text-gray-900 dark:text-white mb-2">
                 Tenant Management
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
@@ -182,7 +182,7 @@ export default function TenantsAdmin() {
                       <Building2 className="w-6 h-6 text-blue-500 dark:text-blue-300" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{tenant.name}</h3>
+                      <h3 className="text-gray-900 dark:text-white">{tenant.name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{tenant.slug}</p>
                     </div>
                   </div>
@@ -246,7 +246,7 @@ export default function TenantsAdmin() {
           {tenants.length === 0 && (
             <div className="text-center py-12">
               <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No tenants yet</h3>
+              <h3 className="text-xl text-gray-900 dark:text-white mb-2">No tenants yet</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">Create your first tenant to get started</p>
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -288,7 +288,7 @@ function CreateTenantModal({ onClose, onCreate }: { onClose: () => void, onCreat
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Create New Tenant</h2>
+        <h2 className="page-title text-gray-900 dark:text-white mb-4">Create New Tenant</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

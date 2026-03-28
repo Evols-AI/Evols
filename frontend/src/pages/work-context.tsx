@@ -238,7 +238,7 @@ export default function WorkContext() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Capacity */}
               <Card>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Capacity</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white mb-4">Capacity</h3>
                 {workContext?.capacity_status ? (
                   <div>
                     <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getCapacityColor(workContext.capacity_status)}`}>
@@ -257,7 +257,7 @@ export default function WorkContext() {
 
               {/* Role */}
               <Card>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Role & Team</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white mb-4">Role & Team</h3>
                 {workContext?.title || workContext?.team ? (
                   <div className="space-y-2 text-sm">
                     {workContext.title && (
@@ -285,7 +285,7 @@ export default function WorkContext() {
             {weeklyFocus && (weeklyFocus.focus_1 || weeklyFocus.focus_2 || weeklyFocus.focus_3) && (
               <Card>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-lg text-gray-900 dark:text-white">
                     Three Things That Matter This Week
                   </h3>
                   <button
@@ -299,19 +299,19 @@ export default function WorkContext() {
                 <div className="space-y-2">
                   {weeklyFocus.focus_1 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400 font-bold">1.</span>
+                      <span className="text-blue-600 dark:text-blue-400">1.</span>
                       <span className="text-gray-900 dark:text-white">{weeklyFocus.focus_1}</span>
                     </div>
                   )}
                   {weeklyFocus.focus_2 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400 font-bold">2.</span>
+                      <span className="text-blue-600 dark:text-blue-400">2.</span>
                       <span className="text-gray-900 dark:text-white">{weeklyFocus.focus_2}</span>
                     </div>
                   )}
                   {weeklyFocus.focus_3 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400 font-bold">3.</span>
+                      <span className="text-blue-600 dark:text-blue-400">3.</span>
                       <span className="text-gray-900 dark:text-white">{weeklyFocus.focus_3}</span>
                     </div>
                   )}
@@ -322,7 +322,7 @@ export default function WorkContext() {
             {/* Active Projects */}
             <Card>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Active Projects</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white">Active Projects</h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">{activeProjects.length} projects</span>
               </div>
               {activeProjects.length > 0 ? (
@@ -354,7 +354,7 @@ export default function WorkContext() {
             {/* Key Relationships */}
             <Card>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Key Relationships</h3>
+                <h3 className="text-lg text-gray-900 dark:text-white">Key Relationships</h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">{keyRelationships.length} people</span>
               </div>
               {keyRelationships.length > 0 ? (
@@ -398,7 +398,7 @@ export default function WorkContext() {
               {/* TODO Column */}
               <div className="flex flex-col">
                 <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-blue-500">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-gray-900 dark:text-white">
                     📋 To Do ({tasks.filter(t => t.status === 'todo').length})
                   </h3>
                 </div>
@@ -409,7 +409,7 @@ export default function WorkContext() {
 
                     return (
                       <div key={priority} className="space-y-2">
-                        <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                           {getPriorityLabel(priority)}
                         </div>
                         {priorityTasks.map((task) => (
@@ -464,7 +464,7 @@ export default function WorkContext() {
               {/* IN PROGRESS Column */}
               <div className="flex flex-col">
                 <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-yellow-500">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-gray-900 dark:text-white">
                     🚀 In Progress ({tasks.filter(t => t.status === 'in_progress').length})
                   </h3>
                 </div>
@@ -475,7 +475,7 @@ export default function WorkContext() {
 
                     return (
                       <div key={priority} className="space-y-2">
-                        <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                           {getPriorityLabel(priority)}
                         </div>
                         {priorityTasks.map((task) => (
@@ -530,7 +530,7 @@ export default function WorkContext() {
               {/* DONE Column */}
               <div className="flex flex-col">
                 <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-green-500">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-gray-900 dark:text-white">
                     ✅ Done ({tasks.filter(t => t.status === 'completed').length})
                   </h3>
                 </div>
@@ -541,7 +541,7 @@ export default function WorkContext() {
 
                     return (
                       <div key={priority} className="space-y-2">
-                        <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                           {getPriorityLabel(priority)}
                         </div>
                         {priorityTasks.map((task) => (
@@ -621,7 +621,7 @@ export default function WorkContext() {
               decisions.map((decision) => (
                 <Card key={decision.id}>
                   <div className="flex items-start justify-between mb-2 group">
-                    <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
+                    <h3 className="text-gray-900 dark:text-white flex-1">
                       #{decision.decision_number}: {decision.title}
                     </h3>
                     <div className="flex items-center gap-2">
@@ -673,7 +673,7 @@ export default function WorkContext() {
         {selectedTab === 'weekly-focus' && weeklyFocus && (
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg text-gray-900 dark:text-white">
                 Week of {new Date(weeklyFocus.week_start_date).toLocaleDateString()}
               </h3>
               <button

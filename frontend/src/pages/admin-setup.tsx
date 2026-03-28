@@ -79,11 +79,11 @@ export default function AdminSetup() {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <span className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+              <span className="text-5xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
                 Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
               </span>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl text-gray-900 dark:text-white mb-2">
               Platform Admin Setup
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
@@ -96,7 +96,7 @@ export default function AdminSetup() {
             <div className="flex items-start gap-3">
               <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-800 dark:text-blue-200">
-                <p className="font-semibold mb-1">One-time Setup</p>
+                <p className="mb-1">One-time Setup</p>
                 <p>This page can only be used once to create the first SUPER_ADMIN. You'll need the creation token from your deployment configuration.</p>
               </div>
             </div>
@@ -108,7 +108,7 @@ export default function AdminSetup() {
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                 <div className="text-sm text-green-800 dark:text-green-200">
-                  <p className="font-semibold">SUPER_ADMIN created successfully!</p>
+                  <p className="">SUPER_ADMIN created successfully!</p>
                   <p>Redirecting to login...</p>
                 </div>
               </div>
@@ -121,7 +121,7 @@ export default function AdminSetup() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
                 <div className="text-sm text-red-800 dark:text-red-200">
-                  <p className="font-semibold">Error</p>
+                  <p className="">Error</p>
                   <p>{error}</p>
                 </div>
               </div>
@@ -213,7 +213,7 @@ export default function AdminSetup() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">

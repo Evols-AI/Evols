@@ -174,7 +174,7 @@ export function StatCard({ title, value, subtitle, icon, trend, trendValue, colo
           <p className="text-sm font-medium text-body mb-1">
             {title}
           </p>
-          <p className="text-3xl font-bold text-heading mb-1">
+          <p className="text-3xl text-heading mb-1">
             {value}
           </p>
           {(subtitle || trend) && (

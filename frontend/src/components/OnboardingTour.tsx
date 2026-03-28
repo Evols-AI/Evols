@@ -218,7 +218,7 @@ export default function OnboardingTour() {
               <Icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-xl text-gray-900 dark:text-white">
                 {step.title}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">

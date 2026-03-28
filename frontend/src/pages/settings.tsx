@@ -597,7 +597,7 @@ export default function Settings() {
         <div className="p-6">
           {activeTab === 'profile' && (
             <div className="max-w-2xl space-y-4">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Profile Information</h3>
+              <h3 className="text-lg mb-4 text-gray-900 dark:text-white">Profile Information</h3>
               <div>
                 <label className="block text-sm font-medium mb-2 text-heading">Full Name</label>
                 <input
@@ -629,7 +629,7 @@ export default function Settings() {
           {/* Appearance tab - Temporarily hidden
           {activeTab === 'appearance' && (
             <div className="max-w-2xl">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Theme Preferences</h3>
+              <h3 className="text-lg mb-4 text-gray-900 dark:text-white">Theme Preferences</h3>
               <div className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
@@ -646,7 +646,7 @@ export default function Settings() {
           {activeTab === 'security' && (
             <div className="max-w-2xl space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-heading">Change Password</h3>
+                <h3 className="text-lg mb-4 text-heading">Change Password</h3>
                 <div className="space-y-4">
                   <input
                     type="password"
@@ -679,7 +679,7 @@ export default function Settings() {
               </div>
               {/* Two-Factor Authentication - Coming soon
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Two-Factor Authentication</h3>
+                <h3 className="text-lg mb-4 text-gray-900 dark:text-white">Two-Factor Authentication</h3>
                 <div className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">Enable 2FA</p>
@@ -696,7 +696,7 @@ export default function Settings() {
 
           {activeTab === 'notifications' && (
             <div className="max-w-2xl">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Notification Preferences</h3>
+              <h3 className="text-lg mb-4 text-gray-900 dark:text-white">Notification Preferences</h3>
               <div className="space-y-3">
                 {Object.entries({ email_notifications: 'Email Notifications', push_notifications: 'Push Notifications', feedback_alerts: 'Feedback Alerts', theme_updates: 'Theme Updates', decision_reminders: 'Decision Reminders', weekly_digest: 'Weekly Digest' }).map(([key, label]) => (
                   <div key={key} className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
@@ -713,12 +713,12 @@ export default function Settings() {
 
           {activeTab === 'llm' && (
             <div>
-              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">LLM Configuration</h3>
+              <h3 className="text-lg mb-2 text-gray-900 dark:text-white">LLM Configuration</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">BYOK - Bring Your Own Keys. API keys are encrypted at rest.</p>
 
               {currentLLMSettings && (
                 <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <p className="text-sm font-semibold text-green-800 dark:text-green-400 mb-2">✓ Current Configuration</p>
+                  <p className="text-sm text-green-800 dark:text-green-400 mb-2">✓ Current Configuration</p>
                   <p className="text-sm text-green-700 dark:text-green-300"><strong>Provider:</strong> {currentLLMSettings.provider}</p>
                   <p className="text-sm text-green-700 dark:text-green-300"><strong>Model:</strong> {currentLLMSettings.model}</p>
                   {currentLLMSettings.api_key_masked && <p className="text-sm text-green-700 dark:text-green-300"><strong>Key:</strong> {currentLLMSettings.api_key_masked}</p>}
@@ -1055,7 +1055,7 @@ export default function Settings() {
           {/* Data Refresh Tab */}
           {activeTab === 'data_refresh' && (
             <div>
-              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Context Intelligence Refresh</h3>
+              <h3 className="text-lg mb-2 text-gray-900 dark:text-white">Context Intelligence Refresh</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Automatically re-extract insights from uploaded context sources on a schedule.
                 Use the manual "Refresh Context" button on the Context page for on-demand updates.
@@ -1159,7 +1159,7 @@ export default function Settings() {
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h3>
+                      <h3 className="text-lg text-gray-900 dark:text-white">Team Members</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Current members of your organization</p>
                     </div>
                     <button
@@ -1252,7 +1252,7 @@ export default function Settings() {
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Invitations</h3>
+                      <h3 className="text-lg text-gray-900 dark:text-white">Pending Invitations</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Invitations waiting to be accepted</p>
                     </div>
                     <button
@@ -1433,7 +1433,7 @@ function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        <h2 className="page-title text-gray-900 dark:text-white mb-4">
           Invite Team Member
         </h2>
 

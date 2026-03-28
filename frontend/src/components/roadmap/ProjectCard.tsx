@@ -48,7 +48,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
         <div className="ml-4 flex flex-col items-end gap-2">
           <div className="text-right">
-            <div className="text-xl font-bold text-blue-500 dark:text-blue-300">
+            <div className="text-xl text-blue-500 dark:text-blue-300">
               {project.priority_score?.toFixed(1) || 'N/A'}
             </div>
             <div className="text-xs text-gray-500">Priority</div>

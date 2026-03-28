@@ -106,10 +106,10 @@ export default function ProgressIndicator({
         ) : (
           <Loader2 className="w-4 h-4 text-blue-600 flex-shrink-0 animate-spin" />
         )}
-        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize">
+        <span className="text-sm text-gray-800 dark:text-gray-200 capitalize">
           {label}
         </span>
-        <span className={`ml-auto text-sm font-bold ${
+        <span className={`ml-auto text-sm ${
           isComplete ? 'text-green-600' : isFailed ? 'text-red-600' : 'text-blue-600'
         }`}>
           {pct}%

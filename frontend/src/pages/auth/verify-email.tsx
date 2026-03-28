@@ -70,7 +70,7 @@ export default function VerifyEmail() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center justify-center mb-4">
-              <span className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+              <span className="text-4xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
                 Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
               </span>
             </Link>
@@ -82,7 +82,7 @@ export default function VerifyEmail() {
                 <div className="flex justify-center mb-6">
                   <Loader className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                <h2 className="text-2xl text-gray-900 dark:text-white mb-3">
                   Verifying your email...
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -98,7 +98,7 @@ export default function VerifyEmail() {
                     <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                <h2 className="text-2xl text-gray-900 dark:text-white mb-3">
                   Email Verified!
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
@@ -122,7 +122,7 @@ export default function VerifyEmail() {
                     <XCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                <h2 className="text-2xl text-gray-900 dark:text-white mb-3">
                   Verification Failed
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">

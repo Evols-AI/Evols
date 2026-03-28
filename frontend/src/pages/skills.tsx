@@ -138,7 +138,7 @@ export default function Skills() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3 flex-1">
                       <div className="text-3xl flex-shrink-0">{skill.icon}</div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white leading-tight">
+                      <h3 className="text-lg text-gray-900 dark:text-white leading-tight">
                         {skill.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                       </h3>
                     </div>
@@ -178,7 +178,7 @@ export default function Skills() {
           <div className="flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+              <h4 className="text-gray-900 dark:text-white mb-1">
                 How Skills Work
               </h4>
               <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
@@ -204,7 +204,7 @@ export default function Skills() {
                 <div className="flex items-center gap-3">
                   <div className="text-3xl">{viewingSkill.icon || '⚡'}</div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                    <h2 className="text-2xl text-gray-900 dark:text-white mb-1">
                       {viewingSkill.name.split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                     </h2>
                     {viewingSkill.category && (
@@ -224,7 +224,7 @@ export default function Skills() {
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Description</h3>
+                  <h3 className="text-gray-900 dark:text-white mb-2">Description</h3>
                   <p className="text-gray-600 dark:text-gray-400">
                     {viewingSkill.description}
                   </p>
@@ -232,7 +232,7 @@ export default function Skills() {
 
                 {viewingSkill.instructions && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Instructions</h3>
+                    <h3 className="text-gray-900 dark:text-white mb-2">Instructions</h3>
                     <pre className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
                       {viewingSkill.instructions}
                     </pre>
@@ -241,7 +241,7 @@ export default function Skills() {
 
                 {viewingSkill.tools && viewingSkill.tools.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Available Tools</h3>
+                    <h3 className="text-gray-900 dark:text-white mb-2">Available Tools</h3>
                     <div className="flex flex-wrap gap-2">
                       {viewingSkill.tools.map((tool: string, i: number) => (
                         <span key={i} className="px-2 py-1 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">

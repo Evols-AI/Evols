@@ -33,72 +33,16 @@ export default function Docs() {
         <main className="container mx-auto px-6 py-12">
           {/* Hero */}
           <div className="text-center mb-12">
-            <svg viewBox="0 0 400 300" className="w-80 mx-auto mb-10 drop-shadow-lg">
-              <defs>
-                <linearGradient id="docsPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ec4899" />
-                  <stop offset="100%" stopColor="#9333ea" />
-                </linearGradient>
-                <linearGradient id="docsSecondary" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="100%" stopColor="#2dd4bf" />
-                </linearGradient>
-                <filter id="docsGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="6" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-              </defs>
-
-              {/* Background Glow */}
-              <circle cx="200" cy="150" r="100" fill="url(#docsPrimary)" opacity="0.1" filter="url(#docsGlow)">
-                <animate attributeName="r" values="95;105;95" dur="4s" repeatCount="indefinite" />
-              </circle>
-
-              {/* Floating Folders (Background) */}
-              <g opacity="0.6">
-                <rect x="60" y="80" width="80" height="100" rx="8" fill="url(#docsSecondary)" opacity="0.4" transform="rotate(-15 100 130)">
-                  <animateTransform attributeName="transform" type="translate" values="0,0; -5,-10; 0,0" dur="5s" repeatCount="indefinite" additive="sum" />
-                </rect>
-                <rect x="260" y="60" width="70" height="90" rx="8" fill="#ec4899" opacity="0.3" transform="rotate(20 295 105)">
-                  <animateTransform attributeName="transform" type="translate" values="0,0; 5,-10; 0,0" dur="4s" repeatCount="indefinite" additive="sum" />
-                </rect>
-              </g>
-
-              {/* Main Document Base */}
-              <path d="M 120 100 L 280 100 C 291 100 300 109 300 120 L 300 240 C 300 251 291 260 280 260 L 120 260 C 109 260 100 251 100 240 L 100 120 C 100 109 109 100 120 100 Z" fill="white" className="dark:fill-gray-800" stroke="url(#docsPrimary)" strokeWidth="4" />
-
-              {/* Document Header */}
-              <path d="M 100 120 C 100 109 109 100 120 100 L 280 100 C 291 100 300 109 300 120 L 300 140 L 100 140 Z" fill="url(#docsPrimary)" />
-
-              {/* Document Lines */}
-              <g opacity="0.3" className="dark:opacity-50 text-gray-900 dark:text-gray-100" fill="currentColor">
-                <rect x="130" y="160" width="140" height="8" rx="4" />
-                <rect x="130" y="180" width="100" height="8" rx="4" />
-                <rect x="130" y="200" width="120" height="8" rx="4" />
-                <rect x="130" y="220" width="80" height="8" rx="4" />
-              </g>
-
-              {/* Magnifying Glass Overlay */}
-              <g filter="url(#docsGlow)" transform="translate(180, 150)">
-                <circle cx="30" cy="30" r="24" fill="url(#docsSecondary)" opacity="0.9" />
-                <circle cx="30" cy="30" r="14" fill="white" opacity="0.3" />
-                <circle cx="26" cy="26" r="4" fill="white" opacity="0.8" />
-                <path d="M 46 46 L 60 60" stroke="url(#docsSecondary)" strokeWidth="8" strokeLinecap="round" />
-                <animateTransform attributeName="transform" type="translate" values="180,150; 185,145; 180,150" dur="6s" repeatCount="indefinite" />
-              </g>
-
-              {/* Code Brackets Badge */}
-              <g transform="translate(90, 80)">
-                <circle cx="20" cy="20" r="20" fill="#10b981" filter="url(#docsGlow)" />
-                <path d="M 14 12 L 8 20 L 14 28 M 26 12 L 32 20 L 26 28" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                <animateTransform attributeName="transform" type="translate" values="90,80; 90,75; 90,80" dur="3s" repeatCount="indefinite" />
-              </g>
-            </svg>
+            <img
+              src="/Project Stages-rafiki.svg"
+              alt="Project stages illustration"
+              className="w-80 mx-auto mb-10 drop-shadow-lg"
+            />
             <div className="inline-flex items-center space-x-2 bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full text-sm text-blue-600 dark:text-blue-400 mb-6">
               <Book className="w-4 h-4" />
               <span>Documentation</span>
             </div>
-            <h1 className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">Evols Documentation</h1>
+            <h1 className="text-5xl mb-4 text-gray-900 dark:text-white">Evols Documentation</h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Everything you need to know about your AI-powered PM operating system
             </p>
@@ -328,7 +272,7 @@ function DocCard({ icon, title, description, href, external = false }: {
       <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-blue-500 rounded-lg flex items-center justify-center text-white mb-4">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">{title}</h3>
+      <h3 className="text-lg mb-2 text-gray-900 dark:text-white">{title}</h3>
       <p className="text-sm text-gray-600 dark:text-gray-300">{description}</p>
     </>
   )
@@ -355,7 +299,7 @@ function DocCard({ icon, title, description, href, external = false }: {
 function Section({ id, title, children }: { id: string, title: string, children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-20">
-      <h2 className="text-3xl font-bold mb-6 pb-2 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+      <h2 className="text-3xl mb-6 pb-2 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
         {title}
       </h2>
       {children}
@@ -368,7 +312,7 @@ function FeatureDoc({ title, description, features, link, linkText }: {
 }) {
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl">
-      <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">{title}</h3>
+      <h3 className="text-xl mb-2 text-gray-900 dark:text-white">{title}</h3>
       <p className="text-gray-600 dark:text-gray-300 mb-4">{description}</p>
       <ul className="space-y-2">
         {features.map((feature, index) => (

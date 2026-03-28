@@ -737,7 +737,7 @@ export default function Workbench() {
                           {msg.role === 'assistant' && msg.adviser && (
                             <div className="flex items-center gap-2 mb-2 pb-2 border-b" style={{ borderColor: 'hsl(var(--border))' }}>
                               <span className="text-lg">{msg.adviser.icon}</span>
-                              <span className="text-xs font-semibold" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                              <span className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
                                 {msg.adviser.name}
                               </span>
                               {msg.content === '...' && (
@@ -748,7 +748,7 @@ export default function Workbench() {
                           {msg.role === 'assistant' && !msg.adviser && (
                             <div className="flex items-center gap-2 mb-2 pb-2 border-b" style={{ borderColor: 'hsl(var(--border))' }}>
                               <Sparkles className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
-                              <span className="text-xs font-semibold" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                              <span className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
                                 Evols AI
                               </span>
                             </div>
@@ -764,9 +764,9 @@ export default function Workbench() {
                                 remarkPlugins={[remarkGfm]}
                                 components={{
                                   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                                  h1: ({ children }) => <h1 className="text-xl font-bold mb-3 mt-4 first:mt-0">{children}</h1>,
-                                  h2: ({ children }) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0">{children}</h2>,
-                                  h3: ({ children }) => <h3 className="text-base font-semibold mb-2 mt-2 first:mt-0">{children}</h3>,
+                                  h1: ({ children }) => <h1 className="text-xl mb-3 mt-4 first:mt-0">{children}</h1>,
+                                  h2: ({ children }) => <h2 className="text-lg mb-2 mt-3 first:mt-0">{children}</h2>,
+                                  h3: ({ children }) => <h3 className="text-base mb-2 mt-2 first:mt-0">{children}</h3>,
                                   ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
                                   ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
                                   li: ({ children }) => <li className="ml-2">{children}</li>,
@@ -791,7 +791,7 @@ export default function Workbench() {
                                   tbody: ({ children }) => <tbody>{children}</tbody>,
                                   tr: ({ children }) => <tr className="border-b border-gray-300 dark:border-gray-600">{children}</tr>,
                                   th: ({ children }) => (
-                                    <th className="px-4 py-2 text-left font-semibold border border-gray-300 dark:border-gray-600">
+                                    <th className="px-4 py-2 text-left border border-gray-300 dark:border-gray-600">
                                       {children}
                                     </th>
                                   ),
@@ -800,7 +800,7 @@ export default function Workbench() {
                                       {children}
                                     </td>
                                   ),
-                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                  strong: ({ children }) => <strong className="">{children}</strong>,
                                   em: ({ children }) => <em className="italic">{children}</em>,
                                   blockquote: ({ children }) => (
                                     <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2">
@@ -996,7 +996,7 @@ export default function Workbench() {
               {/* Sidebar Header */}
               <div className="p-4 border-b" style={{ borderColor: 'hsl(var(--border))' }}>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>History</h2>
+                  <h2 className="text-sm" style={{ color: 'hsl(var(--foreground))' }}>History</h2>
                   <button
                     onClick={() => setShowHistorySidebar(false)}
                     className="p-1.5 rounded transition hover-lift"

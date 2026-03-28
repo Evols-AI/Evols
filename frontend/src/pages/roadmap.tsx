@@ -270,7 +270,7 @@ export default function Roadmap() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-3xl text-gray-900 dark:text-white">
                   Product Roadmap
                 </h1>
               </div>
@@ -389,7 +389,7 @@ export default function Roadmap() {
               {activeTab === 'projects' && (
                 <>
                   <div className="flex items-center justify-between mb-6 mt-2">
-                    <h2 className="text-2xl font-bold text-heading">
+                    <h2 className="text-2xl text-heading">
                       Initiatives ({initiatives.length})
                     </h2>
 
@@ -408,7 +408,7 @@ export default function Roadmap() {
                     {showSortDropdown && (
                       <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
                         <div className="p-2">
-                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
                             Sort By
                           </div>
                           {[

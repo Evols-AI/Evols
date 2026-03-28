@@ -446,7 +446,7 @@ export default function Personas() {
             <>
               {/* Personas Grid Header */}
               <div id="personas-list" className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-heading">
+                <h2 className="text-2xl text-heading">
                   {getFilterDisplayText()} Personas (0)
                 </h2>
 
@@ -463,7 +463,7 @@ export default function Personas() {
                   {showStatusDropdown && (
                     <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
                       <div className="p-2">
-                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
                           Filter by Status
                         </div>
                         {[
@@ -496,7 +496,7 @@ export default function Personas() {
               <Card>
                 <div className="text-center py-12">
                   <Users className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-lg text-gray-900 dark:text-white mb-2">
                     No {getFilterDisplayText().toLowerCase()} personas found
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -528,7 +528,7 @@ export default function Personas() {
 
               {/* Personas Grid Header with Filters, Sorting, and Pagination */}
               <div id="personas-list" className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-heading">
+                <h2 className="text-2xl text-heading">
                   {getFilterDisplayText()} Personas ({personas.length})
                 </h2>
 
@@ -546,7 +546,7 @@ export default function Personas() {
                     {showStatusDropdown && (
                       <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
                         <div className="p-2">
-                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
                             Filter by Status
                           </div>
                           {[
@@ -588,7 +588,7 @@ export default function Personas() {
                     {showSortDropdown && (
                       <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
                         <div className="p-2">
-                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
                             Sort By
                           </div>
                           {[
@@ -739,7 +739,7 @@ function ActionCard({
       <div className={`w-12 h-12 bg-gradient-to-br ${colorClasses[color]} rounded-lg flex items-center justify-center text-white mb-4`}>
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-heading mb-2">{title}</h3>
+      <h3 className="text-lg text-heading mb-2">{title}</h3>
       <p className="text-sm text-body">{description}</p>
     </button>
   )
@@ -788,7 +788,7 @@ function PersonaCard({
         {/* Header with Last Updated */}
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-heading mb-1">{persona.name}</h3>
+            <h3 className="text-lg text-heading mb-1">{persona.name}</h3>
             <div className="flex items-center gap-2">
               {persona.isExtracted ? (
                 <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
@@ -811,7 +811,7 @@ function PersonaCard({
 
           {/* Last Updated & Confidence */}
           <div className="text-right">
-            <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+            <div className="text-sm text-blue-600 dark:text-blue-400">
               {Math.round((persona.confidence_score || 0) * 100)}%
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -824,7 +824,7 @@ function PersonaCard({
 
         {persona.key_pain_points && persona.key_pain_points.length > 0 && (
           <div className="mb-4">
-            <div className="text-xs font-semibold text-body mb-2">Pain Points</div>
+            <div className="text-xs text-body mb-2">Pain Points</div>
             <div className="flex flex-wrap gap-1.5">
               {persona.key_pain_points.slice(0, 3).map((point: string, idx: number) => (
                 <span key={idx}
@@ -839,7 +839,7 @@ function PersonaCard({
 
         {persona.feature_priorities && persona.feature_priorities.length > 0 && (
           <div className="mb-4">
-            <div className="text-xs font-semibold text-body mb-2">Priorities</div>
+            <div className="text-xs text-body mb-2">Priorities</div>
             <div className="flex flex-wrap gap-1.5">
               {persona.feature_priorities.slice(0, 3).map((priority: string, idx: number) => (
                 <span key={idx}
@@ -855,7 +855,7 @@ function PersonaCard({
         <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-t border-gray-200 dark:border-gray-700 pt-4">
           <div>
             <div className="text-xs font-medium text-body mb-1">Revenue Contribution</div>
-            <div className="text-sm font-semibold text-heading">
+            <div className="text-sm text-heading">
               {persona.extra_data?.revenue_contribution
                 ? `$${(persona.extra_data.revenue_contribution / 1000).toFixed(0)}K`
                 : 'N/A'}
@@ -863,7 +863,7 @@ function PersonaCard({
           </div>
           <div>
             <div className="text-xs font-medium text-body mb-1">Usage Frequency</div>
-            <div className="text-sm font-semibold text-heading">
+            <div className="text-sm text-heading">
               {persona.extra_data?.usage_frequency || 'N/A'}
             </div>
           </div>
@@ -950,7 +950,7 @@ function EditPersonaModal({ persona, onClose, onSave }: {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Edit Persona</h2>
+          <h2 className="page-title">Edit Persona</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
             <X className="w-5 h-5" />
           </button>
@@ -1057,7 +1057,7 @@ function MergePersonasModal({ personaIds, personas, onClose, onMerge }: {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Merge Personas</h2>
+          <h2 className="page-title">Merge Personas</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
             <X className="w-5 h-5" />
           </button>
@@ -1082,7 +1082,7 @@ function MergePersonasModal({ personaIds, personas, onClose, onMerge }: {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold">{persona.name}</h3>
+                    <h3 className="">{persona.name}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">{persona.segment}</p>
                   </div>
                   {primaryId === persona.id && (

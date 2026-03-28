@@ -82,7 +82,7 @@ export function StrategyRadarTab({ initiatives, projects }: StrategyRadarTabProp
 
       {/* Donut Chart */}
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 text-center">
+        <h3 className="text-lg text-gray-900 dark:text-white mb-4 text-center">
           Strategic Allocation
         </h3>
         <ResponsiveContainer width="100%" height={400}>
@@ -111,7 +111,7 @@ export function StrategyRadarTab({ initiatives, projects }: StrategyRadarTabProp
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
           <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-1">Retention</div>
-          <div className="text-2xl font-bold text-green-700 dark:text-green-300">
+          <div className="text-2xl text-green-700 dark:text-green-300">
             {breakdown.stats.retentionCount}
           </div>
           <div className="text-xs text-green-600 dark:text-green-500">
@@ -121,7 +121,7 @@ export function StrategyRadarTab({ initiatives, projects }: StrategyRadarTabProp
 
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
           <div className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Growth</div>
-          <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+          <div className="text-2xl text-blue-700 dark:text-blue-300">
             {breakdown.stats.growthCount}
           </div>
           <div className="text-xs text-blue-600 dark:text-blue-500">
@@ -131,7 +131,7 @@ export function StrategyRadarTab({ initiatives, projects }: StrategyRadarTabProp
 
         <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
           <div className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-1">Infrastructure</div>
-          <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+          <div className="text-2xl text-purple-700 dark:text-purple-300">
             {breakdown.stats.infrastructureCount}
           </div>
           <div className="text-xs text-purple-600 dark:text-purple-500">
@@ -210,7 +210,7 @@ function CustomTooltip({ active, payload, viewBy }: any) {
 
   return (
     <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-      <p className="font-bold text-gray-900 dark:text-white">{data.name}</p>
+      <p className="text-gray-900 dark:text-white">{data.name}</p>
       <p className="text-sm text-gray-600 dark:text-gray-400">
         {data.value} {viewBy === 'initiatives' ? 'initiatives' : 'projects'}
       </p>
@@ -257,7 +257,7 @@ function CategorySection({ title, color, initiatives, projects, isExpanded, onTo
         onClick={onToggle}
         className="w-full flex items-center justify-between mb-3"
       >
-        <h4 className={`text-lg font-bold ${classes.text}`}>{title}</h4>
+        <h4 className={`text-lg ${classes.text}`}>{title}</h4>
         {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
       </button>
 

@@ -121,7 +121,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              <h3 className="text-lg text-gray-900 dark:text-white mb-1">
                 {KNOWLEDGE_TABS.find(t => t.id === activeTab)?.name}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -177,7 +177,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
 
       {/* Help Section */}
       <div className="mt-6 p-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
-        <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
+        <h4 className="text-gray-900 dark:text-white mb-3">
           💡 Tips for Each Section
         </h4>
 

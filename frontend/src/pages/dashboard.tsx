@@ -76,7 +76,7 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
             </span>
             <span className="text-xs text-muted">{Math.round(signal.confidence * 100)}% confidence</span>
           </div>
-          <h4 className="text-sm font-semibold text-heading mb-1">{signal.title}</h4>
+          <h4 className="text-sm text-heading mb-1">{signal.title}</h4>
           <p className="text-xs text-body line-clamp-2">{signal.description}</p>
         </div>
       </div>
@@ -264,7 +264,7 @@ export default function Dashboard() {
                       className="card-hover p-5"
                     >
                       <div className="mb-3">{item.icon}</div>
-                      <h3 className="font-semibold text-heading mb-1">{item.title}</h3>
+                      <h3 className="text-heading mb-1">{item.title}</h3>
                       <p className="text-sm text-body">{item.desc}</p>
                     </Link>
                   ))}
@@ -309,7 +309,7 @@ export default function Dashboard() {
                             </div>
                             <div className="text-right flex-shrink-0">
                               {theme.total_arr > 0 && (
-                                <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                <p className="text-sm text-green-600 dark:text-green-400">
                                   ${(theme.total_arr / 1000).toFixed(0)}K
                                 </p>
                               )}
@@ -351,7 +351,7 @@ export default function Dashboard() {
 
                 <div className="space-y-6">
                   <Card>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Quick Actions</h2>
+                    <h2 className="text-xl text-gray-900 dark:text-white mb-3">Quick Actions</h2>
                     <div className="space-y-2">
                       <button
                         onClick={() => setShowAddContextModal(true)}
@@ -396,7 +396,7 @@ export default function Dashboard() {
                     <div>
                       <div className="flex items-center gap-2 mb-3">
                         <Bell className="w-4 h-4 text-orange-500" />
-                        <h2 className="font-bold text-heading text-sm uppercase tracking-wide">Signal Feed</h2>
+                        <h2 className="text-heading text-sm uppercase tracking-wide">Signal Feed</h2>
                       </div>
                       <div className="space-y-3">
                         {signals.map(signal => (

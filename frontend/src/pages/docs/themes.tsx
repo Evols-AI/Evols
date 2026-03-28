@@ -15,7 +15,7 @@ export default function ThemesDocumentation() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center">
-                <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="text-2xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
                   Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
                 </span>
                 <span className="text-lg font-medium text-gray-600 dark:text-gray-400 ml-2">Docs</span>
@@ -49,7 +49,7 @@ export default function ThemesDocumentation() {
             <rect x="50" y="40" width="80" height="50" rx="6" fill="url(#themesGrad)" opacity="0.15"/>
             <rect x="140" y="130" width="80" height="50" rx="6" fill="url(#themesGrad)" opacity="0.15"/>
           </svg>
-          <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">Feedback Themes</h1>
+          <h1 className="text-4xl mb-4 text-gray-900 dark:text-white">Feedback Themes</h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
             Learn how Evols automatically clusters feedback into themes and calculates urgency and impact scores.
           </p>
@@ -69,13 +69,13 @@ export default function ThemesDocumentation() {
           {/* Theme Generation */}
           <Section title="How Themes Are Generated">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">1. Semantic Clustering</h3>
+              <h3 className="text-lg text-gray-900 dark:text-white">1. Semantic Clustering</h3>
               <p>
                 Evols generates embeddings for each feedback item and groups similar feedback using cosine similarity.
                 Feedback items with <strong>≥75% similarity</strong> are clustered together into the same theme.
               </p>
 
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-6">2. AI-Generated Titles</h3>
+              <h3 className="text-lg text-gray-900 dark:text-white mt-6">2. AI-Generated Titles</h3>
               <p>
                 For each cluster, the system uses an LLM to analyze the feedback and generate:
               </p>
@@ -84,7 +84,7 @@ export default function ThemesDocumentation() {
                 <li>A one-sentence summary describing what customers want</li>
               </ul>
 
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-6">3. Incremental Updates</h3>
+              <h3 className="text-lg text-gray-900 dark:text-white mt-6">3. Incremental Updates</h3>
               <p>
                 When you refresh themes, the system only processes <strong>new feedback</strong> added since the last refresh.
                 Similar themes are updated with new data using weighted averages rather than creating duplicates.
@@ -98,7 +98,7 @@ export default function ThemesDocumentation() {
               <div className="flex items-start space-x-3">
                 <TrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400 mt-1" />
                 <div>
-                  <h3 className="text-lg font-semibold text-orange-900 dark:text-orange-100 mb-2">
+                  <h3 className="text-lg text-orange-900 dark:text-orange-100 mb-2">
                     Category-Based Weighting
                   </h3>
                   <p className="text-orange-800 dark:text-orange-200">
@@ -108,7 +108,7 @@ export default function ThemesDocumentation() {
               </div>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Category Weights</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mb-3">Category Weights</h3>
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-700">
@@ -128,39 +128,39 @@ export default function ThemesDocumentation() {
                   <tr>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">Bug</td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">1.0</td>
-                    <td className="px-6 py-4 text-sm text-red-600 dark:text-red-400 font-semibold">Highest</td>
+                    <td className="px-6 py-4 text-sm text-red-600 dark:text-red-400">Highest</td>
                   </tr>
                   <tr>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">Complaint</td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">0.9</td>
-                    <td className="px-6 py-4 text-sm text-orange-600 dark:text-orange-400 font-semibold">Very High</td>
+                    <td className="px-6 py-4 text-sm text-orange-600 dark:text-orange-400">Very High</td>
                   </tr>
                   <tr>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">Feature Request</td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">0.6</td>
-                    <td className="px-6 py-4 text-sm text-yellow-600 dark:text-yellow-400 font-semibold">Medium</td>
+                    <td className="px-6 py-4 text-sm text-yellow-600 dark:text-yellow-400">Medium</td>
                   </tr>
                   <tr>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">Question</td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">0.4</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 font-semibold">Low</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">Low</td>
                   </tr>
                   <tr>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">Other</td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">0.5</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 font-semibold">Medium-Low</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">Medium-Low</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-6 mb-3">Formula</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mt-6 mb-3">Formula</h3>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm">
               <div>urgency_score = sum(weight × count for each category) / total_feedback_count</div>
               <div className="text-gray-500 mt-2">Result is capped at 1.0 (100%)</div>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-6 mb-3">Example</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mt-6 mb-3">Example</h3>
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <p className="mb-2">Theme with 10 feedback items:</p>
               <ul className="list-disc list-inside space-y-1 ml-4 mb-3">
@@ -180,7 +180,7 @@ export default function ThemesDocumentation() {
               <div className="flex items-start space-x-3">
                 <Users className="w-6 h-6 text-green-600 dark:text-green-400 mt-1" />
                 <div>
-                  <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
+                  <h3 className="text-lg text-green-900 dark:text-green-100 mb-2">
                     Account + Volume Based
                   </h3>
                   <p className="text-green-800 dark:text-green-200">
@@ -190,11 +190,11 @@ export default function ThemesDocumentation() {
               </div>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Two Components</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mb-3">Two Components</h3>
 
             <div className="space-y-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">1. Account Impact (up to 60%)</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">1. Account Impact (up to 60%)</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                   Measures how many unique customers are affected by this theme.
                 </p>
@@ -207,7 +207,7 @@ export default function ThemesDocumentation() {
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2. Volume Impact (up to 40%)</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">2. Volume Impact (up to 40%)</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                   Measures the total volume of feedback about this theme.
                 </p>
@@ -220,13 +220,13 @@ export default function ThemesDocumentation() {
               </div>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-6 mb-3">Final Formula</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mt-6 mb-3">Final Formula</h3>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm">
               <div>impact_score = account_impact + volume_impact</div>
               <div className="text-gray-500 mt-2">Result is capped at 1.0 (100%)</div>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-6 mb-3">Example</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mt-6 mb-3">Example</h3>
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <p className="mb-2">Theme with:</p>
               <ul className="list-disc list-inside space-y-1 ml-4 mb-3">
@@ -247,7 +247,7 @@ export default function ThemesDocumentation() {
               <div className="flex items-start space-x-3">
                 <RefreshCw className="w-6 h-6 text-blue-500 dark:text-blue-300 mt-1" />
                 <div>
-                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  <h3 className="text-lg text-blue-900 dark:text-blue-100 mb-2">
                     Incremental Refresh
                   </h3>
                   <p className="text-blue-800 dark:text-blue-200 mb-3">
@@ -257,14 +257,14 @@ export default function ThemesDocumentation() {
               </div>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-6 mb-3">Update Formula</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mt-6 mb-3">Update Formula</h3>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm space-y-2">
               <div>existing_weight = old_feedback_count / (old_count + new_count)</div>
               <div>new_weight = new_feedback_count / (old_count + new_count)</div>
               <div className="mt-3 text-yellow-400">updated_score = (old_score × existing_weight) + (new_score × new_weight)</div>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-6 mb-3">Example</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mt-6 mb-3">Example</h3>
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <p className="mb-2">Existing theme:</p>
               <ul className="list-disc list-inside space-y-1 ml-4 mb-3">
@@ -285,7 +285,7 @@ export default function ThemesDocumentation() {
           <Section title="Best Practices">
             <div className="space-y-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">✅ Refresh themes regularly</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">✅ Refresh themes regularly</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Click "Refresh Themes" after uploading new feedback to update scores with the latest data.
                   The system uses incremental refresh to only process new feedback.
@@ -293,7 +293,7 @@ export default function ThemesDocumentation() {
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">✅ Categorize feedback accurately</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">✅ Categorize feedback accurately</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Urgency scores depend on correct category classification. Make sure bugs are marked as "Bug"
                   and feature requests as "Feature-Request" for accurate scoring.
@@ -301,7 +301,7 @@ export default function ThemesDocumentation() {
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">✅ Track unique customer accounts</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">✅ Track unique customer accounts</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Impact scores are more accurate when customer names are properly captured in feedback.
                   Use consistent customer naming across feedback items.
@@ -309,7 +309,7 @@ export default function ThemesDocumentation() {
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">⚡ High urgency + High impact = Top priority</h4>
+                <h4 className="text-gray-900 dark:text-white mb-2">⚡ High urgency + High impact = Top priority</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Themes with both high urgency (&gt;80%) and high impact (&gt;80%) should be addressed first.
                   These represent critical issues affecting many customers.
@@ -334,7 +334,7 @@ export default function ThemesDocumentation() {
 function Section({ title, children }: { title: string, children: React.ReactNode }) {
   return (
     <section className="mb-12">
-      <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+      <h2 className="text-2xl mb-4 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
         {title}
       </h2>
       <div className="prose dark:prose-invert max-w-none">

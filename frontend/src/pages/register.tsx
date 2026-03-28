@@ -146,68 +146,13 @@ export default function Register() {
               <Link href="/" className="mb-8">
                 <LogoWordmark iconSize={60} />
               </Link>
-              <svg viewBox="0 0 300 350" className="w-full max-w-md mb-10 drop-shadow-lg">
-                <defs>
-                  <linearGradient id="signupGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#9333ea" />
-                    <stop offset="100%" stopColor="#ec4899" />
-                  </linearGradient>
-                  <linearGradient id="signupGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#9333ea" />
-                  </linearGradient>
-                  <filter id="signupGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="8" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
-                  <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.2" />
-                  </filter>
-                </defs>
-
-                {/* Background Ring */}
-                <circle cx="150" cy="175" r="120" fill="url(#signupGrad2)" opacity="0.1" filter="url(#signupGlow)">
-                  <animateTransform attributeName="transform" type="rotate" values="0 150 175; 360 150 175" dur="20s" repeatCount="indefinite" />
-                </circle>
-
-                {/* Floating Plus Icons */}
-                <g fill="#ec4899" opacity="0.6">
-                  <path d="M 40 100 L 45 100 L 45 110 L 55 110 L 55 115 L 45 115 L 45 125 L 40 125 L 40 115 L 30 115 L 30 110 L 40 110 Z">
-                    <animateTransform attributeName="transform" type="translate" values="0,0; 0,-15; 0,0" dur="4s" repeatCount="indefinite" />
-                  </path>
-                  <path d="M 250 220 L 255 220 L 255 230 L 265 230 L 265 235 L 255 235 L 255 245 L 250 245 L 250 235 L 240 235 L 240 230 L 250 230 Z">
-                    <animateTransform attributeName="transform" type="translate" values="0,0; 0,-10; 0,0" dur="3s" repeatCount="indefinite" />
-                  </path>
-                </g>
-
-                {/* Main Registration Card */}
-                <rect x="70" y="100" width="160" height="150" rx="16" fill="white" className="dark:fill-gray-800" stroke="url(#signupGrad1)" strokeWidth="3" />
-
-                {/* User Avatar Placeholder */}
-                <circle cx="150" cy="140" r="24" fill="url(#signupGrad2)" />
-                <circle cx="150" cy="132" r="10" fill="white" opacity="0.8" />
-                <path d="M 134 152 Q 150 144 166 152 A 12 12 0 0 1 150 164 Z" fill="white" opacity="0.8" />
-
-                {/* Form Fields */}
-                <rect x="90" y="180" width="120" height="12" rx="6" fill="#f3f4f6" className="dark:fill-gray-700" />
-                <rect x="90" y="200" width="100" height="12" rx="6" fill="#f3f4f6" className="dark:fill-gray-700" />
-                <rect x="90" y="220" width="120" height="12" rx="6" fill="#f3f4f6" className="dark:fill-gray-700" />
-
-                {/* Verified / Check Badge overlay */}
-                <g filter="url(#badgeShadow)" transform="translate(195, 215)">
-                  <circle cx="20" cy="20" r="20" fill="#10b981" />
-                  <path d="M 12 20 L 18 26 L 28 14" stroke="white" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  <animateTransform attributeName="transform" type="translate" values="195,215; 195,210; 195,215" dur="4s" repeatCount="indefinite" />
-                </g>
-
-                {/* Connecting Node Line */}
-                <path d="M 200 120 Q 230 100 240 70" stroke="url(#signupGrad1)" strokeWidth="3" fill="none" strokeDasharray="5,5">
-                  <animate attributeName="stroke-dashoffset" values="10;0" dur="1s" repeatCount="indefinite" />
-                </path>
-                <circle cx="240" cy="70" r="8" fill="#9333ea" filter="url(#signupGlow)" />
-              </svg>
+              <img
+                src="/Sign up-amico.svg"
+                alt="Sign up illustration"
+                className="w-full max-w-md mb-10 drop-shadow-lg"
+              />
               <div className="text-center">
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                <h2 className="text-3xl text-gray-900 dark:text-white mb-4">
                   Join Evols Today
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 max-w-md">
@@ -236,7 +181,7 @@ export default function Register() {
                         <Mail className="w-12 h-12 text-green-600 dark:text-green-400" />
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                    <h3 className="text-2xl text-gray-900 dark:text-white mb-3">
                       Check Your Email
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-6">
@@ -400,7 +345,7 @@ export default function Register() {
                   {/* Submit Button */}
                   <button type="submit"
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
+                    className="w-full bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
                   >
                     {loading ? (inviteToken ? 'Joining...' : 'Creating Account...') : (inviteToken ? 'Accept Invitation' : 'Create Account')}
                   </button>

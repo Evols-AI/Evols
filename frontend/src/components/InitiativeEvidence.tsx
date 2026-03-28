@@ -85,7 +85,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="text-center py-8">
           <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <h3 className="text-lg text-gray-900 dark:text-white mb-2">
             No Evidence Linked Yet
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -102,7 +102,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center gap-2 mb-4">
           <BarChart className="w-5 h-5 text-blue-500" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-lg text-gray-900 dark:text-white">
             Evidence Summary
           </h3>
         </div>
@@ -113,7 +113,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
               <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Total Mentions</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{evidence.total_mentions}</p>
+            <p className="text-2xl text-gray-900 dark:text-white">{evidence.total_mentions}</p>
           </div>
 
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
@@ -121,7 +121,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
               <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
               <span className="text-xs font-medium text-green-600 dark:text-green-400">ARR Impacted</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl text-gray-900 dark:text-white">
               {formatCurrency(evidence.total_arr_impacted)}
             </p>
           </div>
@@ -131,7 +131,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
               <BarChart className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <span className="text-xs font-medium text-purple-600 dark:text-purple-400">Avg Confidence</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl text-gray-900 dark:text-white">
               {evidence.confidence_avg ? `${Math.round(evidence.confidence_avg * 100)}%` : 'N/A'}
             </p>
           </div>
@@ -141,7 +141,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
               {getSentimentIcon(evidence.sentiment_avg)}
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Sentiment</span>
             </div>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
+            <p className="text-lg text-gray-900 dark:text-white">
               {getSentimentLabel(evidence.sentiment_avg)}
             </p>
           </div>
@@ -150,7 +150,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
         {/* Customer Segments */}
         {evidence.customer_segments && Object.keys(evidence.customer_segments).length > 0 && (
           <div className="mb-6">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <h4 className="text-sm text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <Users className="w-4 h-4" />
               Customer Segments
             </h4>
@@ -170,7 +170,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
         {/* Sources */}
         {evidence.sources && evidence.sources.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <h4 className="text-sm text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Sources
             </h4>
@@ -206,7 +206,7 @@ export function InitiativeEvidence({ initiativeId, onUpdate }: InitiativeEvidenc
       {/* Representative Quotes */}
       {evidence.representative_quotes && evidence.representative_quotes.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-lg text-gray-900 dark:text-white mb-4">
             Representative Quotes
           </h3>
           <div className="space-y-4">

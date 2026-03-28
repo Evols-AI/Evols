@@ -97,7 +97,7 @@ export default function Support() {
                                 Login
                             </Link>
                             <Link href="/register"
-                                className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce"
+                                className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce"
                             >
                                 Get Started
                             </Link>
@@ -110,64 +110,14 @@ export default function Support() {
                         <div className="grid lg:grid-cols-2 gap-12 items-center">
                             {/* Left - Illustration */}
                             <div className="hidden lg:flex flex-col justify-center h-full">
-                                <svg viewBox="0 0 400 350" className="w-full max-w-md mx-auto mb-10 drop-shadow-lg">
-                                    <defs>
-                                        <linearGradient id="supportGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stopColor="#9333ea" />
-                                            <stop offset="100%" stopColor="#ec4899" />
-                                        </linearGradient>
-                                        <linearGradient id="supportGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
-                                            <stop offset="0%" stopColor="#3b82f6" />
-                                            <stop offset="100%" stopColor="#9333ea" />
-                                        </linearGradient>
-                                        <filter id="supportGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                            <feGaussianBlur stdDeviation="8" result="blur" />
-                                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                                        </filter>
-                                        <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                                            <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.2" />
-                                        </filter>
-                                    </defs>
-
-                                    {/* Background Ring */}
-                                    <circle cx="200" cy="175" r="130" fill="url(#supportGrad2)" opacity="0.1" filter="url(#supportGlow)">
-                                        <animateTransform attributeName="transform" type="rotate" values="0 200 175; 360 200 175" dur="20s" repeatCount="indefinite" />
-                                    </circle>
-
-                                    {/* Support Chat Box */}
-                                    <g filter="url(#badgeShadow)" transform="translate(130, 80)">
-                                        <rect x="0" y="0" width="160" height="120" rx="16" fill="white" className="dark:fill-gray-800" stroke="url(#supportGrad1)" strokeWidth="2" />
-
-                                        {/* Chat lines */}
-                                        <rect x="25" y="30" width="110" height="8" rx="4" fill="#f3f4f6" className="dark:fill-gray-700" />
-                                        <rect x="25" y="50" width="80" height="8" rx="4" fill="#f3f4f6" className="dark:fill-gray-700" />
-                                        <rect x="25" y="70" width="90" height="8" rx="4" fill="#f3f4f6" className="dark:fill-gray-700" />
-
-                                        {/* Avatar placehgolder */}
-                                        <circle cx="40" cy="95" r="10" fill="url(#supportGrad2)" opacity="0.5" />
-                                        <rect x="55" y="93" width="40" height="4" rx="2" fill="url(#supportGrad2)" />
-                                    </g>
-
-                                    {/* Paper Airplane */}
-                                    <g filter="url(#badgeShadow)" transform="translate(110, 180)">
-                                        <path d="M 0 30 L 70 0 L 30 70 L 25 45 Z" fill="url(#supportGrad1)" />
-                                        <animateTransform attributeName="transform" type="translate" values="110,180; 120,170; 110,180" dur="4s" repeatCount="indefinite" />
-                                    </g>
-
-                                    {/* Floating Elements */}
-                                    <circle cx="280" cy="120" r="15" fill="#f59e0b" filter="url(#badgeShadow)">
-                                        <animateTransform attributeName="transform" type="translate" values="0,0; 0,-10; 0,0" dur="3s" repeatCount="indefinite" />
-                                    </circle>
-                                    <circle cx="150" cy="220" r="10" fill="#10b981" filter="url(#badgeShadow)">
-                                        <animateTransform attributeName="transform" type="translate" values="0,0; 0,10; 0,0" dur="4s" repeatCount="indefinite" />
-                                    </circle>
-                                    <path d="M 320 200 L 330 215 L 310 215 Z" fill="#ec4899" filter="url(#badgeShadow)">
-                                        <animateTransform attributeName="transform" type="translate" values="0,0; -10,0; 0,0" dur="5s" repeatCount="indefinite" />
-                                    </path>
-                                </svg>
+                                <img
+                                    src="/Collab-rafiki.svg"
+                                    alt="Collaboration illustration"
+                                    className="w-full max-w-md mx-auto mb-10 drop-shadow-lg"
+                                />
 
                                 <div className="text-center px-8">
-                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                                    <h2 className="text-3xl text-gray-900 dark:text-white mb-4">
                                         We're here to help!
                                     </h2>
                                     <p className="text-gray-600 dark:text-gray-300">
@@ -178,12 +128,12 @@ export default function Support() {
 
                             {/* Right - Form */}
                             <div className="bg-white dark:bg-gray-800 py-10 px-6 shadow-xl rounded-2xl sm:px-10 border border-gray-100 dark:border-gray-700">
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Contact Us</h2>
+                                <h2 className="text-2xl text-gray-900 dark:text-white mb-6 text-center">Contact Us</h2>
 
                                 {status === 'success' ? (
                                     <div className="rounded-xl bg-green-50 dark:bg-green-900/30 p-8 text-center flex flex-col items-center">
                                         <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-                                        <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-2">Message Sent!</h3>
+                                        <h3 className="text-xl text-green-800 dark:text-green-300 mb-2">Message Sent!</h3>
                                         <p className="text-green-700 dark:text-green-400 mb-6">
                                             Thanks for reaching out. Our support team will get back to you within 24 hours.
                                         </p>
@@ -321,7 +271,7 @@ export default function Support() {
                                             <button
                                                 type="submit"
                                                 disabled={status === 'submitting'}
-                                                className="w-full flex justify-center items-center py-4 px-6 border border-transparent shadow-lg text-lg font-bold text-white bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transform transition-all duration-500 ease-in-out hover:scale-105 hover:brightness-110 hover:animate-pulse active:scale-95"
+                                                className="w-full flex justify-center items-center py-4 px-6 border border-transparent shadow-lg text-lg text-white bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transform transition-all duration-500 ease-in-out hover:scale-105 hover:brightness-110 hover:animate-pulse active:scale-95"
                                             >
                                                 {status === 'submitting' ? (
                                                     <>

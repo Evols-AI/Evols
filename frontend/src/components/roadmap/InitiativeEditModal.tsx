@@ -58,7 +58,7 @@ export function InitiativeEditModal({ initiative, onClose, onSaved }: Initiative
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+          <h3 className="page-title text-gray-900 dark:text-white">
             Edit Initiative
           </h3>
           <button

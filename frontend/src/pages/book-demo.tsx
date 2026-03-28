@@ -76,7 +76,7 @@ export default function BookDemo() {
             </Link>
             <div className="flex items-center space-x-6">
               <Link href="/login" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Login</Link>
-              <Link href="/register" className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce">
+              <Link href="/register" className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce">
                 Get Started
               </Link>
             </div>
@@ -88,87 +88,12 @@ export default function BookDemo() {
             <div className="grid lg:grid-cols-2 gap-12">
               {/* Left - Info */}
               <div className="flex flex-col justify-center">
-                <svg viewBox="0 0 400 300" className="w-full max-w-md mx-auto mb-10 drop-shadow-lg">
-                  <defs>
-                    <linearGradient id="calPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#9333ea" />
-                      <stop offset="100%" stopColor="#3b82f6" />
-                    </linearGradient>
-                    <linearGradient id="calSecondary" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#ec4899" />
-                      <stop offset="100%" stopColor="#9333ea" />
-                    </linearGradient>
-                    <filter id="calGlow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="8" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.2" />
-                    </filter>
-                  </defs>
-
-                  {/* Background Element */}
-                  <circle cx="200" cy="150" r="110" fill="url(#calSecondary)" opacity="0.1" filter="url(#calGlow)">
-                    <animate attributeName="r" values="100;110;100" dur="4s" repeatCount="indefinite" />
-                  </circle>
-
-                  {/* Floating Elements (Background) */}
-                  <path d="M70,100 L90,120 L70,140 Z" fill="#3b82f6" opacity="0.4" transform="rotate(15 80 120)">
-                    <animateTransform attributeName="transform" type="translate" values="0,0; 0,-15; 0,0" dur="4s" repeatCount="indefinite" additive="sum" />
-                  </path>
-                  <circle cx="330" cy="80" r="14" fill="#ec4899" opacity="0.5">
-                    <animateTransform attributeName="transform" type="translate" values="0,0; -10,10; 0,0" dur="5s" repeatCount="indefinite" />
-                  </circle>
-
-                  {/* Main Calendar Base */}
-                  <rect x="110" y="80" width="180" height="160" rx="16" fill="white" className="dark:fill-gray-800" stroke="url(#calPrimary)" strokeWidth="4" />
-                  <rect x="110" y="80" width="180" height="45" rx="12" fill="url(#calPrimary)" />
-
-                  {/* Calendar Rings */}
-                  <rect x="140" y="60" width="14" height="34" rx="7" fill="#ec4899" />
-                  <rect x="140" y="65" width="14" height="24" rx="7" fill="white" opacity="0.6" />
-                  <rect x="246" y="60" width="14" height="34" rx="7" fill="#ec4899" />
-                  <rect x="246" y="65" width="14" height="24" rx="7" fill="white" opacity="0.6" />
-
-                  {/* Calendar Grid */}
-                  <g opacity="0.5" className="dark:opacity-30" stroke="#6b7280" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="130" y1="145" x2="160" y2="145" />
-                    <line x1="175" y1="145" x2="205" y2="145" />
-                    <line x1="220" y1="145" x2="250" y2="145" />
-                    <line x1="265" y1="145" x2="280" y2="145" />
-
-                    <line x1="130" y1="175" x2="160" y2="175" />
-                    <line x1="175" y1="175" x2="205" y2="175" />
-                    <line x1="220" y1="175" x2="250" y2="175" />
-                    <line x1="265" y1="175" x2="280" y2="175" />
-
-                    <line x1="130" y1="205" x2="160" y2="205" />
-                    <line x1="175" y1="205" x2="205" y2="205" />
-                    <line x1="220" y1="205" x2="250" y2="205" />
-                    <line x1="265" y1="205" x2="280" y2="205" />
-                  </g>
-
-                  {/* Selected Date Highlight */}
-                  <rect x="170" y="163" width="40" height="24" rx="8" fill="url(#calPrimary)" opacity="0.2" />
-                  <rect x="170" y="163" width="40" height="24" rx="8" stroke="url(#calPrimary)" strokeWidth="2" fill="none" />
-
-                  {/* Floating Chat Bubble */}
-                  <g filter="url(#calGlow)" transform="translate(15, -10)">
-                    <path d="M 230 190 Q 230 160 260 160 L 300 160 Q 330 160 330 190 L 330 220 Q 330 250 300 250 L 270 250 L 240 270 L 250 240 Q 230 220 230 190 Z" fill="url(#calSecondary)" />
-                    <circle cx="260" cy="205" r="5" fill="white" />
-                    <circle cx="280" cy="205" r="5" fill="white" />
-                    <circle cx="300" cy="205" r="5" fill="white" />
-                    <animateTransform attributeName="transform" type="translate" values="15,-10; 15,-18; 15,-10" dur="3s" repeatCount="indefinite" />
-                  </g>
-
-                  {/* Checkmark Badge */}
-                  <g transform="translate(85, 180)">
-                    <circle cx="24" cy="24" r="24" fill="#10b981" filter="url(#badgeShadow)" />
-                    <path d="M 15 24 L 21 30 L 33 18" stroke="white" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    <animateTransform attributeName="transform" type="translate" values="85,180; 85,175; 85,180" dur="4s" repeatCount="indefinite" />
-                  </g>
-                </svg>
-                <h1 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">See Your AI PM Copilot in Action</h1>
+                <img
+                  src="/Features Overview-amico.svg"
+                  alt="Features overview illustration"
+                  className="w-full max-w-md mx-auto mb-10 drop-shadow-lg"
+                />
+                <h1 className="text-4xl md:text-5xl mb-6 text-gray-900 dark:text-white">See Your AI PM Copilot in Action</h1>
                 <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
                   Book a 30-minute personalized demo to see how an AI copilot can become your PM operating system.
                 </p>
@@ -178,7 +103,7 @@ export default function BookDemo() {
                       <Sparkles className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">80+ PM Skills</h3>
+                      <h3 className="text-lg mb-1 text-gray-900 dark:text-white">80+ PM Skills</h3>
                       <p className="text-gray-600 dark:text-gray-400">See conversational AI execute strategy docs, PRDs, meeting prep, and weekly updates</p>
                     </div>
                   </div>
@@ -187,7 +112,7 @@ export default function BookDemo() {
                       <MessageSquare className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">Auto Work Context</h3>
+                      <h3 className="text-lg mb-1 text-gray-900 dark:text-white">Auto Work Context</h3>
                       <p className="text-gray-600 dark:text-gray-400">Watch AI automatically capture your role, projects, and tasks from natural conversation</p>
                     </div>
                   </div>
@@ -196,7 +121,7 @@ export default function BookDemo() {
                       <CheckCircle className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">Bring Your Docs</h3>
+                      <h3 className="text-lg mb-1 text-gray-900 dark:text-white">Bring Your Docs</h3>
                       <p className="text-gray-600 dark:text-gray-400">See how Evols extracts intelligence from your actual documents and meeting notes</p>
                     </div>
                   </div>

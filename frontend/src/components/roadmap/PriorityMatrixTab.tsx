@@ -185,7 +185,7 @@ export function PriorityMatrixTab({ initiatives, projects, themes }: PriorityMat
             <div className="absolute left-0 mt-2 w-80 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
               <div className="p-2">
                 <div className="flex items-center justify-between px-3 py-2">
-                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     Select Initiatives (Multi)
                   </div>
                   {filterInitiatives.length > 0 && (
@@ -245,7 +245,7 @@ export function PriorityMatrixTab({ initiatives, projects, themes }: PriorityMat
             <div className="absolute left-0 mt-2 w-80 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
               <div className="p-2">
                 <div className="flex items-center justify-between px-3 py-2">
-                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     Select Themes (Multi)
                   </div>
                   {filterThemes.length > 0 && (
@@ -300,7 +300,7 @@ export function PriorityMatrixTab({ initiatives, projects, themes }: PriorityMat
           {showStatusDropdown && (
             <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
               <div className="p-2">
-                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 py-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
                   Select Timeframe
                 </div>
                 {[
@@ -430,7 +430,7 @@ function CustomTooltip({ active, payload }: any) {
 
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-      <p className="font-bold text-gray-900 dark:text-white mb-2">{data.project.title}</p>
+      <p className="text-gray-900 dark:text-white mb-2">{data.project.title}</p>
       <div className="space-y-1 text-sm">
         <p className="text-gray-600 dark:text-gray-400">
           <strong>RICE Score:</strong> {data.y.toFixed(2)}
@@ -468,7 +468,7 @@ function ProjectDetailModal({ project, initiative, onClose }: { project: any; in
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{project.title}</h3>
+          <h3 className="text-xl text-gray-900 dark:text-white">{project.title}</h3>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -505,7 +505,7 @@ function ProjectDetailModal({ project, initiative, onClose }: { project: any; in
             </div>
             <div className="col-span-2">
               <span className="text-gray-600 dark:text-gray-400">Priority Score:</span>
-              <span className="ml-2 font-bold text-lg text-blue-500 dark:text-blue-300">
+              <span className="ml-2 text-lg text-blue-500 dark:text-blue-300">
                 {project.priority_score?.toFixed(2) || 'N/A'}
               </span>
             </div>

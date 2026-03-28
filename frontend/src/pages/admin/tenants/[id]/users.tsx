@@ -166,7 +166,7 @@ export default function TenantUsers() {
 
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                <h1 className="text-3xl text-gray-900 dark:text-white mb-2">
                   Tenant Users
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -267,7 +267,7 @@ export default function TenantUsers() {
             {users.length === 0 && (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No users yet</h3>
+                <h3 className="text-xl text-gray-900 dark:text-white mb-2">No users yet</h3>
                 <p className="text-gray-600 dark:text-gray-400">Add the first user to this tenant</p>
               </div>
             )}
@@ -302,7 +302,7 @@ function CreateUserModal({ onClose, onCreate }: { onClose: () => void, onCreate:
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Add User</h2>
+        <h2 className="page-title text-gray-900 dark:text-white mb-4">Add User</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

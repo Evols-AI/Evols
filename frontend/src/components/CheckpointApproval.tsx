@@ -53,7 +53,7 @@ export default function CheckpointApproval({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+            <h3 className="text-sm text-gray-900 dark:text-white">{title}</h3>
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-300">{summary}</p>
         </div>

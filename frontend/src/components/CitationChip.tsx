@@ -82,7 +82,7 @@ export default function CitationChip({ citations, label, className = '' }: Citat
       {open && (
         <div className="absolute z-50 top-full mt-1 left-0 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Evidence ({citations.length} source{citations.length !== 1 ? 's' : ''})
             </span>
             <span className="text-xs text-gray-400">

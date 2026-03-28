@@ -529,7 +529,7 @@ function SourcesView({
                   <div className="flex items-center gap-3">
                     <Database className="w-6 h-6 text-blue-500" />
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{group.name}</h3>
+                      <h3 className="text-lg text-gray-900 dark:text-white">{group.name}</h3>
                       {group.description && (
                         <p className="text-sm text-gray-700 dark:text-gray-400 mt-1">{group.description}</p>
                       )}
@@ -700,7 +700,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
               <Database className="w-8 h-8 text-blue-500" />
-              <span className="text-3xl font-bold">{sources.length}</span>
+              <span className="text-3xl">{sources.length}</span>
             </div>
             <p className="text-sm text-muted">Context Sources</p>
           </div>
@@ -710,7 +710,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
               <Users className="w-8 h-8 text-purple-500" />
-              <span className="text-3xl font-bold">
+              <span className="text-3xl">
                 {entities.filter(e => e.entity_type === 'persona').length}
               </span>
             </div>
@@ -722,7 +722,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
               <AlertCircle className="w-8 h-8 text-red-500" />
-              <span className="text-3xl font-bold">
+              <span className="text-3xl">
                 {entities.filter(e => e.entity_type === 'pain_point').length}
               </span>
             </div>
@@ -734,7 +734,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
               <Zap className="w-8 h-8 text-yellow-500" />
-              <span className="text-3xl font-bold">
+              <span className="text-3xl">
                 {entities.filter(e => e.entity_type === 'product_capability').length}
               </span>
             </div>
@@ -747,7 +747,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
       <Card>
         <div className="p-12 text-center">
           <Zap className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
-          <h3 className="text-xl font-semibold mb-2">AI-Powered Insights Coming Soon</h3>
+          <h3 className="text-xl mb-2">AI-Powered Insights Coming Soon</h3>
           <p className="text-muted max-w-2xl mx-auto">
             Get automatic trend analysis, sentiment tracking, opportunity identification, and strategic recommendations based on your context data
           </p>
@@ -760,6 +760,13 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
 function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () => void }) {
   const [deleting, setDeleting] = React.useState(false)
   const [extracting, setExtracting] = React.useState(false)
+
+  const toTitleCase = (str: string) => {
+    return str
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+  }
 
   const getSourceIcon = (type: string) => {
     const iconMap: Record<string, any> = {
@@ -838,7 +845,7 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{source.name}</h3>
+            <h3 className="text-lg text-gray-900 dark:text-white mb-1">{toTitleCase(source.name)}</h3>
             {source.description && (
               <p className="text-sm text-gray-700 dark:text-gray-400 mb-2 line-clamp-2">{source.description}</p>
             )}
@@ -938,7 +945,7 @@ function EntityCard({ entity, onPromote }: { entity: any; onPromote: (entity: an
             {getEntityIcon(entity.entity_type)}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-1">{entity.name}</h4>
+            <h4 className="text-sm text-gray-900 dark:text-white mb-1">{entity.name}</h4>
             <p className="text-xs text-gray-700 dark:text-gray-400 line-clamp-2">{entity.description}</p>
           </div>
         </div>
@@ -1127,7 +1134,7 @@ export function AddContextModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
-          <h2 className="text-2xl font-bold">
+          <h2 className="page-title">
             {step === 'select-type' ? 'Select Source Type' : 'Upload File'}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
@@ -1139,7 +1146,7 @@ export function AddContextModal({
           <div className="p-6 space-y-8">
             {sourceTypes.map((category) => (
               <div key={category.category}>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <h3 className="text-sm text-gray-700 dark:text-gray-300 mb-3">
                   {category.category}
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
