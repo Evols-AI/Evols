@@ -54,7 +54,6 @@ export default function Header({ user, currentPage }: HeaderProps) {
   const adminNavItems = [
     { href: '/admin/tenants', label: 'Admin Panel', key: 'admin', icon: Shield },
     { href: '/admin/support', label: 'Support', key: 'support', icon: LifeBuoy },
-    { href: '/admin/advisers-platform', label: 'Skills Analytics', key: 'advisers-platform', icon: Sparkles },
   ]
 
   return (

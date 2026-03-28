@@ -465,7 +465,6 @@ Without configured LLM keys:
 - ✅ `/admin-setup` - One-time SUPER_ADMIN creation page
 - ✅ `/admin/tenants` - SUPER_ADMIN tenant management (view, create, edit tenants & users)
 - ✅ `/admin/support` - SUPER_ADMIN support ticket management
-- ✅ `/admin/advisers-platform` - SUPER_ADMIN skills analytics
 - ✅ `/settings` - User settings including:
   - **LLM Configuration** (OpenAI, Anthropic, Azure, Bedrock) - **REQUIRED**
   - Appearance (theme, display preferences)
