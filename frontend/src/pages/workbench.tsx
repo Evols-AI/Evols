@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import { Send, Loader2, Sparkles, Plus, MessageSquare, Trash2, ChevronRight, ChevronLeft, History, Paperclip, X, FileText, Image as ImageIcon, File } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
@@ -60,11 +61,13 @@ export default function Workbench() {
   const [advisers, setAdvisers] = useState<Adviser[]>([])
   const [adviserSearchQuery, setAdviserSearchQuery] = useState('')
   const [mentionStartPos, setMentionStartPos] = useState<number>(0)
+  const [pickerPosition, setPickerPosition] = useState<{ top: number; left: number; width: number } | null>(null)
 
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const lastLoadedConversationRef = useRef<string | null>(null)
+  const inputContainerRef = useRef<HTMLDivElement>(null)
 
   // File attachments
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
@@ -144,6 +147,15 @@ export default function Workbench() {
   useEffect(() => {
     const lastAtSymbol = inputMessage.lastIndexOf('@')
     if (lastAtSymbol !== -1 && lastAtSymbol === inputMessage.length - 1) {
+      // Calculate position relative to input container
+      if (inputContainerRef.current) {
+        const rect = inputContainerRef.current.getBoundingClientRect()
+        setPickerPosition({
+          top: rect.top - 10,
+          left: rect.left,
+          width: rect.width
+        })
+      }
       setShowAdviserPicker(true)
       setMentionStartPos(lastAtSymbol)
       setAdviserSearchQuery('')
@@ -511,10 +523,18 @@ export default function Workbench() {
                     </p>
 
                     {/* Centered Input */}
-                    <div className="w-full max-w-3xl mx-auto mb-8">
+                    <div className="w-full max-w-3xl mx-auto mb-8" ref={inputContainerRef}>
                       {/* @mention Autocomplete */}
-                      {showAdviserPicker && (
-                        <div className="absolute bottom-full left-0 right-0 mb-2 card shadow-lg max-h-80 overflow-y-auto z-[60]">
+                      {showAdviserPicker && pickerPosition && typeof document !== 'undefined' && createPortal(
+                        <div
+                          className="fixed card shadow-lg max-h-80 overflow-y-auto z-[9999]"
+                          style={{
+                            top: `${pickerPosition.top}px`,
+                            left: `${pickerPosition.left}px`,
+                            width: `${pickerPosition.width}px`,
+                            transform: 'translateY(-100%)'
+                          }}
+                        >
                           {filteredAdvisers.length === 0 ? (
                             <div className="p-4 text-sm text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
                               No skills found
@@ -547,7 +567,8 @@ export default function Workbench() {
                               </div>
                             ))
                           )}
-                        </div>
+                        </div>,
+                        document.body
                       )}
 
                       <div className="relative">
@@ -800,10 +821,18 @@ export default function Workbench() {
             {/* Input Area - Only show when there are messages */}
             {messages.length > 0 && (
               <div className="px-8 py-6 relative">
-                <div className="max-w-4xl mx-auto relative">
+                <div className="max-w-4xl mx-auto relative" ref={inputContainerRef}>
                   {/* @mention Autocomplete */}
-                  {showAdviserPicker && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 card shadow-lg max-h-80 overflow-y-auto z-[60]">
+                  {showAdviserPicker && pickerPosition && typeof document !== 'undefined' && createPortal(
+                    <div
+                      className="fixed card shadow-lg max-h-80 overflow-y-auto z-[9999]"
+                      style={{
+                        top: `${pickerPosition.top}px`,
+                        left: `${pickerPosition.left}px`,
+                        width: `${pickerPosition.width}px`,
+                        transform: 'translateY(-100%)'
+                      }}
+                    >
                       {filteredAdvisers.length === 0 ? (
                         <div className="p-4 text-sm text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
                           No skills found
@@ -836,7 +865,8 @@ export default function Workbench() {
                           </div>
                         ))
                       )}
-                    </div>
+                    </div>,
+                    document.body
                   )}
 
                   {/* File Attachments Display */}

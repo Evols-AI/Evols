@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Plus, X } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
 import { api } from '../services/api';
@@ -231,7 +232,7 @@ export const ProductSelector: React.FC = () => {
       )}
 
       {/* Add Product Modal */}
-      {showAddProductModal && (
+      {showAddProductModal && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
           style={{ zIndex: 9999 }}
@@ -335,7 +336,8 @@ export const ProductSelector: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
