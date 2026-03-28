@@ -1906,6 +1906,7 @@ async def add_or_update_relationship(
     parameters=[
         ToolParameter(name="title", type="string", description="Task description (start with verb)", required=True),
         ToolParameter(name="priority", type="string", description="Task priority tier", required=True, enum=["critical", "high_leverage", "stakeholder", "sweep", "backlog"]),
+        ToolParameter(name="deadline", type="string", description="Due date/deadline in natural language (e.g., 'next week', 'in 2 weeks', '2024-12-31')", required=False),
         ToolParameter(name="description", type="string", description="Additional details", required=False),
         ToolParameter(name="why_critical", type="string", description="Why critical (for critical tasks)", required=False),
         ToolParameter(name="impact", type="string", description="Expected impact (for high_leverage tasks)", required=False),
@@ -1918,6 +1919,7 @@ async def add_task(
     db: AsyncSession,
     title: str,
     priority: str,
+    deadline: Optional[str] = None,
     description: Optional[str] = None,
     why_critical: Optional[str] = None,
     impact: Optional[str] = None,
@@ -1925,12 +1927,47 @@ async def add_task(
     source: Optional[str] = None
 ) -> Dict[str, Any]:
     """Add a task to the user's task board"""
+    from datetime import datetime, timedelta
+    import re
+
     try:
+        # Parse deadline if provided
+        deadline_dt = None
+        if deadline:
+            deadline_lower = deadline.lower().strip()
+            now = datetime.now()
+
+            # Try parsing common natural language formats
+            if 'next week' in deadline_lower:
+                deadline_dt = now + timedelta(weeks=1)
+            elif 'in 2 weeks' in deadline_lower or '2 weeks' in deadline_lower:
+                deadline_dt = now + timedelta(weeks=2)
+            elif 'in 3 weeks' in deadline_lower or '3 weeks' in deadline_lower:
+                deadline_dt = now + timedelta(weeks=3)
+            elif 'tomorrow' in deadline_lower:
+                deadline_dt = now + timedelta(days=1)
+            elif 'next month' in deadline_lower:
+                deadline_dt = now + timedelta(days=30)
+            elif match := re.search(r'in (\d+) days?', deadline_lower):
+                days = int(match.group(1))
+                deadline_dt = now + timedelta(days=days)
+            else:
+                # Try parsing as ISO date
+                try:
+                    deadline_dt = datetime.fromisoformat(deadline.replace('Z', '+00:00'))
+                except:
+                    # If all parsing fails, store as description
+                    if description:
+                        description += f" (Deadline: {deadline})"
+                    else:
+                        description = f"Deadline: {deadline}"
+
         task = Task(
             user_id=user.id,
             title=title,
             priority=TaskPriority(priority),
             status=TaskStatus.TODO,
+            deadline=deadline_dt,
             description=description,
             why_critical=why_critical,
             impact=impact,
@@ -1943,7 +1980,7 @@ async def add_task(
         return {
             "success": True,
             "message": f"Added task: {title}",
-            "data": {"title": title, "priority": priority}
+            "data": {"title": title, "priority": priority, "deadline": deadline_dt.isoformat() if deadline_dt else None}
         }
     except ValueError as e:
         return {

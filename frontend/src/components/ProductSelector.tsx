@@ -32,6 +32,9 @@ export const ProductSelector: React.FC = () => {
   const { selectedProductIds, toggleProduct, setProductIds } = useProducts();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Get current user to check if they can create products
+  const currentUser = getCurrentUser();
+
   useEffect(() => {
     setIsMounted(true);
     loadProducts();
@@ -218,15 +221,19 @@ export const ProductSelector: React.FC = () => {
               ))
             )}
 
-            {/* Add Product button */}
-            <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
-            <button
-              onClick={handleAddProduct}
-              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors text-blue-500 dark:text-blue-300"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-sm font-medium">Add Product</span>
-            </button>
+            {/* Add Product button - only show for admins */}
+            {currentUser?.role === 'TENANT_ADMIN' || currentUser?.role === 'PRODUCT_ADMIN' ? (
+              <>
+                <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
+                <button
+                  onClick={handleAddProduct}
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors text-blue-500 dark:text-blue-300"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm font-medium">Add Product</span>
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
       )}

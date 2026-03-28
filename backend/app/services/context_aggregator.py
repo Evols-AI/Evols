@@ -183,6 +183,15 @@ class ContextAggregator:
         """
         sections = []
 
+        # User profile
+        if context.get('user_profile'):
+            up = context['user_profile']
+            sections.append("# User Profile")
+            sections.append(f"**Name**: {up.get('name', 'Unknown')}")
+            sections.append(f"**Email**: {up.get('email', 'Unknown')}")
+            sections.append(f"**System Role**: {up.get('role', 'USER')}")
+            sections.append("")
+
         # Skills catalog
         sections.append(context.get('skills_catalog', ''))
 

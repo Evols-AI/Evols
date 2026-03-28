@@ -395,6 +395,13 @@ async def handle_function_calling(
                 r'I will call',
                 r'Let me call',
                 r'I\'ll invoke',
+                # Check for actual tool names being output as text
+                r'add_or_update_project\(',
+                r'add_task\(',
+                r'add_or_update_relationship\(',
+                r'update_role_info\(',
+                r'set_weekly_focus\(',
+                r'log_pm_decision\(',
             ]
 
             is_fake_call = False
