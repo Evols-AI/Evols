@@ -92,75 +92,107 @@ class IntelligentCopilot:
         self.db.add(user_msg)
         await self.db.commit()
 
-        # 5. Let agent decide what to do (skill or general conversation)
-        decision = await self._intelligent_skill_decision(
-            message=message,
-            history=history,
-            context=full_context
-        )
-
-        # 6. Execute based on decision
-        if decision['use_skill']:
-            response = await self._execute_with_skill(
-                conversation_id=conversation_id_str,
+        try:
+            # 5. Let agent decide what to do (skill or general conversation)
+            decision = await self._intelligent_skill_decision(
                 message=message,
                 history=history,
-                skill_name=decision['skill_name'],
-                context=full_context,
-                product_id=product_id
-            )
-        else:
-            response = await self._execute_general_conversation(
-                conversation_id=conversation_id_str,
-                message=message,
-                history=history,
-                context=full_context,
-                product_id=product_id
+                context=full_context
             )
 
-        # 7. Update conversation timestamp
-        # Reload conversation from DB to avoid detached session issues
-        conv_result = await self.db.execute(
-            select(SkillConversation).where(SkillConversation.id == conversation_id_str)
-        )
-        conversation = conv_result.scalar_one()
-        conversation.last_message_at = datetime.utcnow()
-        await self.db.commit()
+            # 6. Execute based on decision
+            if decision['use_skill']:
+                response = await self._execute_with_skill(
+                    conversation_id=conversation_id_str,
+                    message=message,
+                    history=history,
+                    skill_name=decision['skill_name'],
+                    context=full_context,
+                    product_id=product_id
+                )
+            else:
+                response = await self._execute_general_conversation(
+                    conversation_id=conversation_id_str,
+                    message=message,
+                    history=history,
+                    context=full_context,
+                    product_id=product_id
+                )
 
-        # 8. Get the latest assistant message to return
-        result = await self.db.execute(
-            select(SkillMessage)
-            .where(SkillMessage.conversation_id == conversation_id_str)
-            .where(SkillMessage.role == 'assistant')
-            .order_by(desc(SkillMessage.created_at))
-            .limit(1)
-        )
-        assistant_message = result.scalar_one()
+            # 7. Update conversation timestamp
+            # Reload conversation from DB to avoid detached session issues
+            conv_result = await self.db.execute(
+                select(SkillConversation).where(SkillConversation.id == conversation_id_str)
+            )
+            conversation = conv_result.scalar_one()
+            conversation.last_message_at = datetime.utcnow()
+            await self.db.commit()
 
-        # Get skill info if skill was used
-        skill_info = None
-        if decision.get('skill_name'):
-            skill_loader = get_skill_loader()
-            skill_data = skill_loader.get_skill_by_name(decision['skill_name'])
-            if skill_data:
-                skill_info = {
-                    'id': 1,  # File-based skills use index as ID
-                    'type': 'default',
-                    'name': skill_data['name'],
-                    'description': skill_data.get('description', ''),
-                    'icon': skill_data.get('icon', '⚡')
+            # 8. Get the latest assistant message to return
+            result = await self.db.execute(
+                select(SkillMessage)
+                .where(SkillMessage.conversation_id == conversation_id_str)
+                .where(SkillMessage.role == 'assistant')
+                .order_by(desc(SkillMessage.created_at))
+                .limit(1)
+            )
+            assistant_message = result.scalar_one()
+
+            # Get skill info if skill was used
+            skill_info = None
+            if decision.get('skill_name'):
+                skill_loader = get_skill_loader()
+                skill_data = skill_loader.get_skill_by_name(decision['skill_name'])
+                if skill_data:
+                    skill_info = {
+                        'id': 1,  # File-based skills use index as ID
+                        'type': 'default',
+                        'name': skill_data['name'],
+                        'description': skill_data.get('description', ''),
+                        'icon': skill_data.get('icon', '⚡')
+                    }
+
+            return {
+                'conversation_id': conversation_id_str,
+                'message': {
+                    'id': assistant_message.id,
+                    'role': assistant_message.role,
+                    'content': assistant_message.content,
+                    'skill': skill_info,
+                    'created_at': assistant_message.created_at.isoformat()
                 }
-
-        return {
-            'conversation_id': conversation_id_str,
-            'message': {
-                'id': assistant_message.id,
-                'role': assistant_message.role,
-                'content': assistant_message.content,
-                'skill': skill_info,
-                'created_at': assistant_message.created_at.isoformat()
             }
-        }
+
+        except Exception as e:
+            # Save error as assistant message so conversation shows the error
+            error_msg = SkillMessage(
+                conversation_id=conversation_id_str,
+                role='assistant',
+                content=f"❌ **Error**: {str(e)}",
+                skill_type=SkillType.DEFAULT,
+                sequence_number=await self._get_next_sequence_number(conversation_id_str)
+            )
+            self.db.add(error_msg)
+
+            # Update conversation timestamp
+            conv_result = await self.db.execute(
+                select(SkillConversation).where(SkillConversation.id == conversation_id_str)
+            )
+            conversation = conv_result.scalar_one()
+            conversation.last_message_at = datetime.utcnow()
+            await self.db.commit()
+
+            # Return error message as the response
+            return {
+                'conversation_id': conversation_id_str,
+                'message': {
+                    'id': error_msg.id,
+                    'role': error_msg.role,
+                    'content': error_msg.content,
+                    'skill': None,
+                    'created_at': error_msg.created_at.isoformat()
+                }
+            }
 
     async def _intelligent_skill_decision(
         self,
@@ -324,7 +356,7 @@ DECISION LOGGING:
 - When user makes a strategic decision, discusses tradeoffs, or chooses between options → call log_pm_decision
 - Capture: title, category (product/technical/organizational/career/process/stakeholder), context, options considered with pros/cons, final decision, reasoning, tradeoffs, stakeholders, expected outcome
 - Examples:
-  * "Should we prioritize mobile app or web redesign?" → After discussion, log_pm_decision(title="Prioritize mobile app over web redesign", category="product", context="Limited eng resources for Q2", options_considered=[{option: "Mobile first", pros: "80% users on mobile, higher engagement", cons: "Web users wait longer"}, {option: "Web first", pros: "Easier to build", cons: "Misses mobile opportunity"}], decision="Prioritize mobile app", reasoning="Higher user engagement and business impact on mobile", tradeoffs="Web redesign delayed by 2 quarters", expected_outcome="20% increase in mobile DAU")
+  * "Should we prioritize mobile app or web redesign?" → After discussion, log_pm_decision(title="Prioritize mobile app over web redesign", category="product", context="Limited eng resources for Q2", options_considered=[{{"option": "Mobile first", "pros": "80% users on mobile, higher engagement", "cons": "Web users wait longer"}}, {{"option": "Web first", "pros": "Easier to build", "cons": "Misses mobile opportunity"}}], decision="Prioritize mobile app", reasoning="Higher user engagement and business impact on mobile", tradeoffs="Web redesign delayed by 2 quarters", expected_outcome="20% increase in mobile DAU")
   * "Deciding between PostgreSQL vs MongoDB" → log_pm_decision(title="Use PostgreSQL for user data", category="technical", context="Need to choose database for new service", options_considered=[...], decision="PostgreSQL", reasoning="ACID compliance and relational data model fit our use case")
 
 WEEKLY FOCUS:
@@ -419,8 +451,8 @@ You: [CALL log_pm_decision]
     category="product",
     context="Q2 planning - limited engineering resources, need to choose focus",
     options_considered=[
-      {option: "Mobile app first", pros: "80% users on mobile, higher engagement potential", cons: "More complex build, longer timeline"},
-      {option: "Web redesign first", pros: "Faster to build, existing codebase", cons: "Only 20% of user base"}
+      {{"option": "Mobile app first", "pros": "80% users on mobile, higher engagement potential", "cons": "More complex build, longer timeline"}},
+      {{"option": "Web redesign first", "pros": "Faster to build, existing codebase", "cons": "Only 20% of user base"}}
     ],
     decision="Build mobile app first",
     reasoning="Mobile represents majority of user base and higher engagement opportunity",
@@ -735,7 +767,7 @@ DECISION LOGGING:
 - When user makes a strategic decision, discusses tradeoffs, or chooses between options → call log_pm_decision
 - Capture: title, category (product/technical/organizational/career/process/stakeholder), context, options considered with pros/cons, final decision, reasoning, tradeoffs, stakeholders, expected outcome
 - Examples:
-  * "Should we prioritize mobile app or web redesign?" → After discussion, log_pm_decision(title="Prioritize mobile app over web redesign", category="product", context="Limited eng resources for Q2", options_considered=[{option: "Mobile first", pros: "80% users on mobile, higher engagement", cons: "Web users wait longer"}, {option: "Web first", pros: "Easier to build", cons: "Misses mobile opportunity"}], decision="Prioritize mobile app", reasoning="Higher user engagement and business impact on mobile", tradeoffs="Web redesign delayed by 2 quarters", expected_outcome="20% increase in mobile DAU")
+  * "Should we prioritize mobile app or web redesign?" → After discussion, log_pm_decision(title="Prioritize mobile app over web redesign", category="product", context="Limited eng resources for Q2", options_considered=[{{"option": "Mobile first", "pros": "80% users on mobile, higher engagement", "cons": "Web users wait longer"}}, {{"option": "Web first", "pros": "Easier to build", "cons": "Misses mobile opportunity"}}], decision="Prioritize mobile app", reasoning="Higher user engagement and business impact on mobile", tradeoffs="Web redesign delayed by 2 quarters", expected_outcome="20% increase in mobile DAU")
   * "Deciding between PostgreSQL vs MongoDB" → log_pm_decision(title="Use PostgreSQL for user data", category="technical", context="Need to choose database for new service", options_considered=[...], decision="PostgreSQL", reasoning="ACID compliance and relational data model fit our use case")
 
 WEEKLY FOCUS:
@@ -830,8 +862,8 @@ You: [CALL log_pm_decision]
     category="product",
     context="Q2 planning - limited engineering resources, need to choose focus",
     options_considered=[
-      {option: "Mobile app first", pros: "80% users on mobile, higher engagement potential", cons: "More complex build, longer timeline"},
-      {option: "Web redesign first", pros: "Faster to build, existing codebase", cons: "Only 20% of user base"}
+      {{"option": "Mobile app first", "pros": "80% users on mobile, higher engagement potential", "cons": "More complex build, longer timeline"}},
+      {{"option": "Web redesign first", "pros": "Faster to build, existing codebase", "cons": "Only 20% of user base"}}
     ],
     decision="Build mobile app first",
     reasoning="Mobile represents majority of user base and higher engagement opportunity",

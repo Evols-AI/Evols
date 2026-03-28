@@ -97,15 +97,18 @@ async def chat(
     copilot = IntelligentCopilot(db, current_user)
 
     try:
+        # Note: Errors during message processing (after user message is saved)
+        # are caught by IntelligentCopilot.chat and saved as error messages
+        # in the conversation, so they return as successful responses
         result = await copilot.chat(
             conversation_id=request.conversation_id,
             message=request.message,
             product_id=request.product_id
         )
         return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        # Only errors before user message is saved reach here
+        # (e.g., database errors, validation errors)
         import traceback
         from loguru import logger
         logger.error(f"[Copilot Chat] Error: {e}")

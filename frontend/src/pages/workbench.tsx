@@ -142,7 +142,6 @@ export default function Workbench() {
     }
   }, [activeConversation])
 
-
   // Watch for @ symbol in input
   useEffect(() => {
     const lastAtSymbol = inputMessage.lastIndexOf('@')
@@ -251,6 +250,7 @@ export default function Workbench() {
       setPollingForResponse(false)
     }, 300000)
   }
+
 
   const createNewConversation = () => {
     // Stop any active polling
@@ -426,9 +426,16 @@ export default function Workbench() {
       // Reload conversation list to update last message
       await loadConversations()
     } catch (err: any) {
-      alert(`Failed to send message: ${err.response?.data?.detail || err.message}`)
-      // Remove optimistic messages on error
-      setMessages(prev => prev.slice(0, -2))
+      // Backend now saves error messages to the conversation, so we just reload
+      // to show the error message in the chat instead of a pop-up alert
+      if (activeConversation) {
+        // Reload conversation to get the error message
+        await loadConversation(activeConversation)
+      } else {
+        // If this was a new conversation that failed, just remove optimistic messages
+        setMessages(prev => prev.slice(0, -2))
+        alert(`Failed to send message: ${err.response?.data?.detail || err.message}`)
+      }
     } finally {
       setSending(false)
     }
