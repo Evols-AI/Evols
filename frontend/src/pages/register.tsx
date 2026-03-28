@@ -137,9 +137,9 @@ export default function Register() {
         <title>Sign Up - Evols</title>
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex items-center justify-center p-6">
-        <div className="w-full max-w-6xl">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex flex-col items-center justify-between p-6">
+        <div className="w-full max-w-6xl flex-grow flex items-center justify-center py-12">
+          <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
             {/* Left Column - Illustration */}
             <div className="hidden lg:flex flex-col items-center justify-center">
               {/* Logo */}
@@ -433,7 +433,7 @@ export default function Register() {
         </div>
 
         {/* Footer */}
-        <footer className="container mx-auto px-6 py-12 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400">
+        <footer className="w-full py-8 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400">
           <div className="flex items-center space-x-6">
             <Link href="/docs" className="hover:text-blue-500 transition">Documentation</Link>
             <Link href="/support" className="hover:text-blue-500 transition">Contact Support</Link>
