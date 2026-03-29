@@ -452,7 +452,7 @@ export default function Settings() {
 
   const loadKnowledgeRefreshSettings = async () => {
     try {
-      const response = await api.getKnowledgeRefreshSettings()
+      const response = await api.getThemeRefreshSettings()
       setKnowledgeRefreshEnabled(response.data.enabled)
       setKnowledgeRefreshDays(response.data.interval_days)
       setLastKnowledgeRefreshDate(response.data.last_refresh_date)
@@ -464,7 +464,7 @@ export default function Settings() {
   const handleSaveKnowledgeRefreshSettings = async () => {
     try {
       setSavingKnowledgeRefresh(true)
-      await api.updateKnowledgeRefreshSettings({
+      await api.updateThemeRefreshSettings({
         enabled: knowledgeRefreshEnabled,
         interval_days: knowledgeRefreshDays,
       })

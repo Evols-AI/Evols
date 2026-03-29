@@ -165,6 +165,28 @@ class ToolRegistry:
         else:
             logger.warning(f"[ToolRegistry] product_id is None for {tool_name}")
 
+        # Check for common parameter name mistakes before execution
+        tool_params = {param.name for param in tool.parameters}
+        provided_params = set(arguments.keys())
+
+        # Common parameter mismatches
+        param_corrections = {
+            'project_name': 'name',
+            'task_name': 'title',
+            'project_title': 'name'
+        }
+
+        for wrong_param, correct_param in param_corrections.items():
+            if wrong_param in provided_params and correct_param in tool_params:
+                logger.warning(f"[ToolRegistry] Correcting parameter name: {wrong_param} -> {correct_param} for {tool_name}")
+                arguments[correct_param] = arguments.pop(wrong_param)
+
+        # Check for unexpected parameters that might cause failures
+        unexpected_params = provided_params - tool_params
+        if unexpected_params:
+            logger.error(f"[ToolRegistry] Tool {tool_name} received unexpected parameters: {unexpected_params}")
+            logger.error(f"[ToolRegistry] Expected parameters: {tool_params}")
+
         return await tool.handler(**arguments)
 
 
@@ -2226,6 +2248,141 @@ async def get_work_context_summary(
         "active_tasks": len(tasks),
         "has_context": bool(work_context.title or work_context.team or len(projects) > 0)
     }
+
+
+@tool_registry.register(
+    name="invoke_skill",
+    description="Invoke another skill to generate specialized content. Use when you need output from another skill (e.g., PRD needs a flowchart, journey map needs process diagram). The invoked skill will run and return its output which you can incorporate into your response.",
+    parameters=[
+        ToolParameter(name="skill_name", type="string", description="Name of the skill to invoke (e.g., 'process-flowchart', 'create-prd')", required=True),
+        ToolParameter(name="request", type="string", description="What to ask the skill to create/analyze", required=True),
+        ToolParameter(name="context", type="string", description="Additional context to provide to the skill", required=False)
+    ]
+)
+async def invoke_skill(
+    skill_name: str,
+    request: str,
+    context: str = "",
+    tenant_id: int = None,
+    db: AsyncSession = None,
+    user = None,
+    product_id: int = None
+) -> Dict[str, Any]:
+    """
+    Invoke another skill and return its output.
+    This enables inter-skill collaboration and composition.
+    """
+    try:
+        from app.services.copilot_orchestrator import CopilotOrchestrator
+
+        if not db or not user:
+            return {"error": "Database session and user required for skill invocation"}
+
+        # Create orchestrator for skill execution
+        orchestrator = CopilotOrchestrator(db, user)
+
+        # Load the target skill configuration
+        skill_config = await orchestrator.load_skill_config(skill_name, "DEFAULT")  # Try DEFAULT first
+        if not skill_config:
+            # Try as custom skill
+            skill_config = await orchestrator.load_skill_config(skill_name, "CUSTOM")
+
+        if not skill_config:
+            return {"error": f"Skill '{skill_name}' not found"}
+
+        # Build the full request message
+        full_message = f"{request}"
+        if context:
+            full_message = f"{request}\n\nAdditional context: {context}"
+
+        # Use orchestrator to generate response with the specific skill
+        # Temporarily create a mock conversation for skill execution
+        import uuid
+        from app.models.skill import SkillConversation, SkillMessage
+        from datetime import datetime
+
+        # Create temporary conversation
+        temp_conversation_id = str(uuid.uuid4())
+        temp_conversation = SkillConversation(
+            id=temp_conversation_id,
+            user_id=user.id,
+            tenant_id=tenant_id,
+            session_name=f"Inter-skill call: {skill_name}",
+            context_data={'product_id': product_id} if product_id else None,
+            created_at=datetime.utcnow(),
+            last_message_at=datetime.utcnow()
+        )
+        db.add(temp_conversation)
+        await db.flush()
+
+        # Create user message
+        user_msg = SkillMessage(
+            conversation_id=temp_conversation_id,
+            role='user',
+            content=full_message,
+            sequence_number=1,
+            created_at=datetime.utcnow()
+        )
+        db.add(user_msg)
+        await db.flush()
+
+        # Execute the skill directly
+        from app.services.copilot_function_calling import handle_function_calling
+
+        # Get tools for the target skill
+        skill_tools = skill_config.get('tools', [])
+        work_context_tools = [
+            'get_work_context_summary',
+            'update_role_info',
+            'update_capacity',
+            'add_or_update_project',
+            'add_or_update_relationship',
+            'add_task'
+        ]
+        for wc_tool in work_context_tools:
+            if wc_tool not in skill_tools:
+                skill_tools.append(wc_tool)
+
+        tools_config = {**skill_config, 'tools': skill_tools}
+
+        # Build system prompt for the invoked skill
+        system_prompt = await orchestrator.build_system_prompt(skill_config, product_id=product_id)
+
+        # Get LLM service
+        llm_service = await orchestrator.get_llm_service()
+
+        # Execute skill with function calling
+        assistant_content, tool_calls = await handle_function_calling(
+            user_message=full_message,
+            conversation_history=[],  # Empty for fresh skill execution
+            system_prompt=system_prompt,
+            skill_config=tools_config,
+            llm_service=llm_service,
+            tenant_id=tenant_id,
+            db=db,
+            product_id=product_id,
+            user=user
+        )
+
+        # Clean up temporary conversation
+        await db.delete(temp_conversation)
+        await db.commit()
+
+        logger.info(f"[Inter-skill] Successfully invoked {skill_name} skill")
+
+        return {
+            "skill_name": skill_name,
+            "output": assistant_content,
+            "tool_calls_made": len(tool_calls) if tool_calls else 0,
+            "success": True
+        }
+
+    except Exception as e:
+        logger.error(f"[Inter-skill] Failed to invoke skill '{skill_name}': {e}")
+        return {
+            "error": f"Failed to invoke skill '{skill_name}': {str(e)}",
+            "success": False
+        }
 
 
 # Export registry

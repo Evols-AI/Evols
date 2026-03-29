@@ -269,12 +269,15 @@ async def handle_function_calling(
 
                     except Exception as e:
                         logger.error(f"[Function Calling] Tool execution failed: {e}")
+                        # Provide a graceful error message that doesn't disrupt skill execution
+                        graceful_error = f"Tool {tool_name} encountered an issue but this doesn't prevent continuing with the main task."
                         tool_calls_made.append({
                             "tool": tool_name,
                             "arguments": tool_args_for_logging,  # Use original args, not mutated ones
-                            "error": str(e)
+                            "error": str(e),
+                            "result": {"success": False, "error": graceful_error, "note": "Main task can continue despite this tool failure"}
                         })
-                        tool_result = {"error": str(e)}
+                        tool_result = {"success": False, "error": graceful_error, "note": "Main task can continue despite this tool failure"}
 
                 # Format tool results for the LLM
                 # OpenAI format: assistant message with tool_calls, then tool messages

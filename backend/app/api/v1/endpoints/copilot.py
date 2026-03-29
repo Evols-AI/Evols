@@ -324,3 +324,98 @@ async def get_skill_details(
         raise HTTPException(status_code=404, detail="Skill not found")
 
     return skill_data
+
+
+# ===================================
+# ARTIFACT CLASSIFICATION
+# ===================================
+
+class ClassifyArtifactsRequest(BaseModel):
+    content: str
+
+class ArtifactInfo(BaseModel):
+    type: str  # "document" or "flowchart"
+    title: str
+    contentStart: str
+    contentEnd: str
+
+class ClassifyArtifactsResponse(BaseModel):
+    artifacts: List[ArtifactInfo]
+
+
+@router.post("/classify-artifacts", response_model=ClassifyArtifactsResponse)
+async def classify_artifacts(
+    request: ClassifyArtifactsRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Use LLM to intelligently classify artifacts in AI response content.
+    Supports multiple artifacts in one response.
+    """
+    try:
+        orchestrator = CopilotOrchestrator(db, current_user)
+        llm_service = await orchestrator.get_llm_service()
+
+        classification_prompt = f"""Analyze this AI response and identify artifacts that should be created.
+
+Response: "{request.content}"
+
+Look for distinct sections that should become artifacts:
+- **Documents**: Structured text content (PRDs, strategies, analyses, 1-pagers, etc.)
+- **Flowcharts**: Visual diagrams, process flows, user journeys, workflows
+
+For each artifact found, output ONE line in this exact format:
+type|title|content_start|content_end
+
+Where:
+- type: "flowchart" or "document"
+- title: Descriptive name (e.g., "Animated Product Tour PRD", "User Onboarding Journey")
+- content_start: First few words where this artifact begins (e.g., "**Animated Product Tour PRD**")
+- content_end: Last few words where this artifact ends (e.g., "## Next Steps", leave empty if goes to end)
+
+Examples:
+document|Animated Product Tour PRD|**Animated Product Tour PRD**|## Next Steps
+flowchart|User Onboarding Journey|User discovers product|User becomes active user
+document|Technical Requirements|## Technical Specs|
+
+If no artifacts needed, output: none
+
+IMPORTANT: Only create artifacts for substantial, structured content. Skip conversational responses."""
+
+        response = await llm_service.generate(
+            prompt=classification_prompt,
+            system_prompt="You are an artifact classifier. Output the exact format requested. Be precise with content markers.",
+            temperature=0.1,
+            max_tokens=500
+        )
+
+        # Parse LLM response
+        artifacts = []
+        lines = response.content.strip().split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if not line or line.lower() == 'none':
+                continue
+
+            parts = line.split('|')
+            if len(parts) >= 3:
+                artifact_type = parts[0].strip()
+                title = parts[1].strip()
+                content_start = parts[2].strip() if len(parts) > 2 else ""
+                content_end = parts[3].strip() if len(parts) > 3 else ""
+
+                if artifact_type in ['document', 'flowchart'] and title:
+                    artifacts.append(ArtifactInfo(
+                        type=artifact_type,
+                        title=title,
+                        contentStart=content_start,
+                        contentEnd=content_end
+                    ))
+
+        return ClassifyArtifactsResponse(artifacts=artifacts)
+
+    except Exception as e:
+        # Don't fail hard - frontend has fallback
+        return ClassifyArtifactsResponse(artifacts=[])

@@ -1,6 +1,6 @@
 ---
 name: customer-journey-map
-description: "Create an end-to-end customer journey map with stages, touchpoints, emotions, pain points, and opportunities. Use when mapping the customer experience, identifying friction points, improving onboarding, or visualizing the user journey."
+description: "Create an end-to-end customer journey map with stages, touchpoints, emotions, pain points, and opportunities. Use when mapping the customer experience, identifying friction points, or analyzing user touchpoints. Do NOT use for flowcharts, process flows, or sequential step diagrams - this is specifically for journey mapping with emotions and touchpoint analysis."
 ---
 
 ## Customer Journey Map

@@ -340,7 +340,7 @@ COMPLETE EXAMPLE - User provides project info:
 Input: "Mobile app redesign - In progress (40% complete), I'm owner driving requirements. Next milestone is design prototypes in 2 weeks. Key stakeholders: Mobile eng team, Design lead, UX researchers"
 
 ACTIONS REQUIRED (use function calling, not text):
-- Call add_or_update_project with name, status, role, next_milestone, key_stakeholders
+- Call add_or_update_project with name (NOT project_name), status, role, next_milestone, key_stakeholders
 - Call add_task for the milestone with title, priority, deadline, impact
 - Call add_or_update_relationship for each stakeholder (3 separate calls)
 
@@ -374,7 +374,7 @@ IF in other skills (prd-writer, brainstorm-ideas, create-prd, etc.):
 → **EXTRACT FULL WORK CONTEXT BEFORE DOING SKILL WORK**
 
 **Step 1: Extract Project Info**
-- If user says "PRD for X", "working on X", "new project X" → call add_or_update_project
+- If user says "PRD for X", "working on X", "new project X" → call add_or_update_project(name="X", status="yellow", role="owner")
 - Status inference: "new project" = yellow, "PRD" = yellow (planning), "launch" = green
 - Role inference: If not stated, assume "owner" (they're driving this work)
 
@@ -523,7 +523,7 @@ Result: No actual feedback retrieved
 
 ✅ RIGHT:
 User: "What are customers saying about our mobile app?"
-You: [FIRST call get_context_sources(search_query="mobile app") AND get_extracted_entities(search_query="mobile app")]
+You: [FIRST call get_context_sources(search="mobile app") AND get_extracted_entities(search="mobile app")]
 You: "I analyzed 8 context sources mentioning mobile app:
 - Q4 Customer Survey (23 responses)
 - Support tickets (15 mentions)
@@ -580,29 +580,29 @@ THEN prioritize with reasoning
 **SEARCH & FILTER CAPABILITIES:**
 
 get_context_sources accepts:
-- search_query: "mobile", "pricing", "onboarding"
+- search: "mobile", "pricing", "onboarding"
 - source_type: "csv_survey", "meeting_transcript", etc.
 
 get_extracted_entities accepts:
-- search_query: "performance", "pricing", "mobile"
+- search: "performance", "pricing", "mobile"
 - entity_type: "persona", "pain_point", "use_case", "feature_request", "product_capability", "competitor"
 - source_name: Filter by specific source
 - customer_name: Filter by specific customer
 
 EXAMPLES:
-- "Show me pain points from enterprise customers" → get_extracted_entities(entity_type="pain_point", search_query="enterprise")
-- "What did we learn from the Q4 survey?" → get_context_sources(search_query="Q4 survey") + get_extracted_entities(source_name="Q4 survey")
-- "Feature requests about mobile" → get_extracted_entities(entity_type="feature_request", search_query="mobile")
+- "Show me pain points from enterprise customers" → get_extracted_entities(entity_type="pain_point", search="enterprise")
+- "What did we learn from the Q4 survey?" → get_context_sources(search="Q4 survey") + get_extracted_entities(source_name="Q4 survey")
+- "Feature requests about mobile" → get_extracted_entities(entity_type="feature_request", search="mobile")
 
 **COMBINING TOOLS FOR DEEP ANALYSIS:**
 
 User asks: "Help me understand the enterprise segment"
 YOU MUST CALL (in this order):
 1. get_customer_segments - get documented segment definition
-2. get_extracted_entities(entity_type="persona", search_query="enterprise") - extracted personas
-3. get_extracted_entities(entity_type="pain_point", search_query="enterprise") - their pain points
-4. get_extracted_entities(entity_type="use_case", search_query="enterprise") - their use cases
-5. get_context_sources(search_query="enterprise") - original source material
+2. get_extracted_entities(entity_type="persona", search="enterprise") - extracted personas
+3. get_extracted_entities(entity_type="pain_point", search="enterprise") - their pain points
+4. get_extracted_entities(entity_type="use_case", search="enterprise") - their use cases
+5. get_context_sources(search="enterprise") - original source material
 THEN synthesize comprehensive view
 
 **Data Retrieval Summary:**
@@ -753,7 +753,7 @@ COMPLETE EXAMPLE - User provides project info:
 Input: "Mobile app redesign - In progress (40% complete), I'm owner driving requirements. Next milestone is design prototypes in 2 weeks. Key stakeholders: Mobile eng team, Design lead, UX researchers"
 
 ACTIONS REQUIRED (use function calling, not text):
-- Call add_or_update_project with name, status, role, next_milestone, key_stakeholders
+- Call add_or_update_project with name (NOT project_name), status, role, next_milestone, key_stakeholders
 - Call add_task for the milestone with title, priority, deadline, impact
 - Call add_or_update_relationship for each stakeholder (3 separate calls)
 
@@ -787,7 +787,7 @@ IF in other skills (prd-writer, brainstorm-ideas, create-prd, etc.):
 → **EXTRACT FULL WORK CONTEXT BEFORE DOING SKILL WORK**
 
 **Step 1: Extract Project Info**
-- If user says "PRD for X", "working on X", "new project X" → call add_or_update_project
+- If user says "PRD for X", "working on X", "new project X" → call add_or_update_project(name="X", status="yellow", role="owner")
 - Status inference: "new project" = yellow, "PRD" = yellow (planning), "launch" = green
 - Role inference: If not stated, assume "owner" (they're driving this work)
 
@@ -936,7 +936,7 @@ Result: No actual feedback retrieved
 
 ✅ RIGHT:
 User: "What are customers saying about our mobile app?"
-You: [FIRST call get_context_sources(search_query="mobile app") AND get_extracted_entities(search_query="mobile app")]
+You: [FIRST call get_context_sources(search="mobile app") AND get_extracted_entities(search="mobile app")]
 You: "I analyzed 8 context sources mentioning mobile app:
 - Q4 Customer Survey (23 responses)
 - Support tickets (15 mentions)
@@ -993,29 +993,29 @@ THEN prioritize with reasoning
 **SEARCH & FILTER CAPABILITIES:**
 
 get_context_sources accepts:
-- search_query: "mobile", "pricing", "onboarding"
+- search: "mobile", "pricing", "onboarding"
 - source_type: "csv_survey", "meeting_transcript", etc.
 
 get_extracted_entities accepts:
-- search_query: "performance", "pricing", "mobile"
+- search: "performance", "pricing", "mobile"
 - entity_type: "persona", "pain_point", "use_case", "feature_request", "product_capability", "competitor"
 - source_name: Filter by specific source
 - customer_name: Filter by specific customer
 
 EXAMPLES:
-- "Show me pain points from enterprise customers" → get_extracted_entities(entity_type="pain_point", search_query="enterprise")
-- "What did we learn from the Q4 survey?" → get_context_sources(search_query="Q4 survey") + get_extracted_entities(source_name="Q4 survey")
-- "Feature requests about mobile" → get_extracted_entities(entity_type="feature_request", search_query="mobile")
+- "Show me pain points from enterprise customers" → get_extracted_entities(entity_type="pain_point", search="enterprise")
+- "What did we learn from the Q4 survey?" → get_context_sources(search="Q4 survey") + get_extracted_entities(source_name="Q4 survey")
+- "Feature requests about mobile" → get_extracted_entities(entity_type="feature_request", search="mobile")
 
 **COMBINING TOOLS FOR DEEP ANALYSIS:**
 
 User asks: "Help me understand the enterprise segment"
 YOU MUST CALL (in this order):
 1. get_customer_segments - get documented segment definition
-2. get_extracted_entities(entity_type="persona", search_query="enterprise") - extracted personas
-3. get_extracted_entities(entity_type="pain_point", search_query="enterprise") - their pain points
-4. get_extracted_entities(entity_type="use_case", search_query="enterprise") - their use cases
-5. get_context_sources(search_query="enterprise") - original source material
+2. get_extracted_entities(entity_type="persona", search="enterprise") - extracted personas
+3. get_extracted_entities(entity_type="pain_point", search="enterprise") - their pain points
+4. get_extracted_entities(entity_type="use_case", search="enterprise") - their use cases
+5. get_context_sources(search="enterprise") - original source material
 THEN synthesize comprehensive view
 
 **Data Retrieval Summary:**

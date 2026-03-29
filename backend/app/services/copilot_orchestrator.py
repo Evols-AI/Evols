@@ -68,21 +68,45 @@ class CopilotOrchestrator:
                 return (skill[0], skill[1])
 
         # Auto-classify based on keywords (second priority - detect skill by content)
+        logger.info(f"[Skill Selection] Attempting keyword classification for message: {message[:100]}...")
         skill = await self._classify_by_keywords(message)
         if skill:
+            logger.info(f"[Skill Selection] Keyword classification successful: {skill}")
             return skill
+        else:
+            logger.info("[Skill Selection] Keyword classification found no matches")
 
         # Check if we should continue with previous skill (third priority - conversation continuity)
         # Continue with the current skill unless explicitly overridden by @mention or keywords
+        # BUT: Don't continue if this is a completely different type of request
         if conversation_history:
             last_assistant_msg = next(
                 (msg for msg in reversed(conversation_history) if msg.role == 'assistant' and (msg.skill_name or msg.skill_id)),
                 None
             )
             if last_assistant_msg:
-                # Prefer skill_name (file-based), fallback to skill_id (legacy DB-based)
-                skill_identifier = last_assistant_msg.skill_name or str(last_assistant_msg.skill_id)
-                return (skill_identifier, last_assistant_msg.skill_type)
+                current_skill_name = last_assistant_msg.skill_name or str(last_assistant_msg.skill_id)
+
+                # Define skill type patterns to detect different request types
+                prd_patterns = ['write prd', 'create prd', 'draft prd', 'help me write prd', 'help me write a prd', 'write requirements', 'product requirements document', 'requirements document', 'prd for', 'help me draft']
+                flowchart_patterns = ['flowchart', 'flow chart', 'process flow', 'workflow diagram', 'user journey flow', 'visual flow', 'process diagram', 'step by step flow', 'user journey flowchart']
+
+                message_lower = message.lower()
+
+                # Check if user is requesting a different skill type than what's currently active
+                is_prd_request = any(pattern in message_lower for pattern in prd_patterns)
+                is_flowchart_request = any(pattern in message_lower for pattern in flowchart_patterns)
+
+                current_is_prd_skill = 'prd' in current_skill_name.lower()
+                current_is_flowchart_skill = 'flowchart' in current_skill_name.lower() or 'process' in current_skill_name.lower()
+
+                # Don't continue with current skill if request type has changed
+                if (is_prd_request and not current_is_prd_skill) or (is_flowchart_request and not current_is_flowchart_skill):
+                    logger.info(f"[Skill Selection] Detected different request type (PRD: {is_prd_request}, Flowchart: {is_flowchart_request}), not continuing with previous skill: {current_skill_name}")
+                else:
+                    # Continue with previous skill for follow-up questions or refinements
+                    logger.info(f"[Skill Selection] Continuing with previous skill: {current_skill_name}")
+                    return (current_skill_name, last_assistant_msg.skill_type)
 
         # Try LLM-based intelligent routing (fallback - intelligent classification)
         # Only use LLM routing when there's no active conversation
@@ -126,7 +150,7 @@ class CopilotOrchestrator:
 
         return None
 
-    async def _classify_by_keywords(self, message: str) -> Optional[Tuple[int, str]]:
+    async def _classify_by_keywords(self, message: str) -> Optional[Tuple[str, str]]:
         """Classify message using keyword matching"""
         message_lower = message.lower()
 
@@ -135,8 +159,9 @@ class CopilotOrchestrator:
             'roadmap': ['roadmap', 'prioritize', 'priority', 'quarter', 'planning', 'strategy', 'q1', 'q2', 'q3', 'q4', 'arr', 'revenue'],
             'sprint-plan': ['sprint', 'sprint planning', 'plan a sprint', 'sprint plan', 'plan sprint', 'capacity planning', 'story selection', 'sprint goal', 'sprint capacity', 'commit to sprint', 'sprint commitment'],
             'rice': ['rice', 'score', 'scoring', 'ranking', 'calculate', 'prioritization', 'reach', 'impact', 'confidence', 'effort'],
-            'prd': ['prd', 'spec', 'specification', 'requirements', 'user story', 'user stories', 'acceptance criteria', 'feature spec', 'write prd', 'create prd', 'draft prd', 'write a prd', 'create a prd', 'help me write', 'write requirements'],
-            'create-prd': ['write prd', 'create prd', 'draft prd', 'write a prd', 'create a prd', 'help me write', 'write requirements'],
+            'prd': ['prd', 'spec', 'specification', 'requirements', 'user story', 'user stories', 'acceptance criteria', 'feature spec'],
+            'create-prd': ['write prd', 'create prd', 'draft prd', 'write a prd', 'create a prd', 'help me write prd', 'help me write a prd', 'write requirements', 'product requirements document', 'requirements document'],
+            'process-flowchart': ['flowchart', 'flow chart', 'process flow', 'workflow diagram', 'step by step flow', 'visual flow', 'process diagram', 'user journey flow', 'user journey flowchart', 'user journey chart'],
             'persona': [
                 # Direct persona mentions
                 'persona', 'segment', 'user type', 'user segment', 'audience', 'demographic',
@@ -154,38 +179,55 @@ class CopilotOrchestrator:
             ]
         }
 
-        # Get all active skills for this tenant
-        result = await self.db.execute(
-            select(CustomSkill)
-            .where(CustomSkill.tenant_id == self.user.tenant_id)
-            .where(CustomSkill.is_active == True)
-        )
-        custom_skills = result.scalars().all()
-
-        result = await self.db.execute(
-            select(Skill)
-            .where(Skill.is_active == True)
-        )
-        default_skills = result.scalars().all()
-
-        # Check patterns
+        # Check patterns first - high priority matching
         for skill_key, keywords in patterns.items():
             if any(keyword in message_lower for keyword in keywords):
-                # Try to find matching skill
-                for skill in custom_skills:
-                    if skill_key in skill.name.lower():
-                        return (skill.id, SkillType.CUSTOM)
+                logger.info(f"[Keyword Classification] Found matching keyword for '{skill_key}' in message: {message[:100]}...")
 
-                for skill in default_skills:
-                    if skill_key in skill.name.lower():
-                        return (skill.id, SkillType.DEFAULT)
+                # First try file-based skills (DEFAULT) from unified-pm-os
+                skill_loader = get_skill_loader()
+                skill_data = skill_loader.get_skill_by_name(skill_key)
+                if skill_data:
+                    logger.info(f"[Keyword Classification] Selected file-based skill: {skill_data['name']}")
+                    return (skill_data['name'], SkillType.DEFAULT)
 
+                # Then try database skills with exact name match
+                result = await self.db.execute(
+                    select(CustomSkill)
+                    .where(CustomSkill.tenant_id == self.user.tenant_id)
+                    .where(CustomSkill.is_active == True)
+                    .where(func.lower(CustomSkill.name) == skill_key.lower())
+                )
+                custom_skill = result.scalars().first()
+                if custom_skill:
+                    logger.info(f"[Keyword Classification] Selected custom skill: {custom_skill.name}")
+                    return (custom_skill.name, SkillType.CUSTOM)
+
+                # Finally try database skills with fuzzy name match
+                result = await self.db.execute(
+                    select(CustomSkill)
+                    .where(CustomSkill.tenant_id == self.user.tenant_id)
+                    .where(CustomSkill.is_active == True)
+                    .where(func.lower(CustomSkill.name).contains(skill_key.lower()))
+                )
+                custom_skill = result.scalars().first()
+                if custom_skill:
+                    logger.info(f"[Keyword Classification] Selected custom skill (fuzzy): {custom_skill.name}")
+                    return (custom_skill.name, SkillType.CUSTOM)
+
+                logger.warning(f"[Keyword Classification] Found keyword match for '{skill_key}' but no corresponding skill found")
+
+        logger.info(f"[Keyword Classification] No matching keywords found in message: {message[:100]}...")
         return None
 
-    async def _classify_by_llm(self, message: str) -> Optional[Tuple[int, str]]:
+    async def _classify_by_llm(self, message: str) -> Optional[Tuple[str, str]]:
         """Use LLM to intelligently route message to appropriate skill"""
         try:
-            # Get all available skills
+            # Get file-based skills
+            skill_loader = get_skill_loader()
+            file_based_skills = skill_loader.get_all_skills()
+
+            # Get database skills
             result = await self.db.execute(
                 select(CustomSkill)
                 .where(CustomSkill.tenant_id == self.user.tenant_id)
@@ -193,25 +235,20 @@ class CopilotOrchestrator:
             )
             custom_skills = result.scalars().all()
 
-            result = await self.db.execute(
-                select(Skill)
-                .where(Skill.is_active == True)
-            )
-            default_skills = result.scalars().all()
-
             all_skills = []
+            # Add file-based skills first (they take priority)
+            for skill in file_based_skills:
+                all_skills.append({
+                    'name': skill['name'],
+                    'type': SkillType.DEFAULT,
+                    'description': skill.get('description', '')
+                })
+
+            # Add custom skills
             for skill in custom_skills:
                 all_skills.append({
-                    'id': skill.id,
+                    'name': skill.name,
                     'type': SkillType.CUSTOM,
-                    'name': skill.name,
-                    'description': skill.description
-                })
-            for skill in default_skills:
-                all_skills.append({
-                    'id': skill.id,
-                    'type': SkillType.DEFAULT,
-                    'name': skill.name,
                     'description': skill.description
                 })
 
@@ -235,6 +272,8 @@ Available skills:
 {skill_list}
 
 IMPORTANT ROUTING RULES:
+- If the message asks about FLOWCHARTS, FLOW CHARTS, PROCESS FLOWS, WORKFLOW DIAGRAMS, or USER JOURNEY FLOWS, use "process-flowchart"
+- If the message asks to WRITE PRD, CREATE PRD, DRAFT PRD, or PRODUCT REQUIREMENTS DOCUMENT, use "create-prd"
 - If the message asks about a SPECIFIC PERSON/CUSTOMER by name (e.g., "Would Terry prefer X?", "What does Sarah want?"), use "Persona Analyzer"
 - If the message asks about USER PREFERENCES, CUSTOMER OPINIONS, or BEHAVIORAL ANALYSIS, use "Persona Analyzer"
 - If the message asks about ROADMAP, PRIORITIZATION, or STRATEGIC PLANNING, use "Roadmap Planner"
@@ -261,7 +300,7 @@ Do not explain, just output the skill name or "none"."""
             for skill_data in all_skills:
                 if skill_name in skill_data['name'].lower() or skill_data['name'].lower() in skill_name:
                     logger.info(f"[Copilot] LLM routed to skill: {skill_data['name']}")
-                    return (skill_data['id'], skill_data['type'])
+                    return (skill_data['name'], skill_data['type'])
 
             return None
 
@@ -542,10 +581,21 @@ CRITICAL RULES:
 
 💡 USER CONTEXT AWARENESS 💡
 You have automatic access to user's work context:
-- Call get_work_context_summary() to get their name, title, team, manager, projects, stakeholders
-- Use this to personalize outputs - NO placeholders like [Your Name], [Your Title]
-- Fill in author/contact fields with actual user information
+- **MANDATORY**: Before generating any document (PRD, strategy, analysis, etc.), ALWAYS call get_work_context_summary() first
+- Use the returned name, title, team, manager info to populate author/contact fields
+- **ABSOLUTELY FORBIDDEN**: [Your Name], [Your Title], [Name], [Insert X] - NEVER use these placeholders
+- If work context is empty, write "Not specified" instead of placeholders
 - Reference their actual projects and stakeholders when relevant
+
+🔴 PLACEHOLDER VIOLATION = IMMEDIATE FAILURE 🔴
+Examples of what to NEVER write:
+- "Product Manager: [Your name]" ❌
+- "Author: [Name]" ❌
+- "Team: [Your Team]" ❌
+Instead write:
+- "Product Manager: John Smith" ✅ (from get_work_context_summary)
+- "Author: Sarah Johnson" ✅ (from get_work_context_summary)
+- "Product Manager: Not specified" ✅ (if no data available)
 
 Remember:
 - Ask clarifying questions when you need more information
@@ -812,12 +862,15 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
         ]
 
         if actual_skill_config:
-            # Merge skill tools with universal work context tools
+            # Merge skill tools with universal work context tools and inter-skill collaboration
             skill_tools = actual_skill_config.get('tools', [])
-            # Add work context tools if not already present
-            for wc_tool in work_context_tools:
-                if wc_tool not in skill_tools:
-                    skill_tools.append(wc_tool)
+
+            # Add universal tools if not already present
+            universal_tools = work_context_tools + ['invoke_skill']  # Add inter-skill capability
+            for tool in universal_tools:
+                if tool not in skill_tools:
+                    skill_tools.append(tool)
+
             tools_config = {**actual_skill_config, 'tools': skill_tools}
         else:
             # Provide default tools for general copilot
@@ -844,6 +897,8 @@ Be conversational, ask clarifying questions, and provide actionable insights bac
                     'get_competitive_landscape',
                     'get_value_proposition',
                     'get_metrics_and_targets',
+                    # Inter-skill collaboration
+                    'invoke_skill',
                     # Work context tools (auto-populate PM OS from conversations)
                     'update_role_info',
                     'update_capacity',
