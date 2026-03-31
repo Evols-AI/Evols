@@ -123,9 +123,18 @@ class ToolRegistry:
         from loguru import logger
         import inspect
 
-        tool = self.get_tool(tool_name)
+        # Handle tool name aliases for common mistakes
+        tool_aliases = {
+            'update_work_context': 'update_role_info'  # AI often tries this non-existent tool
+        }
+
+        actual_tool_name = tool_aliases.get(tool_name, tool_name)
+        if actual_tool_name != tool_name:
+            logger.warning(f"[ToolRegistry] Tool alias: {tool_name} -> {actual_tool_name}")
+
+        tool = self.get_tool(actual_tool_name)
         if not tool:
-            raise ValueError(f"Tool '{tool_name}' not found")
+            raise ValueError(f"Tool '{actual_tool_name}' not found (original: '{tool_name}')")
 
         # Get the function signature to check what parameters it accepts
         sig = inspect.signature(tool.handler)
@@ -173,8 +182,16 @@ class ToolRegistry:
         param_corrections = {
             'project_name': 'name',
             'task_name': 'title',
-            'project_title': 'name'
+            'project_title': 'name',
+            'description': 'notes'  # add_or_update_project: AI uses 'description' but tool expects 'notes'
         }
+
+        # Tool-specific parameter corrections
+        if tool_name == 'add_or_update_relationship' and 'notes' in provided_params:
+            # For relationships, 'notes' should map to 'cares_about' if it doesn't exist
+            if 'cares_about' in tool_params and 'notes' not in tool_params:
+                logger.warning(f"[ToolRegistry] Converting 'notes' to 'cares_about' for {tool_name}")
+                arguments['cares_about'] = arguments.pop('notes')
 
         for wrong_param, correct_param in param_corrections.items():
             if wrong_param in provided_params and correct_param in tool_params:
@@ -182,10 +199,23 @@ class ToolRegistry:
                 arguments[correct_param] = arguments.pop(wrong_param)
 
         # Check for unexpected parameters that might cause failures
-        unexpected_params = provided_params - tool_params
+        # Exclude injected parameters from the unexpected check
+        injected_params = set()
+        if accepts_user:
+            injected_params.update(['user', 'db'])
+        elif accepts_tenant_id:
+            injected_params.update(['tenant_id', 'db'])
+        else:
+            injected_params.add('db')
+
+        if product_id is not None and 'product_id' in tool_params:
+            injected_params.add('product_id')
+
+        unexpected_params = provided_params - tool_params - injected_params
         if unexpected_params:
             logger.error(f"[ToolRegistry] Tool {tool_name} received unexpected parameters: {unexpected_params}")
             logger.error(f"[ToolRegistry] Expected parameters: {tool_params}")
+            logger.error(f"[ToolRegistry] Injected parameters: {injected_params}")
 
         return await tool.handler(**arguments)
 
