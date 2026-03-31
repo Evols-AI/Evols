@@ -38,12 +38,18 @@ try:
 except ImportError:
     boto3 = None
 
+try:
+    import google.generativeai as genai
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+except ImportError:
+    genai = None
+
 
 class LLMConfig(BaseModel):
     """LLM Configuration"""
-    provider: Literal["openai", "anthropic", "azure_openai", "aws_bedrock"]
+    provider: Literal["openai", "anthropic", "azure_openai", "aws_bedrock", "google_gemini"]
     api_key: Optional[str] = None
-    model: str = "gpt-4"
+    model: str = "gpt-5.4"  # Updated to latest GPT-5.4 (March 2026)
     temperature: float = 0.7
     max_tokens: int = 2000
 
@@ -61,21 +67,44 @@ class LLMConfig(BaseModel):
 # Model tier mapping for cost optimization
 # Maps premium models to their cheaper alternatives per provider
 MODEL_TIERS = {
-    # AWS Bedrock - Anthropic Claude models
-    "anthropic.claude-3-opus-20240229-v1:0": "anthropic.claude-3-sonnet-20240229-v1:0",
-    "anthropic.claude-3-sonnet-20240229-v1:0": "anthropic.claude-3-haiku-20240307-v1:0",
+    # Latest Models (2026) - Cost Optimization Mappings
 
-    # Anthropic API - Claude models
-    "claude-opus-4-20250514": "claude-3-5-sonnet-20241022",
-    "claude-3-5-sonnet-20241022": "claude-3-5-haiku-20241022",
-    "claude-3-opus-20240229": "claude-3-5-sonnet-20241022",
-
-    # OpenAI - GPT models
+    # OpenAI - GPT models (2026 → older)
+    "gpt-5.4": "gpt-5.2",                   # Latest → Previous version
+    "gpt-5.2": "gpt-4o",                    # GPT-5.2 → Previous flagship
+    "gpt-4o": "gpt-4o-mini",               # Previous flagship → Mini
     "gpt-4": "gpt-4o-mini",
     "gpt-4-turbo": "gpt-4o-mini",
     "gpt-4-turbo-preview": "gpt-4o-mini",
-    "gpt-4o": "gpt-4o-mini",
     "gpt-4o-2024-11-20": "gpt-4o-mini",
+
+    # Anthropic API - Claude models (4.6 → 4.5 → 3.5)
+    "claude-opus-4-6": "claude-sonnet-4-6",           # Latest Opus → Latest Sonnet
+    "claude-sonnet-4-6": "claude-haiku-4-5-20251001", # Latest Sonnet → Fast option
+    "claude-opus-4-20250514": "claude-sonnet-4-6",    # Older Claude 4 → Latest Sonnet
+    "claude-3-5-sonnet-20241022": "claude-3-5-haiku-20241022",  # Legacy mapping
+    "claude-3-opus-20240229": "claude-3-5-sonnet-20241022",     # Legacy mapping
+
+    # AWS Bedrock - Anthropic Claude models (4.6 inference profiles → 4.5 → 3.5)
+    "global.anthropic.claude-sonnet-4-6": "anthropic.claude-sonnet-4-5-20250929-v1:0",  # Global Sonnet → Claude 4.5
+    "global.anthropic.claude-opus-4-6-v1": "global.anthropic.claude-sonnet-4-6",  # Global Opus → Global Sonnet
+    "us.anthropic.claude-sonnet-4-6": "anthropic.claude-sonnet-4-5-20250929-v1:0",  # US Sonnet → Claude 4.5
+    "us.anthropic.claude-opus-4-6-v1": "us.anthropic.claude-sonnet-4-6",  # US Opus → US Sonnet
+    "eu.anthropic.claude-sonnet-4-6": "anthropic.claude-sonnet-4-5-20250929-v1:0",  # EU Sonnet → Claude 4.5
+    "eu.anthropic.claude-opus-4-6-v1": "eu.anthropic.claude-sonnet-4-6",  # EU Opus → EU Sonnet
+    "au.anthropic.claude-sonnet-4-6": "anthropic.claude-sonnet-4-5-20250929-v1:0",  # AU Sonnet → Claude 4.5
+    "au.anthropic.claude-opus-4-6-v1": "au.anthropic.claude-sonnet-4-6",  # AU Opus → AU Sonnet
+    "anthropic.claude-sonnet-4-5-20250929-v1:0": "anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude 4.5 → 3.5
+    "anthropic.claude-3-5-sonnet-20241022-v2:0": "anthropic.claude-3-5-haiku-20241022-v1:0",
+    "anthropic.claude-3-opus-20240229-v1:0": "anthropic.claude-3-sonnet-20240229-v1:0",
+    "anthropic.claude-3-sonnet-20240229-v1:0": "anthropic.claude-3-haiku-20240307-v1:0",
+
+    # Google Gemini models (2.5 → 1.5 for production, 3.1 preview not recommended)
+    "gemini-2.5-flash": "gemini-2.5-flash-lite",      # Production Flash → Lite
+    "gemini-3.1-pro-preview": "gemini-2.5-flash",     # Preview → Production
+    "gemini-3.1-flash-lite-preview": "gemini-2.5-flash-lite",  # Preview → Production
+    "gemini-1.5-pro": "gemini-1.5-flash",             # Legacy Pro → Legacy Flash
+    "gemini-1.5-flash": "gemini-1.5-flash-8b",        # Legacy Flash → Ultra-fast
 
     # Add more mappings as needed
 }
@@ -169,6 +198,36 @@ class LLMService:
             
             session = boto3.Session(**session_kwargs)
             self.client = session.client('bedrock-runtime')
+        elif self.provider == "google_gemini":
+            if genai is None:
+                raise ImportError("google-generativeai package is required. Install with: pip install google-generativeai")
+
+            # Configure the client
+            genai.configure(api_key=config.api_key)
+
+            # Initialize the model
+            generation_config = {
+                "temperature": config.temperature,
+                "max_output_tokens": config.max_tokens,
+            }
+
+            # Add optional config parameters
+            if hasattr(config, 'top_p') and config.top_p is not None:
+                generation_config["top_p"] = config.top_p
+            if hasattr(config, 'top_k') and config.top_k is not None:
+                generation_config["top_k"] = config.top_k
+
+            # Create the model instance
+            self.client = genai.GenerativeModel(
+                model_name=config.model,
+                generation_config=generation_config,
+                safety_settings={
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                }
+            )
 
     def get_cheaper_model(self) -> Optional[str]:
         """
@@ -248,6 +307,8 @@ class LLMService:
                 response = await self._generate_anthropic(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages)
             elif self.provider == "aws_bedrock":
                 response = await self._generate_bedrock(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages, tool_choice=tool_choice)
+            elif self.provider == "google_gemini":
+                response = await self._generate_gemini(prompt, system_prompt, temp, max_tok, model_to_use, tools, messages_array=messages)
             else:
                 raise ValueError(f"Unsupported provider: {self.provider}")
 
@@ -766,6 +827,97 @@ class LLMService:
             finish_reason=finish_reason,
             tool_calls=tool_calls
         )
+
+    async def _generate_gemini(
+        self,
+        prompt: Optional[str],
+        system_prompt: Optional[str],
+        temperature: float,
+        max_tokens: int,
+        model: str,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        messages_array: Optional[List[Dict[str, Any]]] = None
+    ) -> LLMResponse:
+        """Generate with Google Gemini"""
+
+        # Prepare the input
+        if messages_array:
+            # Convert messages to Gemini format
+            conversation_parts = []
+            system_instruction = ""
+
+            for msg in messages_array:
+                if msg.get("role") == "system":
+                    system_instruction = msg.get("content", "")
+                elif msg.get("role") == "user":
+                    conversation_parts.append(f"User: {msg.get('content', '')}")
+                elif msg.get("role") == "assistant":
+                    conversation_parts.append(f"Assistant: {msg.get('content', '')}")
+
+            full_prompt = "\n\n".join(conversation_parts)
+            if system_instruction:
+                full_prompt = f"{system_instruction}\n\n{full_prompt}"
+        else:
+            # Single prompt
+            full_prompt = prompt or ""
+            if system_prompt:
+                full_prompt = f"{system_prompt}\n\n{full_prompt}"
+
+        # Update generation config for this request
+        generation_config = {
+            "temperature": temperature,
+            "max_output_tokens": max_tokens,
+        }
+
+        # Create model with updated config
+        model_instance = genai.GenerativeModel(
+            model_name=model,
+            generation_config=generation_config,
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+        )
+
+        try:
+            # Generate content
+            response = await asyncio.to_thread(
+                model_instance.generate_content,
+                full_prompt
+            )
+
+            # Extract content
+            content_text = response.text if hasattr(response, 'text') else ""
+
+            # Extract usage information (if available)
+            usage = {
+                "prompt_tokens": getattr(response.usage_metadata, 'prompt_token_count', 0) if hasattr(response, 'usage_metadata') else 0,
+                "completion_tokens": getattr(response.usage_metadata, 'candidates_token_count', 0) if hasattr(response, 'usage_metadata') else 0,
+                "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0) if hasattr(response, 'usage_metadata') else 0
+            }
+
+            # Get finish reason
+            finish_reason = "stop"  # Gemini doesn't provide detailed finish reasons like other models
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'finish_reason'):
+                    finish_reason = str(candidate.finish_reason)
+
+            logger.info(f"[Google Gemini] Response - text length: {len(content_text)}, usage: {usage}")
+
+            return LLMResponse(
+                content=content_text,
+                model=model,
+                usage=usage,
+                finish_reason=finish_reason,
+                tool_calls=None  # Tool calling support can be added later
+            )
+
+        except Exception as e:
+            logger.error(f"[Google Gemini] Generation failed: {e}")
+            raise
     
     async def chat_completion(
         self,
@@ -1138,6 +1290,12 @@ def get_llm_service(
                 "Azure OpenAI configuration incomplete. Please provide azure_endpoint and azure_deployment "
                 "in Settings → LLM Settings."
             )
+    elif provider == "google_gemini":
+        api_key = config_source.get("api_key")
+        if not api_key:
+            raise ValueError(
+                "Google AI Studio API key not configured. Please provide api_key in Settings → LLM Settings."
+            )
     else:
         # OpenAI or Anthropic
         api_key = config_source.get("api_key")
@@ -1159,6 +1317,20 @@ def get_llm_service(
             aws_secret_access_key=aws_secret_key,
             aws_session_token=config_source.get("aws_session_token"),
         )
+    elif provider == "google_gemini":
+        config = LLMConfig(
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            temperature=config_source.get("temperature", 0.7),
+            max_tokens=config_source.get("max_tokens", 2000),
+        )
+        # Add Gemini-specific parameters
+        if hasattr(config, '__dict__'):
+            config.__dict__.update({
+                'top_p': config_source.get("top_p", 0.95),
+                'top_k': config_source.get("top_k", 40),
+            })
     else:
         config = LLMConfig(
             provider=provider,

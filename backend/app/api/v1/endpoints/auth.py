@@ -20,6 +20,7 @@ from app.services.email_service import EmailService
 from sqlalchemy import select
 from datetime import datetime, timedelta
 import secrets
+from uuid import uuid4
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -183,30 +184,26 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
             tenant_id = invite.tenant_id
             role = UserRole(invite.role) if invite.role in ['USER', 'TENANT_ADMIN'] else UserRole.USER
         else:
-            # Domain-based registration (first user creates tenant)
-            # Requires email verification before creating tenant
+            # Simplified domain-based registration - always requires email verification
 
             # Extract domain from email
             email_domain = user_data.email.split('@')[1].lower()
-
-            # Check for common public email domains
             public_domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com']
-            if email_domain in public_domains:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Cannot auto-create tenant for public email domain '{email_domain}'. Please use a company email or request an invite."
-                )
 
-            # Check if tenant with this domain already exists
+            # Check if user has pending invites - if so, force them to use invite link
             result = await db.execute(
-                select(Tenant).where(Tenant.domain == email_domain)
+                select(TenantInvite).where(
+                    TenantInvite.email == user_data.email.lower(),
+                    TenantInvite.is_used == False,
+                    TenantInvite.expires_at > datetime.utcnow()
+                )
             )
-            existing_tenant = result.scalar_one_or_none()
+            pending_invite = result.scalar_one_or_none()
 
-            if existing_tenant:
+            if pending_invite:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"A tenant for domain '{email_domain}' already exists. Please request an invite from your administrator."
+                    detail="You have a pending invitation. Please use the invitation link instead of signing up directly."
                 )
 
             # Check if there's already a pending verification for this email
@@ -224,20 +221,57 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
                     detail="A verification email has already been sent. Please check your inbox or wait for it to expire."
                 )
 
+            # Determine tenant creation strategy based on email domain
+            if email_domain in public_domains:
+                # Personal email: Create UUID-based tenant
+                user_prefix = user_data.email.split('@')[0].replace('.', '-').replace('_', '-')
+                uuid_suffix = str(uuid4())[:8]
+                tenant_name = f"{user_data.full_name}'s Workspace"
+                tenant_slug = f"{user_prefix}-{uuid_suffix}"
+                tenant_domain = None  # No domain claim for personal emails
+                join_existing = False
+            else:
+                # Company email: Check if tenant exists for this domain
+                result = await db.execute(
+                    select(Tenant).where(Tenant.domain == email_domain)
+                )
+                existing_tenant = result.scalar_one_or_none()
+
+                if existing_tenant:
+                    # Join existing company tenant
+                    tenant_name = existing_tenant.name
+                    tenant_slug = existing_tenant.slug
+                    tenant_domain = existing_tenant.domain
+                    join_existing = True
+                    existing_tenant_id = existing_tenant.id
+                else:
+                    # Create new company tenant
+                    company_name = email_domain.split('.')[0].title()
+                    tenant_name = company_name
+                    tenant_slug = email_domain.replace('.', '-')
+                    tenant_domain = email_domain
+                    join_existing = False
+
             # Create email verification record
-            company_name = email_domain.split('.')[0].title()
             verification_token = secrets.token_urlsafe(32)
+
+            registration_data = {
+                "full_name": user_data.full_name,
+                "hashed_password": get_password_hash(user_data.password),
+                "tenant_name": tenant_name,
+                "tenant_slug": tenant_slug,
+                "tenant_domain": tenant_domain,
+                "join_existing": join_existing,
+            }
+
+            # Add existing tenant ID if joining existing tenant
+            if join_existing:
+                registration_data["existing_tenant_id"] = existing_tenant_id
 
             verification = EmailVerification(
                 email=user_data.email.lower(),
                 token=verification_token,
-                registration_data={
-                    "full_name": user_data.full_name,
-                    "hashed_password": get_password_hash(user_data.password),
-                    "tenant_name": company_name,
-                    "tenant_domain": email_domain,
-                    "tenant_slug": email_domain.replace('.', '-'),
-                },
+                registration_data=registration_data,
                 expires_at=datetime.utcnow() + timedelta(hours=24),
                 is_verified=False,
             )
@@ -249,7 +283,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
                 EmailService.send_verification_email(
                     to_email=user_data.email.lower(),
                     verification_token=verification_token,
-                    tenant_name=company_name
+                    tenant_name=tenant_name
                 )
             except Exception as e:
                 # Log error but don't fail registration
@@ -378,45 +412,79 @@ async def verify_email(
             detail="User already exists with this email"
         )
 
-    # Create tenant
-    tenant = Tenant(
-        name=reg_data["tenant_name"],
-        slug=reg_data["tenant_slug"],
-        domain=reg_data["tenant_domain"],
-        is_active=True,
-        is_trial=True,
-        plan_type="free",
-    )
-    db.add(tenant)
-    await db.flush()
+    # Handle tenant creation or joining based on registration type
+    if reg_data.get("join_existing", False):
+        # Join existing tenant
+        tenant_id = reg_data["existing_tenant_id"]
+        tenant = await db.get(Tenant, tenant_id)
 
-    # Seed demo data for new tenant
-    try:
-        await seed_demo_product(db, tenant.id)
-    except Exception as e:
-        print(f"Warning: Failed to seed demo product for tenant {tenant.id}: {e}")
+        if not tenant:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The tenant you're trying to join no longer exists"
+            )
 
-    # Create user
-    new_user = User(
-        email=email,
-        hashed_password=reg_data["hashed_password"],
-        full_name=reg_data["full_name"],
-        tenant_id=tenant.id,
-        role=UserRole.TENANT_ADMIN,
-        is_active=True,
-        is_verified=True,
-    )
-    db.add(new_user)
-    await db.flush()
+        # Create user as regular USER (not TENANT_ADMIN for existing tenants)
+        new_user = User(
+            email=email,
+            hashed_password=reg_data["hashed_password"],
+            full_name=reg_data["full_name"],
+            tenant_id=tenant.id,
+            role=UserRole.USER,  # Regular user when joining existing tenant
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(new_user)
+        await db.flush()
 
-    # Create UserTenant membership
-    user_tenant = UserTenant(
-        user_id=new_user.id,
-        tenant_id=tenant.id,
-        role=UserRole.TENANT_ADMIN.value,
-        is_active=True,
-    )
-    db.add(user_tenant)
+        # Create UserTenant membership
+        user_tenant = UserTenant(
+            user_id=new_user.id,
+            tenant_id=tenant.id,
+            role=UserRole.USER.value,
+            is_active=True,
+        )
+        db.add(user_tenant)
+    else:
+        # Create new tenant
+        tenant = Tenant(
+            name=reg_data["tenant_name"],
+            slug=reg_data["tenant_slug"],
+            domain=reg_data["tenant_domain"],
+            is_active=True,
+            is_trial=True,
+            plan_type="free",
+        )
+        db.add(tenant)
+        await db.flush()
+
+        # Seed demo data for new tenant
+        try:
+            await seed_demo_product(db, tenant.id)
+        except Exception as e:
+            print(f"Warning: Failed to seed demo product for tenant {tenant.id}: {e}")
+
+        # Create user as TENANT_ADMIN (first user in new tenant)
+        new_user = User(
+            email=email,
+            hashed_password=reg_data["hashed_password"],
+            full_name=reg_data["full_name"],
+            tenant_id=tenant.id,
+            role=UserRole.TENANT_ADMIN,
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(new_user)
+        await db.flush()
+
+        # Create UserTenant membership
+        user_tenant = UserTenant(
+            user_id=new_user.id,
+            tenant_id=tenant.id,
+            role=UserRole.TENANT_ADMIN.value,
+            is_active=True,
+        )
+        db.add(user_tenant)
 
     # Mark verification as complete
     verification.is_verified = True

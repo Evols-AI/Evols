@@ -2,7 +2,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Sparkles, Mail, Lock, User, Building, AlertCircle, CheckCircle } from 'lucide-react'
+import { Sparkles, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
 import { LogoWordmark } from '@/components/Logo'
 import { isAuthenticated } from '@/utils/auth'
 
@@ -13,7 +13,6 @@ export default function Register() {
     password: '',
     confirmPassword: '',
     full_name: '',
-    tenant_slug: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -42,11 +41,10 @@ export default function Register() {
   }, [router.isReady, router.query.invite])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target; setFormData(prev => ({
+    const { name, value } = e.target
+    setFormData(prev => ({
       ...prev,
-      [name]: value,
-      // Auto-generate tenant slug from company name
-      ...(name === 'tenant_slug' && { tenant_slug: value.toLowerCase().replace(/[^a-z0-9]/g, '-') })
+      [name]: value
     }))
   }
 
@@ -65,11 +63,6 @@ export default function Register() {
       return
     }
 
-    // Only validate tenant_slug if no invite token
-    if (!inviteToken && formData.tenant_slug.length < 3) {
-      setError('Company slug must be at least 3 characters')
-      return
-    }
 
     setLoading(true)
 
@@ -80,11 +73,9 @@ export default function Register() {
         full_name: formData.full_name,
       }
 
-      // Add invite_token or tenant_slug based on what's available
+      // Add invite_token if available (no tenant_slug needed anymore)
       if (inviteToken) {
         requestBody.invite_token = inviteToken
-      } else {
-        requestBody.tenant_slug = formData.tenant_slug
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -272,32 +263,6 @@ export default function Register() {
                     </div>
                   </div>
 
-                  {/* Company Slug - Only show if no invite token */}
-                  {!inviteToken && (
-                    <div>
-                      <label htmlFor="tenant_slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Company Slug
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Building className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                        </div>
-                        <input id="tenant_slug"
-                          name="tenant_slug"
-                          type="text"
-                          required={!inviteToken}
-                          value={formData.tenant_slug}
-                          onChange={handleChange}
-                          className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="my-company"
-                          pattern="[a-z0-9-]{3,}"
-                        />
-                      </div>
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Lowercase letters, numbers, and hyphens only (min 3 characters)
-                      </p>
-                    </div>
-                  )}
 
                   {/* Password */}
                   <div>
