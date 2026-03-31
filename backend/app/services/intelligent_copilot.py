@@ -272,20 +272,61 @@ Respond in JSON format:
                 max_tokens=150
             )
 
-            # Parse JSON response
-            decision = json.loads(response.content.strip())
+            # Debug: Log the actual response content before parsing
+            logger.info(f"[IntelligentCopilot] Raw response content: {repr(response.content)}")
+            logger.info(f"[IntelligentCopilot] Response content length: {len(response.content)}")
+
+            # Parse JSON response with robust handling
+            decision = self._parse_json_response(response.content)
             logger.info(f"[IntelligentCopilot] Decision: {decision}")
 
             return decision
 
         except Exception as e:
             logger.error(f"[IntelligentCopilot] Decision failed: {e}")
+            logger.error(f"[IntelligentCopilot] Failed to parse response: {repr(response.content[:200]) if 'response' in locals() else 'No response'}")
             # Fallback to general conversation
             return {
                 'use_skill': False,
                 'skill_name': None,
                 'reasoning': 'Error in decision-making, defaulting to conversation'
             }
+
+    def _parse_json_response(self, content: str) -> Dict[str, Any]:
+        """
+        Robustly parse JSON from LLM response.
+
+        Some models (like Sonnet 3) return plain JSON.
+        Others (like Claude 4.6) wrap JSON in markdown code blocks.
+        This handles both cases gracefully.
+        """
+        content = content.strip()
+
+        # First, try parsing as-is (works for models that return plain JSON)
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # If that fails, try extracting from markdown code blocks
+            logger.info(f"[IntelligentCopilot] Plain JSON parsing failed, trying markdown extraction")
+
+            # Handle ```json wrapper
+            if content.startswith('```json'):
+                lines = content.split('\n')
+                if len(lines) >= 3 and lines[0].strip() == '```json' and lines[-1].strip() == '```':
+                    clean_content = '\n'.join(lines[1:-1]).strip()
+                    logger.info(f"[IntelligentCopilot] Extracted from ```json wrapper: {repr(clean_content)}")
+                    return json.loads(clean_content)
+
+            # Handle plain ``` wrapper
+            elif content.startswith('```'):
+                lines = content.split('\n')
+                if len(lines) >= 3 and lines[0].strip() == '```' and lines[-1].strip() == '```':
+                    clean_content = '\n'.join(lines[1:-1]).strip()
+                    logger.info(f"[IntelligentCopilot] Extracted from ``` wrapper: {repr(clean_content)}")
+                    return json.loads(clean_content)
+
+            # If all parsing attempts fail, re-raise the original error
+            raise json.JSONDecodeError("Could not parse JSON from response", content, 0)
 
     async def _execute_with_skill(
         self,
@@ -332,9 +373,45 @@ TOOL USAGE PROTOCOL:
 **Work Context Tools** - WHEN TO CALL THEM:
 
 IF in pm-setup skill:
-→ User describes projects? MUST call add_or_update_project + add_task (for milestones) + add_or_update_relationship (for stakeholders)
+→ User describes projects? MUST call:
+  1. add_or_update_project (with key_stakeholders list)
+  2. add_task (for each milestone mentioned)
+  3. add_or_update_relationship (for EVERY SINGLE stakeholder mentioned - teams AND individuals)
 → DO NOT respond conversationally without calling tools first
 → If you say "I've captured" or "I've saved" but didn't call a tool = YOU ARE LYING
+
+→ ROLE CAPTURE RULE: When user provides role/title information, MUST call update_role_info:
+  ✅ "I'm Senior Product Manager" → update_role_info(title="Senior Product Manager")
+  ✅ "Senior PM for TestChat, team of 8, report to John" → update_role_info(title="Senior Product Manager", team="TestChat", team_size=8, manager_name="John")
+  ✅ "Head of Product at Acme" → update_role_info(title="Head of Product", team="Acme")
+  - NEVER just acknowledge role info without calling update_role_info
+
+→ STAKEHOLDER CAPTURE RULE: For every stakeholder mentioned in projects, create individual relationships:
+  ✅ "Mobile eng team" → add_or_update_relationship(name="Mobile Engineering Team", relationship_type="stakeholder")
+  ✅ "Design lead" → add_or_update_relationship(name="Design Lead", relationship_type="stakeholder")
+  ✅ "UX researchers" → add_or_update_relationship(name="UX Research Team", relationship_type="stakeholder")
+  - Treat teams as stakeholder entities, not just individuals
+
+→ NATURAL LANGUAGE TOOL SELECTION: Choose the right tool for the content type:
+
+  **save_work_context_info** - For business context (what they do, not specific projects):
+  ✅ "I'm Senior PM for TestChat platform"
+  ✅ "I manage a team of 8 engineers, report to VP Product"
+  ✅ "My role is Head of Mobile, team size 12"
+
+  **save_project_info** - For SPECIFIC project initiatives/deliverables:
+  ✅ "Mobile app redesign project, launching Q2"
+  ✅ "Platform stability initiative we're driving"
+  ✅ "SSO integration project with enterprise team"
+  ❌ "I work on TestChat" (this is business context, not a project)
+
+  **save_relationship_info** - For people/stakeholders:
+  ✅ "John Doe is my manager, VP of Product"
+  ✅ "Sarah leads the design team, collaborate closely"
+
+  **save_task_info** - For specific tasks/milestones:
+  ✅ "Need to finish PRD by Friday"
+  ✅ "Get stakeholder review next week"
 
 COMPLETE EXAMPLE - User provides project info:
 Input: "Mobile app redesign - In progress (40% complete), I'm owner driving requirements. Next milestone is design prototypes in 2 weeks. Key stakeholders: Mobile eng team, Design lead, UX researchers"
@@ -377,6 +454,22 @@ IF in other skills (prd-writer, brainstorm-ideas, create-prd, etc.):
 - If user says "PRD for X", "working on X", "new project X" → call add_or_update_project(name="X", status="yellow", role="owner")
 - Status inference: "new project" = yellow, "PRD" = yellow (planning), "launch" = green
 - Role inference: If not stated, assume "owner" (they're driving this work)
+
+**CRITICAL: Product vs Project Distinction**
+- If user says "I'm PM for [ProductName]" or "I work on [ProductName]" → This is their BUSINESS CONTEXT, NOT a project
+  Example: "I'm Senior PM for TestChat" → This goes in work context (save_work_context_info), NOT as a project
+
+- PROJECTS are specific initiatives, features, or deliverables WITHIN a product:
+  Example: "Working on TestChat - focusing on platform stability, mobile, enterprise"
+  → Create THREE separate projects:
+  → add_or_update_project(name="Platform Stability Initiative", notes="Improving TestChat platform reliability")
+  → add_or_update_project(name="Mobile Experience Enhancement", notes="Improving TestChat mobile app experience")
+  → add_or_update_project(name="Enterprise Features Development", notes="Adding enterprise features to TestChat")
+
+- Only create a project if user mentions SPECIFIC WORK/DELIVERABLES:
+  ✅ "Mobile app redesign" → add_or_update_project(name="Mobile app redesign")
+  ✅ "Q2 platform stability work" → add_or_update_project(name="Q2 Platform Stability Initiative")
+  ❌ "I'm PM for TestChat" → save_work_context_info (business context, not a project)
 
 **Step 2: Infer and Add Tasks**
 Based on skill being used:
@@ -745,9 +838,45 @@ TOOL USAGE PROTOCOL:
 **Work Context Tools** - WHEN TO CALL THEM:
 
 IF in pm-setup skill:
-→ User describes projects? MUST call add_or_update_project + add_task (for milestones) + add_or_update_relationship (for stakeholders)
+→ User describes projects? MUST call:
+  1. add_or_update_project (with key_stakeholders list)
+  2. add_task (for each milestone mentioned)
+  3. add_or_update_relationship (for EVERY SINGLE stakeholder mentioned - teams AND individuals)
 → DO NOT respond conversationally without calling tools first
 → If you say "I've captured" or "I've saved" but didn't call a tool = YOU ARE LYING
+
+→ ROLE CAPTURE RULE: When user provides role/title information, MUST call update_role_info:
+  ✅ "I'm Senior Product Manager" → update_role_info(title="Senior Product Manager")
+  ✅ "Senior PM for TestChat, team of 8, report to John" → update_role_info(title="Senior Product Manager", team="TestChat", team_size=8, manager_name="John")
+  ✅ "Head of Product at Acme" → update_role_info(title="Head of Product", team="Acme")
+  - NEVER just acknowledge role info without calling update_role_info
+
+→ STAKEHOLDER CAPTURE RULE: For every stakeholder mentioned in projects, create individual relationships:
+  ✅ "Mobile eng team" → add_or_update_relationship(name="Mobile Engineering Team", relationship_type="stakeholder")
+  ✅ "Design lead" → add_or_update_relationship(name="Design Lead", relationship_type="stakeholder")
+  ✅ "UX researchers" → add_or_update_relationship(name="UX Research Team", relationship_type="stakeholder")
+  - Treat teams as stakeholder entities, not just individuals
+
+→ NATURAL LANGUAGE TOOL SELECTION: Choose the right tool for the content type:
+
+  **save_work_context_info** - For business context (what they do, not specific projects):
+  ✅ "I'm Senior PM for TestChat platform"
+  ✅ "I manage a team of 8 engineers, report to VP Product"
+  ✅ "My role is Head of Mobile, team size 12"
+
+  **save_project_info** - For SPECIFIC project initiatives/deliverables:
+  ✅ "Mobile app redesign project, launching Q2"
+  ✅ "Platform stability initiative we're driving"
+  ✅ "SSO integration project with enterprise team"
+  ❌ "I work on TestChat" (this is business context, not a project)
+
+  **save_relationship_info** - For people/stakeholders:
+  ✅ "John Doe is my manager, VP of Product"
+  ✅ "Sarah leads the design team, collaborate closely"
+
+  **save_task_info** - For specific tasks/milestones:
+  ✅ "Need to finish PRD by Friday"
+  ✅ "Get stakeholder review next week"
 
 COMPLETE EXAMPLE - User provides project info:
 Input: "Mobile app redesign - In progress (40% complete), I'm owner driving requirements. Next milestone is design prototypes in 2 weeks. Key stakeholders: Mobile eng team, Design lead, UX researchers"
@@ -790,6 +919,22 @@ IF in other skills (prd-writer, brainstorm-ideas, create-prd, etc.):
 - If user says "PRD for X", "working on X", "new project X" → call add_or_update_project(name="X", status="yellow", role="owner")
 - Status inference: "new project" = yellow, "PRD" = yellow (planning), "launch" = green
 - Role inference: If not stated, assume "owner" (they're driving this work)
+
+**CRITICAL: Product vs Project Distinction**
+- If user says "I'm PM for [ProductName]" or "I work on [ProductName]" → This is their BUSINESS CONTEXT, NOT a project
+  Example: "I'm Senior PM for TestChat" → This goes in work context (save_work_context_info), NOT as a project
+
+- PROJECTS are specific initiatives, features, or deliverables WITHIN a product:
+  Example: "Working on TestChat - focusing on platform stability, mobile, enterprise"
+  → Create THREE separate projects:
+  → add_or_update_project(name="Platform Stability Initiative", notes="Improving TestChat platform reliability")
+  → add_or_update_project(name="Mobile Experience Enhancement", notes="Improving TestChat mobile app experience")
+  → add_or_update_project(name="Enterprise Features Development", notes="Adding enterprise features to TestChat")
+
+- Only create a project if user mentions SPECIFIC WORK/DELIVERABLES:
+  ✅ "Mobile app redesign" → add_or_update_project(name="Mobile app redesign")
+  ✅ "Q2 platform stability work" → add_or_update_project(name="Q2 Platform Stability Initiative")
+  ❌ "I'm PM for TestChat" → save_work_context_info (business context, not a project)
 
 **Step 2: Infer and Add Tasks**
 Based on skill being used:

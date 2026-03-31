@@ -381,7 +381,15 @@ document|Technical Requirements|## Technical Specs|
 
 If no artifacts needed, output: none
 
-IMPORTANT: Only create artifacts for substantial, structured content. Skip conversational responses."""
+IMPORTANT: Only create artifacts for substantial, structured content. Skip conversational responses.
+
+NEVER create artifacts for:
+- PM setup conversations or workspace summaries
+- Status updates or progress reports
+- Simple Q&A responses
+- Confirmations of data capture
+- Tables or lists that are part of conversation flow
+- Anything under 200 words unless it's a complete deliverable"""
 
         response = await llm_service.generate(
             prompt=classification_prompt,

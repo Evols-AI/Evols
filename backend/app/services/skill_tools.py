@@ -125,8 +125,16 @@ class ToolRegistry:
 
         # Handle tool name aliases for common mistakes
         tool_aliases = {
-            'update_work_context': 'update_role_info'  # AI often tries this non-existent tool
+            'update_work_context': 'save_work_context_info'  # AI often tries this non-existent tool
         }
+
+        # Model-agnostic fallbacks: if AI has parameter issues with structured tools,
+        # redirect to natural language versions
+        if tool_name in ['add_or_update_project', 'add_or_update_relationship', 'update_role_info']:
+            # If we detect this is likely a parameter mismatch scenario,
+            # we could redirect to natural language version here
+            # For now, let the structured tool try first, natural language tools are available as alternatives
+            pass
 
         actual_tool_name = tool_aliases.get(tool_name, tool_name)
         if actual_tool_name != tool_name:
@@ -187,16 +195,37 @@ class ToolRegistry:
         }
 
         # Tool-specific parameter corrections
+        if tool_name == 'add_task':
+            task_param_corrections = {
+                'project_name': 'source',  # AI uses 'project_name' but tool expects 'source'
+                'description': 'description',  # This is fine
+                'why_critical': 'why_critical'  # This is fine
+            }
+            for wrong_param, correct_param in task_param_corrections.items():
+                if wrong_param in provided_params and wrong_param != correct_param:
+                    if correct_param in tool_params:
+                        logger.warning(f"[ToolRegistry] Task param correction: {wrong_param} -> {correct_param}")
+                        arguments[correct_param] = arguments.pop(wrong_param)
+                        provided_params.remove(wrong_param)
+                        provided_params.add(correct_param)
+
+        # Tool-specific parameter corrections
         if tool_name == 'add_or_update_relationship' and 'notes' in provided_params:
             # For relationships, 'notes' should map to 'cares_about' if it doesn't exist
             if 'cares_about' in tool_params and 'notes' not in tool_params:
                 logger.warning(f"[ToolRegistry] Converting 'notes' to 'cares_about' for {tool_name}")
                 arguments['cares_about'] = arguments.pop('notes')
+                # Update provided_params set to reflect the correction
+                provided_params.remove('notes')
+                provided_params.add('cares_about')
 
         for wrong_param, correct_param in param_corrections.items():
             if wrong_param in provided_params and correct_param in tool_params:
                 logger.warning(f"[ToolRegistry] Correcting parameter name: {wrong_param} -> {correct_param} for {tool_name}")
                 arguments[correct_param] = arguments.pop(wrong_param)
+                # Update provided_params set to reflect the correction
+                provided_params.remove(wrong_param)
+                provided_params.add(correct_param)
 
         # Check for unexpected parameters that might cause failures
         # Exclude injected parameters from the unexpected check
@@ -2280,6 +2309,335 @@ async def get_work_context_summary(
     }
 
 
+# ===================================
+# NATURAL LANGUAGE WORK CONTEXT TOOLS (Model-Agnostic)
+# ===================================
+
+@tool_registry.register(
+    name="save_project_info",
+    description="Save any information about a project mentioned in natural language. Model-agnostic alternative to add_or_update_project.",
+    parameters=[
+        ToolParameter(name="project_description", type="string",
+                     description="Natural language description of the project info to save",
+                     required=True)
+    ]
+)
+async def save_project_info(
+    user: User,
+    db: AsyncSession,
+    project_description: str
+) -> Dict[str, Any]:
+    """Save project information from natural language description"""
+    try:
+        # Use AI to extract structured data
+        from app.services.llm_service import get_llm_service
+        llm_service = await get_llm_service()
+
+        extract_prompt = f"""
+        Extract SPECIFIC PROJECT information from this description: "{project_description}"
+
+        IMPORTANT: Only extract if this describes SPECIFIC WORK/DELIVERABLES, not business context.
+
+        Examples:
+        ✅ "Mobile app redesign project" → Extract this as a project
+        ✅ "Q2 platform stability initiative" → Extract this as a project
+        ❌ "I'm PM for TestChat" → Return null (this is business context, not a project)
+        ❌ "Working on TestChat platform" → Return null (too general, business context)
+
+        If this describes specific project work, return JSON:
+        {{
+            "name": "specific project name (not product name)",
+            "status": "green/yellow/red/completed/paused",
+            "role": "owner/contributor/advisor",
+            "notes": "specific project context and scope",
+            "next_milestone": "upcoming milestone or deadline",
+            "key_stakeholders": ["stakeholder1", "stakeholder2"]
+        }}
+
+        If this is business context (not a specific project), return: {{"is_business_context": true}}
+
+        Infer status from context (active/in-progress = green, issues = yellow, blocked = red).
+        """
+
+        response = await llm_service.generate(
+            prompt=extract_prompt,
+            system_prompt="You extract structured data from text. Return only valid JSON.",
+            temperature=0.0,
+            max_tokens=300
+        )
+
+        import json
+        project_data = json.loads(response.content.strip())
+
+        # Check if this is business context rather than a specific project
+        if project_data.get("is_business_context"):
+            return {
+                "success": False,
+                "error": "This appears to be business context (what product/team you work on) rather than a specific project.",
+                "suggestion": "Use save_work_context_info for role/team information, or describe specific project work/deliverables."
+            }
+
+        # Validate we have a project name
+        if not project_data.get("name"):
+            return {
+                "success": False,
+                "error": "No specific project identified in the description.",
+                "suggestion": "Please describe specific project work, initiatives, or deliverables you're working on."
+            }
+
+        # Call the existing structured tool with extracted data
+        return await add_or_update_project(
+            user=user,
+            db=db,
+            name=project_data.get("name"),
+            status=project_data.get("status", "green"),
+            role=project_data.get("role", "owner"),
+            next_milestone=project_data.get("next_milestone"),
+            key_stakeholders=project_data.get("key_stakeholders", []),
+            notes=project_data.get("notes")
+        )
+
+    except Exception as e:
+        from loguru import logger
+        logger.error(f"[save_project_info] Failed to process: {project_description}, error: {e}")
+        return {
+            "success": False,
+            "error": f"Could not save project info: {str(e)}",
+            "fallback_message": "Please try describing the project information differently."
+        }
+
+
+@tool_registry.register(
+    name="save_relationship_info",
+    description="Save any information about a person/relationship mentioned in natural language. Model-agnostic alternative to add_or_update_relationship.",
+    parameters=[
+        ToolParameter(name="relationship_description", type="string",
+                     description="Natural language description of the person/relationship to save",
+                     required=True)
+    ]
+)
+async def save_relationship_info(
+    user: User,
+    db: AsyncSession,
+    relationship_description: str
+) -> Dict[str, Any]:
+    """Save relationship information from natural language description"""
+    try:
+        # Use AI to extract structured data
+        from app.services.llm_service import get_llm_service
+        llm_service = await get_llm_service()
+
+        extract_prompt = f"""
+        Extract relationship/person information from: "{relationship_description}"
+
+        Return JSON with these fields (use null for missing info):
+        {{
+            "name": "person's full name",
+            "role": "their job title",
+            "relationship_type": "manager/peer/stakeholder/direct_report",
+            "cares_about": "what motivates them or what they care about",
+            "current_dynamic": "current relationship state or context",
+            "communication_preference": "how they prefer to communicate"
+        }}
+        """
+
+        response = await llm_service.generate(
+            prompt=extract_prompt,
+            system_prompt="You extract structured relationship data from text. Return only valid JSON.",
+            temperature=0.0,
+            max_tokens=300
+        )
+
+        import json
+        relationship_data = json.loads(response.content.strip())
+
+        # Call the existing structured tool with extracted data
+        return await add_or_update_relationship(
+            user=user,
+            db=db,
+            name=relationship_data.get("name", "Unknown Person"),
+            role=relationship_data.get("role"),
+            relationship_type=relationship_data.get("relationship_type"),
+            cares_about=relationship_data.get("cares_about"),
+            current_dynamic=relationship_data.get("current_dynamic"),
+            communication_preference=relationship_data.get("communication_preference")
+        )
+
+    except Exception as e:
+        from loguru import logger
+        logger.error(f"[save_relationship_info] Failed to process: {relationship_description}, error: {e}")
+        return {
+            "success": False,
+            "error": f"Could not save relationship info: {str(e)}",
+            "fallback_message": "Please try describing the person/relationship differently."
+        }
+
+
+@tool_registry.register(
+    name="save_work_context_info",
+    description="Save any work context information (role, team, manager) mentioned in natural language. Model-agnostic alternative to update_role_info.",
+    parameters=[
+        ToolParameter(name="context_description", type="string",
+                     description="Natural language description of work context to save",
+                     required=True)
+    ]
+)
+async def save_work_context_info(
+    user: User,
+    db: AsyncSession,
+    context_description: str
+) -> Dict[str, Any]:
+    """Save work context information from natural language description"""
+    try:
+        # Get tenant LLM configuration
+        from app.core.security import decrypt_llm_config
+        from app.models.tenant import Tenant
+        from sqlalchemy import select
+
+        if not user.tenant_id:
+            return {
+                "success": False,
+                "error": "No tenant configuration available for LLM processing",
+                "fallback_message": "Please configure your organization's LLM settings."
+            }
+
+        result = await db.execute(select(Tenant).where(Tenant.id == user.tenant_id))
+        tenant = result.scalar_one_or_none()
+        tenant_config = decrypt_llm_config(tenant.llm_config) if tenant and tenant.llm_config else None
+
+        if not tenant_config:
+            return {
+                "success": False,
+                "error": "LLM credentials not configured. Please configure your LLM provider credentials in Settings → LLM Settings to use AI-powered features.",
+                "fallback_message": "Please configure LLM settings in your organization."
+            }
+
+        # Use AI to extract structured data
+        from app.services.llm_service import get_llm_service
+        llm_service = get_llm_service(tenant_config=tenant_config)
+
+        extract_prompt = f"""
+        Extract work context information from: "{context_description}"
+
+        Return JSON with these fields (use null for missing info):
+        {{
+            "name": "user's preferred name",
+            "title": "job title or role",
+            "team": "team name",
+            "team_description": "what the team does",
+            "manager_name": "manager's name",
+            "manager_title": "manager's title",
+            "team_size": 10,
+            "team_composition": "team makeup like '5 engineers, 2 designers'"
+        }}
+        """
+
+        response = await llm_service.generate(
+            prompt=extract_prompt,
+            system_prompt="You extract structured work context from text. Return only valid JSON.",
+            temperature=0.0,
+            max_tokens=300
+        )
+
+        import json
+        context_data = json.loads(response.content.strip())
+
+        # Call the existing structured tool with extracted data
+        return await update_role_info(
+            user=user,
+            db=db,
+            name=context_data.get("name"),
+            title=context_data.get("title"),
+            team=context_data.get("team"),
+            team_description=context_data.get("team_description"),
+            manager_name=context_data.get("manager_name"),
+            manager_title=context_data.get("manager_title"),
+            team_size=context_data.get("team_size"),
+            team_composition=context_data.get("team_composition")
+        )
+
+    except Exception as e:
+        from loguru import logger
+        logger.error(f"[save_work_context_info] Failed to process: {context_description}, error: {e}")
+        return {
+            "success": False,
+            "error": f"Could not save work context: {str(e)}",
+            "fallback_message": "Please try describing your work context differently."
+        }
+
+
+@tool_registry.register(
+    name="save_task_info",
+    description="Save any task/milestone information mentioned in natural language. Model-agnostic alternative to add_task.",
+    parameters=[
+        ToolParameter(name="task_description", type="string",
+                     description="Natural language description of the task to save",
+                     required=True)
+    ]
+)
+async def save_task_info(
+    user: User,
+    db: AsyncSession,
+    task_description: str
+) -> Dict[str, Any]:
+    """Save task information from natural language description"""
+    try:
+        # Use AI to extract structured data
+        from app.services.llm_service import get_llm_service
+        llm_service = await get_llm_service()
+
+        extract_prompt = f"""
+        Extract task information from: "{task_description}"
+
+        Return JSON with these fields (use null for missing info):
+        {{
+            "title": "task title",
+            "priority": "critical/high_leverage/nice_to_have",
+            "deadline": "when this needs to be done",
+            "impact": "why this task is important or what it enables",
+            "source": "what project or context this relates to",
+            "description": "additional context or details",
+            "stakeholder_name": "who needs this or who to work with",
+            "why_critical": "if critical priority, explain why"
+        }}
+
+        Priority mapping: urgent/important/blocker = critical, strategic/milestone = high_leverage, optional = nice_to_have
+        """
+
+        response = await llm_service.generate(
+            prompt=extract_prompt,
+            system_prompt="You extract structured task data from text. Return only valid JSON.",
+            temperature=0.0,
+            max_tokens=300
+        )
+
+        import json
+        task_data = json.loads(response.content.strip())
+
+        # Call the existing structured tool with extracted data
+        return await add_task(
+            user=user,
+            db=db,
+            title=task_data.get("title", "Untitled Task"),
+            priority=task_data.get("priority", "nice_to_have"),
+            deadline=task_data.get("deadline"),
+            impact=task_data.get("impact", "Task impact not specified"),
+            source=task_data.get("source", "General"),
+            description=task_data.get("description"),
+            stakeholder_name=task_data.get("stakeholder_name"),
+            why_critical=task_data.get("why_critical") if task_data.get("priority") == "critical" else None
+        )
+
+    except Exception as e:
+        from loguru import logger
+        logger.error(f"[save_task_info] Failed to process: {task_description}, error: {e}")
+        return {
+            "success": False,
+            "error": f"Could not save task: {str(e)}",
+            "fallback_message": "Please try describing the task differently."
+        }
+
+
 @tool_registry.register(
     name="invoke_skill",
     description="Invoke another skill to generate specialized content. Use when you need output from another skill (e.g., PRD needs a flowchart, journey map needs process diagram). The invoked skill will run and return its output which you can incorporate into your response.",
@@ -2367,7 +2725,12 @@ async def invoke_skill(
             'update_capacity',
             'add_or_update_project',
             'add_or_update_relationship',
-            'add_task'
+            'add_task',
+            # Natural language alternatives (model-agnostic)
+            'save_project_info',
+            'save_relationship_info',
+            'save_work_context_info',
+            'save_task_info'
         ]
         for wc_tool in work_context_tools:
             if wc_tool not in skill_tools:
