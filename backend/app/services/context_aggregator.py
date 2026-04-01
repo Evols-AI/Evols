@@ -13,6 +13,7 @@ from app.models.user import User
 from app.models.work_context import WorkContext
 from app.models.product_knowledge import ProductKnowledge
 from app.services.skill_loader_service import get_skill_loader
+from app.core.security_utils import SecuritySanitizer
 
 
 class ContextAggregator:
@@ -168,24 +169,27 @@ class ContextAggregator:
     def _merge_instructions(self, base_instructions: str, customizations: Dict[str, Any]) -> str:
         """
         Merge base skill instructions with user customizations.
-        User customizations are appended to provide context-specific guidance.
+        User customizations are sanitized to prevent prompt injection and XSS attacks.
         """
         if not customizations:
             return base_instructions
 
+        # SECURITY: Sanitize all user customizations to prevent prompt injection
+        sanitized_customizations = SecuritySanitizer.sanitize_skill_customization(customizations)
+
         merged = base_instructions
 
-        # Add user context if provided
-        if customizations.get('custom_context'):
-            merged += f"\n\n## User Context\n{customizations['custom_context']}"
+        # Add user context if provided (sanitized)
+        if sanitized_customizations.get('custom_context'):
+            merged += f"\n\n## User Context\n{sanitized_customizations['custom_context']}"
 
-        # Add custom instructions if provided
-        if customizations.get('custom_instructions'):
-            merged += f"\n\n## Additional Instructions\n{customizations['custom_instructions']}"
+        # Add custom instructions if provided (sanitized)
+        if sanitized_customizations.get('custom_instructions'):
+            merged += f"\n\n## Additional Instructions\n{sanitized_customizations['custom_instructions']}"
 
-        # Add output format preferences if provided
-        if customizations.get('output_format_preferences'):
-            merged += f"\n\n## Output Format Requirements\n{customizations['output_format_preferences']}"
+        # Add output format preferences if provided (sanitized)
+        if sanitized_customizations.get('output_format_preferences'):
+            merged += f"\n\n## Output Format Requirements\n{sanitized_customizations['output_format_preferences']}"
 
         return merged
 

@@ -9,6 +9,7 @@ import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, PageHeader, Card, EmptyState, Loading } from '@/components/PageContainer'
+import { sanitizePreviewContent } from '@/utils/security'
 
 interface Skill {
   name: string
@@ -544,7 +545,7 @@ export default function Skills() {
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Preview: Merged Instructions</h3>
                       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                         <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap overflow-x-auto">
-                          {previewData.merged_instructions}
+                          {sanitizePreviewContent(previewData.merged_instructions)}
                         </pre>
                       </div>
                     </div>

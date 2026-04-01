@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.database import engine, Base
 from app.api.v1 import api_router
 from app.services.scheduler_service import scheduler_service
+from app.middleware import SecurityHeadersMiddleware, SecurityValidationMiddleware
 
 # Import all models so they are registered with Base.metadata before create_all
 import app.models  # noqa: F401
@@ -76,6 +77,10 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     lifespan=lifespan,
 )
+
+# Add security middleware first (outermost layer)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(SecurityValidationMiddleware)
 
 # Add CORS middleware
 app.add_middleware(

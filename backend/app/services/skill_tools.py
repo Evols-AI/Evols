@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from datetime import datetime, timedelta
+from app.core.security_utils import SecuritySanitizer
 
 from app.models.persona import Persona
 from app.models.feedback import Feedback
@@ -246,7 +247,14 @@ class ToolRegistry:
             logger.error(f"[ToolRegistry] Expected parameters: {tool_params}")
             logger.error(f"[ToolRegistry] Injected parameters: {injected_params}")
 
-        return await tool.handler(**arguments)
+        # SECURITY: Sanitize tool arguments to prevent malicious data injection
+        sanitized_arguments = SecuritySanitizer.sanitize_tool_arguments(actual_tool_name, arguments)
+
+        # Log if sanitization changed any arguments
+        if sanitized_arguments != arguments:
+            logger.warning(f"[Security] Sanitized arguments for tool {actual_tool_name}")
+
+        return await tool.handler(**sanitized_arguments)
 
 
 # Create global registry instance

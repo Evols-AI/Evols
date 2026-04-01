@@ -7,30 +7,77 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
-from pydantic import BaseModel
+from pydantic import BaseModel, validator, Field
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.user_skill_customization import UserSkillCustomization
 from app.services.skill_loader_service import get_skill_loader
+from app.core.security_utils import SecuritySanitizer
+from loguru import logger
 
 router = APIRouter()
 
 
+def log_security_event(event_type: str, user_id: int, details: str):
+    """Log security-related events for monitoring and analysis"""
+    logger.warning(f"[SECURITY] {event_type} - User {user_id}: {details}")
+
+
 # Request/Response Models
 class SkillCustomizationCreate(BaseModel):
-    skill_name: str
-    custom_instructions: Optional[str] = None
-    custom_context: Optional[str] = None
-    output_format_preferences: Optional[str] = None
+    skill_name: str = Field(..., max_length=255, description="Name of the skill to customize")
+    custom_instructions: Optional[str] = Field(None, max_length=1500, description="Custom instructions for the skill")
+    custom_context: Optional[str] = Field(None, max_length=1000, description="Custom context for the skill")
+    output_format_preferences: Optional[str] = Field(None, max_length=500, description="Output format preferences")
+
+    @validator('custom_instructions', 'custom_context', 'output_format_preferences')
+    def sanitize_user_inputs(cls, v):
+        """Sanitize user inputs to prevent security vulnerabilities"""
+        if v is None:
+            return v
+
+        # Check for potentially malicious content
+        if SecuritySanitizer.is_potentially_malicious(v):
+            raise ValueError("Input contains potentially unsafe content")
+
+        # Sanitize the input
+        field_name = cls.__name__ if hasattr(cls, '__name__') else 'unknown'
+        return SecuritySanitizer.sanitize_user_input(v, max_length=2000, context=f"api_endpoint.{field_name}")
+
+    @validator('skill_name')
+    def validate_skill_name(cls, v):
+        """Validate skill name format"""
+        if not v or not v.strip():
+            raise ValueError("Skill name cannot be empty")
+
+        # Check for malicious patterns in skill name
+        if SecuritySanitizer.is_potentially_malicious(v):
+            raise ValueError("Skill name contains invalid characters")
+
+        return v.strip()[:255]  # Ensure max length
 
 
 class SkillCustomizationUpdate(BaseModel):
-    custom_instructions: Optional[str] = None
-    custom_context: Optional[str] = None
-    output_format_preferences: Optional[str] = None
+    custom_instructions: Optional[str] = Field(None, max_length=1500, description="Custom instructions for the skill")
+    custom_context: Optional[str] = Field(None, max_length=1000, description="Custom context for the skill")
+    output_format_preferences: Optional[str] = Field(None, max_length=500, description="Output format preferences")
     is_active: Optional[bool] = None
+
+    @validator('custom_instructions', 'custom_context', 'output_format_preferences')
+    def sanitize_user_inputs(cls, v):
+        """Sanitize user inputs to prevent security vulnerabilities"""
+        if v is None:
+            return v
+
+        # Check for potentially malicious content
+        if SecuritySanitizer.is_potentially_malicious(v):
+            raise ValueError("Input contains potentially unsafe content")
+
+        # Sanitize the input
+        field_name = cls.__name__ if hasattr(cls, '__name__') else 'unknown'
+        return SecuritySanitizer.sanitize_user_input(v, max_length=2000, context=f"api_endpoint.{field_name}")
 
 
 class SkillCustomizationResponse(BaseModel):
@@ -156,8 +203,22 @@ async def create_skill_customization(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Create or update skill customization
+    Create or update skill customization with security validation
     """
+    # Additional security check for potentially malicious content
+    inputs_to_check = [data.custom_instructions, data.custom_context, data.output_format_preferences]
+    for input_text in inputs_to_check:
+        if input_text and SecuritySanitizer.is_potentially_malicious(input_text):
+            log_security_event(
+                "MALICIOUS_SKILL_CUSTOMIZATION",
+                current_user.id,
+                f"Blocked potentially malicious customization for skill '{data.skill_name}'"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Input contains potentially unsafe content. Please review your customization and try again."
+            )
+
     # Validate skill exists
     skill_loader = get_skill_loader()
     if not skill_loader.get_skill_by_name(data.skill_name):
