@@ -2662,19 +2662,19 @@ async def invoke_skill(
     This enables inter-skill collaboration and composition.
     """
     try:
-        from app.services.copilot_orchestrator import CopilotOrchestrator
+        from app.services.intelligent_copilot import IntelligentCopilot
 
         if not db or not user:
             return {"error": "Database session and user required for skill invocation"}
 
-        # Create orchestrator for skill execution
-        orchestrator = CopilotOrchestrator(db, user)
+        # Create copilot for skill execution
+        copilot = IntelligentCopilot(db, user)
 
         # Load the target skill configuration
-        skill_config = await orchestrator.load_skill_config(skill_name, "DEFAULT")  # Try DEFAULT first
+        skill_config = await copilot.load_skill_config(skill_name, "DEFAULT")  # Try DEFAULT first
         if not skill_config:
             # Try as custom skill
-            skill_config = await orchestrator.load_skill_config(skill_name, "CUSTOM")
+            skill_config = await copilot.load_skill_config(skill_name, "CUSTOM")
 
         if not skill_config:
             return {"error": f"Skill '{skill_name}' not found"}
@@ -2740,10 +2740,10 @@ async def invoke_skill(
         tools_config = {**skill_config, 'tools': skill_tools}
 
         # Build system prompt for the invoked skill
-        system_prompt = await orchestrator.build_system_prompt(skill_config, product_id=product_id)
+        system_prompt = await copilot.build_system_prompt(skill_config, product_id=product_id)
 
         # Get LLM service
-        llm_service = await orchestrator.get_llm_service()
+        llm_service = await copilot.get_llm_service()
 
         # Execute skill with function calling
         assistant_content, tool_calls = await handle_function_calling(

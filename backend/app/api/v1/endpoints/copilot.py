@@ -15,7 +15,6 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.skill import SkillConversation, SkillMessage, Skill, CustomSkill, SkillType
-from app.services.copilot_orchestrator import CopilotOrchestrator
 from app.services.intelligent_copilot import IntelligentCopilot
 
 
@@ -354,8 +353,8 @@ async def classify_artifacts(
     Supports multiple artifacts in one response.
     """
     try:
-        orchestrator = CopilotOrchestrator(db, current_user)
-        llm_service = await orchestrator.get_llm_service()
+        copilot = IntelligentCopilot(db, current_user)
+        llm_service = await copilot.get_llm_service()
 
         classification_prompt = f"""Analyze this AI response and identify artifacts that should be created.
 

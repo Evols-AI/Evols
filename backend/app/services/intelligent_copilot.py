@@ -53,6 +53,79 @@ class IntelligentCopilot:
 
         return self.llm_service
 
+    async def load_skill_config(self, skill_name: str, skill_type: str) -> Dict[str, Any]:
+        """Load skill configuration from files or database"""
+        if skill_type == SkillType.CUSTOM:
+            # Load custom skill from database
+            result = await self.db.execute(
+                select(CustomSkill)
+                .where(CustomSkill.name == skill_name)
+                .where(CustomSkill.tenant_id == self.user.tenant_id)
+            )
+            skill = result.scalars().first()
+
+            if not skill:
+                return None
+
+            return {
+                'name': skill.name,
+                'type': skill_type,
+                'description': skill.description,
+                'icon': skill.icon,
+                'instructions': skill.instructions,
+                'tools': skill.tools or [],
+                'output_template': skill.output_template
+            }
+        else:
+            # Load framework skill from files
+            skill_loader = get_skill_loader()
+            logger.info(f"[DEBUG] Loading framework skill: {skill_name}")
+            skill_data = skill_loader.get_skill_by_name(skill_name)
+
+            if not skill_data:
+                logger.error(f"[DEBUG] Skill '{skill_name}' not found in skill loader")
+                all_skills = list(skill_loader.load_all_skills().keys())
+                logger.error(f"[DEBUG] Available skills: {all_skills[:10]}...")  # Log first 10 skills
+                return None
+
+            logger.info(f"[DEBUG] Successfully loaded skill '{skill_name}' with tools: {skill_data.get('tools', [])}")
+
+            return {
+                'name': skill_data['name'],
+                'type': skill_type,
+                'description': skill_data.get('description', ''),
+                'icon': '⚡',  # Default icon
+                'instructions': skill_data['instructions'],
+                'tools': skill_data.get('tools', []),
+                'output_template': skill_data.get('output_template')
+            }
+
+    async def build_system_prompt(
+        self,
+        skill_config: Optional[Dict[str, Any]] = None,
+        product_id: Optional[int] = None
+    ) -> str:
+        """Build system prompt for skill execution"""
+        if skill_config:
+            # Build system prompt with skill instructions
+            aggregator = ContextAggregator(self.db, self.user)
+            context = await aggregator.get_lightweight_context()
+            context_str = aggregator.format_context_for_prompt(context)
+
+            skill_name = skill_config.get('name', 'skill')
+            skill_instructions = skill_config.get('instructions', '')
+
+            return f"""You are Evols, an expert AI assistant for product managers. You are using the {skill_name} skill to help the user.
+
+{skill_instructions}
+
+{context_str}
+
+IMPORTANT: Only call tools when you have enough information. If the user's request is unclear or you need more details, ask clarifying questions first."""
+        else:
+            # Generic system prompt
+            return "You are Evols, an expert AI assistant for product managers."
+
     async def chat(
         self,
         conversation_id: Optional[str],
@@ -757,21 +830,42 @@ EXAMPLES:
         # 4. Execute with function calling
         llm = await self.get_llm_service()
 
-        # Use tools from skill definition (already includes update_role_info, add_active_project, add_key_relationship)
-        tools_to_use = skill_details.get('tools', [])
+        # Extract skill tools properly (copy logic from CopilotOrchestrator)
+        logger.info(f"[DEBUG] IntelligentCopilot skill_details keys: {list(skill_details.keys())}")
+        logger.info(f"[DEBUG] IntelligentCopilot skill_details tools: {skill_details.get('tools', [])}")
 
-        # Add common tools if not already present (knowledge + work context)
-        common_tools = [
+        # Get skill-specific tools
+        skill_tools = skill_details.get('tools', [])
+
+        # Work context tools (ALWAYS available for any skill)
+        work_context_tools = [
             'get_work_context_summary',
+            'update_role_info',
+            'update_capacity',
+            'add_or_update_project',
+            'add_or_update_relationship',
+            'add_task',
+            'set_weekly_focus'
+        ]
+
+        # Universal tools (knowledge + search + inter-skill)
+        universal_tools = work_context_tools + [
+            'invoke_skill',  # Inter-skill capability
             'get_context_sources',
             'get_extracted_entities',
             'get_entity_summary',
             'get_all_product_knowledge',
             'search_internet'
         ]
-        for tool in common_tools:
+
+        # Merge skill tools with universal tools (like CopilotOrchestrator does)
+        tools_to_use = skill_tools.copy()
+        for tool in universal_tools:
             if tool not in tools_to_use:
                 tools_to_use.append(tool)
+
+        logger.info(f"[DEBUG] IntelligentCopilot skill_tools: {skill_tools}")
+        logger.info(f"[DEBUG] IntelligentCopilot final tools_to_use: {tools_to_use}")
 
         # Create skill_config for handle_function_calling
         skill_config = {
