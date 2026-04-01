@@ -290,6 +290,30 @@ export const api = {
     deleteMeetingNote: (id: number) => apiClient.delete(`/api/v1/work-context/meeting-notes/${id}`),
   },
 
+  // Skill Customizations
+  skillCustomizations: {
+    // List all available skills with customization status
+    getAvailableSkills: () => apiClient.get('/api/v1/skill-customizations/available-skills'),
+
+    // Get user's customizations
+    getCustomizations: () => apiClient.get('/api/v1/skill-customizations/'),
+
+    // Get specific skill customization
+    getCustomization: (skillName: string) => apiClient.get(`/api/v1/skill-customizations/${skillName}`),
+
+    // Create or update skill customization
+    createCustomization: (data: any) => apiClient.post('/api/v1/skill-customizations/', data),
+
+    // Update existing customization
+    updateCustomization: (skillName: string, data: any) => apiClient.put(`/api/v1/skill-customizations/${skillName}`, data),
+
+    // Delete customization (revert to default)
+    deleteCustomization: (skillName: string) => apiClient.delete(`/api/v1/skill-customizations/${skillName}`),
+
+    // Preview customization
+    previewCustomization: (skillName: string, data: any) => apiClient.post(`/api/v1/skill-customizations/${skillName}/preview`, data),
+  },
+
   // Generic helpers
   get: (path: string, params?: any) => apiClient.get(`/api/v1${path}`, { params }),
   post: (path: string, data: any, config?: any) => apiClient.post(`/api/v1${path}`, data, config),

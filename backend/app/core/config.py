@@ -96,7 +96,7 @@ class Settings(BaseSettings):
     SERPER_API_KEY: Optional[str] = None
 
     # Unified PM OS Integration
-    UNIFIED_PM_OS_PATH: str = "../../unified-pm-os"
+    UNIFIED_PM_OS_PATH: str = "resources/unified-pm-os"
 
 
 # Create global settings instance

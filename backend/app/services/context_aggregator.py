@@ -109,10 +109,11 @@ class ContextAggregator:
         """
         Get full details for a specific skill (loaded on-demand).
         This replaces loading all skills upfront, saving ~4,800 tokens.
+        Includes user customizations if they exist.
         """
         skill_loader = get_skill_loader()
 
-        # Get skill data
+        # Get base skill data
         skill_data = skill_loader.get_skill_by_name(skill_name)
 
         if not skill_data:
@@ -121,14 +122,72 @@ class ContextAggregator:
                 'available_skills': list(skill_loader.load_all_skills().keys())
             }
 
+        # Get user customizations (when we implement the table)
+        # TODO: Implement user_skill_customizations table and query
+        base_instructions = skill_data.get('instructions', '')
+        user_customizations = await self._get_user_skill_customizations(skill_name)
+
+        # Merge base instructions with user customizations
+        final_instructions = self._merge_instructions(base_instructions, user_customizations)
+
         return {
             'name': skill_data['name'],
             'description': skill_data.get('description', ''),
-            'instructions': skill_data.get('instructions', ''),
+            'instructions': final_instructions,  # Now includes user customizations
             'category': skill_data.get('category', ''),
             'file_path': skill_data.get('file_path', ''),
-            'full_content': skill_data.get('content', ''),  # Complete skill content
+            'full_content': skill_data.get('content', ''),
+            'has_customizations': bool(user_customizations),
+            'customizations': user_customizations
         }
+
+    async def _get_user_skill_customizations(self, skill_name: str) -> Dict[str, Any]:
+        """
+        Get user's custom instructions/context for a specific skill.
+        Returns empty dict if no customizations exist.
+        """
+        from app.models.user_skill_customization import UserSkillCustomization
+
+        result = await self.db.execute(
+            select(UserSkillCustomization)
+            .where(UserSkillCustomization.user_id == self.user.id)
+            .where(UserSkillCustomization.skill_name == skill_name)
+            .where(UserSkillCustomization.is_active == True)
+        )
+        customization = result.scalar_one_or_none()
+
+        if not customization:
+            return {}
+
+        return {
+            'custom_context': customization.custom_context,
+            'custom_instructions': customization.custom_instructions,
+            'output_format_preferences': customization.output_format_preferences
+        }
+
+    def _merge_instructions(self, base_instructions: str, customizations: Dict[str, Any]) -> str:
+        """
+        Merge base skill instructions with user customizations.
+        User customizations are appended to provide context-specific guidance.
+        """
+        if not customizations:
+            return base_instructions
+
+        merged = base_instructions
+
+        # Add user context if provided
+        if customizations.get('custom_context'):
+            merged += f"\n\n## User Context\n{customizations['custom_context']}"
+
+        # Add custom instructions if provided
+        if customizations.get('custom_instructions'):
+            merged += f"\n\n## Additional Instructions\n{customizations['custom_instructions']}"
+
+        # Add output format preferences if provided
+        if customizations.get('output_format_preferences'):
+            merged += f"\n\n## Output Format Requirements\n{customizations['output_format_preferences']}"
+
+        return merged
 
     async def _get_work_context(self) -> Dict[str, Any]:
         """

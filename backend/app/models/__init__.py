@@ -38,6 +38,7 @@ from app.models.work_context import (
     CapacityStatus, ProjectStatus, ProjectRole,
     TaskPriority, TaskStatus, DecisionCategory, MeetingType
 )
+from app.models.user_skill_customization import UserSkillCustomization
 
 # Backward compatibility aliases
 Adviser = Skill
@@ -145,4 +146,6 @@ __all__ = [
     "TaskStatus",
     "DecisionCategory",
     "MeetingType",
+    # User Customizations
+    "UserSkillCustomization",
 ]
