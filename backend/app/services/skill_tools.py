@@ -2671,9 +2671,19 @@ async def invoke_skill(
     """
     try:
         from app.services.intelligent_copilot import IntelligentCopilot
+        from loguru import logger
 
         if not db or not user:
             return {"error": "Database session and user required for skill invocation"}
+
+        # Ensure we have tenant_id (should come from user)
+        if tenant_id is None:
+            tenant_id = user.tenant_id
+
+        # Critical validation: tenant_id must not be None to prevent database constraint violations
+        if tenant_id is None:
+            logger.error(f"[Inter-skill] Critical error: tenant_id is None for user {user.id}")
+            return {"error": "Database error: Missing tenant ID for conversation creation"}
 
         # Create copilot for skill execution
         copilot = IntelligentCopilot(db, user)

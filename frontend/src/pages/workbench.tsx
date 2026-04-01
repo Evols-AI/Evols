@@ -1347,58 +1347,52 @@ export default function Workbench() {
                                 <span className="text-sm">Thinking...</span>
                               </div>
                             ) : msg.role === 'assistant' ? (
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                                  h1: ({ children }) => <h1 className="text-xl mb-3 mt-4 first:mt-0">{children}</h1>,
-                                  h2: ({ children }) => <h2 className="text-lg mb-2 mt-3 first:mt-0">{children}</h2>,
-                                  h3: ({ children }) => <h3 className="text-base mb-2 mt-2 first:mt-0">{children}</h3>,
-                                  ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                                  ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                                  li: ({ children }) => <li className="ml-2">{children}</li>,
-                                  code: ({ inline, children, ...props }: any) =>
-                                    inline ? (
-                                      <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm" {...props}>
-                                        {children}
-                                      </code>
-                                    ) : (
-                                      <code className="block bg-gray-100 dark:bg-gray-700 p-3 rounded text-sm overflow-x-auto" {...props}>
-                                        {children}
-                                      </code>
+                              <div className="ai-response">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                    h1: ({ children }) => <h1 className="text-xl mb-3 mt-4 first:mt-0">{children}</h1>,
+                                    h2: ({ children }) => <h2 className="text-lg mb-2 mt-3 first:mt-0">{children}</h2>,
+                                    h3: ({ children }) => <h3 className="text-base mb-2 mt-2 first:mt-0">{children}</h3>,
+                                    ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                                    ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                                    li: ({ children }) => <li className="ml-2">{children}</li>,
+                                    code: ({ inline, children, ...props }: any) =>
+                                      inline ? (
+                                        <code className="bg-gray-100 dark:bg-gray-700 rounded text-sm inline-code" style={{ display: 'inline', width: 'auto', maxWidth: 'fit-content', padding: '2px 4px', lineHeight: '1', verticalAlign: 'baseline' }} {...props}>
+                                          {children}
+                                        </code>
+                                      ) : (
+                                        <code className="block bg-gray-100 dark:bg-gray-700 p-3 rounded text-sm overflow-x-auto" {...props}>
+                                          {children}
+                                        </code>
+                                      ),
+                                    table: ({ children }) => (
+                                      <div className="overflow-x-auto my-3 rounded-lg">
+                                        <table className="document-table w-full ai-table" style={{ tableLayout: 'auto', borderCollapse: 'separate', borderSpacing: '0' }}>
+                                          {children}
+                                        </table>
+                                      </div>
                                     ),
-                                  table: ({ children }) => (
-                                    <div className="overflow-x-auto my-3">
-                                      <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+                                    thead: ({ children }) => <thead>{children}</thead>,
+                                    tbody: ({ children }) => <tbody>{children}</tbody>,
+                                    tr: ({ children }) => <tr>{children}</tr>,
+                                    th: ({ children }) => <th style={{ minWidth: '120px', whiteSpace: 'nowrap' }}>{children}</th>,
+                                    td: ({ children }) => <td style={{ minWidth: '120px' }}>{children}</td>,
+                                    strong: ({ children }) => <strong className="">{children}</strong>,
+                                    em: ({ children }) => <em className="italic">{children}</em>,
+                                    blockquote: ({ children }) => (
+                                      <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2">
                                         {children}
-                                      </table>
-                                    </div>
-                                  ),
-                                  thead: ({ children }) => <thead className="bg-gray-100 dark:bg-gray-700">{children}</thead>,
-                                  tbody: ({ children }) => <tbody>{children}</tbody>,
-                                  tr: ({ children }) => <tr className="border-b border-gray-300 dark:border-gray-600">{children}</tr>,
-                                  th: ({ children }) => (
-                                    <th className="px-4 py-2 text-left border border-gray-300 dark:border-gray-600">
-                                      {children}
-                                    </th>
-                                  ),
-                                  td: ({ children }) => (
-                                    <td className="px-4 py-2 border border-gray-300 dark:border-gray-600">
-                                      {children}
-                                    </td>
-                                  ),
-                                  strong: ({ children }) => <strong className="">{children}</strong>,
-                                  em: ({ children }) => <em className="italic">{children}</em>,
-                                  blockquote: ({ children }) => (
-                                    <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2">
-                                      {children}
-                                    </blockquote>
-                                  ),
-                                  hr: () => <hr className="my-4 border-gray-300 dark:border-gray-600" />,
-                                }}
-                              >
-                                {generateMessageSummary(msg)}
-                              </ReactMarkdown>
+                                      </blockquote>
+                                    ),
+                                    hr: () => <hr className="my-4 border-gray-300 dark:border-gray-600" />,
+                                  }}
+                                >
+                                  {generateMessageSummary(msg)}
+                                </ReactMarkdown>
+                              </div>
                             ) : (
                               <p className="whitespace-pre-wrap m-0">{generateMessageSummary(msg)}</p>
                             )}

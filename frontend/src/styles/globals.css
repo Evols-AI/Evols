@@ -397,6 +397,147 @@
   }
 }
 
+/* Fix for formatting issues - text wrapping and table styling */
+@layer components {
+  /* Fix one-word blocks spanning full width */
+  .prose, .document-content, .ai-response, [data-content] {
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    line-break: auto;
+    overflow-wrap: break-word;
+  }
+
+  .prose p, .document-content p, .ai-response p {
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+
+  /* Prevent single words from spanning full width */
+  .prose span, .document-content span, .ai-response span {
+    display: inline;
+    max-width: fit-content;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Fix inline code elements spanning full width */
+  .prose code, .document-content code, .ai-response code {
+    display: inline !important;
+    width: auto !important;
+    max-width: fit-content !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    white-space: pre-wrap !important;
+    line-height: 1.2 !important;
+    vertical-align: baseline !important;
+    padding: 2px 4px !important;
+    margin: 0 !important;
+  }
+
+  /* Specifically target inline code (not block code) */
+  .prose code:not(.block), .document-content code:not(.block), .ai-response code:not(.block) {
+    display: inline !important;
+    width: auto !important;
+    max-width: fit-content !important;
+    line-height: 1.2 !important;
+    vertical-align: baseline !important;
+    padding: 2px 4px !important;
+    margin: 0 !important;
+  }
+
+  /* Inline code specific class */
+  .inline-code {
+    display: inline !important;
+    width: auto !important;
+    max-width: fit-content !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    white-space: pre-wrap !important;
+    box-sizing: content-box !important;
+    /* Fix line height and vertical alignment */
+    line-height: 1 !important;
+    vertical-align: baseline !important;
+    padding: 2px 4px !important;
+    margin: 0 !important;
+  }
+
+  /* Fix for document artifacts - proper table styling */
+  .prose table, .document-content table, .ai-response table,
+  table.document-table, .artifact-content table {
+    @apply w-full border-collapse;
+    border: 2px solid hsl(var(--border)) !important;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+
+  .prose th, .document-content th, .ai-response th,
+  table.document-table th, .artifact-content table th {
+    @apply px-4 py-3 text-left font-medium;
+    background: hsl(var(--muted));
+    border-right: 1px solid hsl(var(--border));
+    border-bottom: 1px solid hsl(var(--border));
+    min-width: 120px;
+    white-space: nowrap;
+  }
+
+  /* Dark mode cell borders */
+  .dark .prose th, .dark .document-content th, .dark .ai-response th,
+  .dark table.document-table th, .dark .artifact-content table th {
+    border-right: 1px solid hsl(215 20% 30%) !important;
+    border-bottom: 1px solid hsl(215 20% 30%) !important;
+  }
+
+  .prose th:last-child, .document-content th:last-child, .ai-response th:last-child,
+  table.document-table th:last-child, .artifact-content table th:last-child {
+    border-right: none;
+  }
+
+  .prose td, .document-content td, .ai-response td,
+  table.document-table td, .artifact-content table td {
+    @apply px-4 py-3;
+    border-right: 1px solid hsl(var(--border));
+    border-bottom: 1px solid hsl(var(--border));
+    min-width: 120px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .prose td:last-child, .document-content td:last-child, .ai-response td:last-child,
+  table.document-table td:last-child, .artifact-content table td:last-child {
+    border-right: none;
+  }
+
+  .prose tr:last-child td, .document-content tr:last-child td, .ai-response tr:last-child td,
+  table.document-table tr:last-child td, .artifact-content table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* Additional styling for better table appearance */
+  .prose tbody tr:hover, .document-content tbody tr:hover, .ai-response tbody tr:hover,
+  table.document-table tbody tr:hover, .artifact-content table tbody tr:hover {
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  /* Font override: Use only Manrope for AI responses and artifacts */
+  .ai-response, .ai-response *, .document-content, .document-content *,
+  .artifact-content, .artifact-content *, .prose, .prose * {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  }
+
+  /* Override heading fonts in AI responses and artifacts to use Manrope */
+  .ai-response h1, .ai-response h2, .ai-response h3, .ai-response h4, .ai-response h5, .ai-response h6,
+  .document-content h1, .document-content h2, .document-content h3, .document-content h4, .document-content h5, .document-content h6,
+  .artifact-content h1, .artifact-content h2, .artifact-content h3, .artifact-content h4, .artifact-content h5, .artifact-content h6,
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-weight: 600 !important;
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

@@ -1518,7 +1518,7 @@ function DocumentArtifact({ content, expanded, onSave, editingState, editingCanc
         </div>
       )}
       {content?.text ? (
-        <div className="prose dark:prose-invert max-w-none text-sm">
+        <div className="prose dark:prose-invert max-w-none text-sm document-content artifact-content">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
@@ -1533,7 +1533,7 @@ function DocumentArtifact({ content, expanded, onSave, editingState, editingCanc
               em: ({ children }) => <em className="italic">{children}</em>,
               code: ({ inline, children, ...props }: any) =>
                 inline ? (
-                  <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm" {...props}>
+                  <code className="bg-gray-100 dark:bg-gray-700 rounded text-sm inline-code" style={{ display: 'inline', width: 'auto', maxWidth: 'fit-content', padding: '2px 4px', lineHeight: '1', verticalAlign: 'baseline' }} {...props}>
                     {children}
                   </code>
                 ) : (
@@ -1541,6 +1541,18 @@ function DocumentArtifact({ content, expanded, onSave, editingState, editingCanc
                     {children}
                   </code>
                 ),
+              table: ({ children }) => (
+                <div className="overflow-x-auto my-3 rounded-lg">
+                  <table className="document-table w-full ai-table" style={{ tableLayout: 'auto', borderCollapse: 'separate', borderSpacing: '0' }}>
+                    {children}
+                  </table>
+                </div>
+              ),
+              thead: ({ children }) => <thead>{children}</thead>,
+              tbody: ({ children }) => <tbody>{children}</tbody>,
+              tr: ({ children }) => <tr>{children}</tr>,
+              th: ({ children }) => <th style={{ minWidth: '120px', whiteSpace: 'nowrap' }}>{children}</th>,
+              td: ({ children }) => <td style={{ minWidth: '120px' }}>{children}</td>,
             }}
           >
             {content.text}
