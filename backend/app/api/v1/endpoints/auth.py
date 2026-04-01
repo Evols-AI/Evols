@@ -546,6 +546,10 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
             detail="User account is deactivated",
         )
 
+    # Update last login time
+    user.last_login_at = datetime.utcnow()
+    await db.commit()
+
     # Create access token
     access_token = create_access_token(
         data={

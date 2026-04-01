@@ -3,9 +3,10 @@ User Model
 User accounts with role-based access control
 """
 
-from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, JSON, Enum as SQLEnum
+from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, JSON, Enum as SQLEnum, DateTime
 from sqlalchemy.orm import relationship
 from enum import Enum
+from datetime import datetime
 
 from app.models.base import BaseModel
 
@@ -52,9 +53,10 @@ class User(BaseModel):
     #   "favorite_personas": [1, 3, 5]
     # }
 
-    # Security
+    # Security & Activity
     two_factor_enabled = Column(Boolean, default=False)
     two_factor_secret = Column(String(255), nullable=True)
+    last_login_at = Column(DateTime, nullable=True)
 
     # Relationships
     tenant = relationship("Tenant", back_populates="users")  # Legacy single-tenant relationship

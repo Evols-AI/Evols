@@ -4,6 +4,7 @@ Cross-tenant management for SUPER_ADMIN users
 """
 
 from typing import List
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -79,6 +80,7 @@ class UserResponse(BaseModel):
     is_active: bool
     is_verified: bool
     tenant_id: int | None
+    last_login_at: datetime | None
 
     class Config:
         from_attributes = True
@@ -416,6 +418,7 @@ async def create_user_in_tenant(
         is_active=new_user.is_active,
         is_verified=new_user.is_verified,
         tenant_id=new_user.tenant_id,
+        last_login_at=new_user.last_login_at,
     )
 
 
@@ -446,6 +449,7 @@ async def list_tenant_users(
             is_active=user.is_active,
             is_verified=user.is_verified,
             tenant_id=user.tenant_id,
+            last_login_at=user.last_login_at,
         )
         for user in users
     ]
@@ -513,6 +517,7 @@ async def update_tenant_user(
         is_active=user.is_active,
         is_verified=user.is_verified,
         tenant_id=user.tenant_id,
+        last_login_at=user.last_login_at,
     )
 
 
