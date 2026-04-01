@@ -14,7 +14,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 120000, // 120 seconds timeout (LLM calls can take time)
+  timeout: 300000, // 300 seconds (5 minutes) timeout for search-heavy skills
 })
 
 // Add auth token to requests

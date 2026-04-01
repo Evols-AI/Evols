@@ -78,9 +78,9 @@ class IntelligentCopilot:
         # 2. Load conversation history
         history = await self._load_conversation_history(conversation_id_str)
 
-        # 3. Aggregate ALL context (like Cline reads workspace)
+        # 3. Aggregate lightweight context for skill decision (saves ~4,800 tokens)
         aggregator = ContextAggregator(self.db, self.user, product_id)
-        full_context = await aggregator.get_full_context()
+        lightweight_context = await aggregator.get_full_context()  # Now returns lightweight skills catalog
 
         # 4. Save user message
         user_msg = SkillMessage(
@@ -93,21 +93,25 @@ class IntelligentCopilot:
         await self.db.commit()
 
         try:
-            # 5. Let agent decide what to do (skill or general conversation)
+            # 5. Let agent decide what to do (skill or general conversation) - using lightweight context
             decision = await self._intelligent_skill_decision(
                 message=message,
                 history=history,
-                context=full_context
+                context=lightweight_context
             )
 
             # 6. Execute based on decision
             if decision['use_skill']:
+                # Load full skill context only when skill is selected (saves tokens)
+                full_skill_context = await aggregator.get_full_skill_details(decision['skill_name'])
+
                 response = await self._execute_with_skill(
                     conversation_id=conversation_id_str,
                     message=message,
                     history=history,
                     skill_name=decision['skill_name'],
-                    context=full_context,
+                    context=lightweight_context,
+                    skill_details=full_skill_context,
                     product_id=product_id
                 )
             else:
@@ -115,7 +119,7 @@ class IntelligentCopilot:
                     conversation_id=conversation_id_str,
                     message=message,
                     history=history,
-                    context=full_context,
+                    context=lightweight_context,
                     product_id=product_id
                 )
 
@@ -138,19 +142,30 @@ class IntelligentCopilot:
             )
             assistant_message = result.scalar_one()
 
-            # Get skill info if skill was used
+            # Get skill info if skill was used (reuse loaded skill details to avoid redundant loading)
             skill_info = None
-            if decision.get('skill_name'):
-                skill_loader = get_skill_loader()
-                skill_data = skill_loader.get_skill_by_name(decision['skill_name'])
-                if skill_data:
+            if decision.get('skill_name') and decision.get('use_skill'):
+                # Use the skill details we already loaded to avoid another skill loader call
+                if 'error' not in full_skill_context:
                     skill_info = {
                         'id': 1,  # File-based skills use index as ID
                         'type': 'default',
-                        'name': skill_data['name'],
-                        'description': skill_data.get('description', ''),
-                        'icon': skill_data.get('icon', '⚡')
+                        'name': full_skill_context.get('name', decision['skill_name']),
+                        'description': full_skill_context.get('description', ''),
+                        'icon': '⚡'  # Default icon
                     }
+                else:
+                    # Fallback to skill loader if context loading failed
+                    skill_loader = get_skill_loader()
+                    skill_data = skill_loader.get_skill_by_name(decision['skill_name'])
+                    if skill_data:
+                        skill_info = {
+                            'id': 1,
+                            'type': 'default',
+                            'name': skill_data['name'],
+                            'description': skill_data.get('description', ''),
+                            'icon': skill_data.get('icon', '⚡')
+                        }
 
             return {
                 'conversation_id': conversation_id_str,
@@ -335,19 +350,17 @@ Respond in JSON format:
         history: List[SkillMessage],
         skill_name: str,
         context: Dict[str, Any],
+        skill_details: Dict[str, Any],
         product_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Execute using a specific skill.
-        Load skill's full instructions and relevant context.
+        Uses pre-loaded skill details to avoid redundant loading.
         """
 
-        # 1. Load skill configuration
-        skill_loader = get_skill_loader()
-        skill_data = skill_loader.get_skill_by_name(skill_name)
-
-        if not skill_data:
-            logger.error(f"[IntelligentCopilot] Skill not found: {skill_name}")
+        # 1. Validate skill details (already loaded by caller)
+        if 'error' in skill_details:
+            logger.error(f"[IntelligentCopilot] Skill error: {skill_details['error']}")
             return await self._execute_general_conversation(
                 conversation_id, message, history, context, product_id
             )
@@ -357,7 +370,7 @@ Respond in JSON format:
 
         system_prompt = f"""You are Evols, an expert AI assistant for product managers. You are using the {skill_name} skill to help the user.
 
-{skill_data['instructions']}
+{skill_details.get('instructions', skill_details.get('full_content', ''))}
 
 {context_str}
 
@@ -745,7 +758,7 @@ EXAMPLES:
         llm = await self.get_llm_service()
 
         # Use tools from skill definition (already includes update_role_info, add_active_project, add_key_relationship)
-        tools_to_use = skill_data.get('tools', [])
+        tools_to_use = skill_details.get('tools', [])
 
         # Add common tools if not already present (knowledge + work context)
         common_tools = [

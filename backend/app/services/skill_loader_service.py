@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Any
 from loguru import logger
 from functools import lru_cache
 
+from app.core.config import settings
 from app.services.unified_pm_os import SkillAdapter
 
 
@@ -36,10 +37,7 @@ class SkillLoaderService:
 
         # Path to bundled unified-pm-os resources
         backend_dir = Path(__file__).parent.parent.parent
-        self.unified_pm_os_path = os.getenv(
-            'UNIFIED_PM_OS_PATH',
-            str(backend_dir / 'resources' / 'unified-pm-os')
-        )
+        self.unified_pm_os_path = settings.UNIFIED_PM_OS_PATH or str(backend_dir / 'resources' / 'unified-pm-os')
 
         self._initialized = True
         logger.info(f"SkillLoaderService initialized with path: {self.unified_pm_os_path}")

@@ -169,6 +169,8 @@ async def handle_function_calling(
 
     tool_calls_made = []
     max_iterations = 15  # Increased to support skills that call many tools (e.g., pm-setup)
+    search_calls_made = 0  # Track internet searches to prevent excessive searches
+    max_search_calls = 4   # Limit to 4 searches per skill execution to prevent timeouts
 
     for iteration in range(max_iterations):
         try:
@@ -221,6 +223,33 @@ async def handle_function_calling(
                             "content": json.dumps({"error": f"Tool '{tool_name}' does not exist. Available tools: {', '.join(available_tools)}"})
                         })
                         continue
+
+                    # Check if this is a search tool and we've reached the limit
+                    if tool_name == 'search_internet':
+                        if search_calls_made >= max_search_calls:
+                            logger.warning(f"[Function Calling] Search limit reached ({search_calls_made}/{max_search_calls}). Skipping search: {tool_args_for_logging}")
+                            tool_result = {
+                                "error": f"Search limit reached ({max_search_calls} searches per skill). Please work with the data you already have.",
+                                "query": tool_args_for_logging.get('query', ''),
+                                "answer": "Search limit reached - using existing information",
+                                "results": []
+                            }
+                            tool_calls_made.append({
+                                "tool": tool_name,
+                                "arguments": tool_args_for_logging,
+                                "result": tool_result
+                            })
+                            # Add result to conversation
+                            messages.append({
+                                "role": "tool",
+                                "name": tool_name,
+                                "tool_call_id": tool_call.id,
+                                "content": json.dumps(tool_result, default=str)
+                            })
+                            continue
+                        else:
+                            search_calls_made += 1
+                            logger.info(f"[Function Calling] Search call #{search_calls_made}/{max_search_calls}")
 
                     logger.info(f"[Function Calling] Executing tool: {tool_name} with args: {tool_args_for_logging}")
 

@@ -70,8 +70,9 @@ class ContextAggregator:
 
     async def _get_skills_catalog(self) -> str:
         """
-        Get formatted catalog of all available skills.
-        Agent uses this to decide which skill (if any) to invoke.
+        Get lightweight skills catalog for decision-making.
+        Only includes names and categories to minimize tokens (~500 vs ~5,300).
+        Full skill details loaded only when skill is selected.
         """
         skill_loader = get_skill_loader()
         skills_by_category = skill_loader._skills_by_category or {}
@@ -82,21 +83,52 @@ class ContextAggregator:
             skills_by_category = skill_loader._skills_by_category
 
         catalog_lines = []
-        catalog_lines.append("# Available Skills")
+        catalog_lines.append("# Available Skills (Lightweight)")
         catalog_lines.append("")
-        catalog_lines.append("You have access to specialized skills. When a user's request matches a skill's purpose, load that skill's instructions and execute it.")
+        catalog_lines.append("You have access to specialized PM skills. When a user's request matches a skill, respond with the skill name.")
+        catalog_lines.append("")
+
+        # Count skills for overview
+        total_skills = sum(len(skills) for skills in skills_by_category.values())
+        catalog_lines.append(f"**{total_skills} expert skills across {len(skills_by_category)} categories:**")
         catalog_lines.append("")
 
         for category in sorted(skills_by_category.keys()):
             skills = skills_by_category[category]
-            catalog_lines.append(f"## {category.replace('-', ' ').title()}")
+            skill_names = [skill['name'] for skill in sorted(skills, key=lambda s: s['name'])]
 
-            for skill in sorted(skills, key=lambda s: s['name']):
-                catalog_lines.append(f"- **{skill['name']}**: {skill.get('description', '')}")
+            # Group skills in compact format
+            catalog_lines.append(f"**{category.replace('-', ' ').title()}** ({len(skills)}): {', '.join(skill_names)}")
 
-            catalog_lines.append("")
+        catalog_lines.append("")
+        catalog_lines.append("**Usage**: When user request matches a skill (e.g. '@competitive-battlecard', 'create PRD', 'analyze market'), return that skill name. Full instructions will be loaded automatically.")
 
         return "\n".join(catalog_lines)
+
+    async def get_full_skill_details(self, skill_name: str) -> Dict[str, Any]:
+        """
+        Get full details for a specific skill (loaded on-demand).
+        This replaces loading all skills upfront, saving ~4,800 tokens.
+        """
+        skill_loader = get_skill_loader()
+
+        # Get skill data
+        skill_data = skill_loader.get_skill_by_name(skill_name)
+
+        if not skill_data:
+            return {
+                'error': f'Skill "{skill_name}" not found',
+                'available_skills': list(skill_loader.load_all_skills().keys())
+            }
+
+        return {
+            'name': skill_data['name'],
+            'description': skill_data.get('description', ''),
+            'instructions': skill_data.get('instructions', ''),
+            'category': skill_data.get('category', ''),
+            'file_path': skill_data.get('file_path', ''),
+            'full_content': skill_data.get('content', ''),  # Complete skill content
+        }
 
     async def _get_work_context(self) -> Dict[str, Any]:
         """

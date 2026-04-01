@@ -1540,9 +1540,10 @@ async def search_internet(
     import os
     import httpx
     from loguru import logger
+    from app.core.config import settings
 
     # Try Tavily first (AI-optimized search)
-    tavily_api_key = os.getenv("TAVILY_API_KEY")
+    tavily_api_key = settings.TAVILY_API_KEY
 
     if tavily_api_key:
         try:
@@ -1580,7 +1581,7 @@ async def search_internet(
             logger.warning(f"[Search] Tavily failed: {tavily_error}, falling back to Serper")
 
     # Fallback to Serper
-    serper_api_key = os.getenv("SERPER_API_KEY")
+    serper_api_key = settings.SERPER_API_KEY
 
     if serper_api_key:
         try:

@@ -91,6 +91,13 @@ class Settings(BaseSettings):
     SENTRY_DSN: Optional[str] = None
     POSTHOG_API_KEY: Optional[str] = None
 
+    # Internet Search API Keys
+    TAVILY_API_KEY: Optional[str] = None
+    SERPER_API_KEY: Optional[str] = None
+
+    # Unified PM OS Integration
+    UNIFIED_PM_OS_PATH: str = "../../unified-pm-os"
+
 
 # Create global settings instance
 settings = Settings()
