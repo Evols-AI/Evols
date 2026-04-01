@@ -161,6 +161,15 @@ async def handle_function_calling(
 
     logger.info(f"[Function Calling] Built {len(tool_schemas)} tool schemas: {[t['function']['name'] for t in tool_schemas]}")
 
+    # Get provider early for message formatting
+    provider = llm_service.provider
+
+    # Check if provider supports function calling
+    function_calling_supported = provider in ["openai", "azure_openai", "aws_bedrock", "anthropic"]
+    if not function_calling_supported:
+        logger.warning(f"[Function Calling] Provider '{provider}' does not support function calling, falling back to basic generation")
+        return await generate_without_tools(user_message, conversation_history, system_prompt, llm_service)
+
     # Agent loop
     messages = [{"role": "system", "content": system_prompt}]
     for msg in conversation_history:
@@ -215,12 +224,12 @@ async def handle_function_calling(
                             "arguments": tool_args,
                             "error": f"Invalid tool name: {tool_name}"
                         })
-                        # Add error to conversation so AI knows not to call this again
-                        messages.append({
-                            "role": "tool",
-                            "name": "error",
-                            "tool_call_id": tool_call.id,
-                            "content": json.dumps({"error": f"Tool '{tool_name}' does not exist. Available tools: {', '.join(available_tools)}"})
+                        # Add error to tool_calls_made so it gets formatted properly later
+                        tool_calls_made.append({
+                            "tool": tool_name,
+                            "arguments": tool_args,
+                            "error": f"Tool '{tool_name}' does not exist. Available tools: {', '.join(available_tools)}",
+                            "tool_call_id": tool_call.id
                         })
                         continue
 
@@ -239,13 +248,8 @@ async def handle_function_calling(
                                 "arguments": tool_args_for_logging,
                                 "result": tool_result
                             })
-                            # Add result to conversation
-                            messages.append({
-                                "role": "tool",
-                                "name": tool_name,
-                                "tool_call_id": tool_call.id,
-                                "content": json.dumps(tool_result, default=str)
-                            })
+                            # Tool result stored in tool_calls_made array - will be formatted later
+                            # Don't add to messages here to avoid duplication
                             continue
                         else:
                             search_calls_made += 1
@@ -308,14 +312,14 @@ async def handle_function_calling(
                         })
                         tool_result = {"success": False, "error": graceful_error, "note": "Main task can continue despite this tool failure"}
 
-                # Format tool results for the LLM
-                # OpenAI format: assistant message with tool_calls, then tool messages
+                # Format tool results for the LLM - provider-specific formats
+                # OpenAI/Azure format: assistant message with tool_calls, then tool messages
                 # Anthropic InvokeModel format: assistant message with tool_use blocks, then user message with tool_result blocks
                 # Bedrock Converse format: assistant message with toolUse blocks, then user message with toolResult blocks
-                provider = llm_service.provider
+                # Google Gemini: Function calling not yet implemented
 
                 if provider in ["openai", "azure_openai"]:
-                    # OpenAI format
+                    # OpenAI/Azure OpenAI format
                     messages.append({
                         "role": "assistant",
                         "content": response.content or "",
@@ -373,7 +377,15 @@ async def handle_function_calling(
                         "role": "user",
                         "content": tool_results
                     })
-                else:
+                elif provider == "google_gemini":
+                    # Google Gemini function calling not yet implemented
+                    # This should never be reached since Gemini doesn't return tool calls
+                    logger.warning(f"[Function Calling] Google Gemini function calling not yet implemented")
+                    messages.append({
+                        "role": "assistant",
+                        "content": response.content or "Function calling is not yet supported for Google Gemini."
+                    })
+                elif provider == "anthropic":
                     # Anthropic InvokeModel format (direct API, not Bedrock)
                     tool_results = []
                     for tc in response.tool_calls:
@@ -384,6 +396,13 @@ async def handle_function_calling(
                                 "tool_use_id": tc.id,
                                 "content": json.dumps(tc_result.get('result', tc_result.get('error')), default=str)
                             })
+                else:
+                    # Fallback for unknown providers
+                    logger.error(f"[Function Calling] Unsupported provider for function calling: {provider}")
+                    messages.append({
+                        "role": "assistant",
+                        "content": response.content or f"Function calling is not supported for provider: {provider}"
+                    })
 
                     # Add assistant message (with tool_use) - need to reconstruct content blocks
                     content_blocks = []
