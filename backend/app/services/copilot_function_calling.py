@@ -478,9 +478,25 @@ async def handle_function_calling(
             return cleaned_response, tool_calls_made
 
         except Exception as e:
+            error_str = str(e)
             logger.error(f"[Function Calling] Error in iteration {iteration}: {e}")
-            # Fallback to regular mode
-            return f"I encountered an error while processing your request: {str(e)}", tool_calls_made
+
+            # Handle specific error types with better messages
+            if "Read timeout" in error_str or "timeout" in error_str.lower():
+                if tool_calls_made:
+                    # If we made some progress, provide partial results
+                    return f"""I successfully gathered information using {len(tool_calls_made)} tools but encountered a timeout while generating the final response.
+
+Based on the data I collected, I can see:
+• Successfully executed: {', '.join(set(t.get('tool', 'unknown') for t in tool_calls_made))}
+• {len(tool_calls_made)} tool calls completed
+
+The timeout occurred while processing the final response. Please try your request again, or ask me to focus on a specific aspect of your request.""", tool_calls_made
+                else:
+                    return "I encountered a timeout while processing your request. This may be due to high server load. Please try again in a moment.", tool_calls_made
+            else:
+                # Other errors
+                return f"I encountered an error while processing your request: {error_str}", tool_calls_made
 
     # Max iterations reached
     logger.warning(f"[Function Calling] Max iterations reached")

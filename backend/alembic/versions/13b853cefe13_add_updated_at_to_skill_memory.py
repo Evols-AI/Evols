@@ -18,9 +18,13 @@ depends_on = None
 
 def upgrade() -> None:
     # Add updated_at column to skill_memory table
-    op.add_column('skill_memory',
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('NOW()'))
-    )
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    columns = [col['name'] for col in insp.get_columns('skill_memory')]
+    if 'updated_at' not in columns:
+        op.add_column('skill_memory',
+            sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('NOW()'))
+        )
 
 
 def downgrade() -> None:

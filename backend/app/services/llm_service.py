@@ -35,8 +35,10 @@ except ImportError:
 
 try:
     import boto3
+    from botocore.config import Config as BotocoreConfig
 except ImportError:
     boto3 = None
+    BotocoreConfig = None
 
 try:
     import google.generativeai as genai
@@ -197,7 +199,14 @@ class LLMService:
                 session_kwargs['aws_session_token'] = config.aws_session_token
             
             session = boto3.Session(**session_kwargs)
-            self.client = session.client('bedrock-runtime')
+            client_config = None
+            if BotocoreConfig:
+                client_config = BotocoreConfig(
+                    read_timeout=300,  # 5 minutes for long-running function calling
+                    connect_timeout=60,  # 1 minute to establish connection
+                    retries={'max_attempts': 2}  # Retry once on timeout
+                )
+            self.client = session.client('bedrock-runtime', config=client_config)
         elif self.provider == "google_gemini":
             if genai is None:
                 raise ImportError("google-generativeai package is required. Install with: pip install google-generativeai")

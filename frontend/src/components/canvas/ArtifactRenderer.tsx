@@ -3,7 +3,21 @@ import { Artifact } from './hooks/useCanvas'
 import { FileText, GitBranch, Layers, File, Maximize2, Edit3, Plus, Trash2, Move } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import mermaid from 'mermaid'
+
+// Dynamic import for mermaid to avoid SSR issues
+let mermaid: any = null
+if (typeof window !== 'undefined') {
+  import('mermaid').then(m => {
+    mermaid = m.default
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      themeVariables: {
+        fontFamily: 'Manrope, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+      }
+    })
+  })
+}
 
 interface ArtifactRendererProps {
   artifact: Artifact
@@ -156,6 +170,8 @@ function FlowchartArtifact({ content, expanded = false, onSave, actualIsEditingO
 
   // Initialize Mermaid with theme detection
   useEffect(() => {
+    if (!mermaid) return
+
     // Detect if we're in dark mode
     const isDarkMode = document.documentElement.classList.contains('dark') ||
                        window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -208,6 +224,8 @@ function FlowchartArtifact({ content, expanded = false, onSave, actualIsEditingO
   // Re-render when theme changes
   useEffect(() => {
     const handleThemeChange = () => {
+      if (!mermaid) return
+
       // Re-initialize Mermaid with new theme
       const isDarkMode = document.documentElement.classList.contains('dark') ||
                          window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -404,8 +422,15 @@ function FlowchartArtifact({ content, expanded = false, onSave, actualIsEditingO
 
       console.log('Attempting to render Mermaid diagram with code:', mermaidCode)
 
+      if (!mermaid) {
+        if (mermaidRef.current) {
+          mermaidRef.current.innerHTML = '<div class="p-4 text-gray-500">Loading diagram...</div>'
+        }
+        return
+      }
+
       // Render Mermaid diagram
-      mermaid.render(diagramId, mermaidCode).then((result) => {
+      mermaid.render(diagramId, mermaidCode).then((result: any) => {
         console.log('Mermaid render successful')
         if (mermaidRef.current) {
           mermaidRef.current.innerHTML = result.svg
@@ -848,7 +873,7 @@ function FlowchartArtifact({ content, expanded = false, onSave, actualIsEditingO
             }
           }
         }
-      }).catch((error) => {
+      }).catch((error: any) => {
         console.error('Mermaid render error:', error)
         console.error('Failed Mermaid code:', mermaidCode)
         console.error('Nodes that caused error:', nodesToRender)
@@ -864,7 +889,9 @@ function FlowchartArtifact({ content, expanded = false, onSave, actualIsEditingO
 
         console.log('Attempting fallback render with nodes only:', fallbackCode)
 
-        mermaid.render(`${diagramId}-fallback`, fallbackCode).then((result) => {
+        if (!mermaid) return
+
+        mermaid.render(`${diagramId}-fallback`, fallbackCode).then((result: any) => {
           console.log('Fallback render successful - issue is with edges')
           if (mermaidRef.current) {
             mermaidRef.current.innerHTML = result.svg + `
@@ -873,7 +900,7 @@ function FlowchartArtifact({ content, expanded = false, onSave, actualIsEditingO
               </div>
             `
           }
-        }).catch((fallbackError) => {
+        }).catch((fallbackError: any) => {
           console.error('Fallback render also failed:', fallbackError)
           if (mermaidRef.current) {
             mermaidRef.current.innerHTML = `

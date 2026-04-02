@@ -184,14 +184,20 @@ class SecuritySanitizer:
                     max_length=1000,  # Reasonable limit for tool parameters
                     context=f"tool_argument.{tool_name}.{key}"
                 )
-            elif isinstance(value, (list, dict)):
-                # For complex types, convert to string first, then sanitize
-                str_value = str(value)[:2000]  # Limit serialized length
-                sanitized[key] = cls.sanitize_user_input(
-                    str_value,
-                    max_length=2000,
-                    context=f"tool_argument.{tool_name}.{key}"
-                )
+            elif isinstance(value, list):
+                # Recursively sanitize list elements
+                sanitized[key] = [
+                    cls.sanitize_user_input(item, max_length=1000, context=f"tool_argument.{tool_name}.{key}[{i}]")
+                    if isinstance(item, str) else item
+                    for i, item in enumerate(value[:50])  # Limit list size to prevent abuse
+                ]
+            elif isinstance(value, dict):
+                # Recursively sanitize dictionary values
+                sanitized[key] = {
+                    dict_key: cls.sanitize_user_input(dict_value, max_length=1000, context=f"tool_argument.{tool_name}.{key}.{dict_key}")
+                    if isinstance(dict_value, str) else dict_value
+                    for dict_key, dict_value in list(value.items())[:20]  # Limit dict size
+                }
             else:
                 # Keep primitive types as-is (int, float, bool, None)
                 sanitized[key] = value

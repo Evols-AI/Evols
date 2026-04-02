@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+frontend/node_modules
+backend/node_modules
+.next
+.venv
+venv
+*.pyc
+__pycache__
+.DS_Store
+.env
+frontend/src/pages/_document.tsx
+# Keep the actual source code

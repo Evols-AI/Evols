@@ -45,6 +45,8 @@
     --input: 220 13% 91%;
     --ring: 217 91% 60%;
     --radius: 0.875rem;
+    /* Ensure font variables are available globally (fallback for Next.js font API) */
+    --font-courgette: 'Courgette', cursive;
   }
 
   .dark {
@@ -385,7 +387,7 @@
 
   /* Logo Typography */
   .logo-text {
-    font-family: 'Courgette', cursive;
+    font-family: var(--font-courgette), 'Courgette', cursive, serif;
     font-weight: 400;
     letter-spacing: 0.01em;
   }

@@ -27,9 +27,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         csp_directives = [
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Needed for Next.js development
-            "style-src 'self' 'unsafe-inline'",  # Needed for styled-components and Tailwind
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",  # Needed for styled-components, Tailwind and Google Fonts
             "img-src 'self' data: blob:",  # Allow data URIs for images
-            "font-src 'self' data:",
+            "font-src 'self' data: https://fonts.gstatic.com", # Allow Google Fonts
             "connect-src 'self' ws: wss:",  # WebSocket connections for dev server
             "media-src 'self'",
             "object-src 'none'",  # Disable plugins
