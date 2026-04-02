@@ -15,6 +15,7 @@ from app.models.work_context import (
     TaskPriority, TaskStatus, DecisionCategory
 )
 from app.models.user import User
+from app.services.pm_deduplication import PMDeduplicationService
 
 
 class WorkContextTools:
@@ -23,6 +24,7 @@ class WorkContextTools:
     def __init__(self, db: AsyncSession, user: User):
         self.db = db
         self.user = user
+        self.pm_dedup_service = PMDeduplicationService(db)
 
     async def _get_or_create_work_context(self) -> WorkContext:
         """Get or create work context for user"""
@@ -211,18 +213,20 @@ class WorkContextTools:
 
         logger.info(f"[WorkContext.add_or_update_project] Status mapping: '{original_status}' -> '{status}'")
 
-        # Check if project exists
-        result = await self.db.execute(
-            select(ActiveProject).filter(
-                ActiveProject.user_id == self.user.id,
-                ActiveProject.name == name
-            )
-        )
-        project = result.scalar_one_or_none()
+        # Check for duplicate projects using semantic similarity
+        candidate = {
+            'name': name,
+            'status': status,
+            'role': role,
+            'notes': notes or ''
+        }
+
+        duplicates = await self.pm_dedup_service.find_duplicate_projects(candidate, self.user.id)
 
         try:
-            if project:
-                # Update existing
+            if duplicates:
+                # Update most similar existing project
+                project, similarity = duplicates[0]
                 project.status = ProjectStatus(status)
                 project.role = ProjectRole(role)
                 if next_milestone:
@@ -233,9 +237,10 @@ class WorkContextTools:
                     project.key_stakeholders = key_stakeholders
                 if notes:
                     project.notes = notes
-                message = f"Updated project: {name}"
+                message = f"Updated existing project: {project.name} (matched '{name}' at {similarity:.1%} similarity)"
+                logger.info(f"[WorkContext] Updated duplicate project: {project.name} (similarity: {similarity:.2%})")
             else:
-                # Create new
+                # No duplicates found - create new project
                 project = ActiveProject(
                     work_context_id=work_context.id,
                     user_id=self.user.id,
@@ -248,7 +253,8 @@ class WorkContextTools:
                     notes=notes
                 )
                 self.db.add(project)
-                message = f"Added project: {name}"
+                message = f"Added new project: {name}"
+                logger.info(f"[WorkContext] Created new project: {name}")
 
             await self.db.commit()
 
@@ -298,17 +304,19 @@ class WorkContextTools:
         """
         work_context = await self._get_or_create_work_context()
 
-        # Check if relationship exists
-        result = await self.db.execute(
-            select(KeyRelationship).filter(
-                KeyRelationship.user_id == self.user.id,
-                KeyRelationship.name == name
-            )
-        )
-        relationship = result.scalar_one_or_none()
+        # Check for duplicate relationships using semantic similarity
+        candidate = {
+            'name': name,
+            'role': role or '',
+            'relationship_type': relationship_type or '',
+            'current_dynamic': current_dynamic or ''
+        }
 
-        if relationship:
-            # Update existing
+        duplicates = await self.pm_dedup_service.find_duplicate_relationships(candidate, self.user.id)
+
+        if duplicates:
+            # Update most similar existing relationship
+            relationship, similarity = duplicates[0]
             if role:
                 relationship.role = role
             if relationship_type:
@@ -321,9 +329,11 @@ class WorkContextTools:
                 relationship.communication_preference = communication_preference
             if investment_needed:
                 relationship.investment_needed = investment_needed
-            message = f"Updated relationship: {name}"
+            message = f"Updated existing relationship: {relationship.name} (matched '{name}' at {similarity:.1%} similarity)"
+            from loguru import logger
+            logger.info(f"[WorkContext] Updated duplicate relationship: {relationship.name} (similarity: {similarity:.2%})")
         else:
-            # Create new
+            # No duplicates found - create new relationship
             relationship = KeyRelationship(
                 work_context_id=work_context.id,
                 user_id=self.user.id,
@@ -336,7 +346,9 @@ class WorkContextTools:
                 investment_needed=investment_needed
             )
             self.db.add(relationship)
-            message = f"Added relationship: {name}"
+            message = f"Added new relationship: {name}"
+            from loguru import logger
+            logger.info(f"[WorkContext] Created new relationship: {name}")
 
         await self.db.commit()
 
@@ -377,28 +389,53 @@ class WorkContextTools:
             product_id: Associated product (optional)
         """
         try:
-            task = Task(
-                user_id=self.user.id,
-                title=title,
-                priority=TaskPriority(priority),
-                status=TaskStatus.TODO,
-                description=description,
-                deadline=deadline,
-                why_critical=why_critical,
-                impact=impact,
-                stakeholder_name=stakeholder_name,
-                stakeholder_reason=stakeholder_reason,
-                source=source,
-                product_id=product_id
-            )
-            self.db.add(task)
-            await self.db.commit()
-
-            return {
-                "success": True,
-                "message": f"Added task: {title}",
-                "data": {"title": title, "priority": priority}
+            # Check for duplicate tasks using semantic similarity
+            candidate = {
+                'title': title,
+                'priority': priority,
+                'description': description or ''
             }
+
+            duplicates = await self.pm_dedup_service.find_duplicate_tasks(candidate, self.user.id)
+
+            if duplicates:
+                # Similar task already exists - skip creation
+                existing_task, similarity = duplicates[0]
+                from loguru import logger
+                logger.info(f"[WorkContext] Skipped duplicate task: {existing_task.title} (similarity: {similarity:.2%})")
+                return {
+                    "success": True,
+                    "message": f"Similar task already exists: {existing_task.title} (matched '{title}' at {similarity:.1%} similarity)",
+                    "data": {"title": existing_task.title, "priority": existing_task.priority.value},
+                    "skipped_duplicate": True,
+                    "existing_task_id": existing_task.id
+                }
+            else:
+                # No duplicates found - create new task
+                task = Task(
+                    user_id=self.user.id,
+                    title=title,
+                    priority=TaskPriority(priority),
+                    status=TaskStatus.TODO,
+                    description=description,
+                    deadline=deadline,
+                    why_critical=why_critical,
+                    impact=impact,
+                    stakeholder_name=stakeholder_name,
+                    stakeholder_reason=stakeholder_reason,
+                    source=source,
+                    product_id=product_id
+                )
+                self.db.add(task)
+                await self.db.commit()
+
+                from loguru import logger
+                logger.info(f"[WorkContext] Created new task: {title}")
+                return {
+                    "success": True,
+                    "message": f"Added new task: {title}",
+                    "data": {"title": title, "priority": priority}
+                }
         except ValueError as e:
             return {
                 "success": False,
