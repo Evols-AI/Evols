@@ -13,6 +13,7 @@ interface User {
   role: string
   is_active: boolean
   tenant_id: number | null
+  last_login_at: string | null
 }
 
 export default function TenantUsers() {
@@ -200,6 +201,9 @@ export default function TenantUsers() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Last Login
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Actions
                   </th>
@@ -249,6 +253,20 @@ export default function TenantUsers() {
                       }`}>
                         {user.is_active ? 'Active' : 'Inactive'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      {user.last_login_at ? (
+                        <div>
+                          <div className="text-gray-900 dark:text-white">
+                            {new Date(user.last_login_at).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(user.last_login_at).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500 italic">Never</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
