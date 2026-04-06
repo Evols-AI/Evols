@@ -897,8 +897,41 @@ class LLMService:
                 full_prompt
             )
 
-            # Extract content
-            content_text = response.text if hasattr(response, 'text') else ""
+            # Extract content - handle MAX_TOKENS case properly
+            content_text = ""
+            finish_reason = "stop"
+
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'finish_reason'):
+                    finish_reason_val = candidate.finish_reason
+                    finish_reason = str(finish_reason_val)
+
+                    # Handle MAX_TOKENS case (finish_reason: 2) - connection is successful
+                    if finish_reason_val == 2:  # MAX_TOKENS
+                        content_text = "Connection test successful - Response truncated due to token limit."
+                        logger.info(f"[Google Gemini] Connection successful, response truncated due to MAX_TOKENS")
+                    else:
+                        # For other finish reasons, try to get the text
+                        try:
+                            content_text = response.text if hasattr(response, 'text') else ""
+                        except Exception as text_error:
+                            content_text = f"Response received but content unavailable: {str(text_error)}"
+                            logger.warning(f"[Google Gemini] Could not extract text: {text_error}")
+                else:
+                    # No finish_reason available, try to get text
+                    try:
+                        content_text = response.text if hasattr(response, 'text') else ""
+                    except Exception as text_error:
+                        content_text = f"Response received but content unavailable: {str(text_error)}"
+                        logger.warning(f"[Google Gemini] Could not extract text: {text_error}")
+            else:
+                # No candidates, try direct text access
+                try:
+                    content_text = response.text if hasattr(response, 'text') else ""
+                except Exception as text_error:
+                    content_text = f"Response received but content unavailable: {str(text_error)}"
+                    logger.warning(f"[Google Gemini] Could not extract text: {text_error}")
 
             # Extract usage information (if available)
             usage = {
@@ -906,13 +939,6 @@ class LLMService:
                 "completion_tokens": getattr(response.usage_metadata, 'candidates_token_count', 0) if hasattr(response, 'usage_metadata') else 0,
                 "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0) if hasattr(response, 'usage_metadata') else 0
             }
-
-            # Get finish reason
-            finish_reason = "stop"  # Gemini doesn't provide detailed finish reasons like other models
-            if hasattr(response, 'candidates') and response.candidates:
-                candidate = response.candidates[0]
-                if hasattr(candidate, 'finish_reason'):
-                    finish_reason = str(candidate.finish_reason)
 
             logger.info(f"[Google Gemini] Response - text length: {len(content_text)}, usage: {usage}")
 

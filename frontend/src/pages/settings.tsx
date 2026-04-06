@@ -9,7 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
-import { User, Shield, Bell, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check } from 'lucide-react'
+import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check } from 'lucide-react'
 
 type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini'
@@ -93,8 +93,6 @@ export default function Settings() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [showApiKey, setShowApiKey] = useState(false)
   const [showSecretKey, setShowSecretKey] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [refreshResult, setRefreshResult] = useState<string | null>(null)
 
   // Profile state
   const [profileData, setProfileData] = useState({ full_name: '', email: '' })
@@ -190,18 +188,36 @@ export default function Settings() {
         setLLMConfig({ provider: 'openai', api_key: '', model: 'gpt-5.4', embedding_model: 'text-embedding-3-large' })
         break
       case 'anthropic':
-        setLLMConfig({ provider: 'anthropic', api_key: '', model: 'claude-sonnet-4-6' })
+        setLLMConfig({ provider: 'anthropic', api_key: '', model: 'claude-3-5-sonnet-20241022' })
         break
       case 'azure_openai':
         setLLMConfig({ provider: 'azure_openai', api_key: '', endpoint: '', deployment_name: '', api_version: '2024-02-01' })
         break
       case 'aws_bedrock':
         setAwsAuthMethod('api_key')
-        setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'global.anthropic.claude-sonnet-4-6' })
+        setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-3-5-sonnet-20241022-v2:0' })
         break
       case 'google_gemini':
-        setLLMConfig({ provider: 'google_gemini', api_key: '', model: 'gemini-2.5-flash', temperature: 0.7, top_p: 0.95, top_k: 40 })
+        setLLMConfig({ provider: 'google_gemini', api_key: '', model: 'gemini-3-flash-preview', temperature: 0.7, top_p: 0.95, top_k: 40 })
         break
+    }
+  }
+
+  // Get the latest model for each provider
+  const getLatestModel = (provider: LLMProvider) => {
+    switch (provider) {
+      case 'openai':
+        return 'GPT-5.4'
+      case 'anthropic':
+        return 'Claude Sonnet 4.5'
+      case 'azure_openai':
+        return 'GPT-5.4 (Azure deployment)'
+      case 'aws_bedrock':
+        return 'Claude Sonnet 4.5 (Bedrock)'
+      case 'google_gemini':
+        return 'Gemini 3 Flash Preview'
+      default:
+        return 'Latest model'
     }
   }
 
@@ -311,39 +327,6 @@ export default function Settings() {
     }
   }
 
-  const handleRefreshModels = async () => {
-    setRefreshing(true)
-    setRefreshResult(null)
-
-    try {
-      // Determine which provider to refresh based on current selection
-      let provider = llmProvider
-      if (provider === 'anthropic' || provider === 'azure_openai') {
-        setRefreshResult('Dynamic model refresh not supported for this provider. Using static model list.')
-        return
-      }
-
-      const response = await api.refreshModels(provider)
-
-      if (response.data.success) {
-        // Reload model options to get the updated list
-        await loadModelOptions()
-
-        const modelCount = provider === 'openai'
-          ? response.data.models.length + response.data.embedding_models.length
-          : response.data.models.length
-
-        setRefreshResult(`✓ Refreshed ${modelCount} models from ${provider}. Cached for 24 hours.`)
-      }
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.detail || 'Failed to refresh models'
-      setRefreshResult(`✗ ${errorMsg}`)
-    } finally {
-      setRefreshing(false)
-      // Auto-hide result after 5 seconds
-      setTimeout(() => setRefreshResult(null), 5000)
-    }
-  }
 
   const handleSaveProfile = async () => {
     try {
@@ -768,33 +751,18 @@ export default function Settings() {
                     </div>
                   </div>
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100">Model</label>
-                      <button
-                        onClick={handleRefreshModels}
-                        disabled={refreshing || !currentLLMSettings}
-                        title="Refresh model list from OpenAI"
-                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
-                        {refreshing ? 'Refreshing...' : 'Refresh'}
-                      </button>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Model Available</label>
+                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{getLatestModel('openai')}</span>
+                        <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                          Most Effective
+                        </span>
+                      </div>
                     </div>
-                    <div className="relative">
-                      <select
-                        value={llmConfig.model}
-                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                      >
-                        {modelOptions?.openai_models.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
-                    </div>
-                    {refreshResult && (
-                      <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                        {refreshResult}
-                      </p>
-                    )}
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Curated model selection optimized for product management workflows and strategic analysis.
+                    </p>
                   </div>
                 </div>
               )}
@@ -819,17 +787,18 @@ export default function Settings() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Model</label>
-                    <div className="relative">
-                      <select
-                        value={llmConfig.model}
-                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                      >
-                        {modelOptions?.anthropic_models.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Model Available</label>
+                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{getLatestModel('anthropic')}</span>
+                        <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                          Most Effective
+                        </span>
+                      </div>
                     </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Curated model selection optimized for product management workflows and strategic analysis.
+                    </p>
                   </div>
                 </div>
               )}
@@ -979,33 +948,18 @@ export default function Settings() {
                     </div>
                   </div>
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100">Model ID</label>
-                      <button
-                        onClick={handleRefreshModels}
-                        disabled={refreshing || !currentLLMSettings}
-                        title="Refresh model list from AWS Bedrock"
-                        className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
-                        {refreshing ? 'Refreshing...' : 'Refresh'}
-                      </button>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Model Available</label>
+                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{getLatestModel('aws_bedrock')}</span>
+                        <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                          Most Effective
+                        </span>
+                      </div>
                     </div>
-                    <div className="relative">
-                      <select
-                        value={llmConfig.model}
-                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                      >
-                        {modelOptions?.aws_bedrock_models.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
-                    </div>
-                    {refreshResult && (
-                      <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                        {refreshResult}
-                      </p>
-                    )}
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Curated model selection optimized for product management workflows and strategic analysis.
+                    </p>
                   </div>
                 </div>
               )}
@@ -1037,40 +991,21 @@ export default function Settings() {
                     </p>
                   </div>
 
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Model
-                      </label>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <select
-                            value={llmConfig.model}
-                            onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                          >
-                            {modelOptions?.google_gemini_models.map((m) => <option key={m} value={m}>{m}</option>)}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
-                        </div>
-                        <button
-                          onClick={() => {
-                            setRefreshing(true)
-                            loadModelOptions().finally(() => setRefreshing(false))
-                          }}
-                          disabled={refreshing}
-                          className="px-3 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Refresh model list from Google AI"
-                        >
-                          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                        </button>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Model Available
+                    </label>
+                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{getLatestModel('google_gemini')}</span>
+                        <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                          Most Effective
+                        </span>
                       </div>
-                      {refreshResult && (
-                        <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                          {refreshResult}
-                        </p>
-                      )}
                     </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Curated model selection optimized for product management workflows and strategic analysis.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
