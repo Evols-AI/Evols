@@ -396,7 +396,14 @@ class WorkContextTools:
                 'description': description or ''
             }
 
-            duplicates = await self.pm_dedup_service.find_duplicate_tasks(candidate, self.user.id)
+            try:
+                duplicates = await self.pm_dedup_service.find_duplicate_tasks(candidate, self.user.id)
+            except Exception as dedup_error:
+                # If deduplication fails, log error but continue with task creation
+                # This prevents losing tasks due to embedding service issues
+                from loguru import logger
+                logger.warning(f"[WorkContext] Deduplication failed for task '{title}': {dedup_error}. Creating task anyway.")
+                duplicates = []
 
             if duplicates:
                 # Similar task already exists - skip creation
@@ -411,7 +418,22 @@ class WorkContextTools:
                     "existing_task_id": existing_task.id
                 }
             else:
-                # No duplicates found - create new task
+                # No duplicates found - double-check right before creation to prevent race conditions
+                final_check = await self.pm_dedup_service.find_duplicate_tasks(candidate, self.user.id)
+                if final_check:
+                    # Another conversation created this task between our checks
+                    existing_task, similarity = final_check[0]
+                    from loguru import logger
+                    logger.info(f"[WorkContext] Race condition detected - task created by another conversation: {existing_task.title}")
+                    return {
+                        "success": True,
+                        "message": f"Similar task already exists: {existing_task.title} (detected during race condition check)",
+                        "data": {"title": existing_task.title, "priority": existing_task.priority.value},
+                        "skipped_duplicate": True,
+                        "existing_task_id": existing_task.id
+                    }
+
+                # Still no duplicates - safe to create
                 task = Task(
                     user_id=self.user.id,
                     title=title,

@@ -1553,9 +1553,24 @@ function DocumentArtifact({ content, expanded, onSave, editingState, editingCanc
               h1: ({ children }) => <h1 className="text-xl mb-3 mt-4 first:mt-0 font-bold">{children}</h1>,
               h2: ({ children }) => <h2 className="text-lg mb-2 mt-3 first:mt-0 font-semibold">{children}</h2>,
               h3: ({ children }) => <h3 className="text-base mb-2 mt-2 first:mt-0 font-medium">{children}</h3>,
-              ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+              ul: ({ children, className }) => {
+                // Handle task lists (checkboxes) differently from regular lists
+                const isTaskList = className?.includes('contains-task-list')
+                return (
+                  <ul className={`mb-2 space-y-1 ${isTaskList ? 'task-list' : 'list-disc list-inside'}`}>
+                    {children}
+                  </ul>
+                )
+              },
               ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-              li: ({ children }) => <li className="ml-2">{children}</li>,
+              li: ({ children, className }) => {
+                // Handle task list items (checkboxes)
+                const isTaskItem = className?.includes('task-list-item')
+                if (isTaskItem) {
+                  return <li className="task-list-item flex items-start gap-2">{children}</li>
+                }
+                return <li className="ml-2">{children}</li>
+              },
               strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
               em: ({ children }) => <em className="italic">{children}</em>,
               code: ({ inline, children, ...props }: any) =>

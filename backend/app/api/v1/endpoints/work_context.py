@@ -462,7 +462,28 @@ async def create_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create new task"""
+    """Create new task with deduplication check"""
+    from app.services.pm_deduplication import PMDeduplicationService
+
+    # Check for duplicates before creating
+    pm_dedup_service = PMDeduplicationService(db)
+    candidate = {
+        'title': data.title,
+        'priority': data.priority.value if data.priority else '',
+        'description': data.description or ''
+    }
+
+    duplicates = await pm_dedup_service.find_duplicate_tasks(candidate, current_user.id)
+
+    if duplicates:
+        # Return existing task instead of creating duplicate
+        existing_task, similarity = duplicates[0]
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[API] Skipped duplicate task: {existing_task.title} (similarity: {similarity:.2%})")
+        return existing_task
+
+    # No duplicates found - create new task
     task = Task(
         **data.model_dump(),
         user_id=current_user.id

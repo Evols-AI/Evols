@@ -115,7 +115,7 @@ export const ProductSelector: React.FC = () => {
 
     setIsCreating(true);
     try {
-      const response = await api.post('/products', {
+      const response = await api.products.create({
         name: newProductName.trim(),
         description: newProductDescription.trim() || undefined,
         is_demo: false
@@ -130,7 +130,7 @@ export const ProductSelector: React.FC = () => {
       await loadProducts();
 
       // Auto-select the newly created product
-      setProductIds([response.data.id]);
+      setProductIds([response.id]);
 
       // Reload page to refresh data with new product
       window.location.reload();

@@ -37,6 +37,7 @@ gcloud run deploy evols-backend \
     --set-env-vars "ENVIRONMENT=production" \
     --set-env-vars "REDIS_URL=redis://10.128.0.43:6379/0" \
     --set-env-vars 'BACKEND_CORS_ORIGINS=["*"]' \
+    --set-env-vars "TAVILY_API_KEY=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" \
     --add-cloudsql-instances "$SQL_CONNECTION_NAME" \
     --network default \
     --subnet default \

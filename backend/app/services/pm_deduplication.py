@@ -16,8 +16,8 @@ class PMDeduplicationService:
     """Detect duplicate PM entities using embedding similarity"""
 
     # Different thresholds for different entity types
-    PROJECT_SIMILARITY_THRESHOLD = 0.80
-    TASK_SIMILARITY_THRESHOLD = 0.85
+    PROJECT_SIMILARITY_THRESHOLD = 0.72  # Lowered to catch cases like "SSO Integration" vs "Enterprise SSO Integration"
+    TASK_SIMILARITY_THRESHOLD = 0.75     # Lowered to catch duplicate tasks with similar descriptions
     RELATIONSHIP_SIMILARITY_THRESHOLD = 0.75
 
     def __init__(self, db: AsyncSession, tenant_config: Optional[Dict[str, Any]] = None):
