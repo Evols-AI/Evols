@@ -33,11 +33,15 @@ gcloud run deploy evols-backend \
     --region "$REGION" \
     --platform managed \
     --allow-unauthenticated \
-    --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:postgres@/evols?host=/cloudsql/$SQL_CONNECTION_NAME" \
+    --min-instances=1 \
+    --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:postgres123@/evols?host=/cloudsql/$SQL_CONNECTION_NAME" \
     --set-env-vars "ENVIRONMENT=production" \
     --set-env-vars "REDIS_URL=redis://10.128.0.43:6379/0" \
     --set-env-vars 'BACKEND_CORS_ORIGINS=["*"]' \
     --set-env-vars "TAVILY_API_KEY=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" \
+    --set-env-vars "AWS_REGION=us-east-1" \
+    --set-env-vars "EMBEDDING_PROVIDER=aws_bedrock" \
+    --set-env-vars "UNIFIED_PM_OS_PATH=./resources/unified-pm-os" \
     --add-cloudsql-instances "$SQL_CONNECTION_NAME" \
     --network default \
     --subnet default \

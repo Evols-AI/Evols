@@ -1,5 +1,5 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', '${_TAG}', '-f', 'deployment/backend.Dockerfile', '.']
+  args: ['build', '--no-cache', '-t', '${_TAG}', '-f', 'deployment/backend.Dockerfile', '.']
 images:
 - '${_TAG}'
