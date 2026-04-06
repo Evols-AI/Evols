@@ -194,7 +194,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
             result = await db.execute(
                 select(TenantInvite).where(
                     TenantInvite.email == user_data.email.lower(),
-                    TenantInvite.is_used == False,
+                    TenantInvite.is_accepted == False,
                     TenantInvite.expires_at > datetime.utcnow()
                 )
             )
