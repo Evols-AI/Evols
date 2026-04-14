@@ -1,0 +1,80 @@
+{
+  "name": "evols",
+  "version": "1.0.0",
+  "description": "Team AI Intelligence — eliminate handoff tax, track token savings, build shared knowledge",
+  "author": "Evols AI",
+  "homepage": "https://evols.ai",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.evols/hooks/session_start.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.evols/hooks/user_prompt_submit.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.evols/hooks/post_tool_use.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.evols/hooks/stop.py"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.evols/hooks/stop.py --failure"
+          }
+        ]
+      }
+    ]
+  },
+  "mcpServers": {
+    "evols": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["~/.evols/mcp_server/server.py"]
+    }
+  },
+  "userConfig": {
+    "EVOLS_API_URL": {
+      "description": "Your Evols workspace URL (e.g. https://evols-backend-kdqer5oyua-uc.a.run.app)",
+      "required": true
+    },
+    "EVOLS_API_KEY": {
+      "description": "Your Evols API key (find it in Settings → API Keys)",
+      "required": true
+    },
+    "EVOLS_PLAN": {
+      "description": "Your Claude plan: pro, max, team, or enterprise",
+      "default": "pro"
+    }
+  }
+}

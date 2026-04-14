@@ -39,6 +39,10 @@ from app.models.work_context import (
     TaskPriority, TaskStatus, DecisionCategory, MeetingType
 )
 from app.models.user_skill_customization import UserSkillCustomization
+from app.models.team_knowledge import (
+    KnowledgeEntry, KnowledgeEdge, QuotaEvent,
+    EntryRole, SessionType, EntryType, EdgeType, QuotaEventType
+)
 
 # Backward compatibility aliases
 Adviser = Skill
@@ -148,4 +152,8 @@ __all__ = [
     "MeetingType",
     # User Customizations
     "UserSkillCustomization",
+    # Team Knowledge Graph
+    "KnowledgeEntry",
+    "KnowledgeEdge",
+    "QuotaEvent",
 ]

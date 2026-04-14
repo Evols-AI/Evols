@@ -8,6 +8,7 @@ from app.api.v1.endpoints import auth, feedback, themes, personas, decisions
 from app.api.v1.endpoints import workbench, llm_settings, settings, projects, jobs, roadmap, products
 from app.api.v1.endpoints import admin, users, support, copilot, copilot_cleanup, context, invites
 from app.api.v1.endpoints import knowledge, memory, work_context, skill_customizations
+from app.api.v1.endpoints import team_knowledge
 
 api_router = APIRouter()
 
@@ -35,3 +36,4 @@ api_router.include_router(knowledge.router, prefix="/knowledge", tags=["Knowledg
 api_router.include_router(memory.router, prefix="/memory", tags=["Memory"])
 api_router.include_router(work_context.router, prefix="/work-context", tags=["Work Context"])
 api_router.include_router(skill_customizations.router, prefix="/skill-customizations", tags=["Skill Customizations"])
+api_router.include_router(team_knowledge.router, prefix="/team-knowledge", tags=["Team Knowledge Graph"])
