@@ -46,7 +46,7 @@
     --ring: 217 91% 60%;
     --radius: 0.875rem;
     /* Ensure font variables are available globally (fallback for Next.js font API) */
-    --font-courgette: 'Courgette', cursive;
+    --font-expletus-sans: 'Expletus Sans', sans-serif;
   }
 
   .dark {
@@ -387,8 +387,8 @@
 
   /* Logo Typography */
   .logo-text {
-    font-family: var(--font-courgette), 'Courgette', cursive, serif;
-    font-weight: 400;
+    font-family: var(--font-expletus-sans), 'Expletus Sans', sans-serif;
+    font-weight: 500;
     letter-spacing: 0.01em;
   }
 }

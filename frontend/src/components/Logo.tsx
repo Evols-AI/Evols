@@ -51,7 +51,7 @@ export function LogoWordmark({ iconSize = 32, className = '' }: { iconSize?: num
         className="logo-text bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent"
         style={{ fontSize: iconSize * 0.7 }}
       >
-        Evols
+        Evols AI
       </span>
     </div>
   )

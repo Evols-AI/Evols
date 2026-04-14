@@ -62,18 +62,19 @@ export default function Home() {
             >
               <div className="inline-flex items-center space-x-2 bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full text-sm text-blue-600 dark:text-blue-400 mb-6">
                 <Sparkles className="w-4 h-4" />
-                <span>Team AI Intelligence Platform</span>
+                <span>Team AI Operating System</span>
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl mb-6 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent leading-tight pb-2">
-                Stop Wasting Your Team's
+                Eliminate the Handoff Tax
                 <br />
-                <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">AI Conversations</span>
+                <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">On Your Team</span>
               </h1>
 
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto lg:mx-0">
-                Turn your isolated Claude Code and Copilot sessions into collaborative team intelligence.
-                Share insights, build on each other's work, and create institutional memory with 80+ specialized PM frameworks.
+                Every AI session your team runs disappears when the window closes.
+                Evols turns those sessions into a shared, auto-compiled team knowledge base —
+                so every teammate inherits what the last one learned.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
@@ -114,16 +115,16 @@ export default function Home() {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard icon={<Sparkles className="w-8 h-8" />}
-              title="Stop Duplicating AI Work"
-              description="Your PMs are asking AI the same questions teammates solved last week. That's wasted time and missed opportunities."
+              title="The Handoff Tax"
+              description="Knowledge generated in one person's AI session never reaches the teammate who needs it. PM research, engineering decisions, UX insights — rebuilt from scratch every time."
             />
             <FeatureCard icon={<Users className="w-8 h-8" />}
-              title="Keep Team Intelligence"
-              description="When Sarah leaves, all her successful AI patterns disappear. Your team starts over instead of building on proven approaches."
+              title="Invisible Waste"
+              description="Teams have no visibility into what AI work is being done. Two PMs research the same competitor. Two engineers solve the same problem. Nobody knows until the work collides."
             />
             <FeatureCard icon={<GitBranch className="w-8 h-8" />}
-              title="Get PM-Specific Results"
-              description="Claude Code gives engineering advice. ChatGPT gives generic advice. You need specialized PM frameworks that work."
+              title="Quota Blindness"
+              description="Some team members hit session lockouts mid-task. Others let quota expire unused. Neither is visible. Teams have no way to see, balance, or redirect AI capacity across the team."
             />
           </div>
         </section>
@@ -137,11 +138,11 @@ export default function Home() {
                   How Evols Transforms Your Team
                 </h2>
                 <div className="space-y-6">
-                  <ValueProp text="Team Knowledge Sharing: Your PMs see what frameworks teammates used successfully and build on existing work instead of reinventing solutions" />
-                  <ValueProp text="80+ Specialized PM Frameworks: Skip generic AI advice. Get battle-tested frameworks for discovery, competitive analysis, and prioritization" />
-                  <ValueProp text="Works With Your Existing AI Tools: Keep using Claude Code, Copilot, or ChatGPT. Evols enhances them with team context and PM expertise" />
-                  <ValueProp text="Institutional Memory That Grows: Every AI conversation builds your team's shared knowledge base automatically" />
-                  <ValueProp text="Smart Collaboration Suggestions: Get proactive suggestions like 'Your teammate solved this last month' before you duplicate work" />
+                  <ValueProp text="Zero-Friction Onboarding: Inherit your team's accumulated AI knowledge on day one — no setup, no cold start, no accumulation period" />
+                  <ValueProp text="Auto-Compiled Team Knowledge Base: Every AI session contributes to a shared wiki automatically. You query it instead of rebuilding it from scratch each time" />
+                  <ValueProp text="Redundancy Prevention: Get alerted before you spend tokens on work a teammate already completed — before the session starts, not after" />
+                  <ValueProp text="Quota Visibility: See collective team AI capacity in real time. Redirect expiring quota to backlog tasks before it resets unused" />
+                  <ValueProp text="Works Where You Work: One plugin install activates everything in Claude Code. MCP integration covers Copilot, Kiro, Cursor, and Cline" />
                 </div>
               </div>
               <div className="hidden md:flex items-center justify-center">
@@ -179,7 +180,7 @@ export default function Home() {
                   <ComparisonItem name="❌ Everyone duplicates the same work" price="" />
                   <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
                     <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                      Result: Isolated AI work that doesn't build team intelligence
+                      Result: 2+ hours daily handoff tax recreating context between AI tools
                     </p>
                   </div>
                 </div>
@@ -195,15 +196,15 @@ export default function Home() {
                     Evols Team Intelligence
                   </h3>
                   <div className="space-y-6">
-                    <ComparisonItem name="✅ 80+ specialized PM frameworks" price="" />
-                    <ComparisonItem name="✅ Builds on team's successful patterns" price="" />
-                    <ComparisonItem name="✅ Automatic team knowledge sharing" price="" />
-                    <ComparisonItem name="✅ Institutional memory that grows" price="" />
-                    <ComparisonItem name="✅ 'Your teammate already solved this'" price="" />
+                    <ComparisonItem name="✅ Shared team knowledge base, auto-compiled" price="" />
+                    <ComparisonItem name="✅ Team context inherited on day one" price="" />
+                    <ComparisonItem name="✅ Redundancy detected before work starts" price="" />
+                    <ComparisonItem name="✅ Quota visible and redirectable across team" price="" />
+                    <ComparisonItem name="✅ One plugin install — everything activates" price="" />
                   </div>
                   <div className="pt-6 mt-6 border-t border-blue-200 dark:border-blue-800">
                     <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-6">
-                      Result: Collaborative AI that makes your entire team smarter
+                      Result: Eliminate handoff tax, make your entire team smarter
                     </p>
                     <Link href="/book-demo" className="block w-full text-center bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-4 px-6 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 hover:brightness-110 active:scale-95">
                       See How It Works
@@ -214,38 +215,39 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ROI Calculator */}
+          {/* Token Savings */}
           <div className="max-w-2xl mx-auto mt-16 text-center bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-8 rounded-2xl">
-            <h3 className="text-2xl mb-4 text-gray-900 dark:text-white">Calculate Your Team's Time Savings</h3>
+            <h3 className="text-2xl mb-4 text-gray-900 dark:text-white">Your Team's Quota Goes Further</h3>
             <div className="space-y-3 text-gray-600 dark:text-gray-300">
-              <p>Average PM spends 8 hours/week on research and analysis</p>
-              <p>40% of that research duplicates teammate's work</p>
-              <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">With Evols: Save 3.2 hours/week per PM</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">For a 10-person team: 32 hours saved weekly = $64K annually</p>
+              <p>84% of technical workers use AI tools daily — spending the majority of their tokens compiling knowledge from scratch every session</p>
+              <p>Evols pre-compiles that knowledge once, shared across the team</p>
+              <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">Retrieving pre-compiled knowledge costs ~8x fewer tokens than building it fresh</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">For a 10-person team: ~300,000 tokens saved per week — ~15% quota extension</p>
             </div>
           </div>
         </section>
 
-        {/* Social Proof */}
+        {/* Market Validation */}
         <section className="container mx-auto px-6 py-20">
           <div className="text-center mb-16">
             <h2 className="text-4xl mb-6 text-gray-900 dark:text-white">
-              Trusted by Product Teams
+              The Problem Is Real
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
               <div className="mb-6">
                 <p className="text-gray-700 dark:text-gray-300 italic text-lg">
-                  "Evols cut our discovery phase from 3 weeks to 1 week. Instead of each PM doing separate competitive research, we build on each other's insights."
+                  "I think there is room here for an incredible new product instead of a hacky collection of scripts."
                 </p>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                  S
+                  AK
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900 dark:text-white">Senior PM at FAANG</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">Andrej Karpathy</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">AI Researcher, April 2026</p>
                 </div>
               </div>
             </div>
@@ -253,15 +255,16 @@ export default function Home() {
             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
               <div className="mb-6">
                 <p className="text-gray-700 dark:text-gray-300 italic text-lg">
-                  "Finally, an AI that speaks product manager. The frameworks are exactly what we need, and team sharing means our junior PMs learn automatically."
+                  "We're stopping at individual productivity. One department doesn't know what the other one does. That's where it cracks."
                 </p>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                  M
+                  SP
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900 dark:text-white">VP Product at early stage startup</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">Sven Peters</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">AI Evangelist, Atlassian</p>
                 </div>
               </div>
             </div>
@@ -271,9 +274,9 @@ export default function Home() {
         {/* Final CTA */}
         <section className="container mx-auto px-6 py-20">
           <div className="text-center max-w-2xl mx-auto bg-gradient-to-r from-purple-400 to-blue-500 p-12 rounded-3xl text-white">
-            <h2 className="text-4xl mb-6">Ready to Transform Your PM Team's AI?</h2>
+            <h2 className="text-4xl mb-6">Stop Rebuilding What Your Team Already Knows</h2>
             <p className="text-xl mb-8 opacity-90">
-              See how your individual AI conversations become collaborative team intelligence
+              Every session your team runs should compound into shared intelligence — not disappear.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
               <Link href="/book-demo"
@@ -309,7 +312,7 @@ export default function Home() {
               Illustration by Storyset
             </a>
           </div>
-          <p>© 2026 Evols. Evolve your product roadmap.</p>
+          <p>© 2026 Evols. The team AI operating system.</p>
         </footer>
       </div>
     </>
