@@ -387,7 +387,7 @@
 
   /* Logo Typography */
   .logo-text {
-    font-family: var(--font-expletus-sans), 'Expletus Sans', sans-serif;
+    font-family: 'Expletus Sans', sans-serif;
     font-weight: 500;
     letter-spacing: 0.01em;
   }
