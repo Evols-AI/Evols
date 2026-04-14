@@ -8,11 +8,11 @@ export default function Document() {
         <link rel="icon" href="/favicon.ico" />
         {/* Typography */}
         {/* Manrope for body text, GT Alpina Standard for headings (falls back to Georgia) */}
-        {/* Expletus Sans for logo */}
+        {/* Fonts loaded via next/font/google in _app.tsx */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Expletus+Sans:wght@500&family=Manrope:wght@300;400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
         {/* GT Alpina Standard is a commercial font - add @font-face in globals.css if self-hosting */}

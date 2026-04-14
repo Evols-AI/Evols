@@ -3,12 +3,12 @@ import type { AppProps } from 'next/app'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import { Courgette } from 'next/font/google'
+import { Expletus_Sans } from 'next/font/google'
 
-const courgette = Courgette({ 
-  weight: '400', 
-  subsets: ['latin'], 
-  variable: '--font-courgette',
+const exletusSans = Expletus_Sans({
+  weight: '500',
+  subsets: ['latin'],
+  variable: '--font-expletus-sans',
   display: 'swap',
 })
 
@@ -22,7 +22,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }))
 
   return (
-    <div className={`${courgette.variable}`}>
+    <div className={`${exletusSans.variable}`}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <Component {...pageProps} />
