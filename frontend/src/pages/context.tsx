@@ -14,7 +14,7 @@ import { useProducts } from '@/hooks/useProducts'
 import { confirmDemoOperation } from '@/utils/demoWarning'
 import StrategyTab from '@/components/context/StrategyTab'
 
-type ViewType = 'sources' | 'entities' | 'insights' | 'strategy'
+type ViewType = 'sources' | 'entities' | 'insights' | 'strategy' | 'ai_sessions'
 
 export default function Context() {
   const router = useRouter()
@@ -32,6 +32,8 @@ export default function Context() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [selectedEntityType, setSelectedEntityType] = useState<string>('all')
+  const [aiSessions, setAiSessions] = useState<any[]>([])
+  const [selectedAiEntry, setSelectedAiEntry] = useState<any>(null)
 
   const productId = selectedProductIds[0]
 
@@ -46,7 +48,7 @@ export default function Context() {
 
     // Check URL params for tab
     const { tab } = router.query
-    if (tab && ['sources', 'entities', 'insights', 'strategy'].includes(tab as string)) {
+    if (tab && ['sources', 'entities', 'insights', 'strategy', 'ai_sessions'].includes(tab as string)) {
       setSelectedView(tab as ViewType)
     }
 
@@ -60,6 +62,17 @@ export default function Context() {
   const handleTabChange = (view: ViewType) => {
     setSelectedView(view)
     router.push(`/context?tab=${view}`, undefined, { shallow: true })
+    if (view === 'ai_sessions') loadAiSessions()
+  }
+
+  const loadAiSessions = async () => {
+    if (!productId) return
+    try {
+      const entries = await api.get(`/team-knowledge/entries?limit=50&product_id=${productId}`)
+      setAiSessions(Array.isArray(entries) ? entries : [])
+    } catch {
+      setAiSessions([])
+    }
   }
 
   const loadContext = async () => {
@@ -310,6 +323,17 @@ export default function Context() {
                       <Lightbulb className="w-4 h-4 inline mr-2" />
                       Extracted Intelligence ({extractedEntities.length})
                     </button>
+                    <button
+                      onClick={() => handleTabChange('ai_sessions')}
+                      className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
+                        selectedView === 'ai_sessions'
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <Brain className="w-4 h-4 inline mr-2" />
+                      AI Sessions {aiSessions.length > 0 && `(${aiSessions.length})`}
+                    </button>
                   </div>
 
                   {/* Search */}
@@ -438,6 +462,19 @@ export default function Context() {
                   onRefresh={loadContext}
                   setEntities={setExtractedEntities}
                   selectedProductIds={selectedProductIds}
+                />
+              ) : selectedView === 'ai_sessions' ? (
+                <AiSessionsView
+                  entries={aiSessions}
+                  selectedEntry={selectedAiEntry}
+                  onSelect={async (entry) => {
+                    setSelectedAiEntry(entry)
+                    try {
+                      const detail = await api.get(`/team-knowledge/entries/${entry.id}`)
+                      setSelectedAiEntry(detail)
+                    } catch { /* leave preview */ }
+                  }}
+                  onClose={() => setSelectedAiEntry(null)}
                 />
               ) : (
                 <InsightsView sources={contextSources} entities={extractedEntities} />
@@ -688,6 +725,90 @@ function EntitiesView({
         </div>
       )}
     </>
+  )
+}
+
+const ROLE_COLORS: Record<string, string> = {
+  engineer: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  pm: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  designer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+  qa: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  other: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+}
+
+function AiSessionsView({ entries, selectedEntry, onSelect, onClose }: {
+  entries: any[]
+  selectedEntry: any
+  onSelect: (entry: any) => void
+  onClose: () => void
+}) {
+  if (entries.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-400 dark:text-gray-500">
+        <Brain className="w-10 h-10 mx-auto mb-3 opacity-40" />
+        <p className="text-sm font-medium">No AI session knowledge linked to this product yet.</p>
+        <p className="text-xs mt-1">Use <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">link_to_product</code> in Claude Code to attribute a session here.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {entries.map(entry => {
+        const roleColor = ROLE_COLORS[entry.role] || ROLE_COLORS.other
+        const hoursAgo = Math.floor((Date.now() - new Date(entry.created_at).getTime()) / 3_600_000)
+        const timeLabel = hoursAgo < 1 ? 'just now' : hoursAgo < 24 ? `${hoursAgo}h ago` : `${Math.floor(hoursAgo / 24)}d ago`
+
+        return (
+          <div
+            key={entry.id}
+            onClick={() => onSelect(entry)}
+            className="flex items-start justify-between p-4 rounded-lg border border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-700 cursor-pointer transition-colors bg-white dark:bg-gray-900"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>{entry.role}</span>
+                <span className="text-xs text-gray-400">{entry.entry_type}</span>
+              </div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{entry.title}</p>
+              {entry.tags?.length > 0 && (
+                <p className="text-xs text-gray-400 mt-0.5">{entry.tags.slice(0, 3).join(' · ')}</p>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-1 ml-4 flex-shrink-0">
+              <span className="text-xs text-gray-400">{timeLabel}</span>
+              {entry.token_count && <span className="text-xs font-mono text-gray-400">{entry.token_count.toLocaleString()} tok</span>}
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Detail modal */}
+      {selectedEntry && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ROLE_COLORS[selectedEntry.role] || ROLE_COLORS.other}`}>{selectedEntry.role}</span>
+                  <span className="text-xs text-gray-400">{selectedEntry.entry_type}</span>
+                </div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">{selectedEntry.title}</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {selectedEntry.token_count?.toLocaleString()} tokens · retrieved {selectedEntry.retrieval_count}×
+                </p>
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-4">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {selectedEntry.content || 'Loading...'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

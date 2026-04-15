@@ -9,9 +9,9 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
-import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check } from 'lucide-react'
+import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key } from 'lucide-react'
 
-type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team'
+type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'api_keys'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -76,7 +76,7 @@ export default function Settings() {
     // Handle ?tab= query parameter
     if (router.query.tab && typeof router.query.tab === 'string') {
       const tabParam = router.query.tab as Tab
-      if (['profile', 'security', 'notifications', 'llm', 'data_refresh', 'team'].includes(tabParam)) {
+      if (['profile', 'security', 'api_keys', 'notifications', 'llm', 'data_refresh', 'team'].includes(tabParam)) {
         setActiveTab(tabParam)
       }
     }
@@ -129,6 +129,13 @@ export default function Settings() {
   const [lastKnowledgeRefreshDate, setLastKnowledgeRefreshDate] = useState<string | null>(null)
   const [savingKnowledgeRefresh, setSavingKnowledgeRefresh] = useState(false)
 
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<any[]>([])
+  const [loadingApiKeys, setLoadingApiKeys] = useState(false)
+  const [showCreateKeyModal, setShowCreateKeyModal] = useState(false)
+  const [newKeyData, setNewKeyData] = useState<{ key: string; name: string } | null>(null)
+  const [copiedKey, setCopiedKey] = useState(false)
+
   // Team management state
   const [teamSubtab, setTeamSubtab] = useState<'members' | 'invites'>('members')
   const [teamMembers, setTeamMembers] = useState<any[]>([])
@@ -141,6 +148,7 @@ export default function Settings() {
   const tabs = [
     { id: 'profile' as Tab, label: 'Profile', icon: User },
     { id: 'security' as Tab, label: 'Security', icon: Shield },
+    { id: 'api_keys' as Tab, label: 'API Keys', icon: Key },
     // { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
     { id: 'data_refresh' as Tab, label: 'Data Refresh', icon: RefreshCw },
@@ -156,6 +164,8 @@ export default function Settings() {
     } else if (activeTab === 'team') {
       loadTeamMembers()
       loadInvites()
+    } else if (activeTab === 'api_keys') {
+      loadApiKeys()
     }
   }, [activeTab])
 
@@ -472,6 +482,29 @@ export default function Settings() {
       loadKnowledgeRefreshSettings()
     }
   }, [activeTab])
+
+  // API Keys functions
+  const loadApiKeys = async () => {
+    try {
+      setLoadingApiKeys(true)
+      const response = await api.get('/auth/api-keys')
+      setApiKeys(response.data || [])
+    } catch (error) {
+      console.error('Failed to load API keys:', error)
+    } finally {
+      setLoadingApiKeys(false)
+    }
+  }
+
+  const handleRevokeApiKey = async (keyId: number, keyName: string) => {
+    if (!confirm(`Revoke "${keyName}"? Any plugin using this key will stop working immediately.`)) return
+    try {
+      await api.delete(`/auth/api-keys/${keyId}`)
+      await loadApiKeys()
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to revoke key')
+    }
+  }
 
   // Team management functions
   const loadTeamMembers = async () => {
@@ -1174,6 +1207,118 @@ export default function Settings() {
             </div>
           )}
 
+          {/* API Keys Tab */}
+          {activeTab === 'api_keys' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg text-gray-900 dark:text-white">API Keys</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Long-lived keys for the Evols Claude Code plugin. Configure once in{' '}
+                    <code className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1 py-0.5 rounded">~/.evols/config.json</code>.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCreateKeyModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap flex-shrink-0 ml-4"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Key
+                </button>
+              </div>
+
+              {/* Newly-created key banner */}
+              {newKeyData && (
+                <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                    ✓ Key created — copy it now. It won&apos;t be shown again.
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-400 mb-3">
+                    <strong>{newKeyData.name}</strong>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-green-300 dark:border-green-700 rounded px-3 py-2 font-mono break-all">
+                      {newKeyData.key}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(newKeyData.key)
+                        setCopiedKey(true)
+                        setTimeout(() => setCopiedKey(false), 2000)
+                      }}
+                      className="flex-shrink-0 p-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                      title="Copy key"
+                    >
+                      {copiedKey ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-green-700 dark:text-green-400 mt-3">
+                    Add to <code className="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-1 rounded">~/.evols/config.json</code> as{' '}
+                    <code className="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-1 rounded">&quot;api_key&quot;: &quot;{newKeyData.key.slice(0, 12)}...&quot;</code>
+                  </p>
+                  <button
+                    onClick={() => setNewKeyData(null)}
+                    className="mt-3 text-xs text-green-600 dark:text-green-400 underline"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
+              {loadingApiKeys ? (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading keys...</div>
+              ) : apiKeys.length === 0 ? (
+                <div className="text-center py-12 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                  <Key className="w-10 h-10 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No API keys yet.</p>
+                  <button
+                    onClick={() => setShowCreateKeyModal(true)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  >
+                    Create First Key
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  {apiKeys.map((k: any) => (
+                    <div key={k.id} className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{k.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          <code className="font-mono">{k.key_prefix}...</code>
+                          {' · '}
+                          Created {new Date(k.created_at).toLocaleDateString()}
+                          {k.last_used_at && ` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`}
+                          {!k.is_active && <span className="ml-2 text-red-500">Revoked</span>}
+                        </p>
+                      </div>
+                      {k.is_active && (
+                        <button
+                          onClick={() => handleRevokeApiKey(k.id, k.name)}
+                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="Revoke key"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {showCreateKeyModal && (
+                <CreateApiKeyModal
+                  onClose={() => setShowCreateKeyModal(false)}
+                  onSuccess={(key, name) => {
+                    setShowCreateKeyModal(false)
+                    setNewKeyData({ key, name })
+                    loadApiKeys()
+                  }}
+                />
+              )}
+            </div>
+          )}
+
           {/* Team Management Tab */}
           {activeTab === 'team' && (
             <div>
@@ -1456,6 +1601,65 @@ export default function Settings() {
         </div>
       </div>
     </div>
+    </div>
+  )
+}
+
+// Create API Key Modal
+function CreateApiKeyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (key: string, name: string) => void }) {
+  const [name, setName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    setError('')
+    setSaving(true)
+    try {
+      const response = await api.post('/auth/api-keys', { name: name.trim() })
+      onSuccess(response.data.key, response.data.name)
+    } catch (error: any) {
+      setError(error.response?.data?.detail || 'Failed to create key')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create API Key</h2>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Key Name</label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input w-full"
+              placeholder="e.g. Work MacBook, CI Pipeline"
+              autoFocus
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Helps you identify which key is which when you have multiple devices.</p>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving || !name.trim()} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              {saving ? 'Creating...' : 'Create Key'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

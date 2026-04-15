@@ -302,12 +302,37 @@ def get_embedding_service(
     Factory function that returns a configured EmbeddingService.
     Priority: explicit args > tenant_config > environment variables.
 
-    AWS Bedrock is the default provider.
+    The tenant LLM config (from Settings → LLM Settings) stores the provider as
+    "provider" (e.g. "openai", "aws_bedrock"). If no explicit "embedding_provider"
+    key exists, we derive the embedding provider from the LLM provider so that
+    tenants using OpenAI or Bedrock for LLM automatically use the same for embeddings.
     """
     cfg = tenant_config or {}
 
-    resolved_provider = provider or cfg.get("embedding_provider") or os.getenv(
-        "EMBEDDING_PROVIDER", "aws_bedrock"
+    # Derive embedding provider from LLM provider if not explicitly set
+    llm_provider = cfg.get("provider", "")
+    if llm_provider in ("openai", "azure_openai"):
+        derived_provider = "openai"
+    elif llm_provider == "aws_bedrock":
+        derived_provider = "aws_bedrock"
+    elif llm_provider in ("google_gemini", "anthropic"):
+        # These LLM providers don't have an embedding API.
+        # Fall back to local sentence_transformers so dev works without credentials.
+        # Production can override by setting EMBEDDING_PROVIDER env var explicitly.
+        derived_provider = "sentence_transformers"
+    else:
+        derived_provider = None
+
+    # Priority: explicit arg > tenant explicit config > service-level env var >
+    #           LLM-derived provider > sentence_transformers (local fallback)
+    # NOTE: env var has no default here so that derived_provider is still reachable
+    # when running locally without EMBEDDING_PROVIDER set.
+    resolved_provider = (
+        provider
+        or cfg.get("embedding_provider")
+        or os.getenv("EMBEDDING_PROVIDER")
+        or derived_provider
+        or "sentence_transformers"
     )
 
     if resolved_provider == "aws_bedrock":

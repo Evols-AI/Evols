@@ -93,8 +93,9 @@ redis==5.0.1  # Redis client for Celery
 # ============================================================================
 
 # Transformers and embeddings (large downloads ~2GB+)
-# sentence-transformers==2.3.1
-# torch==2.2.0
+# Used as fallback when tenant LLM provider doesn't support embeddings (e.g. Google Gemini, Anthropic)
+sentence-transformers>=2.3.1
+# torch==2.2.0  # installed transitively by sentence-transformers
 
 # Clustering algorithms
 # scikit-learn==1.4.0

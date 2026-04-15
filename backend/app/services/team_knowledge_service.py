@@ -48,6 +48,7 @@ class TeamKnowledgeService:
         tags: Optional[List[str]] = None,
         product_area: Optional[str] = None,
         source_session_id: Optional[str] = None,
+        session_tokens_used: Optional[int] = None,
         llm_config: Optional[Dict] = None,
     ) -> KnowledgeEntry:
         """
@@ -55,8 +56,12 @@ class TeamKnowledgeService:
         - Embeds the content
         - Stores the entry
         - Auto-creates semantic edges to similar existing entries
+
+        token_count uses session_tokens_used when provided (exact cost from transcript),
+        otherwise falls back to content-length estimation.
         """
-        token_count = _estimate_tokens(content)
+        # Use exact session cost if provided; fall back to content-length estimate
+        token_count = session_tokens_used if session_tokens_used else _estimate_tokens(content)
 
         # Generate embedding
         embedding = None
@@ -110,7 +115,9 @@ class TeamKnowledgeService:
                 )
             )
         )
-        existing = result.scalars().all()
+        all_existing = result.scalars().all()
+        # Skip entries whose embedding is JSON-null (stored before embedding was working)
+        existing = [e for e in all_existing if isinstance(e.embedding, list) and len(e.embedding) > 0]
         if not existing:
             return
 
@@ -156,7 +163,10 @@ class TeamKnowledgeService:
             )
         )
         result = await db.execute(stmt)
-        all_entries = result.scalars().all()
+        raw_entries = result.scalars().all()
+
+        # Guard against JSON-null embeddings that pass IS NOT NULL but have no vector data
+        all_entries = [e for e in raw_entries if isinstance(e.embedding, list) and len(e.embedding) > 0]
 
         if not all_entries:
             return self._empty_context_response()
@@ -222,6 +232,132 @@ class TeamKnowledgeService:
             "compression_ratio": COMPRESSION_RATIO,
             "entry_count": len(selected),
         }
+
+    # ------------------------------------------------------------------ #
+    # Redundancy Check (core ROI demo moment)
+    # ------------------------------------------------------------------ #
+
+    async def check_redundancy(
+        self,
+        db: AsyncSession,
+        tenant_id: int,
+        query: str,
+        lookback_hours: int = 48,
+        similarity_threshold: float = 0.75,
+        llm_config: Optional[Dict] = None,
+    ) -> Dict[str, Any]:
+        """
+        Check whether a teammate already solved a similar problem recently.
+        Returns matching entries with their exact session token costs.
+        """
+        since = datetime.utcnow() - timedelta(hours=lookback_hours)
+
+        stmt = select(KnowledgeEntry).where(
+            and_(
+                KnowledgeEntry.tenant_id == tenant_id,
+                KnowledgeEntry.created_at >= since,
+                KnowledgeEntry.embedding.isnot(None),
+            )
+        )
+        result = await db.execute(stmt)
+        all_recent = result.scalars().all()
+
+        # Guard against JSON-null embeddings that pass IS NOT NULL but have no vector data
+        recent_entries = [e for e in all_recent if isinstance(e.embedding, list) and len(e.embedding) > 0]
+
+        if not recent_entries:
+            return {"found": False, "similar_entries": [], "message": ""}
+
+        query_embedding = None
+        try:
+            svc = get_embedding_service(tenant_config=llm_config or {})
+            query_embedding = await svc.embed_text(query)
+        except Exception as e:
+            logger.warning(f"Redundancy check embedding failed: {e}")
+            return {"found": False, "similar_entries": [], "message": ""}
+
+        if query_embedding is None:
+            return {"found": False, "similar_entries": [], "message": ""}
+
+        embeddings = [e.embedding for e in recent_entries]
+        ranked = find_most_similar(query_embedding, embeddings, top_k=5)
+
+        matches = []
+        for idx, score in ranked:
+            if score < similarity_threshold:
+                break
+            entry = recent_entries[idx]
+            hours_ago = (datetime.utcnow() - entry.created_at).total_seconds() / 3600
+            matches.append({
+                "id": entry.id,
+                "title": entry.title,
+                "role": entry.role.value if hasattr(entry.role, "value") else entry.role,
+                "entry_type": entry.entry_type.value if hasattr(entry.entry_type, "value") else entry.entry_type,
+                "token_count": entry.token_count or 0,
+                "content_preview": entry.content[:400] + ("..." if len(entry.content) > 400 else ""),
+                "similarity": round(score, 3),
+                "created_at": entry.created_at.isoformat(),
+                "hours_ago": round(hours_ago, 1),
+                "user_id": entry.user_id,
+            })
+
+        if not matches:
+            return {"found": False, "similar_entries": [], "message": ""}
+
+        best = matches[0]
+        retrieval_cost = 140  # approximate tokens to retrieve this entry
+        saving = max(0, best["token_count"] - retrieval_cost)
+        message = (
+            f"Similar work found: \"{best['title']}\" "
+            f"({best['hours_ago']:.0f}h ago, ~{best['token_count']:,} tokens). "
+            f"Retrieval saves ~{saving:,} tokens."
+        )
+
+        return {
+            "found": True,
+            "similar_entries": matches,
+            "message": message,
+            "best_match_token_count": best["token_count"],
+            "estimated_saving": saving,
+        }
+
+    async def list_entries(
+        self,
+        db: AsyncSession,
+        tenant_id: int,
+        limit: int = 20,
+        offset: int = 0,
+        product_id: Optional[int] = None,
+    ) -> List[KnowledgeEntry]:
+        """Paginated list of entries for the dashboard — no embeddings returned."""
+        conditions = [KnowledgeEntry.tenant_id == tenant_id]
+        if product_id is not None:
+            conditions.append(KnowledgeEntry.product_id == product_id)
+        result = await db.execute(
+            select(KnowledgeEntry)
+            .where(and_(*conditions))
+            .order_by(KnowledgeEntry.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return result.scalars().all()
+
+    async def get_entry(
+        self,
+        db: AsyncSession,
+        tenant_id: int,
+        entry_id: int,
+    ) -> Optional[KnowledgeEntry]:
+        """Single entry — tenant-scoped for safety."""
+        result = await db.execute(
+            select(KnowledgeEntry).where(
+                and_(
+                    KnowledgeEntry.id == entry_id,
+                    KnowledgeEntry.tenant_id == tenant_id,
+                )
+            )
+        )
+        return result.scalar_one_or_none()
 
     def _empty_context_response(self) -> Dict:
         return {

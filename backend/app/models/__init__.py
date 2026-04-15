@@ -63,6 +63,7 @@ AdviserType = SkillType
 
 # Import User AFTER skill aliases are defined so AdviserConversation relationship resolves
 from app.models.user import User
+from app.models.api_key import ApiKey
 
 __all__ = [
     "Tenant",
@@ -156,4 +157,6 @@ __all__ = [
     "KnowledgeEntry",
     "KnowledgeEdge",
     "QuotaEvent",
+    # API Keys
+    "ApiKey",
 ]

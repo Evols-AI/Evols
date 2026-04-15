@@ -4,17 +4,61 @@ Common dependencies for FastAPI endpoints
 """
 
 from typing import Optional, Dict, Any
+from datetime import datetime
+import bcrypt
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
 
 from app.core.security import decode_access_token, decrypt_llm_config
 from app.core.database import get_db
 from app.models.user import User
 from app.models.tenant import Tenant
-from sqlalchemy import select
+from app.models.api_key import ApiKey
 
 security = HTTPBearer()
+
+
+async def _authenticate_api_key(token: str, db: AsyncSession) -> Optional[User]:
+    """
+    Authenticate a request using an Evols API key (evols_...).
+    Returns the User if valid, None otherwise.
+    Updates last_used_at on success.
+    """
+    if not token.startswith("evols_"):
+        return None
+
+    prefix = token[:8]
+    result = await db.execute(
+        select(ApiKey).where(
+            and_(ApiKey.key_prefix == prefix, ApiKey.is_active == True)
+        )
+    )
+    candidates = result.scalars().all()
+
+    matched_key: Optional[ApiKey] = None
+    for candidate in candidates:
+        try:
+            if bcrypt.checkpw(token.encode(), candidate.key_hash.encode()):
+                matched_key = candidate
+                break
+        except Exception:
+            continue
+
+    if matched_key is None or not matched_key.is_valid:
+        return None
+
+    user_result = await db.execute(select(User).where(User.id == matched_key.user_id))
+    user = user_result.scalar_one_or_none()
+
+    if user and user.is_active:
+        matched_key.last_used_at = datetime.utcnow()
+        await db.commit()
+        return user
+
+    return None
 
 
 async def get_current_user(
@@ -22,10 +66,11 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """
-    Get current authenticated user from JWT token
+    Get current authenticated user from JWT token or Evols API key.
 
-    Extracts user information from the Authorization header
-    and validates it against the database.
+    Accepts:
+    - JWT token (24h, for browser sessions)
+    - Evols API key starting with 'evols_' (long-lived, for plugin/CLI)
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -33,19 +78,24 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    # Decode token
-    payload = decode_access_token(credentials.credentials)
+    token = credentials.credentials
+
+    # Try API key first (fast prefix check avoids JWT decode overhead)
+    if token.startswith("evols_"):
+        user = await _authenticate_api_key(token, db)
+        if user is None:
+            raise credentials_exception
+        return user
+
+    # Fall back to JWT
+    payload = decode_access_token(token)
     if payload is None:
         raise credentials_exception
 
     user_id: Optional[int] = payload.get("user_id")
-    tenant_id: Optional[int] = payload.get("tenant_id")
-
-    # User ID is required, but tenant_id can be None for SUPER_ADMIN
     if user_id is None:
         raise credentials_exception
 
-    # Get user from database
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
