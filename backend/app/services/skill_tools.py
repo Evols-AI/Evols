@@ -536,9 +536,9 @@ async def get_features(
                 "id": int(f.id),
                 "title": str(f.title) if f.title else "",
                 "description": str(f.description) if f.description else "",
-                "status": str(f.status) if f.status else "",
+                "status": f.status.value if f.status else "",
                 "priority_score": float(f.priority_score) if f.priority_score is not None else 0.0,
-                "effort": int(f.effort) if f.effort else 0,
+                "effort": f.effort.value if f.effort else None,
                 "estimated_impact_score": float(f.estimated_impact_score) if f.estimated_impact_score is not None else 0.0
             }
             for f in features
@@ -1327,14 +1327,18 @@ async def get_past_skill_work(
 ) -> Dict[str, Any]:
     """Get recent skill executions to understand what work has been done"""
     from app.services.unified_pm_os import MemoryManager
+    from app.models.product import Product
 
     mm = MemoryManager(db)
 
     if not product_id:
-        return {
-            "error": "No product selected",
-            "suggestion": "Product ID is required to query past work"
-        }
+        result = await db.execute(
+            select(Product).where(Product.tenant_id == tenant_id).limit(1)
+        )
+        product = result.scalar_one_or_none()
+        if not product:
+            return {"error": "No product found", "suggestion": "Create a product first"}
+        product_id = product.id
 
     try:
         recent_work = await mm.get_recent_skill_outputs(

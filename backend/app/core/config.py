@@ -95,6 +95,11 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: Optional[str] = None
     SERPER_API_KEY: Optional[str] = None
 
+    # OIDC Provider (for LibreChat / Evols AI Workbench SSO)
+    OIDC_ISSUER: Optional[str] = None           # e.g. https://evols-backend-xxx.run.app/api/v1/oidc
+    OIDC_CLIENT_ID: str = "evols-workbench"
+    OIDC_CLIENT_SECRET: Optional[str] = None    # Long random secret shared with LibreChat
+
     # Unified PM OS Integration
     UNIFIED_PM_OS_PATH: str = "resources/unified-pm-os"
 

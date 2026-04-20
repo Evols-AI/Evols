@@ -3,15 +3,15 @@
  * Comprehensive account-level preferences and configuration
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { api } from '@/services/api'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
-import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key } from 'lucide-react'
+import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare, Volume2, Database } from 'lucide-react'
 
-type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'api_keys'
+type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'api_keys' | 'chat' | 'speech' | 'data_controls'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -76,7 +76,7 @@ export default function Settings() {
     // Handle ?tab= query parameter
     if (router.query.tab && typeof router.query.tab === 'string') {
       const tabParam = router.query.tab as Tab
-      if (['profile', 'security', 'api_keys', 'notifications', 'llm', 'data_refresh', 'team'].includes(tabParam)) {
+      if (['profile', 'security', 'api_keys', 'notifications', 'llm', 'data_refresh', 'team', 'chat', 'speech', 'data_controls'].includes(tabParam)) {
         setActiveTab(tabParam)
       }
     }
@@ -152,6 +152,9 @@ export default function Settings() {
     // { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
     { id: 'data_refresh' as Tab, label: 'Data Refresh', icon: RefreshCw },
+    { id: 'chat' as Tab, label: 'Chat', icon: MessageSquare },
+    { id: 'speech' as Tab, label: 'Speech', icon: Volume2 },
+    { id: 'data_controls' as Tab, label: 'Data Controls', icon: Database },
     ...(user?.role === 'TENANT_ADMIN' ? [{ id: 'team' as Tab, label: 'Team', icon: Users }] : []),
   ]
 
@@ -1598,10 +1601,53 @@ export default function Settings() {
               )}
             </div>
           )}
+
+          {/* Chat Settings Tab */}
+          {(activeTab === 'chat' || activeTab === 'speech' || activeTab === 'data_controls') && (
+            <LibreChatSettingsTab tab={activeTab} />
+          )}
         </div>
       </div>
     </div>
     </div>
+  )
+}
+
+const LIBRECHAT_PANEL_TAB: Record<string, string> = {
+  chat: 'chat',
+  speech: 'speech',
+  data_controls: 'data',
+}
+
+function LibreChatSettingsTab({ tab }: { tab: 'chat' | 'speech' | 'data_controls' }) {
+  const { theme } = useTheme()
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const panelTab = LIBRECHAT_PANEL_TAB[tab]
+  const librechatOrigin = process.env.NEXT_PUBLIC_LIBRECHAT_URL || window.location.origin
+  const src = process.env.NEXT_PUBLIC_LIBRECHAT_URL
+    ? `${process.env.NEXT_PUBLIC_LIBRECHAT_URL}/settings-panel/${panelTab}`
+    : `/workbench/app/settings-panel/${panelTab}`
+
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+    const sendTheme = () => {
+      iframe.contentWindow?.postMessage({ type: 'evols:theme', theme }, librechatOrigin)
+    }
+    iframe.addEventListener('load', sendTheme)
+    sendTheme()
+    return () => iframe.removeEventListener('load', sendTheme)
+  }, [theme, src, librechatOrigin])
+
+  return (
+    <iframe
+      ref={iframeRef}
+      src={src}
+      className="w-full rounded-lg border-0"
+      style={{ height: '600px' }}
+      allow="microphone"
+      title={`${tab} settings`}
+    />
   )
 }
 

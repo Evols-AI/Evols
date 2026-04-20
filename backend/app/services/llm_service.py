@@ -493,7 +493,8 @@ class LLMService:
         model_id = model
 
         # Use Converse API for Claude models (more reliable for tool calling)
-        if "anthropic.claude" in model_id:
+        # Handles cross-region prefixes: us.anthropic.*, global.anthropic.*, etc.
+        if "anthropic.claude" in model_id or "anthropic/claude" in model_id:
             return await self._generate_bedrock_converse(
                 prompt, system_prompt, temperature, max_tokens, model_id, tools, messages_array, tool_choice
             )
@@ -521,25 +522,66 @@ class LLMService:
             # Extract system message if present
             system = []
             messages = []
+            pending_tool_results: List[Dict[str, Any]] = []
+
             for msg in messages_array:
-                if msg.get("role") == "system":
+                role = msg.get("role")
+
+                if role == "system":
                     system.append({"text": msg.get("content", "")})
+                    continue
+
+                # OpenAI tool result messages → Bedrock toolResult blocks inside a user turn
+                if role == "tool":
+                    pending_tool_results.append({
+                        "toolResult": {
+                            "toolUseId": msg.get("tool_call_id", ""),
+                            "content": [{"text": str(msg.get("content", ""))}],
+                        }
+                    })
+                    continue
+
+                # Flush pending tool results before the next non-tool message
+                if pending_tool_results:
+                    messages.append({"role": "user", "content": pending_tool_results})
+                    pending_tool_results = []
+
+                # Assistant message with tool_calls → Bedrock toolUse blocks
+                if role == "assistant" and msg.get("tool_calls"):
+                    content_blocks: List[Dict[str, Any]] = []
+                    text = msg.get("content") or ""
+                    if text:
+                        content_blocks.append({"text": text})
+                    for tc in msg["tool_calls"]:
+                        fn = tc.get("function", {})
+                        import json as _json
+                        args = fn.get("arguments", "{}")
+                        try:
+                            args_dict = _json.loads(args) if isinstance(args, str) else args
+                        except Exception:
+                            args_dict = {}
+                        content_blocks.append({
+                            "toolUse": {
+                                "toolUseId": tc.get("id", ""),
+                                "name": fn.get("name", ""),
+                                "input": args_dict,
+                            }
+                        })
+                    messages.append({"role": "assistant", "content": content_blocks})
+                    continue
+
+                # Normal message
+                content = msg.get("content")
+                if isinstance(content, str):
+                    messages.append({"role": role, "content": [{"text": content}]})
+                elif isinstance(content, list):
+                    messages.append({"role": role, "content": content})
                 else:
-                    # Handle both string content and block-based content
-                    content = msg.get("content")
-                    if isinstance(content, str):
-                        messages.append({
-                            "role": msg["role"],
-                            "content": [{"text": content}]
-                        })
-                    elif isinstance(content, list):
-                        # Already in block format
-                        messages.append({
-                            "role": msg["role"],
-                            "content": content
-                        })
-                    else:
-                        messages.append(msg)
+                    messages.append(msg)
+
+            # Flush any trailing tool results
+            if pending_tool_results:
+                messages.append({"role": "user", "content": pending_tool_results})
         else:
             system = [{"text": system_prompt}] if system_prompt else []
             messages = [{"role": "user", "content": [{"text": prompt}]}]
@@ -596,6 +638,7 @@ class LLMService:
                 logger.info(f"[Bedrock Converse] Tool choice: {tool_choice}")
 
         # Call Converse API
+        logger.info(f"[Bedrock Converse] Request - max_tokens: {request_params['inferenceConfig']['maxTokens']}, messages: {len(request_params['messages'])}, roles: {[m.get('role') for m in request_params['messages']]}")
         try:
             response = await asyncio.to_thread(
                 self.client.converse,
@@ -641,7 +684,7 @@ class LLMService:
         # Get stop reason
         stop_reason = response.get("stopReason", "end_turn")
 
-        logger.info(f"[Bedrock Converse] Response - text length: {len(text_content)}, tool calls: {len(tool_calls)}, stop_reason: {stop_reason}")
+        logger.info(f"[Bedrock Converse] Response - tokens: {usage}, stop_reason: {stop_reason}, text: {repr(text_content[:500])}, blocks: {content_blocks}")
 
         return LLMResponse(
             content=text_content,

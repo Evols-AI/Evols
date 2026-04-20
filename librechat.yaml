@@ -1,0 +1,92 @@
+# librechat.yaml — Evols AI Workbench
+# LibreChat server-side configuration
+# Docs: https://www.librechat.ai/docs/configuration/librechat_yaml
+#
+# Deploy this file as a ConfigMap / Cloud Run mounted volume at /app/librechat.yaml
+# All secrets (API keys etc.) are set via environment variables, NOT here.
+
+version: 1.1.5
+
+# ── App identity ─────────────────────────────────────────────────────────────
+interface:
+  appTitle: "Evols AI Workbench"
+  # favicon and logo are served from /client/public/ after the fork's rebrand
+
+# ── Registration / auth ───────────────────────────────────────────────────────
+# Self-registration disabled — all users must come through Evols OIDC
+registration:
+  socialLogins:
+    - openid
+  allowedDomains: []  # empty = no domain restriction (OIDC handles authorization)
+
+# ── MCP servers ───────────────────────────────────────────────────────────────
+# TODO: MCP wiring requires per-user token forwarding from the LibreChat fork.
+# After OIDC login, LibreChat must inject the user's Evols access_token as the
+# Authorization header on MCP requests — this gives per-tenant isolation for free.
+# Implement in the fork before enabling this block.
+#
+# mcpServers:
+#   - name: evols-knowledge
+#     type: streamable-http
+#     url: "${EVOLS_BACKEND_URL}/api/v1/mcp"
+#     headers:
+#       Authorization: "Bearer <per-user token injected by fork>"
+#     tools:
+#       - get_team_context
+#       - check_redundancy
+#       - sync_session_context
+
+# ── LLM endpoints ─────────────────────────────────────────────────────────────
+# All LLM calls are proxied through the Evols backend so BYOK keys (stored
+# encrypted per-tenant in Postgres) are used automatically — no keys needed here.
+#
+# The proxy accepts OpenAI-compatible requests, looks up the tenant's LLM config
+# via the user's Bearer token, and forwards to the actual provider.
+# Endpoint: POST ${EVOLS_BACKEND_URL}/api/v1/llm-proxy/{provider}/...
+# Auth:     the user's Evols OIDC access_token (forwarded by LibreChat fork)
+endpoints:
+  custom:
+    - name: "Claude (Anthropic)"
+      apiKey: "proxy"   # placeholder — actual key retrieved from tenant config by proxy
+      baseURL: "${EVOLS_BACKEND_URL}/api/v1/llm-proxy/anthropic"
+      models:
+        default:
+          - claude-opus-4-6
+          - claude-sonnet-4-6
+          - claude-haiku-4-5-20251001
+        fetch: false
+      titleConvo: true
+      titleModel: "claude-haiku-4-5-20251001"
+      summarize: true
+      summaryModel: "claude-haiku-4-5-20251001"
+      modelDisplayLabel: "Claude"
+
+    - name: "GPT (OpenAI)"
+      apiKey: "proxy"
+      baseURL: "${EVOLS_BACKEND_URL}/api/v1/llm-proxy/openai"
+      models:
+        default:
+          - gpt-4o
+          - gpt-4o-mini
+          - gpt-4-turbo
+        fetch: false
+      titleConvo: true
+      titleModel: "gpt-4o-mini"
+      summarize: true
+      summaryModel: "gpt-4o-mini"
+      modelDisplayLabel: "GPT"
+
+    - name: "Gemini (Google)"
+      apiKey: "proxy"
+      baseURL: "${EVOLS_BACKEND_URL}/api/v1/llm-proxy/gemini"
+      models:
+        default:
+          - gemini-2.0-flash
+          - gemini-1.5-pro
+          - gemini-1.5-flash
+        fetch: false
+      titleConvo: true
+      titleModel: "gemini-2.0-flash"
+      summarize: true
+      summaryModel: "gemini-2.0-flash"
+      modelDisplayLabel: "Gemini"

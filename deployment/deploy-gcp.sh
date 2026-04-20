@@ -1,76 +1,190 @@
 #!/bin/bash
-# Evols Cloud Run Deployment Script
+# deploy-gcp.sh — Deploy Evols (backend + frontend + workbench + nginx)
+#
+# Architecture:
+#   evols-nginx (public)  →  evols-frontend  (Next.js, internal)
+#                         →  evols-workbench (LibreChat fork, internal)
+#
+# Prerequisites:
+#   1. evols-workbench fork cloned at ../evols-workbench (or set WORKBENCH_DIR)
+#   2. MongoDB Atlas cluster connection string
+#   3. Evols backend deployed (or deploy in same run)
+#
+# Usage:
+#   export MONGO_URI="mongodb+srv://..."
+#   export OIDC_CLIENT_SECRET="..."
+#   ./deployment/deploy-gcp.sh PROJECT_ID [REGION]
 
-set -e
+set -euo pipefail
 
-PROJECT_ID=$1
+PROJECT_ID=${1:?Usage: ./deployment/deploy-gcp.sh PROJECT_ID [REGION]}
 REGION=${2:-us-central1}
 REPOSITORY="evols-repo"
+IMAGE_PREFIX="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}"
+EVOLS_DOMAIN="${EVOLS_DOMAIN:-}"
+WORKBENCH_DIR="${WORKBENCH_DIR:-../evols-workbench}"
+SKIP_BUILD="${SKIP_BUILD:-false}"
 
-if [ -z "$PROJECT_ID" ]; then
-    echo "Usage: ./deploy-gcp.sh PROJECT_ID [REGION]"
-    exit 1
-fi
+# ── Required secrets ──────────────────────────────────────────────────────────
+MONGO_URI="${MONGO_URI:?Set MONGO_URI}"
+OIDC_CLIENT_SECRET="${OIDC_CLIENT_SECRET:?Set OIDC_CLIENT_SECRET}"
+JWT_SECRET="${JWT_SECRET:-$(openssl rand -hex 32)}"
+JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET:-$(openssl rand -hex 32)}"
+CREDS_KEY="${CREDS_KEY:-$(openssl rand -hex 32)}"
+CREDS_IV="${CREDS_IV:-$(openssl rand -hex 16)}"
+OPENID_SESSION_SECRET="${OPENID_SESSION_SECRET:-$(openssl rand -hex 32)}"
 
-echo "🚀 Starting deployment to Cloud Run for project: $PROJECT_ID in region: $REGION"
+store_secret() {
+  local name="$1" value="$2"
+  if gcloud secrets describe "${name}" --project="${PROJECT_ID}" &>/dev/null; then
+    printf '%s' "${value}" | gcloud secrets versions add "${name}" \
+      --project="${PROJECT_ID}" --data-file=-
+  else
+    printf '%s' "${value}" | gcloud secrets create "${name}" \
+      --project="${PROJECT_ID}" --data-file=- --replication-policy=automatic
+  fi
+}
 
-# 1. Enable APIs
-echo "Enabling necessary APIs..."
-gcloud services enable run.googleapis.com sqladmin.googleapis.com artifactregistry.googleapis.com --project "$PROJECT_ID"
+echo "==> Enabling required GCP APIs..."
+gcloud services enable run.googleapis.com sqladmin.googleapis.com \
+  artifactregistry.googleapis.com secretmanager.googleapis.com \
+  --project "${PROJECT_ID}"
 
-# 2. Build and Push Backend Image
-echo "Building backend image..."
+# ── 1. Backend ────────────────────────────────────────────────────────────────
+echo "==> Building backend image..."
 gcloud builds submit --config=deployment/cloudbuild-backend.yaml \
-    --substitutions=_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/evols-backend:latest" \
-    --project "$PROJECT_ID" .
+  --substitutions="_TAG=${IMAGE_PREFIX}/evols-backend:latest" \
+  --project "${PROJECT_ID}" .
 
-# 3. Deploy Backend
-echo "Deploying backend to Cloud Run..."
-SQL_CONNECTION_NAME=$(gcloud sql instances describe evols-postgres --format='value(connectionName)' --project "$PROJECT_ID")
+echo "==> Deploying evols-backend..."
+SQL_CONNECTION_NAME=$(gcloud sql instances describe evols-postgres \
+  --format='value(connectionName)' --project "${PROJECT_ID}")
 
 gcloud run deploy evols-backend \
-    --image "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/evols-backend:latest" \
-    --region "$REGION" \
-    --platform managed \
-    --allow-unauthenticated \
-    --min-instances=1 \
-    --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:postgres123@/evols?host=/cloudsql/$SQL_CONNECTION_NAME" \
-    --set-env-vars "ENVIRONMENT=production" \
-    --set-env-vars "REDIS_URL=redis://10.128.0.43:6379/0" \
-    --set-env-vars 'BACKEND_CORS_ORIGINS=["*"]' \
-    --set-env-vars "TAVILY_API_KEY=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" \
-    --set-env-vars "AWS_REGION=us-east-1" \
-    --set-env-vars "EMBEDDING_PROVIDER=aws_bedrock" \
-    --set-env-vars "UNIFIED_PM_OS_PATH=./resources/unified-pm-os" \
-    --add-cloudsql-instances "$SQL_CONNECTION_NAME" \
-    --network default \
-    --subnet default \
-    --vpc-egress private-ranges-only \
-    --project "$PROJECT_ID"
+  --image "${IMAGE_PREFIX}/evols-backend:latest" \
+  --region "${REGION}" --platform managed \
+  --allow-unauthenticated \
+  --min-instances=1 \
+  --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:postgres123@/evols?host=/cloudsql/${SQL_CONNECTION_NAME}" \
+  --set-env-vars "ENVIRONMENT=production" \
+  --set-env-vars "REDIS_URL=redis://10.128.0.43:6379/0" \
+  --set-env-vars 'BACKEND_CORS_ORIGINS=["*"]' \
+  --set-env-vars "TAVILY_API_KEY=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" \
+  --set-env-vars "AWS_REGION=us-east-1" \
+  --set-env-vars "EMBEDDING_PROVIDER=aws_bedrock" \
+  --set-env-vars "UNIFIED_PM_OS_PATH=./resources/unified-pm-os" \
+  --add-cloudsql-instances "${SQL_CONNECTION_NAME}" \
+  --network default --subnet default \
+  --vpc-egress private-ranges-only \
+  --project "${PROJECT_ID}"
 
-BACKEND_URL=$(gcloud run services describe evols-backend --region "$REGION" --format='value(status.url)' --project "$PROJECT_ID")
-echo "Backend URL: $BACKEND_URL"
+BACKEND_URL=$(gcloud run services describe evols-backend \
+  --region "${REGION}" --format='value(status.url)' --project "${PROJECT_ID}")
+echo "Backend URL: ${BACKEND_URL}"
 
-# 4. Build and Push Frontend Image (with Backend URL)
-echo "Building frontend image with API URL: $BACKEND_URL..."
+# ── 2. Frontend ───────────────────────────────────────────────────────────────
+echo "==> Building frontend image..."
 gcloud builds submit --config=deployment/cloudbuild-frontend.yaml \
-    --substitutions=_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/evols-frontend:latest",_API_URL="$BACKEND_URL" \
-    --project "$PROJECT_ID" .
+  --substitutions="_TAG=${IMAGE_PREFIX}/evols-frontend:latest,_API_URL=${BACKEND_URL}" \
+  --project "${PROJECT_ID}" .
 
-# 5. Deploy Frontend
-echo "Deploying frontend to Cloud Run..."
+echo "==> Deploying evols-frontend (internal)..."
 gcloud run deploy evols-frontend \
-    --image "$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/evols-frontend:latest" \
-    --region "$REGION" \
-    --platform managed \
-    --allow-unauthenticated \
-    --set-env-vars "NEXT_PUBLIC_API_URL=$BACKEND_URL" \
-    --project "$PROJECT_ID"
+  --image "${IMAGE_PREFIX}/evols-frontend:latest" \
+  --region "${REGION}" --platform managed \
+  --no-allow-unauthenticated \
+  --ingress=internal \
+  --set-env-vars "NEXT_PUBLIC_API_URL=${BACKEND_URL}" \
+  --project "${PROJECT_ID}"
 
-FRONTEND_URL=$(gcloud run services describe evols-frontend --region "$REGION" --format='value(status.url)' --project "$PROJECT_ID")
+FRONTEND_URL=$(gcloud run services describe evols-frontend \
+  --region "${REGION}" --format='value(status.url)' --project "${PROJECT_ID}")
 
-echo "✅ Cloud Run Deployment Complete!"
-echo "--------------------------------------------------"
-echo "Frontend: $FRONTEND_URL"
-echo "Backend:  $BACKEND_URL"
-echo "--------------------------------------------------"
+# ── 3. Workbench (LibreChat fork) ─────────────────────────────────────────────
+WORKBENCH_IMAGE="${IMAGE_PREFIX}/evols-workbench:latest"
+
+if [ "${SKIP_BUILD}" = "true" ]; then
+  echo "==> Skipping workbench build (SKIP_BUILD=true)"
+else
+  echo "==> Building evols-workbench image..."
+  if [ ! -f "${WORKBENCH_DIR}/package.json" ]; then
+    echo "ERROR: evols-workbench not found at ${WORKBENCH_DIR}"
+    echo "Clone: git clone https://github.com/Evols-AI/evols-workbench ${WORKBENCH_DIR}"
+    exit 1
+  fi
+  docker build --platform linux/amd64 -t "${WORKBENCH_IMAGE}" "${WORKBENCH_DIR}"
+  docker push "${WORKBENCH_IMAGE}"
+fi
+
+echo "==> Storing workbench secrets..."
+store_secret "workbench-mongo-uri"             "${MONGO_URI}"
+store_secret "workbench-oidc-client-secret"    "${OIDC_CLIENT_SECRET}"
+store_secret "workbench-jwt-secret"            "${JWT_SECRET}"
+store_secret "workbench-jwt-refresh-secret"    "${JWT_REFRESH_SECRET}"
+store_secret "workbench-creds-key"             "${CREDS_KEY}"
+store_secret "workbench-creds-iv"              "${CREDS_IV}"
+store_secret "workbench-openid-session-secret" "${OPENID_SESSION_SECRET}"
+
+PUBLIC_BASE="${EVOLS_DOMAIN:+https://${EVOLS_DOMAIN}}"
+PUBLIC_BASE="${PUBLIC_BASE:-${BACKEND_URL}}"
+
+echo "==> Deploying evols-workbench (internal)..."
+gcloud run deploy evols-workbench \
+  --image="${WORKBENCH_IMAGE}" \
+  --platform=managed \
+  --region="${REGION}" \
+  --project="${PROJECT_ID}" \
+  --no-allow-unauthenticated \
+  --ingress=internal \
+  --memory=1Gi --cpu=1 \
+  --min-instances=0 --max-instances=5 \
+  --port=3080 \
+  --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,PORT=3080,BASE_PATH=/workbench/app,APP_BASE_PATH=/workbench/app,ALLOW_REGISTRATION=false,ALLOW_SOCIAL_LOGIN=true,ALLOW_SOCIAL_REGISTRATION=true,OPENID_ISSUER=${PUBLIC_BASE}/api/v1/oidc,OPENID_CLIENT_ID=evols-workbench,OPENID_SCOPE=openid profile email,OPENID_CALLBACK_URL=/workbench/app/oauth/openid/callback,OPENID_BUTTON_LABEL=Sign in with Evols,EVOLS_BACKEND_URL=${PUBLIC_BASE}" \
+  --set-secrets="MONGO_URI=workbench-mongo-uri:latest,OPENID_CLIENT_SECRET=workbench-oidc-client-secret:latest,JWT_SECRET=workbench-jwt-secret:latest,JWT_REFRESH_SECRET=workbench-jwt-refresh-secret:latest,CREDS_KEY=workbench-creds-key:latest,CREDS_IV=workbench-creds-iv:latest,OPENID_SESSION_SECRET=workbench-openid-session-secret:latest"
+
+WORKBENCH_URL=$(gcloud run services describe evols-workbench \
+  --region="${REGION}" --project="${PROJECT_ID}" \
+  --format="value(status.url)")
+
+echo "==> Seeding Evols AI agent into MongoDB..."
+MONGO_URI="${MONGO_URI}" node "${WORKBENCH_DIR}/scripts/seed-evols-agent.js"
+
+# ── 4. Nginx (public entry point) ─────────────────────────────────────────────
+echo "==> Building evols-nginx image..."
+NGINX_IMAGE="${IMAGE_PREFIX}/evols-nginx:latest"
+gcloud builds submit --config=deployment/cloudbuild-nginx.yaml \
+  --substitutions="_TAG=${NGINX_IMAGE}" \
+  --project "${PROJECT_ID}" .
+
+LIBRECHAT_HOST=$(echo "${WORKBENCH_URL}" | sed 's|https://||')
+FRONTEND_HOST=$(echo "${FRONTEND_URL}" | sed 's|https://||')
+
+echo "==> Deploying evols-nginx (public)..."
+gcloud run deploy evols-nginx \
+  --image="${NGINX_IMAGE}" \
+  --platform=managed \
+  --region="${REGION}" \
+  --project="${PROJECT_ID}" \
+  --allow-unauthenticated \
+  --memory=256Mi --cpu=1 \
+  --min-instances=1 --max-instances=10 \
+  --port=8080 \
+  --set-env-vars="LIBRECHAT_UPSTREAM=${LIBRECHAT_HOST}:443,FRONTEND_UPSTREAM=${FRONTEND_HOST}:443"
+
+NGINX_URL=$(gcloud run services describe evols-nginx \
+  --region="${REGION}" --project="${PROJECT_ID}" \
+  --format="value(status.url)")
+
+echo ""
+echo "==> Deployment complete!"
+echo ""
+echo "  Nginx (public):       ${NGINX_URL}"
+echo "  Frontend (internal):  ${FRONTEND_URL}"
+echo "  Workbench (internal): ${WORKBENCH_URL}"
+echo "  Backend:              ${BACKEND_URL}"
+echo ""
+if [ -z "${EVOLS_DOMAIN}" ]; then
+  echo "Next steps:"
+  echo "  1. Point your domain (e.g. app.evols.ai) to: ${NGINX_URL}"
+  echo "  2. Re-run with EVOLS_DOMAIN=app.evols.ai to set the correct OIDC issuer"
+fi

@@ -14,14 +14,18 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // Redirect to workbench if already authenticated
+  // OIDC flow params (present when arriving from LibreChat login redirect)
+  const isOidcCallback = router.query.oidc_callback === '1'
+  const oidcRedirectUri = (router.query.redirect_uri as string) || ''
+  const oidcState = (router.query.state as string) || ''
+
+  // Redirect to workbench if already authenticated (skip if in OIDC flow)
   useEffect(() => {
     const checkAuth = () => {
-      if (isAuthenticated()) {
+      if (isAuthenticated() && !isOidcCallback) {
         const user = localStorage.getItem('user')
         if (user) {
           const userData = JSON.parse(user)
-          // SUPER_ADMIN goes to Admin Panel, others to Workbench
           if (userData.role === 'SUPER_ADMIN') {
             router.replace('/admin/tenants')
           } else {
@@ -34,8 +38,9 @@ export default function Login() {
         setCheckingAuth(false)
       }
     }
-    checkAuth()
-  }, [router])
+    // Only run once router.query is populated (isReady)
+    if (router.isReady) checkAuth()
+  }, [router, isOidcCallback])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,7 +70,20 @@ export default function Login() {
           role: data.role,
         }))
 
-        // Redirect based on role: SUPER_ADMIN to Admin Panel, others to Workbench
+        // If this login was triggered by an OIDC flow (e.g. from LibreChat),
+        // redirect back to the OIDC callback endpoint with the fresh JWT.
+        if (isOidcCallback && oidcRedirectUri) {
+          const callbackParams = new URLSearchParams({
+            token: data.access_token,
+            redirect_uri: oidcRedirectUri,
+          })
+          if (oidcState) callbackParams.set('state', oidcState)
+          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+          window.location.href = `${backendUrl}/api/v1/oidc/callback?${callbackParams.toString()}`
+          return
+        }
+
+        // Normal login: redirect based on role
         if (data.role === 'SUPER_ADMIN') {
           window.location.href = '/admin/tenants'
         } else {
