@@ -221,7 +221,7 @@ export default function WorkContext() {
       <PageContainer>
         <PageHeader
           title="Work Context"
-          description="Your personal PM operating system"
+          description="Your personal AI operating system"
           icon={Briefcase}
         />
 

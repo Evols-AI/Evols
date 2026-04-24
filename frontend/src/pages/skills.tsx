@@ -207,7 +207,7 @@ export default function Skills() {
           <PageContainer>
         <PageHeader
           title="AI Skills"
-          description="Expert-curated skills to help with specific product management tasks"
+          description="Expert-curated skills to help streamline daily tasks"
           icon={Zap}
         />
 
