@@ -637,7 +637,6 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
 
 function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () => void }) {
   const [deleting, setDeleting] = React.useState(false)
-  const [extracting, setExtracting] = React.useState(false)
 
   const toTitleCase = (str: string) => {
     return str
@@ -684,19 +683,6 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
       alert('Failed to delete source')
     } finally {
       setDeleting(false)
-    }
-  }
-
-  const handleExtract = async () => {
-    setExtracting(true)
-    try {
-      await api.context.extractEntities(source.id)
-      onRefresh()
-    } catch (err) {
-      console.error('Failed to extract entities:', err)
-      alert('Failed to extract entities')
-    } finally {
-      setExtracting(false)
     }
   }
 
@@ -764,22 +750,6 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
               </span>
             </div>
 
-            {(source.status === 'pending' || source.status === 'failed') && (
-              <button
-                onClick={handleExtract}
-                disabled={extracting}
-                className="text-xs px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-1"
-              >
-                {extracting ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Extracting...
-                  </>
-                ) : (
-                  'Extract Entities'
-                )}
-              </button>
-            )}
           </div>
         </div>
       </div>

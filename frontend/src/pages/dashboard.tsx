@@ -256,8 +256,8 @@ export default function Dashboard() {
                 </p>
                 <div className="grid sm:grid-cols-3 gap-4">
                   {[
-                    { href: '/feedback', icon: <Upload className="w-6 h-6 text-blue-600" />, title: 'Upload VoC', desc: 'CSV from Intercom, Zendesk, or manual input' },
-                    { href: '/roadmap', icon: <BarChart3 className="w-6 h-6 text-purple-600" />, title: 'View Roadmap', desc: 'AI-powered prioritized product roadmap' },
+                    { href: '/context', icon: <Upload className="w-6 h-6 text-blue-600" />, title: 'Upload Context', desc: 'CSV from Intercom, Zendesk, or manual input' },
+                    { href: '/knowledge', icon: <BarChart3 className="w-6 h-6 text-purple-600" />, title: 'Knowledge Graph', desc: 'Explore your AI-extracted knowledge graph' },
                     { href: '/workbench', icon: <FlaskConical className="w-6 h-6 text-blue-500" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
                   ].map(item => (
                     <Link key={item.href} href={item.href}
@@ -295,7 +295,7 @@ export default function Dashboard() {
                     <Card>
                       <div className="flex items-center justify-between mb-4">
                         <h2 className="card-header">Top Themes by ARR</h2>
-                        <Link href="/roadmap" className="text-sm text-link flex items-center gap-1">
+                        <Link href="/knowledge" className="text-sm text-link flex items-center gap-1">
                           View all <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>

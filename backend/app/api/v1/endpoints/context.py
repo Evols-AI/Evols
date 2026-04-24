@@ -15,9 +15,8 @@ import logging
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.models.context import ContextSource, ExtractedEntity, ContextSourceType, ContextProcessingStatus, EntityType, SourceGroup
+from app.models.context import ContextSource, ContextSourceType, ContextProcessingStatus, SourceGroup
 from app.models.user import User
-from app.services.context_extraction_service import extract_entities_from_source
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -82,23 +81,6 @@ class SourceGroupResponse(BaseModel):
     sources_count: int
     total_entities: int
     sources: Optional[List[ContextSourceResponse]] = None
-
-    class Config:
-        from_attributes = True
-
-
-class ExtractedEntityResponse(BaseModel):
-    id: int
-    tenant_id: int
-    product_id: Optional[int]
-    source_id: int
-    entity_type: str
-    name: str
-    description: str
-    confidence_score: Optional[float]
-    category: Optional[str]
-    attributes: Optional[dict]
-    created_at: str
 
     class Config:
         from_attributes = True
@@ -501,15 +483,8 @@ async def upload_context_file(
                             f"context_source:{new_source.id}",
                         )
 
-                        # Extract entities inline (for Extracted Intelligence tab — separate pipeline)
+                        # Apply retention policy and mark completed
                         try:
-                            entities_count = await extract_entities_from_source(
-                                db=db,
-                                tenant_id=current_user.tenant_id,
-                                source_id=new_source.id
-                            )
-
-                            # Apply retention policy
                             from app.services.retention_service import RetentionPolicyService
                             retention_service = RetentionPolicyService(db)
                             await retention_service.apply_retention_policy(
@@ -517,6 +492,7 @@ async def upload_context_file(
                                 policy=retention_policy,
                                 encrypt_if_needed=True
                             )
+                            new_source.status = ContextProcessingStatus.COMPLETED
                         except Exception as e:
                             extraction_errors.append(f"Row {row_num}: {str(e)}")
                             new_source.status = ContextProcessingStatus.FAILED
@@ -592,22 +568,11 @@ async def upload_context_file(
         await db.commit()
         await db.refresh(new_source)
 
-        # Push raw content to LightRAG for graph extraction (single LLM pass, no double extraction)
+        # Push raw content to LightRAG for graph extraction (single LLM pass)
         await _push_raw_to_lightrag(content_text, f"context_source:{new_source.id}")
 
-        # Trigger entity extraction for Extracted Intelligence tab (separate pipeline)
-        extraction_error = None
+        # Apply retention policy and mark completed
         try:
-            # For demo: extract inline (faster, user sees results immediately)
-            # In production: use background_tasks for async processing
-            entities_count = await extract_entities_from_source(
-                db=db,
-                tenant_id=current_user.tenant_id,
-                source_id=new_source.id
-            )
-            await db.refresh(new_source)  # Refresh to get updated status and count
-
-            # Apply retention policy after successful extraction
             from app.services.retention_service import RetentionPolicyService
             retention_service = RetentionPolicyService(db)
             await retention_service.apply_retention_policy(
@@ -615,26 +580,13 @@ async def upload_context_file(
                 policy=retention_policy,
                 encrypt_if_needed=True
             )
-            await db.refresh(new_source)  # Refresh to get updated retention fields
-
-        except ValueError as e:
-            # LLM configuration error - return clear message to user
-            error_msg = str(e)
-            print(f"Entity extraction failed for source {new_source.id}: {error_msg}")
-            new_source.status = ContextProcessingStatus.FAILED
-            new_source.error_message = error_msg
-            new_source.entities_extracted_count = 0
-            extraction_error = error_msg
+            new_source.status = ContextProcessingStatus.COMPLETED
             await db.commit()
             await db.refresh(new_source)
         except Exception as e:
-            # If extraction fails, mark as failed with error message
-            error_msg = f"Entity extraction failed: {str(e)}"
-            print(f"Entity extraction failed for source {new_source.id}: {error_msg}")
+            error_msg = f"Failed to apply retention policy: {str(e)}"
             new_source.status = ContextProcessingStatus.FAILED
             new_source.error_message = error_msg
-            new_source.entities_extracted_count = 0
-            extraction_error = error_msg
             await db.commit()
             await db.refresh(new_source)
 
@@ -662,7 +614,7 @@ async def trigger_extraction(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Manually trigger entity extraction for a source"""
+    """Push source content to LightRAG knowledge graph"""
     query = select(ContextSource).where(
         and_(
             ContextSource.id == source_id,
@@ -676,20 +628,18 @@ async def trigger_extraction(
         raise HTTPException(status_code=404, detail="Context source not found")
 
     try:
-        entities_count = await extract_entities_from_source(
-            db=db,
-            tenant_id=current_user.tenant_id,
-            source_id=source.id
-        )
+        content = source.content or ""
+        await _push_raw_to_lightrag(content, f"context_source:{source.id}")
+        source.status = ContextProcessingStatus.COMPLETED
+        await db.commit()
         await db.refresh(source)
 
         return {
-            "message": "Extraction completed",
-            "entities_extracted": entities_count,
+            "message": "Content pushed to knowledge graph",
             "status": source.status.value
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Knowledge graph push failed: {str(e)}")
 
 
 @router.delete("/sources/{source_id}")
@@ -929,76 +879,6 @@ async def get_retention_stats(
 
 
 # ===================================
-# Extracted Entities Endpoints
-# ===================================
-
-@router.get("/entities", response_model=List[ExtractedEntityResponse])
-async def get_extracted_entities(
-    product_ids: Optional[str] = None,
-    entity_type: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Get extracted entities for current tenant"""
-    query = select(ExtractedEntity).where(ExtractedEntity.tenant_id == current_user.tenant_id)
-
-    # Filter by product IDs
-    if product_ids:
-        product_id_list = [int(pid) for pid in product_ids.split(',')]
-        query = query.where(ExtractedEntity.product_id.in_(product_id_list))
-
-    # Filter by entity type
-    if entity_type and entity_type != 'all':
-        query = query.where(ExtractedEntity.entity_type == entity_type)
-
-    query = query.offset(skip).limit(limit).order_by(ExtractedEntity.created_at.desc())
-
-    result = await db.execute(query)
-    entities = result.scalars().all()
-
-    return [
-        ExtractedEntityResponse(
-            id=e.id,
-            tenant_id=e.tenant_id,
-            product_id=e.product_id,
-            source_id=e.source_id,
-            entity_type=e.entity_type.value,
-            name=e.name,
-            description=e.description,
-            confidence_score=e.confidence_score,
-            category=e.category,
-            attributes=e.attributes,
-            created_at=e.created_at.isoformat(),
-        )
-        for e in entities
-    ]
-
-
-@router.get("/entities/summary")
-async def get_entities_summary(
-    product_ids: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Get summary statistics of extracted entities"""
-    # TODO: Implement aggregation queries for entity counts by type
-    return {
-        "total": 0,
-        "by_type": {
-            "persona": 0,
-            "pain_point": 0,
-            "use_case": 0,
-            "feature_request": 0,
-            "product_capability": 0,
-            "competitor": 0,
-            "stakeholder": 0,
-        }
-    }
-
-
-# ===================================
 # Evidence & Initiative Endpoints
 # ===================================
 
@@ -1184,107 +1064,6 @@ async def create_source_group_endpoint(
         "event_date": group.event_date.isoformat() if group.event_date else None,
         "source_count": len(source_ids)
     }
-
-
-@router.get("/deduplication/entities/{entity_id}/similar")
-async def find_similar_entities_endpoint(
-    entity_id: int,
-    similarity_threshold: float = 0.90,
-    limit: int = 5,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Find entities similar to given entity"""
-    from app.services.deduplication_service import DeduplicationService
-
-    # Get entity
-    entity_query = select(ExtractedEntity).where(
-        and_(
-            ExtractedEntity.id == entity_id,
-            ExtractedEntity.tenant_id == current_user.tenant_id
-        )
-    )
-    result = await db.execute(entity_query)
-    entity = result.scalar_one_or_none()
-
-    if not entity:
-        raise HTTPException(status_code=404, detail="Entity not found")
-
-    dedup_service = DeduplicationService(db)
-    similar = await dedup_service.find_similar_entities(
-        entity=entity,
-        similarity_threshold=similarity_threshold,
-        limit=limit
-    )
-
-    return {
-        "entity_id": entity_id,
-        "similar_entities": [
-            {
-                "id": e.id,
-                "name": e.name,
-                "description": e.description,
-                "similarity_score": score,
-                "confidence_score": e.confidence_score
-            }
-            for e, score in similar
-        ]
-    }
-
-
-@router.post("/deduplication/entities/mark-duplicate")
-async def mark_entity_duplicate_endpoint(
-    primary_entity_id: int,
-    duplicate_entity_id: int,
-    similarity_score: float,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Mark entity as duplicate of another"""
-    from app.services.deduplication_service import DeduplicationService
-
-    dedup_service = DeduplicationService(db)
-    duplicate_record = await dedup_service.mark_as_duplicate(
-        primary_entity_id=primary_entity_id,
-        duplicate_entity_id=duplicate_entity_id,
-        tenant_id=current_user.tenant_id,
-        similarity_score=similarity_score
-    )
-
-    return {
-        "id": duplicate_record.id,
-        "primary_entity_id": primary_entity_id,
-        "duplicate_entity_id": duplicate_entity_id,
-        "similarity_score": similarity_score
-    }
-
-
-@router.post("/deduplication/entities/merge")
-async def merge_entities_endpoint(
-    primary_entity_id: int,
-    duplicate_entity_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Merge duplicate entity into primary entity"""
-    from app.services.deduplication_service import DeduplicationService
-
-    dedup_service = DeduplicationService(db)
-    try:
-        merged_entity = await dedup_service.merge_entities(
-            primary_entity_id=primary_entity_id,
-            duplicate_entity_id=duplicate_entity_id,
-            tenant_id=current_user.tenant_id
-        )
-
-        return {
-            "message": "Entities merged successfully",
-            "primary_entity_id": merged_entity.id,
-            "name": merged_entity.name,
-            "confidence_score": merged_entity.confidence_score
-        }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/deduplication/stats")
