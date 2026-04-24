@@ -3,18 +3,18 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import {
   Database, Plus, Upload, FileText, MessageSquare, Mail, Slack,
-  Github, BookOpen, Cloud, X, Loader2, Filter, Search, Calendar,
-  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Sparkles, Check, RefreshCw, Book, Brain, ChevronDown
+  Github, BookOpen, Cloud, X, Loader2, Search,
+  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
-import { api } from '@/services/api'
+import { api, apiClient } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, Loading } from '@/components/PageContainer'
 import { useProducts } from '@/hooks/useProducts'
 import { confirmDemoOperation } from '@/utils/demoWarning'
-import StrategyTab from '@/components/context/StrategyTab'
+import KnowledgeGraphTab from '@/components/context/KnowledgeGraphTab'
 
-type ViewType = 'sources' | 'entities' | 'insights' | 'strategy' | 'ai_sessions'
+type ViewType = 'sources' | 'entities' | 'insights' | 'knowledge_graph'
 
 export default function Context() {
   const router = useRouter()
@@ -25,16 +25,13 @@ export default function Context() {
   const [contextSources, setContextSources] = useState<any[]>([])
   const [sourceGroups, setSourceGroups] = useState<any[]>([])
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
-  const [extractedEntities, setExtractedEntities] = useState<any[]>([])
+  const [graphEntities, setGraphEntities] = useState<any[]>([])
+  const [entitiesLoading, setEntitiesLoading] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const [selectedEntityType, setSelectedEntityType] = useState<string>('all')
-  const [aiSessions, setAiSessions] = useState<any[]>([])
-  const [selectedAiEntry, setSelectedAiEntry] = useState<any>(null)
-
   const productId = selectedProductIds[0]
 
   useEffect(() => {
@@ -48,8 +45,9 @@ export default function Context() {
 
     // Check URL params for tab
     const { tab } = router.query
-    if (tab && ['sources', 'entities', 'insights', 'strategy', 'ai_sessions'].includes(tab as string)) {
+    if (tab && ['sources', 'entities', 'insights', 'knowledge_graph'].includes(tab as string)) {
       setSelectedView(tab as ViewType)
+      if (tab === 'entities') loadGraphEntities()
     }
 
     if (selectedProductIds.length > 0) {
@@ -62,17 +60,7 @@ export default function Context() {
   const handleTabChange = (view: ViewType) => {
     setSelectedView(view)
     router.push(`/context?tab=${view}`, undefined, { shallow: true })
-    if (view === 'ai_sessions') loadAiSessions()
-  }
-
-  const loadAiSessions = async () => {
-    if (!productId) return
-    try {
-      const entries = await api.get(`/team-knowledge/entries?limit=50&product_id=${productId}`)
-      setAiSessions(Array.isArray(entries) ? entries : [])
-    } catch {
-      setAiSessions([])
-    }
+    if (view === 'entities') loadGraphEntities()
   }
 
   const loadContext = async () => {
@@ -80,44 +68,70 @@ export default function Context() {
       setLoading(true)
       const productIdsParam = selectedProductIds.join(',')
 
-      const [sourcesRes, groupsRes, entitiesRes, personasRes] = await Promise.all([
+      const [sourcesRes, groupsRes] = await Promise.all([
         api.context.getSources({ product_ids: productIdsParam }),
         api.context.getSourceGroups({ product_ids: productIdsParam }),
-        api.context.getEntities({ product_ids: productIdsParam }),
-        api.getPersonas(productIdsParam, { status_filter: 'new,active,inactive' })
       ])
 
       const allSources = Array.isArray(sourcesRes.data) ? sourcesRes.data : []
       const groups = Array.isArray(groupsRes.data) ? groupsRes.data : []
-
-      // Separate ungrouped sources (sources without source_group_id)
-      const ungroupedSources = allSources.filter((s: any) => !s.source_group_id)
-
-      setContextSources(ungroupedSources)
+      setContextSources(allSources.filter((s: any) => !s.source_group_id))
       setSourceGroups(groups)
-
-      // Get list of already promoted entity IDs
-      const personas = personasRes.data.items || personasRes.data || []
-      const promotedEntityIds = new Set(
-        personas
-          .filter((p: any) => p.extra_data?.promoted_from_entity_id)
-          .map((p: any) => p.extra_data.promoted_from_entity_id)
-      )
-
-      // Mark entities as promoted if they exist in managed personas
-      const entities = Array.isArray(entitiesRes.data) ? entitiesRes.data : []
-      const entitiesWithPromotedFlag = entities.map((entity: any) => ({
-        ...entity,
-        isPromoted: promotedEntityIds.has(entity.id)
-      }))
-
-      setExtractedEntities(entitiesWithPromotedFlag)
     } catch (error) {
       console.error('Error loading context:', error)
       setContextSources([])
-      setExtractedEntities([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Map a LightRAG graph node to the entity shape expected by EntityCard
+  function nodeToEntity(node: any): any {
+    const props = node.properties ?? {}
+    const attrs = props.attributes ?? {}
+    // Parse LLM confidence (0-1) from attributes if present
+    const llmConf = attrs.confidence != null && attrs.confidence !== 'null'
+      ? parseFloat(attrs.confidence) : null
+    // 3-signal structural confidence (mirrors KnowledgeGraphTab formula, no degree available here)
+    const sourceCount = (props.source_id ?? '').split('<SEP>').filter(Boolean).length || 1
+    const descLen = (props.description ?? '').length
+    const structConf = 0.4 * Math.min(sourceCount / 5, 1) + 0.3 * Math.min(descLen / 300, 1)
+    const confidence = llmConf !== null && !isNaN(llmConf)
+      ? 0.25 * Math.min(Math.max(llmConf, 0), 1) + 0.35 * Math.min(sourceCount / 5, 1) + 0.15 * Math.min(descLen / 300, 1)
+      : structConf
+    // Normalize LightRAG types (stored as lowercase-fused: "painpoint", "featurerequest")
+    // to canonical underscore form used by filter buttons and icon/color maps
+    const rawType: string = props.entity_type ?? 'other'
+    const typeNorm: Record<string, string> = {
+      'painpoint': 'pain_point', 'featurerequest': 'feature_request',
+      'businessgoal': 'business_goal',
+      // PascalCase variants (belt-and-suspenders)
+      'PainPoint': 'pain_point', 'FeatureRequest': 'feature_request',
+      'BusinessGoal': 'business_goal',
+    }
+    const normalizedType = typeNorm[rawType] ?? rawType.toLowerCase()
+    return {
+      id: node.id,
+      name: props.entity_id ?? node.id,
+      entity_type: normalizedType,
+      description: props.description ?? '',
+      confidence_score: confidence,
+      attributes: attrs,
+      source_count: sourceCount,
+    }
+  }
+
+  const loadGraphEntities = async () => {
+    try {
+      setEntitiesLoading(true)
+      const res = await apiClient.get('/api/v1/graph/graph', { validateStatus: () => true })
+      if (res.status !== 200) { setGraphEntities([]); return }
+      const nodes: any[] = res.data?.nodes ?? []
+      setGraphEntities(nodes.map(nodeToEntity))
+    } catch {
+      setGraphEntities([])
+    } finally {
+      setEntitiesLoading(false)
     }
   }
 
@@ -145,52 +159,6 @@ export default function Context() {
     }
   }
 
-  const handleRefreshContext = async () => {
-    if (contextSources.length === 0) {
-      alert('No context sources to refresh. Please add context sources first.')
-      return
-    }
-
-    // Check if LLM is configured
-    try {
-      const settingsResponse = await api.getLLMSettings()
-      const hasConfig = settingsResponse.data && settingsResponse.data.provider
-
-      if (!hasConfig) {
-        alert(
-          'LLM Configuration Required\n\n' +
-          'Entity extraction requires LLM credentials to be configured.\n\n' +
-          'Please go to Settings → LLM Settings to configure your LLM provider.'
-        )
-        return
-      }
-    } catch (error) {
-      console.error('Error checking LLM settings:', error)
-      // Continue anyway if we can't check
-    }
-
-    if (!confirm('This will re-extract entities from all context sources. Continue?')) {
-      return
-    }
-
-    setIsRefreshing(true)
-    try {
-      // Trigger re-extraction for all sources
-      await Promise.all(
-        contextSources.map(source => api.context.extractEntities(source.id))
-      )
-
-      // Reload context to show updated entities
-      await loadContext()
-      alert('✓ Context refresh completed successfully!')
-    } catch (error: any) {
-      console.error('Error refreshing context:', error)
-      alert(`Failed to refresh context: ${error.response?.data?.detail || error.message}`)
-    } finally {
-      setIsRefreshing(false)
-    }
-  }
-
   const handleDeleteSourceGroup = async (groupId: number, groupName: string, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent expanding/collapsing the group
 
@@ -215,7 +183,7 @@ export default function Context() {
     return matchesSearch && matchesType && matchesStatus
   })
 
-  const filteredEntities = extractedEntities.filter(entity => {
+  const filteredEntities = graphEntities.filter(entity => {
     const matchesSearch = entity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (entity.description && entity.description.toLowerCase().includes(searchTerm.toLowerCase()))
     return matchesSearch
@@ -247,19 +215,6 @@ export default function Context() {
               </div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={handleRefreshContext}
-                  disabled={isRefreshing}
-                  className="btn-secondary flex items-center gap-2 disabled:opacity-50"
-                  title="Re-extract entities from all sources"
-                >
-                  {isRefreshing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
-                  )}
-                  {isRefreshing ? 'Refreshing...' : 'Refresh Intelligence'}
-                </button>
-                <button
                   onClick={handleAddContext}
                   className="btn-primary flex items-center gap-2"
                 >
@@ -288,17 +243,6 @@ export default function Context() {
                 <div className="flex items-center justify-between">
                   <div className="flex gap-1">
                     <button
-                      onClick={() => handleTabChange('strategy')}
-                      className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
-                        selectedView === 'strategy'
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <Book className="w-4 h-4 inline mr-2" />
-                      Strategy Docs
-                    </button>
-                    <button
                       onClick={() => handleTabChange('sources')}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'sources'
@@ -307,7 +251,7 @@ export default function Context() {
                       }`}
                     >
                       <Database className="w-4 h-4 inline mr-2" />
-                      Feedback Sources ({sourceGroups.length + contextSources.length})
+                      Sources ({sourceGroups.length + contextSources.length})
                     </button>
                     <button
                       onClick={() => {
@@ -321,18 +265,18 @@ export default function Context() {
                       }`}
                     >
                       <Lightbulb className="w-4 h-4 inline mr-2" />
-                      Extracted Intelligence ({extractedEntities.length})
+                      Entity List ({graphEntities.length})
                     </button>
                     <button
-                      onClick={() => handleTabChange('ai_sessions')}
+                      onClick={() => handleTabChange('knowledge_graph')}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
-                        selectedView === 'ai_sessions'
+                        selectedView === 'knowledge_graph'
                           ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                           : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
-                      <Brain className="w-4 h-4 inline mr-2" />
-                      AI Sessions {aiSessions.length > 0 && `(${aiSessions.length})`}
+                      <Network className="w-4 h-4 inline mr-2" />
+                      Entity Graph
                     </button>
                   </div>
 
@@ -354,91 +298,42 @@ export default function Context() {
               {selectedView === 'entities' && (
                 <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setSelectedEntityType('all')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                        selectedEntityType === 'all'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <Target className="w-4 h-4" />
-                      All
-                    </button>
-                    <button
-                      onClick={() => setSelectedEntityType('persona')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                        selectedEntityType === 'persona'
-                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <Users className="w-4 h-4" />
-                      Personas
-                    </button>
-                    <button
-                      onClick={() => setSelectedEntityType('pain_point')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                        selectedEntityType === 'pain_point'
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                      Pain Points
-                    </button>
-                    <button
-                      onClick={() => setSelectedEntityType('feature_request')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                        selectedEntityType === 'feature_request'
-                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <Lightbulb className="w-4 h-4" />
-                      Feature Requests
-                    </button>
-                    <button
-                      onClick={() => setSelectedEntityType('use_case')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                        selectedEntityType === 'use_case'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <Target className="w-4 h-4" />
-                      Use Cases
-                    </button>
-                    <button
-                      onClick={() => setSelectedEntityType('product_capability')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                        selectedEntityType === 'product_capability'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <Zap className="w-4 h-4" />
-                      Capabilities
-                    </button>
-                    <button
-                      onClick={() => setSelectedEntityType('competitor')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                        selectedEntityType === 'competitor'
-                          ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <Building2 className="w-4 h-4" />
-                      Competitors
-                    </button>
+                    {[
+                      { value: 'all',            label: 'All',              Icon: Target,       active: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                      { value: 'persona',        label: 'Personas',         Icon: Users,        active: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+                      { value: 'person',         label: 'People',           Icon: User,         active: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
+                      { value: 'pain_point',     label: 'Pain Points',      Icon: AlertCircle,  active: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+                      { value: 'feature_request',label: 'Feature Requests', Icon: Lightbulb,    active: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
+                      { value: 'feature',        label: 'Features',         Icon: Zap,          active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+                      { value: 'competitor',     label: 'Competitors',      Icon: Building2,    active: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
+                      { value: 'organization',   label: 'Organizations',    Icon: Building2,    active: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300' },
+                      { value: 'product',        label: 'Products',         Icon: Database,     active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+                      { value: 'technology',     label: 'Technology',       Icon: Zap,          active: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
+                      { value: 'project',        label: 'Projects',         Icon: Target,       active: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
+                      { value: 'business_goal',  label: 'Business Goals',   Icon: Target,       active: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                      { value: 'metric',         label: 'Metrics',          Icon: Zap,          active: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
+                      { value: 'decision',       label: 'Decisions',        Icon: Lightbulb,    active: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
+                      { value: 'market',         label: 'Markets',          Icon: Building2,    active: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' },
+                    ].map(({ value, label, Icon, active }) => (
+                      <button
+                        key={value}
+                        onClick={() => setSelectedEntityType(value)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
+                          selectedEntityType === value
+                            ? active
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
 
               {/* Content Views */}
-              {selectedView === 'strategy' ? (
-                <StrategyTab productId={productId} />
-              ) : selectedView === 'sources' ? (
+              {selectedView === 'sources' ? (
                 <SourcesView
                   sources={filteredSources}
                   groups={sourceGroups}
@@ -459,25 +354,14 @@ export default function Context() {
                 <EntitiesView
                   entities={filteredEntities}
                   selectedEntityType={selectedEntityType}
-                  onRefresh={loadContext}
-                  setEntities={setExtractedEntities}
+                  loading={entitiesLoading}
+                  onRefresh={loadGraphEntities}
                   selectedProductIds={selectedProductIds}
                 />
-              ) : selectedView === 'ai_sessions' ? (
-                <AiSessionsView
-                  entries={aiSessions}
-                  selectedEntry={selectedAiEntry}
-                  onSelect={async (entry) => {
-                    setSelectedAiEntry(entry)
-                    try {
-                      const detail = await api.get(`/team-knowledge/entries/${entry.id}`)
-                      setSelectedAiEntry(detail)
-                    } catch { /* leave preview */ }
-                  }}
-                  onClose={() => setSelectedAiEntry(null)}
-                />
+              ) : selectedView === 'knowledge_graph' ? (
+                <KnowledgeGraphTab />
               ) : (
-                <InsightsView sources={contextSources} entities={extractedEntities} />
+                <InsightsView sources={contextSources} entities={graphEntities} />
               )}
             </>
           )}
@@ -639,176 +523,49 @@ function SourcesView({
 function EntitiesView({
   entities,
   selectedEntityType,
+  loading,
   onRefresh,
-  setEntities,
   selectedProductIds
 }: {
   entities: any[]
   selectedEntityType: string
+  loading: boolean
   onRefresh: () => void
-  setEntities: (entities: any[]) => void
   selectedProductIds: number[]
 }) {
   const filteredByType = selectedEntityType === 'all'
     ? entities
     : entities.filter(e => e.entity_type === selectedEntityType)
 
-  const handlePromotePersona = async (entity: any) => {
-    try {
-      const promoteData = {
-        name: entity.name,
-        persona_summary: entity.description,
-        segment: entity.category || 'Mid-Market',
-        key_pain_points: entity.attributes?.pain_points || [],
-        feature_priorities: entity.attributes?.priorities || [],
-        confidence_score: entity.confidence_score || 0.7, // Ensure we have a value
-        status: 'active',
-        product_id: selectedProductIds[0] || null,
-        extra_data: {
-          promoted_from_entity_id: entity.id,
-          original_source: 'extracted_entity',
-          original_confidence_score: entity.confidence_score // Store original for reference
-        }
-      }
-
-      await api.createPersona(promoteData)
-
-      // Reload only entities data to update the promoted flag (without changing tab)
-      const productIdsParam = selectedProductIds.join(',')
-      const [entitiesRes, personasRes] = await Promise.all([
-        api.context.getEntities({ product_ids: productIdsParam }),
-        api.getPersonas(productIdsParam, { status_filter: 'new,active,inactive' })
-      ])
-
-      // Get list of already promoted entity IDs
-      const personas = personasRes.data.items || personasRes.data || []
-      const promotedEntityIds = new Set(
-        personas
-          .filter((p: any) => p.extra_data?.promoted_from_entity_id)
-          .map((p: any) => p.extra_data.promoted_from_entity_id)
-      )
-
-      // Mark entities as promoted if they exist in managed personas
-      const entitiesData = Array.isArray(entitiesRes.data) ? entitiesRes.data : []
-      const entitiesWithPromotedFlag = entitiesData.map((e: any) => ({
-        ...e,
-        isPromoted: promotedEntityIds.has(e.id)
-      }))
-
-      // Update entities in parent component without changing tab
-      setEntities(entitiesWithPromotedFlag)
-
-      alert('✓ Persona promoted to managed successfully!')
-    } catch (error: any) {
-      console.error('Error promoting persona:', error)
-      alert(`Failed to promote persona: ${error.response?.data?.detail || error.message}`)
-    }
+  if (loading) {
+    return <Loading />
   }
 
   return (
     <>
-      {/* Entities Grid */}
+      <div className="flex justify-end mb-3">
+        <button onClick={onRefresh} className="btn-secondary flex items-center gap-2 text-sm">
+          <RefreshCw className="w-3.5 h-3.5" />
+          Refresh
+        </button>
+      </div>
       {filteredByType.length === 0 ? (
         <Card>
           <EmptyState
             icon={Brain}
-            title="No extracted entities yet"
-            description="Add context sources and our AI will automatically extract personas, pain points, capabilities, and more"
+            title="No entities in knowledge graph yet"
+            description="Add context sources — LightRAG will extract entities automatically"
             action={null}
           />
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredByType.map((entity) => (
-            <EntityCard key={entity.id} entity={entity} onPromote={handlePromotePersona} />
+            <EntityCard key={entity.id} entity={entity} selectedProductIds={selectedProductIds} />
           ))}
         </div>
       )}
     </>
-  )
-}
-
-const ROLE_COLORS: Record<string, string> = {
-  engineer: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  pm: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-  designer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
-  qa: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  other: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-}
-
-function AiSessionsView({ entries, selectedEntry, onSelect, onClose }: {
-  entries: any[]
-  selectedEntry: any
-  onSelect: (entry: any) => void
-  onClose: () => void
-}) {
-  if (entries.length === 0) {
-    return (
-      <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-        <Brain className="w-10 h-10 mx-auto mb-3 opacity-40" />
-        <p className="text-sm font-medium">No AI session knowledge linked to this product yet.</p>
-        <p className="text-xs mt-1">Use <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">link_to_product</code> in Claude Code to attribute a session here.</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-2">
-      {entries.map(entry => {
-        const roleColor = ROLE_COLORS[entry.role] || ROLE_COLORS.other
-        const hoursAgo = Math.floor((Date.now() - new Date(entry.created_at).getTime()) / 3_600_000)
-        const timeLabel = hoursAgo < 1 ? 'just now' : hoursAgo < 24 ? `${hoursAgo}h ago` : `${Math.floor(hoursAgo / 24)}d ago`
-
-        return (
-          <div
-            key={entry.id}
-            onClick={() => onSelect(entry)}
-            className="flex items-start justify-between p-4 rounded-lg border border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-700 cursor-pointer transition-colors bg-white dark:bg-gray-900"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>{entry.role}</span>
-                <span className="text-xs text-gray-400">{entry.entry_type}</span>
-              </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{entry.title}</p>
-              {entry.tags?.length > 0 && (
-                <p className="text-xs text-gray-400 mt-0.5">{entry.tags.slice(0, 3).join(' · ')}</p>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-1 ml-4 flex-shrink-0">
-              <span className="text-xs text-gray-400">{timeLabel}</span>
-              {entry.token_count && <span className="text-xs font-mono text-gray-400">{entry.token_count.toLocaleString()} tok</span>}
-            </div>
-          </div>
-        )
-      })}
-
-      {/* Detail modal */}
-      {selectedEntry && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-800">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ROLE_COLORS[selectedEntry.role] || ROLE_COLORS.other}`}>{selectedEntry.role}</span>
-                  <span className="text-xs text-gray-400">{selectedEntry.entry_type}</span>
-                </div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">{selectedEntry.title}</h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {selectedEntry.token_count?.toLocaleString()} tokens · retrieved {selectedEntry.retrieval_count}×
-                </p>
-              </div>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-4">✕</button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {selectedEntry.content || 'Loading...'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -1030,75 +787,106 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
   )
 }
 
-function EntityCard({ entity, onPromote }: { entity: any; onPromote: (entity: any) => void }) {
-  const getEntityIcon = (type: string) => {
-    const iconMap: Record<string, any> = {
-      'persona': Users,
-      'pain_point': AlertCircle,
-      'use_case': Target,
-      'feature_request': Lightbulb,
-      'product_capability': Zap,
-      'stakeholder': User,
-      'competitor': Building2,
-    }
-    const Icon = iconMap[type] || Target
-    return <Icon className="w-5 h-5" />
+function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) {
+  const iconMap: Record<string, any> = {
+    'persona': Users, 'pain_point': AlertCircle, 'feature_request': Lightbulb,
+    'competitor': Building2, 'business_goal': Target, 'metric': Zap,
+    'decision': Lightbulb, 'person': User, 'organization': Building2,
+    'product': Database, 'feature': Zap, 'technology': Zap,
+    'meeting': MessageSquare, 'project': Target, 'market': Building2,
   }
+  const colorMap: Record<string, string> = {
+    'persona': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+    'pain_point': 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+    'feature_request': 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
+    'competitor': 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+    'business_goal': 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+    'metric': 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
+    'decision': 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+    'product': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+    'feature': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+  }
+  const Icon = iconMap[entity.entity_type] || Target
+  const iconColor = colorMap[entity.entity_type] || 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
 
-  const getEntityColor = (type: string) => {
-    const colorMap: Record<string, string> = {
-      'persona': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-      'pain_point': 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-      'use_case': 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-      'feature_request': 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
-      'product_capability': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-      'stakeholder': 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-      'competitor': 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-    }
-    return colorMap[type] || 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
+  const attrs = entity.attributes ?? {}
+  const sentiment: string | null = attrs.sentiment && attrs.sentiment !== 'null' ? attrs.sentiment : null
+  const urgency: string | null = attrs.urgency && attrs.urgency !== 'null' ? attrs.urgency : null
+  const businessImpact: string | null = attrs.business_impact && attrs.business_impact !== 'null' ? attrs.business_impact : null
+  const snippet: string | null = attrs.context_snippet && attrs.context_snippet !== 'null' ? attrs.context_snippet : null
+
+  const sentimentColor = (s: string) => {
+    if (/positive|good|great/i.test(s)) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    if (/negative|bad|poor/i.test(s)) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+  }
+  const urgencyColor = (u: string) => {
+    if (/high|critical|urgent/i.test(u)) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    if (/medium|moderate/i.test(u)) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+    return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+  }
+  const impactColor = (i: string) => {
+    if (/high/i.test(i)) return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+    if (/medium/i.test(i)) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+    return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
   }
 
   return (
     <Card>
-      <div className="p-4">
-        <div className="flex items-start gap-3 mb-3">
-          <div className={`p-2 rounded-lg ${getEntityColor(entity.entity_type)}`}>
-            {getEntityIcon(entity.entity_type)}
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <div className={`p-2 rounded-lg flex-shrink-0 ${iconColor}`}>
+            <Icon className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm text-gray-900 dark:text-white mb-1">{entity.name}</h4>
-            <p className="text-xs text-gray-700 dark:text-gray-400 line-clamp-2">{entity.description}</p>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">{entity.name}</h4>
+              <span className="text-xs text-gray-500 dark:text-gray-500 capitalize">{entity.entity_type.replace(/_/g, ' ')}</span>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">{entity.description}</p>
           </div>
         </div>
 
-        {entity.confidence_score && (
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-700 dark:text-gray-400">Confidence</span>
-              <span className="font-medium text-gray-900 dark:text-white">{Math.round(entity.confidence_score * 100)}%</span>
+        {/* Attribute badges */}
+        {(sentiment || urgency || businessImpact) && (
+          <div className="flex flex-wrap gap-1.5">
+            {sentiment && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sentimentColor(sentiment)}`}>
+                {sentiment}
+              </span>
+            )}
+            {urgency && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${urgencyColor(urgency)}`}>
+                {urgency} urgency
+              </span>
+            )}
+            {businessImpact && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${impactColor(businessImpact)}`}>
+                {businessImpact} impact
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Context snippet */}
+        {snippet && (
+          <p className="text-xs text-gray-500 dark:text-gray-500 italic border-l-2 border-gray-300 dark:border-gray-600 pl-2 line-clamp-2">
+            "{snippet}"
+          </p>
+        )}
+
+        {/* Confidence bar */}
+        {entity.confidence_score != null && (
+          <div className="pt-1 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-gray-500 dark:text-gray-500">Confidence</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{Math.round(entity.confidence_score * 100)}%</span>
             </div>
-          </div>
-        )}
-
-        {/* Promote button for persona entities that haven't been promoted yet */}
-        {entity.entity_type === 'persona' && !entity.isPromoted && (
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => onPromote(entity)}
-              className="w-full text-sm px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Promote to Managed
-            </button>
-          </div>
-        )}
-
-        {/* Already promoted badge */}
-        {entity.entity_type === 'persona' && entity.isPromoted && (
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-xs text-center py-2 px-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg flex items-center justify-center gap-2">
-              <Check className="w-3.5 h-3.5" />
-              Already Managed
+            <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-blue-500"
+                style={{ width: `${Math.round(entity.confidence_score * 100)}%` }}
+              />
             </div>
           </div>
         )}

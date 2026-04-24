@@ -96,6 +96,15 @@ class TeamKnowledgeService:
         await db.commit()
         await db.refresh(entry)
         logger.info(f"Knowledge entry added: id={entry.id}, tenant={tenant_id}, title='{title}'")
+
+        # Push raw content to LightRAG for graph extraction (single pass, no double LLM cost)
+        try:
+            from app.services.lightrag_ingestion_service import _insert_texts
+            text = f"# {title}\n\n{content}"
+            await _insert_texts([text], [f"knowledge_entry:{entry.id}"])
+        except Exception as e:
+            logger.warning(f"LightRAG push skipped for knowledge entry {entry.id}: {e}")
+
         return entry
 
     async def _create_semantic_edges(

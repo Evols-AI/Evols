@@ -5,17 +5,18 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Briefcase, TrendingUp, Calendar, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2 } from 'lucide-react'
+import { Briefcase, TrendingUp, Calendar, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2, Book, BarChart3, Coins, Users, Clock, BookOpen, Tag, ChevronRight, RefreshCw } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
-import { PageContainer, PageHeader, Card, Loading } from '@/components/PageContainer'
+import { PageContainer, PageHeader, Card, StatCard, Loading, EmptyState } from '@/components/PageContainer'
 import TaskModal from '@/components/work-context/TaskModal'
 import DecisionModal from '@/components/work-context/DecisionModal'
 import WeeklyFocusModal from '@/components/work-context/WeeklyFocusModal'
 import { useProducts } from '@/hooks/useProducts'
+import StrategyTab from '@/components/context/StrategyTab'
 
-type TabType = 'overview' | 'tasks' | 'decisions' | 'meetings' | 'weekly-focus'
+type TabType = 'overview' | 'tasks' | 'decisions' | 'meetings' | 'weekly-focus' | 'strategy' | 'ai-sessions'
 
 export default function WorkContext() {
   const router = useRouter()
@@ -42,6 +43,13 @@ export default function WorkContext() {
 
   const productId = selectedProductIds[0]
 
+  // AI Sessions tab state
+  const [aiSummary, setAiSummary] = useState<any>(null)
+  const [aiEntries, setAiEntries] = useState<any[]>([])
+  const [aiDays, setAiDays] = useState(7)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [selectedAiEntry, setSelectedAiEntry] = useState<any>(null)
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login')
@@ -50,8 +58,44 @@ export default function WorkContext() {
 
     const currentUser = getCurrentUser()
     setUser(currentUser)
+
+    const { tab } = router.query
+    if (tab && ['overview','tasks','decisions','meetings','weekly-focus','strategy','ai-sessions'].includes(tab as string)) {
+      setSelectedTab(tab as TabType)
+    }
+
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (selectedTab === 'ai-sessions') loadAiSessions()
+  }, [selectedTab, aiDays])
+
+  const loadAiSessions = async () => {
+    setAiLoading(true)
+    try {
+      const [sumRes, entriesRes] = await Promise.all([
+        api.get(`/team-knowledge/quota/summary?days=${aiDays}`),
+        api.get('/team-knowledge/entries?limit=50'),
+      ])
+      setAiSummary(sumRes.data)
+      setAiEntries(entriesRes.data)
+    } catch (e) {
+      console.error('Failed to load AI session data', e)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleAiEntryClick = async (entry: any) => {
+    setSelectedAiEntry(entry)
+    try {
+      const detail = await api.get(`/team-knowledge/entries/${entry.id}`)
+      setSelectedAiEntry(detail.data)
+    } catch {
+      // leave preview with what we have
+    }
+  }
 
   const loadData = async () => {
     setLoading(true)
@@ -227,6 +271,28 @@ export default function WorkContext() {
             >
               <Calendar className="w-4 h-4 inline mr-2" />
               Weekly Focus
+            </button>
+            <button
+              onClick={() => setSelectedTab('strategy')}
+              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
+                selectedTab === 'strategy'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <Book className="w-4 h-4 inline mr-2" />
+              Strategy Docs
+            </button>
+            <button
+              onClick={() => setSelectedTab('ai-sessions')}
+              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
+                selectedTab === 'ai-sessions'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 inline mr-2" />
+              AI Sessions
             </button>
           </div>
         </div>
@@ -722,7 +788,71 @@ export default function WorkContext() {
             </div>
           </Card>
         )}
+
+        {/* Strategy Docs Tab */}
+        {selectedTab === 'strategy' && (
+          <StrategyTab productId={selectedProductIds[0]} />
+        )}
+
+        {/* AI Sessions Tab */}
+        {selectedTab === 'ai-sessions' && (
+          <div className="space-y-6">
+            {/* Period selector + refresh */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <select
+                  value={aiDays}
+                  onChange={e => setAiDays(Number(e.target.value))}
+                  className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                >
+                  <option value={7}>Last 7 days</option>
+                  <option value={14}>Last 14 days</option>
+                  <option value={30}>Last 30 days</option>
+                </select>
+                <button onClick={loadAiSessions} disabled={aiLoading} className="btn-secondary flex items-center gap-2">
+                  <RefreshCw className={`w-4 h-4 ${aiLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Token savings summary */}
+            {aiLoading ? <Loading text="Loading session data..." /> : aiSummary ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <StatCard title="Sessions" value={aiSummary.sessions} subtitle="tracked" icon={<Clock className="w-5 h-5" />} color="blue" />
+                <StatCard title="Tokens Saved" value={formatAiTokens(aiSummary.tokens_saved_estimate)} subtitle="vs. compiling fresh" icon={<TrendingUp className="w-5 h-5" />} color="green" />
+                <StatCard title="Cost Avoided" value={formatAiCost(aiSummary.tokens_saved_estimate)} subtitle="est. at $3/1M tok" icon={<Coins className="w-5 h-5" />} color="green" />
+                <StatCard title="Quota Extended" value={`${aiSummary.quota_extended_pct}%`} subtitle="effective capacity gain" icon={<TrendingUp className="w-5 h-5" />} color="purple" />
+                <StatCard title="Knowledge Entries" value={aiSummary.knowledge_entries_total} subtitle={`+${aiSummary.knowledge_entries_new} this period`} icon={<BookOpen className="w-5 h-5" />} color="orange" />
+                <StatCard title="Rate Limit Hits" value={aiSummary.rate_limit_hits} subtitle="avoided via reuse" icon={<Users className="w-5 h-5" />} color={aiSummary.rate_limit_hits > 0 ? 'red' : 'blue'} />
+              </div>
+            ) : (
+              <Card><p className="text-sm text-gray-500 dark:text-gray-400 p-4">No session data yet. Start a Claude Code session with the Evols plugin to begin tracking.</p></Card>
+            )}
+
+            {/* Session knowledge entries */}
+            <div>
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+                Session Knowledge — {aiEntries.length} entries
+              </h2>
+              {aiLoading ? null : aiEntries.length === 0 ? (
+                <EmptyState icon={BookOpen} title="No knowledge entries yet" description="Complete a Claude Code session with the Evols plugin — the Stop hook will auto-sync your session knowledge." />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {aiEntries.map((entry: any) => (
+                    <AiSessionEntryCard key={entry.id} entry={entry} onClick={() => handleAiEntryClick(entry)} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </PageContainer>
+
+      {/* AI Entry detail modal */}
+      {selectedAiEntry && (
+        <AiEntryDetailModal entry={selectedAiEntry} onClose={() => setSelectedAiEntry(null)} />
+      )}
 
       {/* Modals */}
       <TaskModal
@@ -753,6 +883,111 @@ export default function WorkContext() {
         onSuccess={loadData}
         weeklyFocus={weeklyFocus}
       />
+    </div>
+  )
+}
+
+// ── AI Sessions helpers ────────────────────────────────────────────────────
+
+function formatAiTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
+}
+
+function formatAiCost(tokens: number): string {
+  const dollars = (tokens / 1_000_000) * 3
+  if (dollars < 0.01) return '<$0.01'
+  return `$${dollars.toFixed(2)}`
+}
+
+function timeAgo(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime()
+  const h = Math.floor(diff / 3_600_000)
+  if (h < 1) return 'just now'
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
+const ROLE_COLORS: Record<string, string> = {
+  engineer: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  pm: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  designer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+  qa: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  other: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+}
+
+const ENTRY_TYPE_LABELS: Record<string, string> = {
+  insight: 'Insight', decision: 'Decision', artifact: 'Artifact',
+  research_finding: 'Research', pattern: 'Pattern', context: 'Context',
+}
+
+function AiSessionEntryCard({ entry, onClick }: { entry: any; onClick: () => void }) {
+  const roleColor = ROLE_COLORS[entry.role] || ROLE_COLORS.other
+  return (
+    <Card hover onClick={onClick} padding="sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>{entry.role}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}</span>
+            {entry.product_area && <span className="text-xs text-gray-400 dark:text-gray-500">· {entry.product_area}</span>}
+          </div>
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-snug mb-1.5">{entry.title}</h4>
+          {entry.tags && entry.tags.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              <Tag className="w-3 h-3 text-gray-400" />
+              {entry.tags.slice(0, 3).map((tag: string) => (
+                <span key={tag} className="text-xs text-gray-500 dark:text-gray-400">{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <span className="text-xs text-gray-400 dark:text-gray-500">{timeAgo(entry.created_at)}</span>
+          {entry.token_count && <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{formatAiTokens(entry.token_count)} tok</span>}
+          <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600" />
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function AiEntryDetailModal({ entry, onClose }: { entry: any; onClose: () => void }) {
+  const roleColor = ROLE_COLORS[entry.role] || ROLE_COLORS.other
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>{entry.role}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}</span>
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{entry.title}</h3>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              {timeAgo(entry.created_at)}
+              {entry.token_count && ` · ${formatAiTokens(entry.token_count)} tokens`}
+              {entry.retrieval_count !== undefined && ` · retrieved ${entry.retrieval_count}×`}
+            </p>
+          </div>
+          <button onClick={onClose} className="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0">✕</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          {entry.content
+            ? <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{entry.content}</p>
+            : <p className="text-sm text-gray-400 italic">Loading content...</p>
+          }
+          {entry.tags && entry.tags.length > 0 && (
+            <div className="flex items-center gap-2 mt-4 flex-wrap">
+              <Tag className="w-3.5 h-3.5 text-gray-400" />
+              {entry.tags.map((tag: string) => (
+                <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

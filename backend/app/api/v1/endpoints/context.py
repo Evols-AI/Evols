@@ -11,6 +11,8 @@ from pydantic import BaseModel
 import csv
 import io
 
+import logging
+
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.context import ContextSource, ExtractedEntity, ContextSourceType, ContextProcessingStatus, EntityType, SourceGroup
@@ -18,6 +20,18 @@ from app.models.user import User
 from app.services.context_extraction_service import extract_entities_from_source
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+async def _push_raw_to_lightrag(content: str, source_label: str) -> None:
+    """Push raw content to LightRAG for graph extraction. Never raises — failures are logged only."""
+    if not content or not content.strip():
+        return
+    try:
+        from app.services.lightrag_ingestion_service import _insert_texts
+        await _insert_texts([content], [source_label])
+    except Exception as e:
+        logger.warning(f"LightRAG raw push skipped ({source_label}): {e}")
 
 
 # ===================================
@@ -254,7 +268,8 @@ async def create_context_source(
     await db.commit()
     await db.refresh(new_source)
 
-    # TODO: Trigger async extraction job
+    # Push raw content to LightRAG for graph extraction
+    await _push_raw_to_lightrag(source.content or "", f"context_source:{new_source.id}")
 
     return ContextSourceResponse(
         id=new_source.id,
@@ -480,7 +495,13 @@ async def upload_context_file(
                         db.add(new_source)
                         await db.flush()  # Get ID without committing
 
-                        # Extract entities inline
+                        # Push raw content to LightRAG for graph extraction (single LLM pass)
+                        await _push_raw_to_lightrag(
+                            parsed_fields['content'],
+                            f"context_source:{new_source.id}",
+                        )
+
+                        # Extract entities inline (for Extracted Intelligence tab — separate pipeline)
                         try:
                             entities_count = await extract_entities_from_source(
                                 db=db,
@@ -571,7 +592,10 @@ async def upload_context_file(
         await db.commit()
         await db.refresh(new_source)
 
-        # Trigger entity extraction in background (or inline for demo)
+        # Push raw content to LightRAG for graph extraction (single LLM pass, no double extraction)
+        await _push_raw_to_lightrag(content_text, f"context_source:{new_source.id}")
+
+        # Trigger entity extraction for Extracted Intelligence tab (separate pipeline)
         extraction_error = None
         try:
             # For demo: extract inline (faster, user sees results immediately)

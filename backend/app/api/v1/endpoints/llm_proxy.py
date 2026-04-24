@@ -22,6 +22,7 @@ This means:
 
 import json
 import logging
+import os
 import uuid
 import httpx
 from typing import Optional
@@ -33,6 +34,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_tenant_id
 from app.core.security import decrypt_llm_config
@@ -42,15 +44,71 @@ from app.services.llm_service import LLMService, LLMConfig
 
 router = APIRouter()
 
+
+def _service_key() -> str:
+    return getattr(settings, "LIGHTRAG_API_KEY", None) or os.environ.get("LIGHTRAG_API_KEY", "")
+
+
+async def _get_tenant_id_for_service(db: AsyncSession) -> int:
+    """
+    Resolve the default tenant for service-to-service calls (e.g. LightRAG).
+    Returns the first active tenant that has LLM keys configured.
+    Raises 503 if none found.
+    """
+    from app.core.security import decrypt_llm_config as _decrypt
+    result = await db.execute(select(Tenant).where(Tenant.is_active == True))  # noqa: E712
+    tenants = result.scalars().all()
+    for tenant in tenants:
+        if tenant.llm_config:
+            try:
+                cfg = _decrypt(tenant.llm_config)
+                # Accept any provider that has credentials configured
+                has_key = (
+                    cfg.get("api_key")                          # OpenAI / Anthropic
+                    or cfg.get("access_key_id")                 # AWS Bedrock
+                    or (cfg.get("provider") == "aws_bedrock")   # Bedrock with IAM role
+                )
+                if has_key:
+                    return tenant.id
+            except Exception:
+                continue
+    raise HTTPException(
+        status_code=503,
+        detail="No tenant with configured LLM keys found. Set up keys in Settings → LLM Settings.",
+    )
+
+
 async def _get_user_for_proxy(request: Request, db: AsyncSession) -> User:
     """
     Resolve the current user for LLM proxy requests.
 
-    Tries two auth modes in order:
-    1. X-Evols-User-Id header — set by LibreChat via {{LIBRECHAT_USER_OPENIDID}} placeholder,
+    Tries three auth modes in order:
+    1. X-Evols-Service-Key header — used by internal services (LightRAG, background workers).
+       Value must match LIGHTRAG_API_KEY env var. Resolves to the default org tenant.
+       Returns a sentinel User with tenant_id set; no real user row needed.
+    2. X-Evols-User-Id header — set by LibreChat via {{LIBRECHAT_USER_OPENIDID}} placeholder,
        which resolves to the user's OIDC sub (= their Evols Postgres user_id int).
-    2. Standard Bearer JWT — falls through to get_current_user.
+    3. Standard Bearer JWT — falls through to get_current_user.
     """
+    # Service key auth — accepts both X-Evols-Service-Key header and Bearer token
+    # (LightRAG sends api_key as Bearer token; other internal services may use the header)
+    svc_key = _service_key()
+    service_key = request.headers.get("X-Evols-Service-Key", "").strip()
+    if not service_key:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer ") and svc_key:
+            candidate = auth_header[7:]
+            if candidate == svc_key:
+                service_key = candidate
+    if service_key:
+        if not svc_key or service_key != svc_key:
+            raise HTTPException(status_code=401, detail="Invalid service key")
+        tenant_id = await _get_tenant_id_for_service(db)
+        sentinel = User()
+        sentinel.tenant_id = tenant_id
+        sentinel.is_active = True
+        return sentinel
+
     user_id_header = request.headers.get("X-Evols-User-Id", "").strip()
     if user_id_header:
         try:
@@ -233,6 +291,30 @@ async def _proxy(
     )
 
 
+# ── Bedrock model ID normalizer ───────────────────────────────────────────────
+
+_BEDROCK_MODEL_MAP = {
+    # Claude 4.x requires cross-region inference profiles (us.anthropic.* prefix)
+    "claude-haiku-4-5-20251001":        "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "claude-haiku-4-5":                 "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "claude-sonnet-4-6":                "us.anthropic.claude-sonnet-4-20250514-v1:0",
+    "claude-sonnet-4-6-20250514":       "us.anthropic.claude-sonnet-4-20250514-v1:0",
+    "claude-sonnet-4":                  "us.anthropic.claude-sonnet-4-20250514-v1:0",
+    "claude-opus-4-7":                  "us.anthropic.claude-opus-4-1-20250805-v1:0",
+    "claude-opus-4":                    "us.anthropic.claude-opus-4-1-20250805-v1:0",
+}
+
+def _normalize_bedrock_model(model: str) -> str:
+    """Translate short/OpenAI-style model names to valid Bedrock model IDs."""
+    if model in _BEDROCK_MODEL_MAP:
+        return _BEDROCK_MODEL_MAP[model]
+    # Already a valid Bedrock ID (contains a dot or slash)
+    if "." in model or "/" in model:
+        return model
+    # Fallback to Sonnet 4
+    return "us.anthropic.claude-sonnet-4-20250514-v1:0"
+
+
 # ── Route handlers ─────────────────────────────────────────────────────────────
 # Catch-all paths for each provider so LibreChat can call any sub-path
 # (e.g. /v1/messages, /chat/completions, /v1/chat/completions, etc.)
@@ -270,6 +352,94 @@ async def proxy_gemini(
     return await _proxy(request, "gemini", path, db, tenant_id)
 
 
+@router.api_route("/bedrock/embeddings", methods=["POST", "OPTIONS"])
+@router.api_route("/bedrock/v1/embeddings", methods=["POST", "OPTIONS"])
+async def proxy_bedrock_embeddings(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Translate OpenAI-format embeddings requests to AWS Bedrock Titan Embeddings.
+    Handles both /bedrock/embeddings and /bedrock/v1/embeddings — LightRAG omits the /v1/ prefix.
+    Returns: OpenAI-compatible embeddings response.
+
+    MUST be registered before the /bedrock/{path:path} catch-all below.
+    """
+    if request.method == "OPTIONS":
+        return JSONResponse({}, status_code=200)
+
+    user = await _get_user_for_proxy(request, db)
+    tenant_id = await _get_tenant_id_for_proxy(user)
+
+    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = result.scalar_one_or_none()
+    if not tenant or not tenant.llm_config:
+        raise HTTPException(status_code=422, detail="No LLM configuration found.")
+
+    config = decrypt_llm_config(tenant.llm_config)
+    if config.get("provider") != "aws_bedrock":
+        raise HTTPException(
+            status_code=422,
+            detail=f"Tenant is configured for '{config.get('provider')}', not aws_bedrock.",
+        )
+
+    body = await request.json()
+    raw_input = body.get("input", "")
+    inputs: list[str] = [raw_input] if isinstance(raw_input, str) else list(raw_input)
+
+    # Default to Titan Embeddings V2 — 1024 dims, normalize on
+    bedrock_model = body.get("model", "amazon.titan-embed-text-v2:0")
+    if bedrock_model.startswith("text-embedding-"):
+        bedrock_model = "amazon.titan-embed-text-v2:0"
+
+    import asyncio
+    import boto3
+
+    region = config.get("region", "us-east-1")
+    access_key_id = config.get("access_key_id")
+    secret_access_key = config.get("secret_access_key")
+    session_token = config.get("session_token")
+
+    def _embed_sync(texts: list[str]) -> tuple[list[list[float]], int]:
+        client = boto3.client(
+            "bedrock-runtime",
+            region_name=region,
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+            aws_session_token=session_token,
+        )
+        embs, tokens = [], 0
+        for text in texts:
+            resp = client.invoke_model(
+                modelId=bedrock_model,
+                contentType="application/json",
+                accept="application/json",
+                body=json.dumps({"inputText": text, "dimensions": 1024, "normalize": True}),
+            )
+            data = json.loads(resp["body"].read())
+            embs.append(data["embedding"])
+            tokens += data.get("inputTextTokenCount", 0)
+        return embs, tokens
+
+    try:
+        embeddings, total_tokens = await asyncio.get_event_loop().run_in_executor(
+            None, _embed_sync, inputs
+        )
+    except Exception as e:
+        logger.error(f"[bedrock embeddings] {e}")
+        raise HTTPException(status_code=502, detail=f"Bedrock embeddings error: {e}")
+
+    return JSONResponse({
+        "object": "list",
+        "data": [
+            {"object": "embedding", "index": i, "embedding": emb}
+            for i, emb in enumerate(embeddings)
+        ],
+        "model": bedrock_model,
+        "usage": {"prompt_tokens": total_tokens, "total_tokens": total_tokens},
+    })
+
+
 @router.api_route("/bedrock/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 async def proxy_bedrock(
     path: str,
@@ -300,7 +470,8 @@ async def proxy_bedrock(
 
     body = await request.json()
     messages = body.get("messages", [])
-    model = body.get("model", config.get("model", "us.anthropic.claude-sonnet-4-6"))
+    model = body.get("model", config.get("model_id", "us.anthropic.claude-sonnet-4-6"))
+    model = _normalize_bedrock_model(model)
     temperature = float(body.get("temperature", 0.7))
     max_tokens = int(body.get("max_tokens", 4096))
     tools = body.get("tools")

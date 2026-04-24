@@ -3,6 +3,8 @@ Work Context API Endpoints
 Personal PM context - role, team, projects, relationships, capacity
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -28,6 +30,27 @@ from app.schemas.work_context import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+async def _push_work_context_to_lightrag(wc: WorkContext, user: User, db: AsyncSession) -> None:
+    """Fire-and-forget: push work context with its projects + relationships to LightRAG."""
+    try:
+        from app.services.lightrag_ingestion_service import ingest_work_context
+        proj_result = await db.execute(
+            select(ActiveProject).where(ActiveProject.work_context_id == wc.id)
+        )
+        rel_result = await db.execute(
+            select(KeyRelationship).where(KeyRelationship.work_context_id == wc.id)
+        )
+        user_name = getattr(user, "full_name", "") or user.email or ""
+        await ingest_work_context(
+            wc, user_name,
+            proj_result.scalars().all(),
+            rel_result.scalars().all(),
+        )
+    except Exception as e:
+        logger.warning(f"LightRAG work context push skipped: {e}")
 
 
 # ===================================
@@ -78,6 +101,7 @@ async def update_work_context(
 
     await db.commit()
     await db.refresh(work_context)
+    await _push_work_context_to_lightrag(work_context, current_user, db)
     return work_context
 
 
@@ -347,6 +371,12 @@ async def create_pm_decision(
     db.add(decision)
     await db.commit()
     await db.refresh(decision)
+    try:
+        from app.services.lightrag_ingestion_service import ingest_pm_decision
+        user_name = getattr(current_user, "full_name", "") or current_user.email or ""
+        await ingest_pm_decision(decision, user_name)
+    except Exception as e:
+        logger.warning(f"LightRAG decision push skipped: {e}")
     return decision
 
 
@@ -374,6 +404,12 @@ async def update_pm_decision(
 
     await db.commit()
     await db.refresh(decision)
+    try:
+        from app.services.lightrag_ingestion_service import ingest_pm_decision
+        user_name = getattr(current_user, "full_name", "") or current_user.email or ""
+        await ingest_pm_decision(decision, user_name)
+    except Exception as e:
+        logger.warning(f"LightRAG decision push skipped: {e}")
     return decision
 
 
@@ -686,6 +722,12 @@ async def create_meeting_note(
     db.add(note)
     await db.commit()
     await db.refresh(note)
+    try:
+        from app.services.lightrag_ingestion_service import ingest_meeting_note
+        user_name = getattr(current_user, "full_name", "") or current_user.email or ""
+        await ingest_meeting_note(note, user_name)
+    except Exception as e:
+        logger.warning(f"LightRAG meeting note push skipped: {e}")
     return note
 
 
@@ -713,6 +755,12 @@ async def update_meeting_note(
 
     await db.commit()
     await db.refresh(note)
+    try:
+        from app.services.lightrag_ingestion_service import ingest_meeting_note
+        user_name = getattr(current_user, "full_name", "") or current_user.email or ""
+        await ingest_meeting_note(note, user_name)
+    except Exception as e:
+        logger.warning(f"LightRAG meeting note push skipped: {e}")
     return note
 
 

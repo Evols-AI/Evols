@@ -53,6 +53,51 @@ services:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+  # LightRAG — knowledge graph extraction, storage, and visual explorer
+  lightrag:
+    image: evols-lightrag:entity-attributes
+    container_name: evols-lightrag
+    environment:
+      # Storage: use PostgreSQL pgvector for vectors/KV, NetworkX for graph
+      LIGHTRAG_KV_STORAGE: PGKVStorage
+      LIGHTRAG_VECTOR_STORAGE: PGVectorStorage
+      LIGHTRAG_GRAPH_STORAGE: NetworkXStorage
+      LIGHTRAG_DOC_STATUS_STORAGE: PGDocStatusStorage
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: evols
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # LLM for entity extraction — routed through Evols LLM proxy using org's BYOK keys
+      # LightRAG authenticates with X-Evols-Service-Key (= LIGHTRAG_API_KEY)
+      LLM_BINDING: openai
+      LLM_MODEL: ${LIGHTRAG_LLM_MODEL:-us.anthropic.claude-sonnet-4-20250514-v1:0}
+      LLM_BINDING_API_KEY: ${LIGHTRAG_API_KEY:-}
+      LLM_BINDING_HOST: http://${EVOLS_BACKEND_HOST:-host.docker.internal}:8000/api/v1/llm-proxy/bedrock
+      EMBEDDING_BINDING: openai
+      EMBEDDING_MODEL: ${LIGHTRAG_EMBEDDING_MODEL:-amazon.titan-embed-text-v2:0}
+      EMBEDDING_BINDING_API_KEY: ${LIGHTRAG_API_KEY:-}
+      EMBEDDING_BINDING_HOST: http://${EVOLS_BACKEND_HOST:-host.docker.internal}:8000/api/v1/llm-proxy/bedrock
+      EMBEDDING_DIM: 1024
+      # PM-domain entity types — drives LightRAG's extraction prompt via {entity_types} placeholder.
+      # Produces the three target clusters: team (Person, Project, Decision, Meeting),
+      # product (Product, Feature, Technology, BusinessGoal, Metric),
+      # customer (Persona, PainPoint, FeatureRequest, Competitor, Market).
+      ENTITY_TYPES: '["Person","Organization","Product","Feature","PainPoint","FeatureRequest","Persona","Competitor","BusinessGoal","Metric","Decision","Meeting","Project","Technology","Market"]'
+      ENTITY_ATTRIBUTES: '["sentiment","urgency","business_impact","context_snippet","confidence"]'
+      # Auth disabled — LightRAG is on internal Docker network, not publicly exposed.
+      # Access is controlled at the Evols backend layer (LIGHTRAG_API_KEY there).
+      # AUTH_ACCOUNTS: evols:${LIGHTRAG_API_KEY:-}
+      MAX_ASYNC: 4
+      MAX_TOKENS: 32768
+    ports:
+      - "9621:9621"
+    volumes:
+      - lightrag_data:/app/data/rag_storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # Frontend
   frontend:
     build:
@@ -74,3 +119,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  lightrag_data:

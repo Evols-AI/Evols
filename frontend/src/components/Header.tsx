@@ -47,7 +47,6 @@ export default function Header({ user, currentPage }: HeaderProps) {
     { href: '/workbench', label: 'Workbench', key: 'workbench', icon: Sparkles },
     { href: '/work-context', label: 'Work Context', key: 'work-context', icon: Briefcase },
     { href: '/context', label: 'Knowledge', key: 'context', icon: Brain },
-    { href: '/team-intelligence', label: 'Team Intelligence', key: 'team-intelligence', icon: BarChart3 },
     { href: '/personas', label: 'Personas', key: 'personas', icon: Users },
     { href: '/skills', label: 'Skills', key: 'skills', icon: Zap },
   ]

@@ -23,6 +23,7 @@ MANIFEST
 venv/
 ENV/
 env/
+docs/
 .venv
 
 # Node

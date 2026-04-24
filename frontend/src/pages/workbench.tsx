@@ -17,7 +17,7 @@ import Head from 'next/head'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { isAuthenticated } from '@/utils/auth'
-import { api } from '@/services/api'
+import { apiClient } from '@/services/api'
 import Header from '@/components/Header'
 import { useTheme } from '@/contexts/ThemeContext'
 
@@ -47,7 +47,7 @@ export default function Workbench() {
 
     async function mintToken() {
       try {
-        const res = await api.post('/api/v1/oidc/one-time-token', {})
+        const res = await apiClient.post('/api/v1/oidc/one-time-token', {})
         const { token } = res.data
         // Exchange the OTT from the top-level frame (not inside the iframe) so the
         // auth cookie is set on evols.ai before the iframe loads — eliminates the
