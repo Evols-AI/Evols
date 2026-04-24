@@ -30,6 +30,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict
 from urllib.parse import urlencode, urlparse, parse_qs
 
+import redis.asyncio as aioredis
+from loguru import logger
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, Query
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,33 +47,46 @@ from app.models.user_tenant import UserTenant
 
 router = APIRouter()
 
-# ── In-memory one-time token store ────────────────────────────────────────
-# Used for silent iframe auto-auth: Evols frontend mints a short-lived token,
-# passes it to the LibreChat iframe URL, the fork exchanges it immediately.
-# token → {"user_id": int, "tenant_id": int, "expires_at": datetime}
-_ONE_TIME_TOKENS: Dict[str, dict] = {}
-_OTT_TTL = timedelta(seconds=30)
+_OTT_TTL_SECONDS = 60
+_CODE_TTL_SECONDS = 300
 
 
-def _purge_expired_otts() -> None:
-    now = datetime.utcnow()
-    expired = [t for t, v in _ONE_TIME_TOKENS.items() if v["expires_at"] < now]
-    for t in expired:
-        del _ONE_TIME_TOKENS[t]
+def _redis() -> aioredis.Redis:
+    return aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
-# ── In-memory short-lived auth code store ─────────────────────────────────
-# code → {"user_id": int, "tenant_id": int, "redirect_uri": str, "expires_at": datetime}
-# Codes are single-use and expire in 5 minutes.
-_AUTH_CODES: Dict[str, dict] = {}
-_CODE_TTL = timedelta(minutes=5)
+async def _ott_set(token: str, user_id: int, tenant_id: int) -> None:
+    try:
+        async with _redis() as r:
+            await r.setex(f"ott:{token}", _OTT_TTL_SECONDS, json.dumps({"user_id": user_id, "tenant_id": tenant_id}))
+        logger.info("[OIDC] OTT stored: %s... user=%s", token[:8], user_id)
+    except Exception as e:
+        logger.error("[OIDC] Redis error in _ott_set: %s", e)
+        raise
 
 
-def _purge_expired_codes() -> None:
-    now = datetime.utcnow()
-    expired = [c for c, v in _AUTH_CODES.items() if v["expires_at"] < now]
-    for c in expired:
-        del _AUTH_CODES[c]
+async def _ott_pop(token: str) -> Optional[Dict]:
+    try:
+        async with _redis() as r:
+            key = f"ott:{token}"
+            raw = await r.getdel(key)
+            logger.info("[OIDC] OTT pop %s...: %s", token[:8], "found" if raw else "not found")
+            return json.loads(raw) if raw else None
+    except Exception as e:
+        logger.error("[OIDC] Redis error in _ott_pop: %s", e)
+        return None
+
+
+async def _code_set(code: str, user_id: int, tenant_id: int, redirect_uri: str) -> None:
+    async with _redis() as r:
+        await r.setex(f"oidc_code:{code}", _CODE_TTL_SECONDS, json.dumps({"user_id": user_id, "tenant_id": tenant_id, "redirect_uri": redirect_uri}))
+
+
+async def _code_pop(code: str) -> Optional[Dict]:
+    async with _redis() as r:
+        key = f"oidc_code:{code}"
+        raw = await r.getdel(key)
+        return json.loads(raw) if raw else None
 
 
 def _oidc_base(request: Request) -> str:
@@ -136,15 +151,34 @@ async def authorize(
     scope: str = Query(default="openid"),
     state: Optional[str] = Query(default=None),
     nonce: Optional[str] = Query(default=None),
+    ott: Optional[str] = Query(default=None),
+    db: AsyncSession = Depends(get_db),
 ):
     """
-    Authorization endpoint — redirect to Evols login page.
-    The login page will redirect back to /oidc/callback once the user is authenticated.
+    Authorization endpoint.
+    Normal flow: redirect to Evols login page.
+    Silent iframe flow: if ?ott= is present and valid, skip login and issue auth code directly.
     """
     if response_type != "code":
         raise HTTPException(status_code=400, detail="Only response_type=code is supported")
     if client_id != _client_id():
         raise HTTPException(status_code=400, detail="Unknown client_id")
+
+    # Silent iframe auto-auth: OTT bypasses login page
+    if ott:
+        data = await _ott_pop(ott)
+        if data:
+            user_id = data["user_id"]
+            tenant_id = data["tenant_id"]
+            result = await db.execute(select(User).where(User.id == user_id))
+            user = result.scalar_one_or_none()
+            if user and user.is_active:
+                code = secrets.token_urlsafe(32)
+                await _code_set(code, user_id, tenant_id, redirect_uri)
+                params: Dict[str, str] = {"code": code}
+                if state:
+                    params["state"] = state
+                return RedirectResponse(url=f"{redirect_uri}?{urlencode(params)}", status_code=302)
 
     # Build the callback URL that the frontend should redirect to after login
     callback_params: Dict[str, str] = {
@@ -194,14 +228,8 @@ async def oidc_callback(
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
-    _purge_expired_codes()
     code = secrets.token_urlsafe(32)
-    _AUTH_CODES[code] = {
-        "user_id": user_id,
-        "tenant_id": tenant_id,
-        "redirect_uri": redirect_uri,
-        "expires_at": datetime.utcnow() + _CODE_TTL,
-    }
+    await _code_set(code, user_id, tenant_id, redirect_uri)
 
     params: Dict[str, str] = {"code": code}
     if state:
@@ -246,15 +274,11 @@ async def token_endpoint(
     if grant_type == "authorization_code":
         if not code or not redirect_uri:
             raise HTTPException(status_code=400, detail="code and redirect_uri required")
-        code_data = _AUTH_CODES.get(code)
+        code_data = await _code_pop(code)
         if not code_data:
             raise HTTPException(status_code=400, detail="Invalid or expired authorization code")
-        if code_data["expires_at"] < datetime.utcnow():
-            del _AUTH_CODES[code]
-            raise HTTPException(status_code=400, detail="Authorization code has expired")
         if code_data["redirect_uri"] != redirect_uri:
             raise HTTPException(status_code=400, detail="redirect_uri mismatch")
-        del _AUTH_CODES[code]
         user_id = code_data["user_id"]
         tenant_id = code_data["tenant_id"]
 
@@ -377,14 +401,9 @@ async def create_one_time_token(
     The token is passed as ?ott=<token> in the iframe src URL.
     Single use — consumed immediately by the LibreChat fork on load.
     """
-    _purge_expired_otts()
     token = secrets.token_urlsafe(32)
-    _ONE_TIME_TOKENS[token] = {
-        "user_id": current_user.id,
-        "tenant_id": tenant_id,
-        "expires_at": datetime.utcnow() + _OTT_TTL,
-    }
-    return {"token": token, "expires_in": 30}
+    await _ott_set(token, current_user.id, tenant_id)
+    return {"token": token, "expires_in": _OTT_TTL_SECONDS}
 
 
 @router.post("/exchange-one-time-token")
@@ -401,11 +420,9 @@ async def exchange_one_time_token(
     body = await request.json()
     token = body.get("token", "")
 
-    data = _ONE_TIME_TOKENS.pop(token, None)
+    data = await _ott_pop(token)
     if not data:
         raise HTTPException(status_code=401, detail="Invalid or expired one-time token")
-    if data["expires_at"] < datetime.utcnow():
-        raise HTTPException(status_code=401, detail="One-time token has expired")
 
     user_id = data["user_id"]
     tenant_id = data["tenant_id"]

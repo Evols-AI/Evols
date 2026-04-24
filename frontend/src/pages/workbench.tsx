@@ -47,9 +47,16 @@ export default function Workbench() {
 
     async function mintToken() {
       try {
-        const res = await api.post('/oidc/one-time-token', {})
+        const res = await api.post('/api/v1/oidc/one-time-token', {})
         const { token } = res.data
-        setIframeSrc(`/workbench/app/?ott=${encodeURIComponent(token)}`)
+        // Exchange the OTT from the top-level frame (not inside the iframe) so the
+        // auth cookie is set on evols.ai before the iframe loads — eliminates the
+        // race condition where the iframe redirects before the cookie is persisted.
+        await fetch(`/workbench/app/api/auth/evols-ott?ott=${encodeURIComponent(token)}`, {
+          credentials: 'include',
+          redirect: 'follow',
+        })
+        setIframeSrc('/workbench/app/')
       } catch (e) {
         console.error('Failed to mint one-time token', e)
         setError('Could not load the Workbench. Please refresh the page.')
@@ -57,7 +64,8 @@ export default function Workbench() {
     }
 
     mintToken()
-  }, [router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Theme sync — tell the iframe whenever theme changes ───────────────────
   useEffect(() => {
