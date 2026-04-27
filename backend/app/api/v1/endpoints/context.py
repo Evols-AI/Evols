@@ -25,12 +25,13 @@ logger = logging.getLogger(__name__)
 async def _push_raw_to_lightrag(content: str, source_label: str) -> None:
     """Push raw content to LightRAG for graph extraction. Never raises — failures are logged only."""
     if not content or not content.strip():
+        logger.warning(f"LightRAG raw push skipped — empty content for {source_label}")
         return
     try:
         from app.services.lightrag_ingestion_service import _insert_texts
         await _insert_texts([content], [source_label])
     except Exception as e:
-        logger.warning(f"LightRAG raw push skipped ({source_label}): {e}")
+        logger.warning(f"LightRAG raw push failed ({source_label}): {e}")
 
 
 # ===================================
@@ -661,8 +662,16 @@ async def delete_context_source(
     if not source:
         raise HTTPException(status_code=404, detail="Context source not found")
 
+    source_id_for_lightrag = source.id
     await db.delete(source)
     await db.commit()
+
+    # Remove document from LightRAG so re-uploads don't get silently deduplicated
+    try:
+        from app.services.lightrag_ingestion_service import _delete_document
+        await _delete_document(f"context_source:{source_id_for_lightrag}")
+    except Exception:
+        pass  # LightRAG deletion is best-effort; don't fail the response
 
     return {"message": "Context source deleted successfully"}
 
@@ -692,6 +701,8 @@ async def delete_source_group(
     sources_result = await db.execute(sources_query)
     sources = sources_result.scalars().all()
 
+    source_ids_for_lightrag = [s.id for s in sources]
+
     # Delete all sources (cascade will delete entities)
     for source in sources:
         await db.delete(source)
@@ -699,6 +710,14 @@ async def delete_source_group(
     # Delete the group
     await db.delete(group)
     await db.commit()
+
+    # Remove documents from LightRAG (best-effort, don't fail on error)
+    try:
+        from app.services.lightrag_ingestion_service import _delete_document
+        for sid in source_ids_for_lightrag:
+            await _delete_document(f"context_source:{sid}")
+    except Exception:
+        pass
 
     return {"message": f"Source group and {len(sources)} sources deleted successfully"}
 

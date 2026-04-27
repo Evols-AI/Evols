@@ -69,7 +69,8 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
-    except JWTError:
+    except JWTError as e:
+        logger.warning(f"[JWT] decode failed: {type(e).__name__}: {e} | token_prefix={token[:20]!r}")
         return None
 
 

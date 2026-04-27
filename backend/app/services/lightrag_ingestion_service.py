@@ -60,15 +60,51 @@ def invalidate_lightrag_jwt() -> None:
     _jwt_cache.clear()
 
 
+async def _delete_document(file_source: str) -> bool:
+    """Delete a document from LightRAG by its file_source label. Returns True on success."""
+    url = _lightrag_url()
+    if not url:
+        return False
+    try:
+        headers = await lightrag_auth_headers()
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.delete(
+                f"{url}/documents",
+                params={"file_path": file_source},
+                headers=headers,
+            )
+            if resp.status_code == 401:
+                invalidate_lightrag_jwt()
+                resp = await client.delete(
+                    f"{url}/documents",
+                    params={"file_path": file_source},
+                    headers=await lightrag_auth_headers(),
+                )
+        if resp.status_code not in (200, 204, 404):
+            logger.warning(f"LightRAG delete {file_source}: {resp.status_code} {resp.text[:200]}")
+            return False
+        logger.info(f"LightRAG: deleted document {file_source}")
+        return True
+    except Exception as e:
+        logger.warning(f"LightRAG delete error ({file_source}): {e}")
+        return False
+
+
 async def _insert_texts(texts: list[str], file_sources: list[str]) -> bool:
     """POST a batch of texts to LightRAG /documents/texts. Returns True on success."""
     url = _lightrag_url()
     if not url:
         logger.warning("LightRAG URL not configured — skipping ingestion")
         return False
-    # Filter empty texts
-    pairs = [(t, s) for t, s in zip(texts, file_sources) if t and t.strip()]
+    # Append the file_source label as a hidden comment so identical content re-uploaded
+    # under a different source label produces a different content hash in LightRAG.
+    pairs = [
+        (f"{t}\n<!-- source:{s} -->", s)
+        for t, s in zip(texts, file_sources)
+        if t and t.strip()
+    ]
     if not pairs:
+        logger.warning("_insert_texts: all texts were empty after filtering")
         return True
     texts_clean, sources_clean = zip(*pairs)
     try:
@@ -79,13 +115,20 @@ async def _insert_texts(texts: list[str], file_sources: list[str]) -> bool:
                 json={"texts": list(texts_clean), "file_sources": list(sources_clean)},
                 headers=headers,
             )
+            if resp.status_code == 401:
+                invalidate_lightrag_jwt()
+                resp = await client.post(
+                    f"{url}/documents/texts",
+                    json={"texts": list(texts_clean), "file_sources": list(sources_clean)},
+                    headers=await lightrag_auth_headers(),
+                )
         if resp.status_code not in (200, 202):
-            logger.error(f"LightRAG insert failed: {resp.status_code} {resp.text[:200]}")
+            logger.error(f"LightRAG insert failed: {resp.status_code} {resp.text[:400]}")
             return False
         logger.info(f"LightRAG: inserted {len(texts_clean)} document(s)")
         return True
     except Exception as e:
-        logger.error(f"LightRAG insert error: {e}")
+        logger.error(f"LightRAG insert error: {e}", exc_info=True)
         return False
 
 
