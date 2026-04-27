@@ -111,7 +111,7 @@ export function TenantSwitcher() {
               onClick={() => switchTenant(tenant.tenant_id)}
               className={`flex items-center gap-3 w-full px-3 py-2 text-sm text-left transition-colors ${
                 tenant.tenant_id === currentUser?.tenant_id
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#A78BFA] dark:text-[#A78BFA]'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
               disabled={switching}

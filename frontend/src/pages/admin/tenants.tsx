@@ -49,7 +49,7 @@ export default function TenantsAdmin() {
   const loadTenants = async () => {
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/admin/tenants`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -70,7 +70,7 @@ export default function TenantsAdmin() {
   const handleCreateTenant = async (formData: any) => {
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/admin/tenants`, {
         method: 'POST',
         headers: {
@@ -99,7 +99,7 @@ export default function TenantsAdmin() {
 
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${tenantId}?force=true`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -131,7 +131,7 @@ export default function TenantsAdmin() {
           <p className="text-gray-700 dark:text-gray-300 mb-4">{error}</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+            className="w-full bg-[#8B5CF6] text-white py-2 px-4 rounded-lg hover:bg-[#7C3AED]"
           >
             Go to Dashboard
           </button>
@@ -162,7 +162,7 @@ export default function TenantsAdmin() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              className="flex items-center gap-2 bg-[#8B5CF6] text-white px-4 py-2 rounded-lg hover:bg-[#7C3AED]"
             >
               <Plus className="w-5 h-5" />
               Create Tenant
@@ -178,8 +178,8 @@ export default function TenantsAdmin() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-6 h-6 text-blue-500 dark:text-blue-300" />
+                    <div className="w-12 h-12 bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-[#A78BFA] dark:text-[#A78BFA]" />
                     </div>
                     <div>
                       <h3 className="text-gray-900 dark:text-white">{tenant.name}</h3>
@@ -250,7 +250,7 @@ export default function TenantsAdmin() {
               <p className="text-gray-600 dark:text-gray-400 mb-4">Create your first tenant to get started</p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+                className="bg-[#8B5CF6] text-white px-6 py-2 rounded-lg hover:bg-[#7C3AED]"
               >
                 Create Tenant
               </button>
@@ -386,7 +386,7 @@ function CreateTenantModal({ onClose, onCreate }: { onClose: () => void, onCreat
             </button>
             <button
               type="submit"
-              className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              className="flex-1 bg-[#8B5CF6] text-white px-4 py-2 rounded-lg hover:bg-[#7C3AED]"
             >
               Create Tenant
             </button>

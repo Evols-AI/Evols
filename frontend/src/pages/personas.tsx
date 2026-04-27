@@ -384,7 +384,7 @@ export default function Personas() {
       case 'active':
         return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
       case 'new':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+        return 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]'
       case 'inactive':
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
       default:
@@ -467,7 +467,7 @@ export default function Personas() {
                           Filter by Status
                         </div>
                         {[
-                          { value: 'new', label: 'New', color: 'text-blue-600 dark:text-blue-400' },
+                          { value: 'new', label: 'New', color: 'text-[#A78BFA] dark:text-[#A78BFA]' },
                           { value: 'active', label: 'Active', color: 'text-green-600 dark:text-green-400' },
                           { value: 'inactive', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
                         ].map((status) => (
@@ -478,7 +478,7 @@ export default function Personas() {
                           >
                             <div className="w-4 h-4 flex items-center justify-center border-2 border-gray-300 dark:border-gray-500 rounded">
                               {tagFilter.includes(status.value) && (
-                                <Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                <Check className="w-3 h-3 text-[#A78BFA] dark:text-[#A78BFA]" />
                               )}
                             </div>
                             <span className={`text-sm font-medium ${status.color}`}>
@@ -510,7 +510,7 @@ export default function Personas() {
 
               {/* Merge Selection Info */}
               {selectedForMerge.length >= 2 && (
-                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+                <div className="mb-4 p-4 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 rounded-lg flex items-center justify-between">
                   <div>
                     <p className="font-medium">{selectedForMerge.length} personas selected</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -550,7 +550,7 @@ export default function Personas() {
                             Filter by Status
                           </div>
                           {[
-                            { value: 'new', label: 'New', color: 'text-blue-600 dark:text-blue-400' },
+                            { value: 'new', label: 'New', color: 'text-[#A78BFA] dark:text-[#A78BFA]' },
                             { value: 'active', label: 'Active', color: 'text-green-600 dark:text-green-400' },
                             { value: 'inactive', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
                           ].map((status) => (
@@ -561,7 +561,7 @@ export default function Personas() {
                             >
                               <div className="w-4 h-4 flex items-center justify-center border-2 border-gray-300 dark:border-gray-500 rounded">
                                 {tagFilter.includes(status.value) && (
-                                  <Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                  <Check className="w-3 h-3 text-[#A78BFA] dark:text-[#A78BFA]" />
                                 )}
                               </div>
                               <span className={`text-sm font-medium ${status.color}`}>
@@ -609,12 +609,12 @@ export default function Personas() {
                             >
                               <span className="text-base">{option.icon}</span>
                               <span className={`text-sm font-medium ${
-                                sortBy === option.value ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
+                                sortBy === option.value ? 'text-[#A78BFA] dark:text-[#A78BFA]' : 'text-gray-900 dark:text-gray-100'
                               }`}>
                                 {option.label}
                               </span>
                               {sortBy === option.value && (
-                                <Check className="ml-auto w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <Check className="ml-auto w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
                               )}
                             </button>
                           ))}
@@ -726,7 +726,7 @@ function ActionCard({
   icon: React.ReactNode, title: string, description: string, onClick: () => void, color: string
 }) {
   const colorClasses: Record<string, string> = {
-    blue: 'from-blue-600 to-blue-700',
+    blue: 'from-[#8B5CF6] to-[#7C3AED]',
     purple: 'from-purple-600 to-purple-700',
     green: 'from-green-600 to-green-700',
   }
@@ -766,7 +766,7 @@ function PersonaCard({
 }) {
   const segmentColors: Record<string, string> = {
     Enterprise: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    'Mid-Market': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    'Mid-Market': 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]',
     SMB: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   }
 
@@ -779,7 +779,7 @@ function PersonaCard({
             type="checkbox"
             checked={isSelectedForMerge}
             onChange={() => onToggleMerge(persona.id)}
-            className="w-4 h-4 text-blue-500 rounded"
+            className="w-4 h-4 text-[#A78BFA] rounded"
           />
         </div>
       )}
@@ -800,7 +800,7 @@ function PersonaCard({
                     {persona.segment}
                   </span>
                   {persona.status === 'new' && (
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]">
                       New
                     </span>
                   )}
@@ -811,7 +811,7 @@ function PersonaCard({
 
           {/* Last Updated & Confidence */}
           <div className="text-right">
-            <div className="text-sm text-blue-600 dark:text-blue-400">
+            <div className="text-sm text-[#A78BFA] dark:text-[#A78BFA]">
               {Math.round((persona.confidence_score || 0) * 100)}%
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -1076,7 +1076,7 @@ function MergePersonasModal({ personaIds, personas, onClose, onMerge }: {
                 onClick={() => setPrimaryId(persona.id)}
                 className={`w-full text-left p-4 rounded-lg border-2 transition ${
                   primaryId === persona.id
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    ? 'border-[#A78BFA] bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10'
                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -1086,7 +1086,7 @@ function MergePersonasModal({ personaIds, personas, onClose, onMerge }: {
                     <p className="text-sm text-gray-600 dark:text-gray-400">{persona.segment}</p>
                   </div>
                   {primaryId === persona.id && (
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-600">
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#A78BFA]/10 text-[#A78BFA]">
                       Primary
                     </span>
                   )}

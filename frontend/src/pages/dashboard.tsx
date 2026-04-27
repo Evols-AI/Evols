@@ -58,7 +58,7 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
   }
   const cfg = typeConfig[signal.signal_type] || typeConfig.new_feedback
   const colorMap: Record<string, string> = {
-    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+    blue: 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#A78BFA] dark:text-[#A78BFA]',
     orange: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
     purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
     green: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400',
@@ -83,7 +83,7 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={onInvestigate}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#8B5CF6] dark:text-[#A78BFA] bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 hover:bg-[#A78BFA]/10 dark:hover:bg-[#A78BFA]/10 rounded-lg transition"
         >
           <Eye className="w-3.5 h-3.5" /> Investigate
         </button>
@@ -101,7 +101,7 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
 
 function DecisionStatusDot({ status }: { status: string }) {
   const cfg: Record<string, { color: string; label: string }> = {
-    active: { color: 'bg-blue-500 dark:bg-blue-400', label: 'Active' },
+    active: { color: 'bg-[#8B5CF6] dark:bg-[#A78BFA]', label: 'Active' },
     completed: { color: 'bg-green-500 dark:bg-green-400', label: 'Done' },
     on_track: { color: 'bg-green-500 dark:bg-green-400', label: 'On Track' },
     at_risk: { color: 'bg-yellow-500 dark:bg-yellow-400', label: 'At Risk' },
@@ -249,16 +249,16 @@ export default function Dashboard() {
             <Loading text="Loading your dashboard..." />
           ) : !hasData ? (
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-blue-50 to-violet-50 dark:from-blue-900/20 dark:to-violet-900/20 rounded-lg p-8 border border-blue-200 dark:border-blue-800">
+              <div className="bg-gradient-to-br bg-[#A78BFA]/5 rounded-lg p-8 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20">
                 <h2 className="card-header mb-2">🚀 Let's get started</h2>
                 <p className="text-body mb-6 max-w-xl">
                   Upload your first VoC or connect a data source and Evols will auto-cluster themes, build persona twins, and help you make your first evidence-backed decision.
                 </p>
                 <div className="grid sm:grid-cols-3 gap-4">
                   {[
-                    { href: '/context', icon: <Upload className="w-6 h-6 text-blue-600" />, title: 'Upload Context', desc: 'CSV from Intercom, Zendesk, or manual input' },
+                    { href: '/context', icon: <Upload className="w-6 h-6 text-[#A78BFA]" />, title: 'Upload Context', desc: 'CSV from Intercom, Zendesk, or manual input' },
                     { href: '/knowledge', icon: <BarChart3 className="w-6 h-6 text-purple-600" />, title: 'Knowledge Graph', desc: 'Explore your AI-extracted knowledge graph' },
-                    { href: '/workbench', icon: <FlaskConical className="w-6 h-6 text-blue-500" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
+                    { href: '/workbench', icon: <FlaskConical className="w-6 h-6 text-[#A78BFA]" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
                   ].map(item => (
                     <Link key={item.href} href={item.href}
                       className="card-hover p-5"
@@ -302,7 +302,7 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         {themes.map((theme: any) => (
                           <div key={theme.id} className="flex items-center gap-3 p-3 rounded-lg hover-lift">
-                            <div className="flex-shrink-0 w-1 h-10 rounded-full bg-blue-500 dark:bg-blue-400" />
+                            <div className="flex-shrink-0 w-1 h-10 rounded-full bg-[#8B5CF6] dark:bg-[#A78BFA]" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-heading line-clamp-1">{theme.title}</p>
                               <p className="text-xs text-body">{theme.feedback_count || 0} items</p>
@@ -379,8 +379,8 @@ export default function Dashboard() {
                       </Link>
 
                       <Link href="/workbench?skill=decision_workbench" className="flex items-center gap-3 p-2.5 rounded-lg hover-lift">
-                        <div className="p-2 rounded-lg flex-shrink-0 bg-blue-50 dark:bg-blue-900/20">
-                          <FlaskConical className="w-4 h-4 text-blue-500" />
+                        <div className="p-2 rounded-lg flex-shrink-0 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10">
+                          <FlaskConical className="w-4 h-4 text-[#A78BFA]" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-heading">New Decision</div>

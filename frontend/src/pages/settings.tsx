@@ -658,7 +658,7 @@ export default function Settings() {
                   <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Toggle between light and dark theme</p>
                 </div>
-                <button onClick={toggleTheme} className={`relative inline-flex h-6 w-11 items-center rounded-full ${theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                <button onClick={toggleTheme} className={`relative inline-flex h-6 w-11 items-center rounded-full ${theme === 'dark' ? 'bg-[#8B5CF6]' : 'bg-gray-300'}`}>
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
@@ -708,7 +708,7 @@ export default function Settings() {
                     <p className="font-medium text-gray-900 dark:text-white">Enable 2FA</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Add extra security layer to your account</p>
                   </div>
-                  <button onClick={() => setTwoFactorEnabled(!twoFactorEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full ${twoFactorEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                  <button onClick={() => setTwoFactorEnabled(!twoFactorEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full ${twoFactorEnabled ? 'bg-[#8B5CF6]' : 'bg-gray-300'}`}>
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
@@ -724,12 +724,12 @@ export default function Settings() {
                 {Object.entries({ email_notifications: 'Email Notifications', push_notifications: 'Push Notifications', feedback_alerts: 'Feedback Alerts', theme_updates: 'Theme Updates', decision_reminders: 'Decision Reminders', weekly_digest: 'Weekly Digest' }).map(([key, label]) => (
                   <div key={key} className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
                     <p className="text-gray-900 dark:text-white">{label}</p>
-                    <button onClick={() => setNotificationSettings({ ...notificationSettings, [key]: !notificationSettings[key as keyof typeof notificationSettings] })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings[key as keyof typeof notificationSettings] ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                    <button onClick={() => setNotificationSettings({ ...notificationSettings, [key]: !notificationSettings[key as keyof typeof notificationSettings] })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings[key as keyof typeof notificationSettings] ? 'bg-[#8B5CF6]' : 'bg-gray-300'}`}>
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${notificationSettings[key as keyof typeof notificationSettings] ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
                 ))}
-                <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors mt-4">Save Preferences</button>
+                <button className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors mt-4">Save Preferences</button>
               </div>
             </div>
           )}
@@ -755,7 +755,7 @@ export default function Settings() {
                   <select
                     value={llmProvider}
                     onChange={(e) => handleLLMProviderChange(e.target.value as LLMProvider)}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                   >
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
@@ -776,7 +776,7 @@ export default function Settings() {
                         type={showApiKey ? 'text' : 'password'}
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
@@ -812,7 +812,7 @@ export default function Settings() {
                         type={showApiKey ? 'text' : 'password'}
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
@@ -849,7 +849,7 @@ export default function Settings() {
                         placeholder="API Key"
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
@@ -866,7 +866,7 @@ export default function Settings() {
                       placeholder="https://your-resource.openai.azure.com"
                       value={llmConfig.endpoint}
                       onChange={(e) => setLLMConfig({ ...llmConfig, endpoint: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                     />
                   </div>
                   <div>
@@ -876,7 +876,7 @@ export default function Settings() {
                       placeholder="gpt-4"
                       value={llmConfig.deployment_name}
                       onChange={(e) => setLLMConfig({ ...llmConfig, deployment_name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                     />
                   </div>
                 </div>
@@ -895,7 +895,7 @@ export default function Settings() {
                           value="api_key"
                           checked={awsAuthMethod === 'api_key'}
                           onChange={(e) => handleAWSAuthMethodChange(e.target.value as AWSAuthMethod)}
-                          className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          className="w-4 h-4 text-[#A78BFA] focus:ring-[#A78BFA]/50"
                         />
                         <span className="text-sm text-gray-900 dark:text-gray-100">API Key</span>
                       </label>
@@ -906,7 +906,7 @@ export default function Settings() {
                           value="credentials"
                           checked={awsAuthMethod === 'credentials'}
                           onChange={(e) => handleAWSAuthMethodChange(e.target.value as AWSAuthMethod)}
-                          className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          className="w-4 h-4 text-[#A78BFA] focus:ring-[#A78BFA]/50"
                         />
                         <span className="text-sm text-gray-900 dark:text-gray-100">AWS Credentials (IAM)</span>
                       </label>
@@ -923,7 +923,7 @@ export default function Settings() {
                           placeholder="Enter your AWS Bedrock API key"
                           value={llmConfig.api_key}
                           onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                          className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                         />
                         <button
                           onClick={() => setShowApiKey(!showApiKey)}
@@ -945,7 +945,7 @@ export default function Settings() {
                           placeholder="AKIAIOSFODNN7EXAMPLE"
                           value={llmConfig.aws_access_key_id}
                           onChange={(e) => setLLMConfig({ ...llmConfig, aws_access_key_id: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                         />
                       </div>
                       <div>
@@ -956,7 +956,7 @@ export default function Settings() {
                             placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
                             value={llmConfig.aws_secret_access_key}
                             onChange={(e) => setLLMConfig({ ...llmConfig, aws_secret_access_key: e.target.value })}
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                           />
                           <button
                             onClick={() => setShowSecretKey(!showSecretKey)}
@@ -976,7 +976,7 @@ export default function Settings() {
                       <select
                         value={llmConfig.aws_region}
                         onChange={(e) => setLLMConfig({ ...llmConfig, aws_region: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       >
                         {modelOptions?.aws_regions.map((r) => <option key={r} value={r}>{r}</option>)}
                       </select>
@@ -1012,7 +1012,7 @@ export default function Settings() {
                         value={llmConfig.api_key || ''}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
                         placeholder="Enter your Google AI Studio API key"
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       />
                       <button
                         type="button"
@@ -1023,7 +1023,7 @@ export default function Settings() {
                       </button>
                     </div>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google AI Studio</a>
+                      Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-[#A78BFA] hover:underline">Google AI Studio</a>
                     </p>
                   </div>
 
@@ -1056,7 +1056,7 @@ export default function Settings() {
                         step="0.1"
                         value={llmConfig.temperature || 0.7}
                         onChange={(e) => setLLMConfig({ ...llmConfig, temperature: parseFloat(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       />
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">0.0 = deterministic, 1.0 = creative</p>
                     </div>
@@ -1072,7 +1072,7 @@ export default function Settings() {
                         step="0.05"
                         value={llmConfig.top_p || 0.95}
                         onChange={(e) => setLLMConfig({ ...llmConfig, top_p: parseFloat(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       />
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Nucleus sampling parameter</p>
                     </div>
@@ -1088,7 +1088,7 @@ export default function Settings() {
                         step="1"
                         value={llmConfig.top_k || 40}
                         onChange={(e) => setLLMConfig({ ...llmConfig, top_k: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       />
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Top-k sampling parameter</p>
                     </div>
@@ -1123,7 +1123,7 @@ export default function Settings() {
                 <button
                   onClick={handleSaveLLMSettings}
                   disabled={saving || !isConfigValid()}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] disabled:bg-[#A78BFA]/40 dark:disabled:bg-[#7C3AED]/40 disabled:cursor-not-allowed transition-colors"
                 >
                   {saving ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -1137,8 +1137,8 @@ export default function Settings() {
                 )}
               </div>
 
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-300"><strong>ℹ️ About Authentication Methods:</strong> AWS Bedrock supports two authentication methods: (1) <strong>API Key</strong> - simpler authentication with a single key, or (2) <strong>AWS Credentials (IAM)</strong> - traditional AWS authentication using Access Key ID + Secret Access Key. Other providers (OpenAI, Anthropic, Azure, Google Gemini) use single API keys specific to their platforms.</p>
+              <div className="mt-6 p-4 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg">
+                <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]"><strong>ℹ️ About Authentication Methods:</strong> AWS Bedrock supports two authentication methods: (1) <strong>API Key</strong> - simpler authentication with a single key, or (2) <strong>AWS Credentials (IAM)</strong> - traditional AWS authentication using Access Key ID + Secret Access Key. Other providers (OpenAI, Anthropic, Azure, Google Gemini) use single API keys specific to their platforms.</p>
               </div>
             </div>
           )}
@@ -1155,7 +1155,7 @@ export default function Settings() {
               {/* Unified Context Refresh Settings */}
               <div className="mt-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg">
                     <div>
                       <h4 className="font-medium text-gray-900 dark:text-white">Enable Auto-Refresh</h4>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -1169,7 +1169,7 @@ export default function Settings() {
                         onChange={(e) => setPersonaRefreshEnabled(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A78BFA]/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#8B5CF6]"></div>
                     </label>
                   </div>
 
@@ -1184,7 +1184,7 @@ export default function Settings() {
                         max="365"
                         value={personaRefreshDays}
                         onChange={(e) => setPersonaRefreshDays(Number(e.target.value))}
-                        className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                         Context intelligence will be refreshed every {personaRefreshDays} day(s)
@@ -1195,7 +1195,7 @@ export default function Settings() {
                   <button
                     onClick={handleSavePersonaRefreshSettings}
                     disabled={savingPersonaRefresh}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] disabled:bg-[#A78BFA]/40 dark:disabled:bg-[#7C3AED]/40 disabled:cursor-not-allowed transition-colors"
                   >
                     {savingPersonaRefresh ? 'Saving...' : 'Save Refresh Settings'}
                   </button>
@@ -1223,7 +1223,7 @@ export default function Settings() {
                 </div>
                 <button
                   onClick={() => setShowCreateKeyModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap flex-shrink-0 ml-4"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition-colors whitespace-nowrap flex-shrink-0 ml-4"
                 >
                   <Plus className="w-4 h-4" />
                   New Key
@@ -1276,7 +1276,7 @@ export default function Settings() {
                   <p className="text-gray-600 dark:text-gray-400 mb-4">No API keys yet.</p>
                   <button
                     onClick={() => setShowCreateKeyModal(true)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED]"
                   >
                     Create First Key
                   </button>
@@ -1332,7 +1332,7 @@ export default function Settings() {
                     onClick={() => setTeamSubtab('members')}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       teamSubtab === 'members'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
                         : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                   >
@@ -1345,7 +1345,7 @@ export default function Settings() {
                     onClick={() => setTeamSubtab('invites')}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       teamSubtab === 'invites'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
                         : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                   >
@@ -1367,7 +1367,7 @@ export default function Settings() {
                     </div>
                     <button
                       onClick={() => setShowInviteModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                       Invite Member
@@ -1384,7 +1384,7 @@ export default function Settings() {
                       <p className="text-gray-600 dark:text-gray-400 mb-4">No team members yet</p>
                       <button
                         onClick={() => setShowInviteModal(true)}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED]"
                       >
                         Invite First Member
                       </button>
@@ -1460,7 +1460,7 @@ export default function Settings() {
                     </div>
                     <button
                       onClick={() => setShowInviteModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                       Send Invitation
@@ -1477,7 +1477,7 @@ export default function Settings() {
                       <p className="text-gray-600 dark:text-gray-400 mb-4">No pending invitations</p>
                       <button
                         onClick={() => setShowInviteModal(true)}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED]"
                       >
                         Send First Invitation
                       </button>
@@ -1564,7 +1564,7 @@ export default function Settings() {
                                 {!invite.is_accepted && !expired && (
                                   <button
                                     onClick={() => handleResendInvite(invite.id)}
-                                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                    className="p-2 text-[#A78BFA] dark:text-[#A78BFA] hover:bg-[#A78BFA]/5 dark:hover:bg-[#A78BFA]/10 rounded transition-colors"
                                     title="Resend invitation"
                                   >
                                     <Send className="w-4 h-4" />
@@ -1700,7 +1700,7 @@ function CreateApiKeyModal({ onClose, onSuccess }: { onClose: () => void; onSucc
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={saving || !name.trim()} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <button type="submit" disabled={saving || !name.trim()} className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               {saving ? 'Creating...' : 'Create Key'}
             </button>
           </div>
@@ -1806,7 +1806,7 @@ function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
             <button
               type="submit"
               disabled={sending}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? 'Sending...' : 'Send Invitation'}
             </button>

@@ -15,7 +15,7 @@ export default function PersonasDocumentation() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center">
-                <span className="text-2xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="text-2xl text-[#A78BFA]">
                   Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
                 </span>
                 <span className="text-lg font-medium text-gray-600 dark:text-gray-400 ml-2">Docs</span>
@@ -95,9 +95,9 @@ export default function PersonasDocumentation() {
           {/* Persona Lifecycle */}
           <Section title="Persona Lifecycle">
             <div className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 className="text-blue-900 dark:text-blue-100 mb-2">🆕 New</h4>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
+              <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-4">
+                <h4 className="text-[#4C1D95] dark:text-[#A78BFA] mb-2">🆕 New</h4>
+                <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
                   Newly generated personas start with "New" status. These are available for review but not
                   used in voting or decision-making yet.
                 </p>
@@ -171,14 +171,14 @@ export default function PersonasDocumentation() {
 
           {/* Usage Frequency */}
           <Section title="Usage Frequency">
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
+            <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-6 mb-6">
               <div className="flex items-start space-x-3">
-                <TrendingUp className="w-6 h-6 text-blue-500 dark:text-blue-300 mt-1" />
+                <TrendingUp className="w-6 h-6 text-[#A78BFA] dark:text-[#A78BFA] mt-1" />
                 <div>
-                  <h3 className="text-lg text-blue-900 dark:text-blue-100 mb-2">
+                  <h3 className="text-lg text-[#4C1D95] dark:text-[#A78BFA] mb-2">
                     Product Usage Pattern
                   </h3>
-                  <p className="text-blue-800 dark:text-blue-200">
+                  <p className="text-[#6D28D9] dark:text-[#A78BFA]">
                     Extracted from usage frequency data in feedback extra_data fields.
                   </p>
                 </div>
@@ -292,7 +292,7 @@ export default function PersonasDocumentation() {
 
           {/* Back Link */}
           <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <Link href="/docs" className="inline-flex items-center space-x-2 text-blue-500 dark:text-blue-300 hover:text-blue-600">
+            <Link href="/docs" className="inline-flex items-center space-x-2 text-[#A78BFA] dark:text-[#A78BFA] hover:text-[#A78BFA]">
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Documentation</span>
             </Link>

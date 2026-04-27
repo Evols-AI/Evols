@@ -85,7 +85,7 @@ export default function WeeklyFocusModal({ isOpen, onClose, onSuccess, weeklyFoc
               onChange={(e) => setFormData({ ...formData, focus_1: e.target.value })}
               rows={2}
               placeholder="First priority for this week"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -99,7 +99,7 @@ export default function WeeklyFocusModal({ isOpen, onClose, onSuccess, weeklyFoc
               onChange={(e) => setFormData({ ...formData, focus_2: e.target.value })}
               rows={2}
               placeholder="Second priority for this week"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -113,7 +113,7 @@ export default function WeeklyFocusModal({ isOpen, onClose, onSuccess, weeklyFoc
               onChange={(e) => setFormData({ ...formData, focus_3: e.target.value })}
               rows={2}
               placeholder="Third priority for this week"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -127,12 +127,12 @@ export default function WeeklyFocusModal({ isOpen, onClose, onSuccess, weeklyFoc
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               placeholder="Additional context or reflections"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+          <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-4">
+            <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
               <strong>Tip:</strong> Keep these focused and achievable. Three meaningful things are better than a long list of tasks.
             </p>
           </div>
@@ -149,7 +149,7 @@ export default function WeeklyFocusModal({ isOpen, onClose, onSuccess, weeklyFoc
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 flex items-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               Save

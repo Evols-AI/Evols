@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import {
   Sparkles, MessageSquare, ArrowRight, Zap, Save, RotateCcw,
-  Eye, Edit3, Check, X
+  Eye, Edit3
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
@@ -292,20 +292,20 @@ export default function Skills() {
                       {/* Icon & Name */}
                       <div className="flex items-center gap-3 mb-3">
                         <div className="text-3xl flex-shrink-0">⚡</div>
-                        <h3 className="text-lg text-gray-900 dark:text-white leading-tight">
+                        <h3 className="text-lg text-foreground leading-tight">
                           {skill.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                         </h3>
                       </div>
 
                       {/* Description */}
-                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                      <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                         {skill.description}
                       </p>
 
                       {/* Category & Status Badges */}
                       <div className="flex items-center justify-between mb-4">
                         {skill.category && (
-                          <span className="inline-block px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 capitalize">
+                          <span className="inline-block px-2 py-1 text-xs rounded bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA] capitalize">
                             {skill.category.replace(/-/g, ' ')}
                           </span>
                         )}
@@ -325,19 +325,9 @@ export default function Skills() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            openInWorkbench(skill.name)
-                          }}
-                          className="btn-primary flex-1 justify-center"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                          Chat
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
                             openCustomizationEditor(skill.name)
                           }}
-                          className="btn-secondary justify-center"
+                          className="btn-secondary flex-1 justify-center"
                         >
                           <Edit3 className="w-4 h-4" />
                           Customize
@@ -352,14 +342,14 @@ export default function Skills() {
         )}
 
         {/* Quick Info */}
-        <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="mt-8 p-6 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg">
           <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <Sparkles className="w-5 h-5 text-[#A78BFA] dark:text-[#A78BFA] flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-gray-900 dark:text-white mb-1">
+              <h4 className="text-foreground mb-1">
                 How Skills Work
               </h4>
-              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Browse and select skills from this directory</li>
                 <li>• Click "Open in Workbench" to start using a skill in your AI workspace</li>
                 <li>• Each skill guides you with relevant questions and generates tailored recommendations</li>
@@ -376,17 +366,17 @@ export default function Skills() {
       {/* Skill Details Modal */}
       {viewingSkill && !loadingSkillDetails && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setViewingSkill(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-lg max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="text-3xl">{viewingSkill.icon || '⚡'}</div>
                   <div>
-                    <h2 className="text-2xl text-gray-900 dark:text-white mb-1">
+                    <h2 className="text-2xl text-foreground mb-1">
                       {viewingSkill.name.split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                     </h2>
                     {viewingSkill.category && (
-                      <span className="inline-block px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 capitalize">
+                      <span className="inline-block px-2 py-1 text-xs rounded bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA] capitalize">
                         {viewingSkill.category.replace(/-/g, ' ')}
                       </span>
                     )}
@@ -394,7 +384,7 @@ export default function Skills() {
                 </div>
                 <button
                   onClick={() => setViewingSkill(null)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none"
+                  className="text-muted-foreground hover:text-foreground text-2xl leading-none"
                 >
                   ✕
                 </button>
@@ -402,16 +392,16 @@ export default function Skills() {
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-gray-900 dark:text-white mb-2">Description</h3>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <h3 className="text-foreground mb-2">Description</h3>
+                  <p className="text-muted-foreground">
                     {viewingSkill.description}
                   </p>
                 </div>
 
                 {viewingSkill.instructions && (
                   <div>
-                    <h3 className="text-gray-900 dark:text-white mb-2">Instructions</h3>
-                    <pre className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
+                    <h3 className="text-foreground mb-2">Instructions</h3>
+                    <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/40 p-4 rounded-lg overflow-x-auto">
                       {viewingSkill.instructions}
                     </pre>
                   </div>
@@ -419,10 +409,10 @@ export default function Skills() {
 
                 {viewingSkill.tools && viewingSkill.tools.length > 0 && (
                   <div>
-                    <h3 className="text-gray-900 dark:text-white mb-2">Available Tools</h3>
+                    <h3 className="text-foreground mb-2">Available Tools</h3>
                     <div className="flex flex-wrap gap-2">
                       {viewingSkill.tools.map((tool: string, i: number) => (
-                        <span key={i} className="px-2 py-1 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                        <span key={i} className="px-2 py-1 text-xs rounded bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]">
                           {tool}
                         </span>
                       ))}
@@ -430,7 +420,7 @@ export default function Skills() {
                   </div>
                 )}
 
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-4 border-t border-border">
                   <button
                     onClick={() => {
                       setViewingSkill(null)
@@ -452,9 +442,9 @@ export default function Skills() {
       {/* Loading Modal */}
       {loadingSkillDetails && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-8">
+          <div className="bg-card rounded-lg p-8">
             <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-center text-gray-600 dark:text-gray-400">Loading skill details...</p>
+            <p className="text-center text-muted-foreground">Loading skill details...</p>
           </div>
         </div>
       )}
@@ -462,12 +452,12 @@ export default function Skills() {
       {/* Customization Editor Modal */}
       {editingSkill && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setEditingSkill(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center gap-3">
-                <Edit3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <h2 className="text-xl text-gray-900 dark:text-white">
+                <Edit3 className="w-6 h-6 text-[#A78BFA] dark:text-[#A78BFA]" />
+                <h2 className="text-xl text-foreground">
                   Customize: {editingSkill.split(' ').map(word =>
                     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
                   ).join(' ')}
@@ -475,7 +465,7 @@ export default function Skills() {
               </div>
               <button
                 onClick={() => setEditingSkill(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none"
+                className="text-muted-foreground hover:text-foreground text-2xl leading-none"
               >
                 ✕
               </button>
@@ -488,10 +478,10 @@ export default function Skills() {
                 <div className="p-6 space-y-6">
                   {/* Custom Context */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Custom Context
                     </label>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-xs text-muted-foreground mb-2">
                       Tell the AI about your specific situation, company, or domain (e.g., "Our company is in fintech, focus on security and compliance")
                     </p>
                     <textarea
@@ -499,16 +489,16 @@ export default function Skills() {
                       onChange={(e) => setFormData(prev => ({ ...prev, custom_context: e.target.value }))}
                       placeholder="Add context about your company, role, or specific situation..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                     />
                   </div>
 
                   {/* Custom Instructions */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Custom Instructions
                     </label>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-xs text-muted-foreground mb-2">
                       Modify how the skill should behave or what it should focus on
                     </p>
                     <textarea
@@ -516,16 +506,16 @@ export default function Skills() {
                       onChange={(e) => setFormData(prev => ({ ...prev, custom_instructions: e.target.value }))}
                       placeholder="Add specific instructions for how this skill should work..."
                       rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                     />
                   </div>
 
                   {/* Output Format Preferences */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Output Format Preferences
                     </label>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-xs text-muted-foreground mb-2">
                       Specify how you want the results formatted (e.g., "Use bullet points", "Include executive summary first")
                     </p>
                     <textarea
@@ -533,7 +523,7 @@ export default function Skills() {
                       onChange={(e) => setFormData(prev => ({ ...prev, output_format_preferences: e.target.value }))}
                       placeholder="Specify your preferred output format..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
                     />
                   </div>
                 </div>
@@ -542,8 +532,8 @@ export default function Skills() {
                 <div className="p-6">
                   {previewData && (
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Preview: Merged Instructions</h3>
-                      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <h3 className="text-lg font-medium text-foreground mb-3">Preview: Merged Instructions</h3>
+                      <div className="bg-muted/40 rounded-lg p-4 border border-border">
                         <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap overflow-x-auto">
                           {sanitizePreviewContent(previewData.merged_instructions)}
                         </pre>
@@ -555,7 +545,7 @@ export default function Skills() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-6 border-t border-border">
               <div className="flex gap-2">
                 {showPreview ? (
                   <button

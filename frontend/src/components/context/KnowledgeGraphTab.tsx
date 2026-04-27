@@ -6,6 +6,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { apiClient } from '@/services/api'
+import { Loading } from '@/components/PageContainer'
 import { Loader2, Search, RefreshCw, AlertCircle, Network, Upload } from 'lucide-react'
 
 // ── Entity type colours (includes new PM types) ───────────────────────────────
@@ -271,7 +272,7 @@ function NodeDetail({ node, onClose }: { node: Node | null; onClose: () => void 
             }`}>{attrs.urgency} urgency</span>
           )}
           {attrs.business_impact && attrs.business_impact !== 'null' && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium" title={attrs.business_impact}>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA] font-medium" title={attrs.business_impact}>
               impact: {String(attrs.business_impact).slice(0, 30)}{String(attrs.business_impact).length > 30 ? '…' : ''}
             </span>
           )}
@@ -399,13 +400,13 @@ function QueryPanel() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && runQuery()}
             placeholder="Ask the knowledge graph anything…"
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
           />
         </div>
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value as any)}
-          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-2 focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
         >
           <option value="hybrid">Hybrid</option>
           <option value="local">Local</option>
@@ -414,7 +415,7 @@ function QueryPanel() {
         <button
           onClick={runQuery}
           disabled={loading || !query.trim()}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 bg-[#7C3AED] text-white text-sm rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 flex items-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ask'}
         </button>
@@ -475,8 +476,10 @@ export default function KnowledgeGraphTab() {
         params: { label: '*', max_depth: 3 },
         validateStatus: () => true,
       })
-      if (res.status === 401 || res.status === 403) {
-        setError('Authentication error — please refresh the page and log in again.')
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`
         return
       }
       if (res.status !== 200) {
@@ -529,12 +532,7 @@ export default function KnowledgeGraphTab() {
   useEffect(() => { loadGraph() }, [loadGraph])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96 text-gray-500 dark:text-gray-400">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        Loading knowledge graph…
-      </div>
-    )
+    return <Loading text="Loading knowledge graph…" />
   }
 
   if (error) {
@@ -542,7 +540,7 @@ export default function KnowledgeGraphTab() {
       <div className="flex flex-col items-center justify-center h-96 gap-3 text-gray-500 dark:text-gray-400">
         <AlertCircle className="w-8 h-8 text-red-400" />
         <p className="text-sm">{error}</p>
-        <button onClick={loadGraph} className="text-sm text-blue-600 hover:underline">Retry</button>
+        <button onClick={loadGraph} className="text-sm text-[#A78BFA] hover:underline">Retry</button>
       </div>
     )
   }
@@ -558,7 +556,7 @@ export default function KnowledgeGraphTab() {
         <button
           onClick={syncAll}
           disabled={syncing}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] text-white text-sm rounded-lg hover:bg-[#7C3AED] disabled:opacity-50"
         >
           {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
           {syncing ? 'Syncing…' : 'Sync All Data to Graph'}
@@ -583,7 +581,7 @@ export default function KnowledgeGraphTab() {
           <button
             onClick={syncAll}
             disabled={syncing}
-            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 disabled:opacity-50 transition"
+            className="flex items-center gap-1.5 text-xs text-[#A78BFA] hover:text-[#8B5CF6] dark:text-[#A78BFA] disabled:opacity-50 transition"
             title="Push all context sources, entities, personas, and work context into the graph"
           >
             {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}

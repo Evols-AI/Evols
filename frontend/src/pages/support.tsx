@@ -1,311 +1,216 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Send, User, Mail, MessageSquare, AlertCircle, CheckCircle, Moon, Sun, ChevronDown, Check } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
+import { LogoWordmark } from '@/components/Logo'
 
 export default function Support() {
-    const { theme, toggleTheme } = useTheme()
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        topic: 'general',
-        message: ''
-    })
-    const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
-    const [showTopicDropdown, setShowTopicDropdown] = useState(false)
+  const { theme, toggleTheme } = useTheme()
+  const dark = theme === 'dark'
+  const [formData, setFormData] = useState({ name: '', email: '', topic: 'general', message: '' })
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+  const [showTopicDropdown, setShowTopicDropdown] = useState(false)
 
-    const topicOptions = [
-        { value: 'general', label: 'General Inquiry' },
-        { value: 'technical', label: 'Technical Support' },
-        { value: 'billing', label: 'Billing issue' },
-        { value: 'feedback', label: 'Product Feedback' }
-    ]
+  useEffect(() => {
+    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.backgroundImage = 'none'
+  }, [dark])
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }))
+  const topicOptions = [
+    { value: 'general', label: 'General Inquiry' },
+    { value: 'technical', label: 'Technical Support' },
+    { value: 'billing', label: 'Billing issue' },
+    { value: 'feedback', label: 'Product Feedback' }
+  ]
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setStatus('submitting')
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${apiUrl}/api/v1/support/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      if (!response.ok) throw new Error('Failed to submit support ticket')
+      setStatus('success')
+      setFormData({ name: '', email: '', topic: 'general', message: '' })
+    } catch (error) {
+      setStatus('error')
     }
+  }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setStatus('submitting')
+  const textPrimary = dark ? 'text-[#FAFAFA]' : 'text-[#0A0A0B]'
+  const textMuted = dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'
+  const iconClass = `h-5 w-5 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`
+  const inputClass = `block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none ${dark ? 'border-white/[0.08] bg-white/[0.04] text-[#FAFAFA] placeholder-[#71717A] focus:border-[#A78BFA]/50 focus:ring-1 focus:ring-[#A78BFA]/30' : 'border-black/[0.1] bg-white text-[#0A0A0B] placeholder-[#A1A1AA] focus:border-[#A78BFA]/50 focus:ring-1 focus:ring-[#A78BFA]/30'}`
+  const labelClass = `block text-sm font-medium mb-2 ${dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'}`
 
-        try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-            const response = await fetch(`${apiUrl}/api/v1/support/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            })
+  return (
+    <>
+      <Head>
+        <title>Contact Support | Evols</title>
+        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
+      </Head>
 
-            if (!response.ok) {
-                throw new Error('Failed to submit support ticket')
-            }
-
-            setStatus('success')
-            setFormData({ name: '', email: '', topic: 'general', message: '' })
-        } catch (error) {
-            console.error('Error submitting support ticket:', error)
-            setStatus('error')
-        }
-    }
-
-    return (
-        <>
-            <Head>
-                <title>Contact Support | Evols</title>
-            </Head>
-
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex flex-col">
-                {/* Header */}
-                <header className="container mx-auto px-6 py-8">
-                    <nav className="flex items-center justify-between">
-                        <Link href="/" className="flex items-center">
-                            <span className="logo-text text-4xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                                Evols
-                            </span>
-                        </Link>
-                        <div className="flex items-center space-x-6">
-                            <a href="https://github.com/akshay-saraswat/evols"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hidden md:flex items-center space-x-2 px-6 py-2 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 transform hover:scale-105 active:scale-95"
-                                aria-label="View on GitHub"
-                            >
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                                </svg>
-                                <span className="font-medium">GitHub</span>
-                            </a>
-                            <button onClick={toggleTheme}
-                                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition transform hover:scale-110 active:scale-90 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
-                                aria-label="Toggle theme"
-                            >
-                                {theme === 'light' ? (
-                                    <Moon className="w-5 h-5 text-gray-600" />
-                                ) : (
-                                    <Sun className="w-5 h-5 text-gray-300" />
-                                )}
-                            </button>
-                            <Link href="/login" className="hidden md:block text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white font-medium">
-                                Login
-                            </Link>
-                            <Link href="/register"
-                                className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce"
-                            >
-                                Get Started
-                            </Link>
-                        </div>
-                    </nav>
-                </header>
-
-                <main className="flex-grow container mx-auto px-6 py-12 flex items-center justify-center">
-                    <div className="w-full max-w-6xl">
-                        <div className="grid lg:grid-cols-2 gap-12 items-center">
-                            {/* Left - Illustration */}
-                            <div className="hidden lg:flex flex-col justify-center h-full">
-                                <img
-                                    src="/Collab-rafiki.svg"
-                                    alt="Collaboration illustration"
-                                    className="w-full max-w-md mx-auto mb-10 drop-shadow-lg"
-                                />
-
-                                <div className="text-center px-8">
-                                    <h2 className="text-3xl text-gray-900 dark:text-white mb-4">
-                                        We're here to help!
-                                    </h2>
-                                    <p className="text-gray-600 dark:text-gray-300">
-                                        Whether you have a question about features, pricing, or need technical support, our team is ready to answer all your questions.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Right - Form */}
-                            <div className="bg-white dark:bg-gray-800 py-10 px-6 shadow-xl rounded-2xl sm:px-10 border border-gray-100 dark:border-gray-700">
-                                <h2 className="text-2xl text-gray-900 dark:text-white mb-6 text-center">Contact Us</h2>
-
-                                {status === 'success' ? (
-                                    <div className="rounded-xl bg-green-50 dark:bg-green-900/30 p-8 text-center flex flex-col items-center">
-                                        <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-                                        <h3 className="text-xl text-green-800 dark:text-green-300 mb-2">Message Sent!</h3>
-                                        <p className="text-green-700 dark:text-green-400 mb-6">
-                                            Thanks for reaching out. Our support team will get back to you within 24 hours.
-                                        </p>
-                                        <button
-                                            onClick={() => setStatus('idle')}
-                                            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition"
-                                        >
-                                            Send Another Message
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <form className="space-y-6" onSubmit={handleSubmit}>
-                                        {status === 'error' && (
-                                            <div className="rounded-md bg-red-50 dark:bg-red-900/30 p-4 border border-red-200 dark:border-red-800">
-                                                <div className="flex">
-                                                    <AlertCircle className="h-5 w-5 text-red-500" />
-                                                    <div className="ml-3">
-                                                        <h3 className="text-sm font-medium text-red-800 dark:text-red-300">
-                                                            Failed to send message. Please try again later.
-                                                        </h3>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div>
-                                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Full Name
-                                            </label>
-                                            <div className="mt-1 relative rounded-md shadow-sm">
-                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                    <User className="h-5 w-5 text-gray-400" />
-                                                </div>
-                                                <input
-                                                    id="name"
-                                                    name="name"
-                                                    type="text"
-                                                    required
-                                                    value={formData.name}
-                                                    onChange={handleChange}
-                                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
-                                                    placeholder="John Doe"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Email address
-                                            </label>
-                                            <div className="mt-1 relative rounded-md shadow-sm">
-                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                    <Mail className="h-5 w-5 text-gray-400" />
-                                                </div>
-                                                <input
-                                                    id="email"
-                                                    name="email"
-                                                    type="email"
-                                                    autoComplete="email"
-                                                    required
-                                                    value={formData.email}
-                                                    onChange={handleChange}
-                                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
-                                                    placeholder="you@company.com"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label htmlFor="topic" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                What can we help you with?
-                                            </label>
-                                            <div className="mt-1 relative">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowTopicDropdown(!showTopicDropdown)}
-                                                    className="w-full flex items-center justify-between px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-white dark:hover:bg-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
-                                                >
-                                                    <span className="block truncate text-sm">
-                                                        {topicOptions.find(opt => opt.value === formData.topic)?.label}
-                                                    </span>
-                                                    <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                                </button>
-
-                                                {showTopicDropdown && (
-                                                    <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg overflow-hidden">
-                                                        <div className="p-2 space-y-1">
-                                                            {topicOptions.map((option) => (
-                                                                <button
-                                                                    key={option.value}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setFormData({ ...formData, topic: option.value });
-                                                                        setShowTopicDropdown(false);
-                                                                    }}
-                                                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded transition-colors ${formData.topic === option.value
-                                                                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                                                                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600'
-                                                                        }`}
-                                                                >
-                                                                    {option.label}
-                                                                    {formData.topic === option.value && (
-                                                                        <Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                                                    )}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Message
-                                            </label>
-                                            <div className="mt-1 relative rounded-md shadow-sm">
-                                                <div className="absolute top-3 left-3 pointer-events-none">
-                                                    <MessageSquare className="h-5 w-5 text-gray-400" />
-                                                </div>
-                                                <textarea
-                                                    id="message"
-                                                    name="message"
-                                                    rows={4}
-                                                    required
-                                                    value={formData.message}
-                                                    onChange={handleChange}
-                                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
-                                                    placeholder="How can we help?"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <button
-                                                type="submit"
-                                                disabled={status === 'submitting'}
-                                                className="w-full flex justify-center items-center py-4 px-6 border border-transparent shadow-lg text-lg text-white bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transform transition-all duration-500 ease-in-out hover:scale-105 hover:brightness-110 hover:animate-pulse active:scale-95"
-                                            >
-                                                {status === 'submitting' ? (
-                                                    <>
-                                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        Sending...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Send className="w-5 h-5 mr-2" />
-                                                        Send Message
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                    </form>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </main>
-
-                {/* Footer */}
-                <footer className="container mx-auto px-6 py-12 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center space-x-6">
-                        <Link href="/docs" className="hover:text-blue-500 transition">Documentation</Link>
-                        <Link href="/support" className="hover:text-blue-500 transition">Contact Support</Link>
-                        <Link href="/register" className="hover:text-blue-500 transition">Sign Up</Link>
-                    </div>
-                    <p>© 2026 Evols. Evolve your product roadmap.</p>
-                </footer>
+      <div className={`min-h-screen flex flex-col transition-colors ${dark ? 'bg-[#0A0A0B]' : 'bg-[#F7F7F8]'}`}>
+        <nav className={`fixed top-0 left-0 right-0 z-50 border-b ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} backdrop-blur-xl ${dark ? 'bg-[#0A0A0B]/80' : 'bg-white/80'} transition-colors duration-300`}>
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <Link href="/">
+              <LogoWordmark iconSize={36} />
+            </Link>
+            <div className="flex items-center space-x-4">
+              <button onClick={toggleTheme} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5" aria-label="Toggle theme">
+                {theme === 'light' ? <Moon className="w-5 h-5 text-[#52525B]" /> : <Sun className="w-5 h-5 text-[#A1A1AA]" />}
+              </button>
+              <Link href="/login" className={`hidden md:block text-sm transition-colors ${textMuted} hover:text-[#A78BFA]`}>Login</Link>
+              <Link href="/register" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-2 px-5 rounded-lg text-sm font-medium transition-colors">
+                Get Early Access
+              </Link>
             </div>
-        </>
-    )
+          </div>
+        </nav>
+        <div className="h-16" />
+
+        <main className="flex-grow container mx-auto px-6 py-12 flex items-center justify-center">
+          <div className="w-full max-w-6xl">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left */}
+              <div className="hidden lg:flex flex-col justify-center h-full">
+                <img src="/Collab-rafiki.svg" alt="Collaboration illustration" className="w-full max-w-md mx-auto mb-10 drop-shadow-lg" />
+                <div className="text-center px-8">
+                  <h2 className={`text-3xl font-medium mb-4 ${textPrimary}`}>We're here to help!</h2>
+                  <p className={textMuted}>
+                    Whether you have a question about features, pricing, or need technical support, our team is ready to answer all your questions.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right - Form */}
+              <div className={`py-10 px-8 rounded-2xl border ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
+                <h2 className={`text-2xl font-medium mb-6 text-center ${textPrimary}`}>Contact Us</h2>
+
+                {status === 'success' ? (
+                  <div className="rounded-xl bg-emerald-500/10 p-8 text-center flex flex-col items-center">
+                    <CheckCircle className="h-14 w-14 text-emerald-500 mb-4" />
+                    <h3 className={`text-xl font-medium mb-2 ${textPrimary}`}>Message Sent!</h3>
+                    <p className={`mb-6 ${textMuted}`}>Thanks for reaching out. Our support team will get back to you within 24 hours.</p>
+                    <button onClick={() => setStatus('idle')} className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-6 py-2 rounded-lg font-medium text-sm transition-colors">
+                      Send Another Message
+                    </button>
+                  </div>
+                ) : (
+                  <form className="space-y-5" onSubmit={handleSubmit}>
+                    {status === 'error' && (
+                      <div className={`rounded-lg p-4 border flex items-start gap-3 ${dark ? 'bg-red-900/10 border-red-500/20' : 'bg-red-50 border-red-200'}`}>
+                        <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-500">Failed to send message. Please try again later.</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label htmlFor="name" className={labelClass}>Full Name</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <User className={iconClass} />
+                        </div>
+                        <input id="name" name="name" type="text" required value={formData.name} onChange={handleChange}
+                          className={inputClass} placeholder="John Doe" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="email" className={labelClass}>Email address</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Mail className={iconClass} />
+                        </div>
+                        <input id="email" name="email" type="email" required value={formData.email} onChange={handleChange}
+                          className={inputClass} placeholder="you@company.com" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>What can we help you with?</label>
+                      <div className="relative">
+                        <button type="button" onClick={() => setShowTopicDropdown(!showTopicDropdown)}
+                          className={`w-full flex items-center justify-between px-3 py-3 border rounded-lg text-sm transition-colors ${dark ? 'border-white/[0.08] bg-white/[0.04] text-[#FAFAFA]' : 'border-black/[0.1] bg-white text-[#0A0A0B]'}`}>
+                          <span>{topicOptions.find(opt => opt.value === formData.topic)?.label}</span>
+                          <ChevronDown className={`h-4 w-4 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`} />
+                        </button>
+                        {showTopicDropdown && (
+                          <div className={`absolute z-50 mt-1 w-full rounded-lg border shadow-lg overflow-hidden ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
+                            <div className="p-1">
+                              {topicOptions.map((option) => (
+                                <button key={option.value} type="button"
+                                  onClick={() => { setFormData({ ...formData, topic: option.value }); setShowTopicDropdown(false); }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors ${formData.topic === option.value
+                                    ? 'bg-[#A78BFA]/10 text-[#A78BFA]'
+                                    : `${textPrimary} hover:bg-black/5 dark:hover:bg-white/5`}`}>
+                                  {option.label}
+                                  {formData.topic === option.value && <Check className="h-4 w-4 text-[#A78BFA]" />}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="message" className={labelClass}>Message</label>
+                      <div className="relative">
+                        <div className="absolute top-3 left-3 pointer-events-none">
+                          <MessageSquare className={iconClass} />
+                        </div>
+                        <textarea id="message" name="message" rows={4} required value={formData.message} onChange={handleChange}
+                          className={`${inputClass} resize-none`} placeholder="How can we help?" />
+                      </div>
+                    </div>
+
+                    <button type="submit" disabled={status === 'submitting'}
+                      className="w-full flex justify-center items-center gap-2 py-3 px-6 text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      {status === 'submitting' ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Send Message
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <footer className={`border-t ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} py-12 transition-colors duration-300`}>
+          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`}>
+            <LogoWordmark iconSize={32} />
+            <div className="flex items-center gap-6 flex-wrap justify-center">
+              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Docs</Link>
+              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Support</Link>
+              <Link href="/login" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Login</Link>
+            </div>
+            <p className="text-xs">© 2026 Evols AI</p>
+          </div>
+        </footer>
+      </div>
+    </>
+  )
 }

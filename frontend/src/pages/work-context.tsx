@@ -32,7 +32,6 @@ export default function WorkContext() {
   const [meetings, setMeetings] = useState<any[]>([])
   const [weeklyFocus, setWeeklyFocus] = useState<any>(null)
 
-  // Modal states
   const [taskModalOpen, setTaskModalOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<any>(null)
   const [decisionModalOpen, setDecisionModalOpen] = useState(false)
@@ -43,7 +42,6 @@ export default function WorkContext() {
 
   const productId = selectedProductIds[0]
 
-  // AI Sessions tab state
   const [aiSummary, setAiSummary] = useState<any>(null)
   const [aiEntries, setAiEntries] = useState<any[]>([])
   const [aiDays, setAiDays] = useState(7)
@@ -51,19 +49,13 @@ export default function WorkContext() {
   const [selectedAiEntry, setSelectedAiEntry] = useState<any>(null)
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/login')
-      return
-    }
-
+    if (!isAuthenticated()) { router.push('/login'); return }
     const currentUser = getCurrentUser()
     setUser(currentUser)
-
     const { tab } = router.query
     if (tab && ['overview','tasks','decisions','meetings','weekly-focus','strategy','ai-sessions'].includes(tab as string)) {
       setSelectedTab(tab as TabType)
     }
-
     loadData()
   }, [])
 
@@ -92,23 +84,13 @@ export default function WorkContext() {
     try {
       const detail = await api.get(`/team-knowledge/entries/${entry.id}`)
       setSelectedAiEntry(detail.data)
-    } catch {
-      // leave preview with what we have
-    }
+    } catch { /* leave preview */ }
   }
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const [
-        contextRes,
-        projectsRes,
-        relationshipsRes,
-        tasksRes,
-        decisionsRes,
-        meetingsRes,
-        focusRes
-      ] = await Promise.all([
+      const [contextRes, projectsRes, relationshipsRes, tasksRes, decisionsRes, meetingsRes, focusRes] = await Promise.all([
         api.workContext.getWorkContext(),
         api.workContext.getActiveProjects(),
         api.workContext.getKeyRelationships(),
@@ -117,12 +99,11 @@ export default function WorkContext() {
         api.workContext.getMeetingNotes({ limit: 10 }),
         api.workContext.getCurrentWeeklyFocus()
       ])
-
       setWorkContext(contextRes.data)
       setActiveProjects(projectsRes.data)
       setKeyRelationships(relationshipsRes.data)
       setTasks(tasksRes.data)
-      setDecisions(decisionsRes.data.slice(0, 5)) // Recent 5
+      setDecisions(decisionsRes.data.slice(0, 5))
       setMeetings(meetingsRes.data)
       setWeeklyFocus(focusRes.data)
     } catch (error) {
@@ -134,83 +115,72 @@ export default function WorkContext() {
 
   const handleDeleteTask = async (taskId: number) => {
     if (!confirm('Delete this task?')) return
-
     setDeletingTaskId(taskId)
     try {
       await api.workContext.deleteTask(taskId)
       await loadData()
-    } catch (error) {
-      console.error('Error deleting task:', error)
-      alert('Failed to delete task')
-    } finally {
-      setDeletingTaskId(null)
-    }
+    } catch { alert('Failed to delete task') }
+    finally { setDeletingTaskId(null) }
   }
 
   const handleDeleteDecision = async (decisionId: number) => {
     if (!confirm('Delete this decision?')) return
-
     setDeletingDecisionId(decisionId)
     try {
       await api.workContext.deletePMDecision(decisionId)
       await loadData()
-    } catch (error) {
-      console.error('Error deleting decision:', error)
-      alert('Failed to delete decision')
-    } finally {
-      setDeletingDecisionId(null)
-    }
+    } catch { alert('Failed to delete decision') }
+    finally { setDeletingDecisionId(null) }
   }
 
-  const openTaskModal = (task?: any) => {
-    setSelectedTask(task || null)
-    setTaskModalOpen(true)
-  }
-
-  const openDecisionModal = (decision?: any) => {
-    setSelectedDecision(decision || null)
-    setDecisionModalOpen(true)
-  }
+  const openTaskModal = (task?: any) => { setSelectedTask(task || null); setTaskModalOpen(true) }
+  const openDecisionModal = (decision?: any) => { setSelectedDecision(decision || null); setDecisionModalOpen(true) }
 
   const getCapacityColor = (status?: string) => {
     switch (status) {
-      case 'sustainable': return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30'
-      case 'stretched': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30'
-      case 'overloaded': return 'text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30'
-      case 'unsustainable': return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30'
-      default: return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/30'
+      case 'sustainable':   return 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+      case 'stretched':     return 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/10'
+      case 'overloaded':    return 'text-orange-600 dark:text-orange-400 bg-orange-500/10'
+      case 'unsustainable': return 'text-red-600 dark:text-red-400 bg-red-500/10'
+      default:              return 'text-muted-foreground bg-muted'
     }
   }
 
   const getProjectStatusColor = (status: string) => {
     switch (status) {
-      case 'green': return 'bg-green-500'
-      case 'yellow': return 'bg-yellow-500'
-      case 'red': return 'bg-red-500'
-      case 'completed': return 'bg-blue-500'
-      case 'paused': return 'bg-gray-400'
-      default: return 'bg-gray-400'
+      case 'green':     return 'bg-emerald-500'
+      case 'yellow':    return 'bg-yellow-500'
+      case 'red':       return 'bg-red-500'
+      case 'completed': return 'bg-[#8B5CF6]'
+      default:          return 'bg-muted-foreground/40'
     }
   }
 
   const getPriorityLabel = (priority: string) => {
     const labels: Record<string, string> = {
-      critical: '🔴 Critical Today',
+      critical:      '🔴 Critical Today',
       high_leverage: '🟡 High Leverage',
-      stakeholder: '🔵 Stakeholder',
-      sweep: '⚪ Sweep Queue',
-      backlog: '🟣 Backlog'
+      stakeholder:   '🔵 Stakeholder',
+      sweep:         '⚪ Sweep Queue',
+      backlog:       '🟣 Backlog'
     }
     return labels[priority] || priority
   }
+
+  const TABS: { id: TabType; label: string; icon: any; badge?: number }[] = [
+    { id: 'overview',    label: 'Overview',      icon: TrendingUp },
+    { id: 'tasks',       label: 'Tasks',         icon: CheckSquare, badge: tasks.filter(t => t.status === 'todo' || t.status === 'in_progress').length },
+    { id: 'decisions',   label: 'Decisions',     icon: Lightbulb,   badge: decisions.length },
+    { id: 'weekly-focus',label: 'Weekly Focus',  icon: Calendar },
+    { id: 'strategy',    label: 'Strategy Docs', icon: Book },
+    { id: 'ai-sessions', label: 'AI Sessions',   icon: BarChart3 },
+  ]
 
   if (loading) {
     return (
       <>
         <Header user={user} currentPage="work-context" />
-        <PageContainer>
-          <Loading />
-        </PageContainer>
+        <PageContainer><Loading /></PageContainer>
       </>
     )
   }
@@ -219,620 +189,311 @@ export default function WorkContext() {
     <div className="min-h-screen">
       <Header user={user} currentPage="work-context" />
       <PageContainer>
-        <PageHeader
-          title="Work Context"
-          description="Your personal AI operating system"
-          icon={Briefcase}
-        />
+        <PageHeader title="Work Context" description="Your personal AI operating system" icon={Briefcase} />
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="mb-6 border-b border-border">
           <div className="flex gap-1 overflow-x-auto">
-            <button
-              onClick={() => setSelectedTab('overview')}
-              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
-                selectedTab === 'overview'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4 inline mr-2" />
-              Overview
-            </button>
-            <button
-              onClick={() => setSelectedTab('tasks')}
-              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
-                selectedTab === 'tasks'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <CheckSquare className="w-4 h-4 inline mr-2" />
-              Tasks ({tasks.filter(t => t.status === 'todo' || t.status === 'in_progress').length})
-            </button>
-            <button
-              onClick={() => setSelectedTab('decisions')}
-              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
-                selectedTab === 'decisions'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <Lightbulb className="w-4 h-4 inline mr-2" />
-              Decisions ({decisions.length})
-            </button>
-            <button
-              onClick={() => setSelectedTab('weekly-focus')}
-              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
-                selectedTab === 'weekly-focus'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Weekly Focus
-            </button>
-            <button
-              onClick={() => setSelectedTab('strategy')}
-              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
-                selectedTab === 'strategy'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <Book className="w-4 h-4 inline mr-2" />
-              Strategy Docs
-            </button>
-            <button
-              onClick={() => setSelectedTab('ai-sessions')}
-              className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap ${
-                selectedTab === 'ai-sessions'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4 inline mr-2" />
-              AI Sessions
-            </button>
+            {TABS.map(({ id, label, icon: Icon, badge }) => (
+              <button
+                key={id}
+                onClick={() => setSelectedTab(id)}
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap flex items-center gap-1.5 ${
+                  selectedTab === id
+                    ? 'border-[#A78BFA] text-[#A78BFA]'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+                {badge !== undefined && badge > 0 && (
+                  <span className="ml-1 text-xs bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 leading-none">{badge}</span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Overview Tab */}
+        {/* ── Overview Tab ─────────────────────────────────────── */}
         {selectedTab === 'overview' && (
           <div className="space-y-6">
-            {/* Capacity & Role */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Capacity */}
-              <Card>
-                <h3 className="text-lg text-gray-900 dark:text-white mb-4">Capacity</h3>
+              <Card padding="md">
+                <h3 className="text-base font-medium text-foreground mb-4">Capacity</h3>
                 {workContext?.capacity_status ? (
                   <div>
                     <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getCapacityColor(workContext.capacity_status)}`}>
                       {workContext.capacity_status.replace('_', ' ').toUpperCase()}
                     </div>
                     {workContext.capacity_factors && (
-                      <p className="mt-3 text-sm text-gray-700 dark:text-gray-400">
-                        {workContext.capacity_factors}
-                      </p>
+                      <p className="mt-3 text-sm text-muted-foreground">{workContext.capacity_factors}</p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No capacity info yet</p>
+                  <p className="text-sm text-muted-foreground">No capacity info yet</p>
                 )}
               </Card>
 
-              {/* Role */}
-              <Card>
-                <h3 className="text-lg text-gray-900 dark:text-white mb-4">Role & Team</h3>
+              <Card padding="md">
+                <h3 className="text-base font-medium text-foreground mb-4">Role & Team</h3>
                 {workContext?.title || workContext?.team ? (
                   <div className="space-y-2 text-sm">
-                    {workContext.title && (
-                      <div>
-                        <span className="font-medium text-gray-900 dark:text-white">{workContext.title}</span>
-                      </div>
-                    )}
-                    {workContext.team && (
-                      <div className="text-gray-700 dark:text-gray-400">{workContext.team}</div>
-                    )}
+                    {workContext.title && <div className="font-medium text-foreground">{workContext.title}</div>}
+                    {workContext.team && <div className="text-muted-foreground">{workContext.team}</div>}
                     {workContext.manager_name && (
-                      <div className="text-gray-700 dark:text-gray-400">
+                      <div className="text-muted-foreground">
                         Reports to: {workContext.manager_name}
                         {workContext.manager_title && ` (${workContext.manager_title})`}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No role info yet</p>
+                  <p className="text-sm text-muted-foreground">No role info yet</p>
                 )}
               </Card>
             </div>
 
-            {/* This Week's Focus */}
             {weeklyFocus && (weeklyFocus.focus_1 || weeklyFocus.focus_2 || weeklyFocus.focus_3) && (
-              <Card>
+              <Card padding="md">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg text-gray-900 dark:text-white">
-                    Three Things That Matter This Week
-                  </h3>
-                  <button
-                    onClick={() => setWeeklyFocusModalOpen(true)}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit
+                  <h3 className="text-base font-medium text-foreground">Three Things That Matter This Week</h3>
+                  <button onClick={() => setWeeklyFocusModalOpen(true)} className="text-sm text-[#A78BFA] hover:text-[#8B5CF6] flex items-center gap-1 transition-colors">
+                    <Edit className="w-4 h-4" />Edit
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {weeklyFocus.focus_1 && (
-                    <div className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400">1.</span>
-                      <span className="text-gray-900 dark:text-white">{weeklyFocus.focus_1}</span>
-                    </div>
-                  )}
-                  {weeklyFocus.focus_2 && (
-                    <div className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400">2.</span>
-                      <span className="text-gray-900 dark:text-white">{weeklyFocus.focus_2}</span>
-                    </div>
-                  )}
-                  {weeklyFocus.focus_3 && (
-                    <div className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400">3.</span>
-                      <span className="text-gray-900 dark:text-white">{weeklyFocus.focus_3}</span>
-                    </div>
+                  {[weeklyFocus.focus_1, weeklyFocus.focus_2, weeklyFocus.focus_3].map((focus, i) =>
+                    focus ? (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-[#A78BFA] font-medium">{i + 1}.</span>
+                        <span className="text-foreground text-sm">{focus}</span>
+                      </div>
+                    ) : null
                   )}
                 </div>
               </Card>
             )}
 
-            {/* Active Projects */}
-            <Card>
+            <Card padding="md">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg text-gray-900 dark:text-white">Active Projects</h3>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{activeProjects.length} projects</span>
+                <h3 className="text-base font-medium text-foreground">Active Projects</h3>
+                <span className="text-sm text-muted-foreground">{activeProjects.length} projects</span>
               </div>
               {activeProjects.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {activeProjects.map((project) => (
-                    <div key={project.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                      <div className={`w-2 h-2 mt-2 rounded-full ${getProjectStatusColor(project.status)}`} />
+                    <div key={project.id} className="flex items-start gap-3 p-3 bg-muted/40 rounded-lg">
+                      <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${getProjectStatusColor(project.status)}`} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900 dark:text-white">{project.name}</span>
-                          <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                            {project.role}
-                          </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm text-foreground">{project.name}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">{project.role}</span>
                         </div>
                         {project.next_milestone && (
-                          <div className="text-sm text-gray-700 dark:text-gray-400 mt-1">
-                            Next: {project.next_milestone}
-                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">Next: {project.next_milestone}</div>
                         )}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No active projects</p>
+                <p className="text-sm text-muted-foreground">No active projects</p>
               )}
             </Card>
 
-            {/* Key Relationships */}
-            <Card>
+            <Card padding="md">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg text-gray-900 dark:text-white">Key Relationships</h3>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{keyRelationships.length} people</span>
+                <h3 className="text-base font-medium text-foreground">Key Relationships</h3>
+                <span className="text-sm text-muted-foreground">{keyRelationships.length} people</span>
               </div>
               {keyRelationships.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {keyRelationships.map((rel) => (
-                    <div key={rel.id} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                      <div className="font-medium text-gray-900 dark:text-white">{rel.name}</div>
-                      {rel.role && (
-                        <div className="text-sm text-gray-700 dark:text-gray-400">{rel.role}</div>
-                      )}
-                      {rel.relationship_type && (
-                        <div className="text-xs text-gray-600 dark:text-gray-500 mt-1">
-                          {rel.relationship_type}
-                        </div>
-                      )}
+                    <div key={rel.id} className="p-3 bg-muted/40 rounded-lg">
+                      <div className="font-medium text-sm text-foreground">{rel.name}</div>
+                      {rel.role && <div className="text-xs text-muted-foreground mt-0.5">{rel.role}</div>}
+                      {rel.relationship_type && <div className="text-xs text-muted-foreground/70 mt-0.5">{rel.relationship_type}</div>}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No relationships tracked</p>
+                <p className="text-sm text-muted-foreground">No relationships tracked</p>
               )}
             </Card>
           </div>
         )}
 
-        {/* Tasks Tab */}
+        {/* ── Tasks Tab ─────────────────────────────────────────── */}
         {selectedTab === 'tasks' && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button
-                onClick={() => openTaskModal()}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-              >
-                <Plus className="w-4 h-4" />
-                New Task
+              <button onClick={() => openTaskModal()} className="btn-primary flex items-center gap-2">
+                <Plus className="w-4 h-4" />New Task
               </button>
             </div>
 
-            {/* Kanban Board with Swimlanes */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* TODO Column */}
-              <div className="flex flex-col">
-                <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-blue-500">
-                  <h3 className="text-gray-900 dark:text-white">
-                    📋 To Do ({tasks.filter(t => t.status === 'todo').length})
-                  </h3>
-                </div>
-                <div className="flex-1 bg-gray-50 dark:bg-gray-900/30 rounded-b-lg p-4 space-y-3 min-h-[500px]">
-                  {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
-                    const priorityTasks = tasks.filter(t => t.priority === priority && t.status === 'todo')
-                    if (priorityTasks.length === 0) return null
-
-                    return (
-                      <div key={priority} className="space-y-2">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                          {getPriorityLabel(priority)}
-                        </div>
-                        {priorityTasks.map((task) => (
-                          <div key={task.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 group hover:shadow-md transition">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="flex-1 min-w-0 font-medium text-sm text-gray-900 dark:text-white">
-                                {task.title}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => openTaskModal(task)}
-                                  className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
-                                  title="Edit"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteTask(task.id)}
-                                  disabled={deletingTaskId === task.id}
-                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition"
-                                  title="Delete"
-                                >
-                                  {deletingTaskId === task.id ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                            {task.description && (
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{task.description}</div>
-                            )}
-                            {task.deadline && (
-                              <div className="text-xs text-gray-500 dark:text-gray-500">
-                                📅 {new Date(task.deadline).toLocaleDateString()}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  })}
-                  {tasks.filter(t => t.status === 'todo').length === 0 && (
-                    <div className="text-center text-gray-400 dark:text-gray-600 text-sm py-8">
-                      No tasks in To Do
+              {([
+                { status: 'todo',        label: '📋 To Do',      statusKey: 'todo' },
+                { status: 'in_progress', label: '🚀 In Progress', statusKey: 'in_progress' },
+                { status: 'completed',   label: '✅ Done',        statusKey: 'completed' },
+              ] as const).map(({ status, label }) => {
+                const colTasks = tasks.filter(t => t.status === status)
+                return (
+                  <div key={status} className="flex flex-col rounded-xl border border-border overflow-hidden">
+                    <div className="px-4 py-3 bg-muted/50 border-b border-border">
+                      <h3 className="text-sm font-medium text-foreground">
+                        {label} <span className="text-muted-foreground font-normal">({colTasks.length})</span>
+                      </h3>
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* IN PROGRESS Column */}
-              <div className="flex flex-col">
-                <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-yellow-500">
-                  <h3 className="text-gray-900 dark:text-white">
-                    🚀 In Progress ({tasks.filter(t => t.status === 'in_progress').length})
-                  </h3>
-                </div>
-                <div className="flex-1 bg-gray-50 dark:bg-gray-900/30 rounded-b-lg p-4 space-y-3 min-h-[500px]">
-                  {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
-                    const priorityTasks = tasks.filter(t => t.priority === priority && t.status === 'in_progress')
-                    if (priorityTasks.length === 0) return null
-
-                    return (
-                      <div key={priority} className="space-y-2">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                          {getPriorityLabel(priority)}
-                        </div>
-                        {priorityTasks.map((task) => (
-                          <div key={task.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 group hover:shadow-md transition">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="flex-1 min-w-0 font-medium text-sm text-gray-900 dark:text-white">
-                                {task.title}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => openTaskModal(task)}
-                                  className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
-                                  title="Edit"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteTask(task.id)}
-                                  disabled={deletingTaskId === task.id}
-                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition"
-                                  title="Delete"
-                                >
-                                  {deletingTaskId === task.id ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              </div>
+                    <div className="flex-1 bg-muted/20 p-3 space-y-2 min-h-[480px]">
+                      {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
+                        const priorityTasks = colTasks.filter(t => t.priority === priority)
+                        if (priorityTasks.length === 0) return null
+                        return (
+                          <div key={priority} className="space-y-2">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider pt-1">
+                              {getPriorityLabel(priority)}
                             </div>
-                            {task.description && (
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{task.description}</div>
-                            )}
-                            {task.deadline && (
-                              <div className="text-xs text-gray-500 dark:text-gray-500">
-                                📅 {new Date(task.deadline).toLocaleDateString()}
-                              </div>
-                            )}
+                            {priorityTasks.map((task) => (
+                              <TaskCard
+                                key={task.id}
+                                task={task}
+                                done={status === 'completed'}
+                                deleting={deletingTaskId === task.id}
+                                onEdit={() => openTaskModal(task)}
+                                onDelete={() => handleDeleteTask(task.id)}
+                              />
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )
-                  })}
-                  {tasks.filter(t => t.status === 'in_progress').length === 0 && (
-                    <div className="text-center text-gray-400 dark:text-gray-600 text-sm py-8">
-                      No tasks in progress
+                        )
+                      })}
+                      {colTasks.length === 0 && (
+                        <div className="text-center text-muted-foreground/50 text-sm py-8">No tasks</div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* DONE Column */}
-              <div className="flex flex-col">
-                <div className="bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-t-lg border-b-2 border-green-500">
-                  <h3 className="text-gray-900 dark:text-white">
-                    ✅ Done ({tasks.filter(t => t.status === 'completed').length})
-                  </h3>
-                </div>
-                <div className="flex-1 bg-gray-50 dark:bg-gray-900/30 rounded-b-lg p-4 space-y-3 min-h-[500px]">
-                  {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
-                    const priorityTasks = tasks.filter(t => t.priority === priority && t.status === 'completed')
-                    if (priorityTasks.length === 0) return null
-
-                    return (
-                      <div key={priority} className="space-y-2">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                          {getPriorityLabel(priority)}
-                        </div>
-                        {priorityTasks.map((task) => (
-                          <div key={task.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 group hover:shadow-md transition opacity-75">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="flex-1 min-w-0 font-medium text-sm text-gray-900 dark:text-white line-through">
-                                {task.title}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => openTaskModal(task)}
-                                  className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
-                                  title="Edit"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteTask(task.id)}
-                                  disabled={deletingTaskId === task.id}
-                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition"
-                                  title="Delete"
-                                >
-                                  {deletingTaskId === task.id ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                            {task.description && (
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{task.description}</div>
-                            )}
-                            {task.deadline && (
-                              <div className="text-xs text-gray-500 dark:text-gray-500">
-                                📅 {new Date(task.deadline).toLocaleDateString()}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  })}
-                  {tasks.filter(t => t.status === 'completed').length === 0 && (
-                    <div className="text-center text-gray-400 dark:text-gray-600 text-sm py-8">
-                      No completed tasks
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                )
+              })}
             </div>
 
             {tasks.length === 0 && (
               <Card>
-                <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-                  No tasks yet. Click "New Task" to add one.
-                </p>
+                <p className="text-center text-muted-foreground py-8">No tasks yet. Click "New Task" to add one.</p>
               </Card>
             )}
           </div>
         )}
 
-        {/* Decisions Tab */}
+        {/* ── Decisions Tab ─────────────────────────────────────── */}
         {selectedTab === 'decisions' && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button
-                onClick={() => openDecisionModal()}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-              >
-                <Plus className="w-4 h-4" />
-                Log Decision
+              <button onClick={() => openDecisionModal()} className="btn-primary flex items-center gap-2">
+                <Plus className="w-4 h-4" />Log Decision
               </button>
             </div>
-
-            {decisions.length > 0 ? (
-              decisions.map((decision) => (
-                <Card key={decision.id}>
-                  <div className="flex items-start justify-between mb-2 group">
-                    <h3 className="text-gray-900 dark:text-white flex-1">
-                      #{decision.decision_number}: {decision.title}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                        {decision.category}
-                      </span>
-                      <button
-                        onClick={() => openDecisionModal(decision)}
-                        className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded opacity-0 group-hover:opacity-100 transition"
-                        title="Edit decision"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDecision(decision.id)}
-                        disabled={deletingDecisionId === decision.id}
-                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
-                        title="Delete decision"
-                      >
-                        {deletingDecisionId === decision.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
+            {decisions.length > 0 ? decisions.map((decision) => (
+              <Card key={decision.id} padding="md">
+                <div className="flex items-start justify-between mb-2 group">
+                  <h3 className="text-foreground text-sm font-medium flex-1">
+                    #{decision.decision_number}: {decision.title}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 rounded bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]">
+                      {decision.category}
+                    </span>
+                    <button onClick={() => openDecisionModal(decision)} className="p-1 text-muted-foreground hover:text-[#A78BFA] rounded opacity-0 group-hover:opacity-100 transition" title="Edit">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteDecision(decision.id)} disabled={deletingDecisionId === decision.id} className="p-1 text-muted-foreground hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50" title="Delete">
+                      {deletingDecisionId === decision.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
                   </div>
-                  <div className="text-sm text-gray-700 dark:text-gray-400 mb-3">{decision.context}</div>
-                  <div className="text-sm">
-                    <div className="font-medium text-gray-900 dark:text-white mb-1">Decision:</div>
-                    <div className="text-gray-700 dark:text-gray-400">{decision.decision}</div>
-                  </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-500 mt-3">
-                    {new Date(decision.decision_date).toLocaleDateString()}
-                  </div>
-                </Card>
-              ))
-            ) : (
+                </div>
+                <div className="text-sm text-muted-foreground mb-3">{decision.context}</div>
+                <div className="text-sm">
+                  <div className="font-medium text-foreground mb-1">Decision:</div>
+                  <div className="text-muted-foreground">{decision.decision}</div>
+                </div>
+                <div className="text-xs text-muted-foreground/70 mt-3">
+                  {new Date(decision.decision_date).toLocaleDateString()}
+                </div>
+              </Card>
+            )) : (
               <Card>
-                <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-                  No decisions logged yet. Click "Log Decision" to add one.
-                </p>
+                <p className="text-center text-muted-foreground py-8">No decisions logged yet. Click "Log Decision" to add one.</p>
               </Card>
             )}
           </div>
         )}
 
-        {/* Weekly Focus Tab */}
+        {/* ── Weekly Focus Tab ──────────────────────────────────── */}
         {selectedTab === 'weekly-focus' && weeklyFocus && (
-          <Card>
+          <Card padding="md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg text-gray-900 dark:text-white">
+              <h3 className="text-base font-medium text-foreground">
                 Week of {new Date(weeklyFocus.week_start_date).toLocaleDateString()}
               </h3>
-              <button
-                onClick={() => setWeeklyFocusModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-              >
-                <Edit className="w-4 h-4" />
-                Edit
+              <button onClick={() => setWeeklyFocusModalOpen(true)} className="btn-primary flex items-center gap-2">
+                <Edit className="w-4 h-4" />Edit
               </button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Focus #1
-                </label>
-                <div className="text-gray-900 dark:text-white">
-                  {weeklyFocus.focus_1 || <span className="text-gray-500 italic">Not set</span>}
+              {['focus_1', 'focus_2', 'focus_3'].map((key, i) => (
+                <div key={key}>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Focus #{i + 1}</label>
+                  <div className="text-sm text-foreground">
+                    {weeklyFocus[key] || <span className="text-muted-foreground/60 italic">Not set</span>}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Focus #2
-                </label>
-                <div className="text-gray-900 dark:text-white">
-                  {weeklyFocus.focus_2 || <span className="text-gray-500 italic">Not set</span>}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Focus #3
-                </label>
-                <div className="text-gray-900 dark:text-white">
-                  {weeklyFocus.focus_3 || <span className="text-gray-500 italic">Not set</span>}
-                </div>
-              </div>
+              ))}
               {weeklyFocus.notes && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Notes
-                  </label>
-                  <div className="text-gray-700 dark:text-gray-400">
-                    {weeklyFocus.notes}
-                  </div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Notes</label>
+                  <div className="text-sm text-muted-foreground">{weeklyFocus.notes}</div>
                 </div>
               )}
             </div>
           </Card>
         )}
 
-        {/* Strategy Docs Tab */}
-        {selectedTab === 'strategy' && (
-          <StrategyTab productId={selectedProductIds[0]} />
-        )}
+        {/* ── Strategy Docs Tab ─────────────────────────────────── */}
+        {selectedTab === 'strategy' && <StrategyTab productId={selectedProductIds[0]} />}
 
-        {/* AI Sessions Tab */}
+        {/* ── AI Sessions Tab ───────────────────────────────────── */}
         {selectedTab === 'ai-sessions' && (
           <div className="space-y-6">
-            {/* Period selector + refresh */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <select
-                  value={aiDays}
-                  onChange={e => setAiDays(Number(e.target.value))}
-                  className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                >
-                  <option value={7}>Last 7 days</option>
-                  <option value={14}>Last 14 days</option>
-                  <option value={30}>Last 30 days</option>
-                </select>
-                <button onClick={loadAiSessions} disabled={aiLoading} className="btn-secondary flex items-center gap-2">
-                  <RefreshCw className={`w-4 h-4 ${aiLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-              </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={aiDays}
+                onChange={e => setAiDays(Number(e.target.value))}
+                className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground"
+              >
+                <option value={7}>Last 7 days</option>
+                <option value={14}>Last 14 days</option>
+                <option value={30}>Last 30 days</option>
+              </select>
+              <button onClick={loadAiSessions} disabled={aiLoading} className="btn-secondary flex items-center gap-2">
+                <RefreshCw className={`w-4 h-4 ${aiLoading ? 'animate-spin' : ''}`} />Refresh
+              </button>
             </div>
 
-            {/* Token savings summary */}
             {aiLoading ? <Loading text="Loading session data..." /> : aiSummary ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <StatCard title="Sessions" value={aiSummary.sessions} subtitle="tracked" icon={<Clock className="w-5 h-5" />} color="blue" />
-                <StatCard title="Tokens Saved" value={formatAiTokens(aiSummary.tokens_saved_estimate)} subtitle="vs. compiling fresh" icon={<TrendingUp className="w-5 h-5" />} color="green" />
-                <StatCard title="Cost Avoided" value={formatAiCost(aiSummary.tokens_saved_estimate)} subtitle="est. at $3/1M tok" icon={<Coins className="w-5 h-5" />} color="green" />
-                <StatCard title="Quota Extended" value={`${aiSummary.quota_extended_pct}%`} subtitle="effective capacity gain" icon={<TrendingUp className="w-5 h-5" />} color="purple" />
-                <StatCard title="Knowledge Entries" value={aiSummary.knowledge_entries_total} subtitle={`+${aiSummary.knowledge_entries_new} this period`} icon={<BookOpen className="w-5 h-5" />} color="orange" />
-                <StatCard title="Rate Limit Hits" value={aiSummary.rate_limit_hits} subtitle="avoided via reuse" icon={<Users className="w-5 h-5" />} color={aiSummary.rate_limit_hits > 0 ? 'red' : 'blue'} />
+                <StatCard title="Sessions"          value={aiSummary.sessions}                                         subtitle="tracked"                       icon={<Clock className="w-5 h-5" />}      color="blue" />
+                <StatCard title="Tokens Saved"       value={formatAiTokens(aiSummary.tokens_saved_estimate)}            subtitle="vs. compiling fresh"            icon={<TrendingUp className="w-5 h-5" />}  color="green" />
+                <StatCard title="Cost Avoided"       value={formatAiCost(aiSummary.tokens_saved_estimate)}              subtitle="est. at $3/1M tok"              icon={<Coins className="w-5 h-5" />}       color="green" />
+                <StatCard title="Quota Extended"     value={`${aiSummary.quota_extended_pct}%`}                         subtitle="effective capacity gain"        icon={<TrendingUp className="w-5 h-5" />}  color="purple" />
+                <StatCard title="Knowledge Entries"  value={aiSummary.knowledge_entries_total}                          subtitle={`+${aiSummary.knowledge_entries_new} this period`} icon={<BookOpen className="w-5 h-5" />}   color="orange" />
+                <StatCard title="Rate Limit Hits"    value={aiSummary.rate_limit_hits}                                  subtitle="avoided via reuse"             icon={<Users className="w-5 h-5" />}       color={aiSummary.rate_limit_hits > 0 ? 'red' : 'blue'} />
               </div>
             ) : (
-              <Card><p className="text-sm text-gray-500 dark:text-gray-400 p-4">No session data yet. Start a Claude Code session with the Evols plugin to begin tracking.</p></Card>
+              <Card><p className="text-sm text-muted-foreground p-4">No session data yet. Start a Claude Code session with the Evols plugin to begin tracking.</p></Card>
             )}
 
-            {/* Session knowledge entries */}
             <div>
-              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">
                 Session Knowledge — {aiEntries.length} entries
               </h2>
               {aiLoading ? null : aiEntries.length === 0 ? (
@@ -849,40 +510,43 @@ export default function WorkContext() {
         )}
       </PageContainer>
 
-      {/* AI Entry detail modal */}
-      {selectedAiEntry && (
-        <AiEntryDetailModal entry={selectedAiEntry} onClose={() => setSelectedAiEntry(null)} />
+      {selectedAiEntry && <AiEntryDetailModal entry={selectedAiEntry} onClose={() => setSelectedAiEntry(null)} />}
+
+      <TaskModal isOpen={taskModalOpen} onClose={() => { setTaskModalOpen(false); setSelectedTask(null) }} onSuccess={loadData} task={selectedTask} productId={productId} />
+      <DecisionModal isOpen={decisionModalOpen} onClose={() => { setDecisionModalOpen(false); setSelectedDecision(null) }} onSuccess={loadData} decision={selectedDecision} productId={productId} />
+      <WeeklyFocusModal isOpen={weeklyFocusModalOpen} onClose={() => setWeeklyFocusModalOpen(false)} onSuccess={loadData} weeklyFocus={weeklyFocus} />
+    </div>
+  )
+}
+
+// ── Shared task card ───────────────────────────────────────────────────────
+
+function TaskCard({ task, done, deleting, onEdit, onDelete }: {
+  task: any; done: boolean; deleting: boolean; onEdit: () => void; onDelete: () => void
+}) {
+  return (
+    <div className={`bg-card border border-border p-3 rounded-lg group hover:border-[#A78BFA]/30 transition ${done ? 'opacity-60' : ''}`}>
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className={`flex-1 min-w-0 font-medium text-sm text-foreground ${done ? 'line-through' : ''}`}>
+          {task.title}
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={onEdit} className="p-1 text-muted-foreground hover:text-[#A78BFA] rounded opacity-0 group-hover:opacity-100 transition" title="Edit">
+            <Edit className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={onDelete} disabled={deleting} className="p-1 text-muted-foreground hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition" title="Delete">
+            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+      {task.description && (
+        <div className="text-xs text-muted-foreground mb-1.5 line-clamp-2">{task.description}</div>
       )}
-
-      {/* Modals */}
-      <TaskModal
-        isOpen={taskModalOpen}
-        onClose={() => {
-          setTaskModalOpen(false)
-          setSelectedTask(null)
-        }}
-        onSuccess={loadData}
-        task={selectedTask}
-        productId={productId}
-      />
-
-      <DecisionModal
-        isOpen={decisionModalOpen}
-        onClose={() => {
-          setDecisionModalOpen(false)
-          setSelectedDecision(null)
-        }}
-        onSuccess={loadData}
-        decision={selectedDecision}
-        productId={productId}
-      />
-
-      <WeeklyFocusModal
-        isOpen={weeklyFocusModalOpen}
-        onClose={() => setWeeklyFocusModalOpen(false)}
-        onSuccess={loadData}
-        weeklyFocus={weeklyFocus}
-      />
+      {task.deadline && (
+        <div className="text-xs text-muted-foreground/70">
+          📅 {new Date(task.deadline).toLocaleDateString()}
+        </div>
+      )}
     </div>
   )
 }
@@ -910,11 +574,11 @@ function timeAgo(isoDate: string): string {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  engineer: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  pm: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-  designer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
-  qa: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  other: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  engineer: 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]',
+  pm:       'bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]',
+  designer: 'bg-pink-500/10 text-pink-600 dark:text-pink-400',
+  qa:       'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  other:    'bg-muted text-muted-foreground',
 }
 
 const ENTRY_TYPE_LABELS: Record<string, string> = {
@@ -930,23 +594,23 @@ function AiSessionEntryCard({ entry, onClick }: { entry: any; onClick: () => voi
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>{entry.role}</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}</span>
-            {entry.product_area && <span className="text-xs text-gray-400 dark:text-gray-500">· {entry.product_area}</span>}
+            <span className="text-xs text-muted-foreground">{ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}</span>
+            {entry.product_area && <span className="text-xs text-muted-foreground/60">· {entry.product_area}</span>}
           </div>
-          <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-snug mb-1.5">{entry.title}</h4>
+          <h4 className="text-sm font-medium text-foreground leading-snug mb-1.5">{entry.title}</h4>
           {entry.tags && entry.tags.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap">
-              <Tag className="w-3 h-3 text-gray-400" />
+              <Tag className="w-3 h-3 text-muted-foreground/60" />
               {entry.tags.slice(0, 3).map((tag: string) => (
-                <span key={tag} className="text-xs text-gray-500 dark:text-gray-400">{tag}</span>
+                <span key={tag} className="text-xs text-muted-foreground/70">{tag}</span>
               ))}
             </div>
           )}
         </div>
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <span className="text-xs text-gray-400 dark:text-gray-500">{timeAgo(entry.created_at)}</span>
-          {entry.token_count && <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{formatAiTokens(entry.token_count)} tok</span>}
-          <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600" />
+          <span className="text-xs text-muted-foreground/60">{timeAgo(entry.created_at)}</span>
+          {entry.token_count && <span className="text-xs font-mono text-muted-foreground/60">{formatAiTokens(entry.token_count)} tok</span>}
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />
         </div>
       </div>
     </Card>
@@ -957,32 +621,32 @@ function AiEntryDetailModal({ entry, onClose }: { entry: any; onClose: () => voi
   const roleColor = ROLE_COLORS[entry.role] || ROLE_COLORS.other
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+      <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-6 border-b border-border">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>{entry.role}</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}</span>
+              <span className="text-xs text-muted-foreground">{ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}</span>
             </div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{entry.title}</h3>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            <h3 className="text-sm font-semibold text-foreground">{entry.title}</h3>
+            <p className="text-xs text-muted-foreground/60 mt-1">
               {timeAgo(entry.created_at)}
               {entry.token_count && ` · ${formatAiTokens(entry.token_count)} tokens`}
               {entry.retrieval_count !== undefined && ` · retrieved ${entry.retrieval_count}×`}
             </p>
           </div>
-          <button onClick={onClose} className="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0">✕</button>
+          <button onClick={onClose} className="ml-4 text-muted-foreground hover:text-foreground flex-shrink-0 transition-colors">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-6">
           {entry.content
-            ? <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{entry.content}</p>
-            : <p className="text-sm text-gray-400 italic">Loading content...</p>
+            ? <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{entry.content}</p>
+            : <p className="text-sm text-muted-foreground italic">Loading content...</p>
           }
           {entry.tags && entry.tags.length > 0 && (
             <div className="flex items-center gap-2 mt-4 flex-wrap">
-              <Tag className="w-3.5 h-3.5 text-gray-400" />
+              <Tag className="w-3.5 h-3.5 text-muted-foreground/60" />
               {entry.tags.map((tag: string) => (
-                <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">{tag}</span>
+                <span key={tag} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{tag}</span>
               ))}
             </div>
           )}

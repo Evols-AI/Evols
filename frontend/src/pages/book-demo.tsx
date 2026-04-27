@@ -2,6 +2,8 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect } from 'react'
 import { Sparkles, MessageSquare, CheckCircle } from 'lucide-react'
+import { useTheme } from '@/contexts/ThemeContext'
+import { LogoWordmark } from '@/components/Logo'
 
 declare global {
   interface Window {
@@ -10,8 +12,15 @@ declare global {
 }
 
 export default function BookDemo() {
+  const { theme } = useTheme()
+  const dark = theme === 'dark'
+
   useEffect(() => {
-    // Cal.com inline embed initialization
+    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.backgroundImage = 'none'
+  }, [dark])
+
+  useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (function (C: any, A: string, L: string) {
       let p = function (a: any, ar: any) { a.q.push(ar); };
@@ -40,44 +49,39 @@ export default function BookDemo() {
         p(cal, ar);
       };
     })(window, "https://app.cal.com/embed/embed.js", "init");
-
-    // Wait for Cal to be loaded, then initialize
     const initCal = () => {
       if (window.Cal) {
         window.Cal("init", "demo", { origin: "https://app.cal.com" });
-
         window.Cal.ns.demo("inline", {
           elementOrSelector: "#my-cal-inline",
           config: { layout: "month_view", useSlotsViewOnSmallScreen: "true" },
           calLink: "akshaysaraswat/demo",
         });
-
         window.Cal.ns.demo("ui", { hideEventTypeDetails: false, layout: "month_view" });
       }
     };
-
-    // Try to initialize, or wait for script to load
     setTimeout(initCal, 100);
   }, [])
+
+  const textPrimary = dark ? 'text-[#FAFAFA]' : 'text-[#0A0A0B]'
+  const textMuted = dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'
 
   return (
     <>
       <Head>
         <title>Book a Demo - Evols</title>
+        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
-        {/* Header */}
+      <div className={`min-h-screen transition-colors ${dark ? 'bg-[#0A0A0B]' : 'bg-[#F7F7F8]'}`}>
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">
-            <Link href="/" className="flex items-center">
-              <span className="logo-text text-4xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                Evols
-              </span>
+            <Link href="/">
+              <LogoWordmark iconSize={44} />
             </Link>
             <div className="flex items-center space-x-6">
-              <Link href="/login" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Login</Link>
-              <Link href="/register" className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce">
-                Get Started
+              <Link href="/login" className={`text-sm transition-colors ${textMuted} hover:text-[#A78BFA]`}>Login</Link>
+              <Link href="/register" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-2 px-5 rounded-lg text-sm font-medium transition-colors">
+                Get Early Access
               </Link>
             </div>
           </nav>
@@ -93,43 +97,31 @@ export default function BookDemo() {
                   alt="Features overview illustration"
                   className="w-full max-w-md mx-auto mb-10 drop-shadow-lg"
                 />
-                <h1 className="text-4xl md:text-5xl mb-6 text-gray-900 dark:text-white">See Your AI PM Copilot in Action</h1>
-                <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+                <h1 className={`text-4xl md:text-5xl font-medium mb-6 ${textPrimary}`}>See Your AI PM Copilot in Action</h1>
+                <p className={`text-xl mb-8 ${textMuted}`}>
                   Book a 30-minute personalized demo to see how an AI copilot can become your PM operating system.
                 </p>
                 <div className="space-y-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-6 h-6 text-blue-600" />
+                  {[
+                    { icon: Sparkles, color: 'text-[#A78BFA]', bg: 'bg-[#A78BFA]/10', title: '80+ PM Skills', desc: 'See conversational AI execute strategy docs, PRDs, meeting prep, and weekly updates' },
+                    { icon: MessageSquare, color: 'text-[#A78BFA]', bg: 'bg-[#A78BFA]/10', title: 'Auto Work Context', desc: 'Watch AI automatically capture your role, projects, and tasks from natural conversation' },
+                    { icon: CheckCircle, color: 'text-[#A78BFA]', bg: 'bg-[#A78BFA]/10', title: 'Bring Your Docs', desc: 'See how Evols extracts intelligence from your actual documents and meeting notes' },
+                  ].map(({ icon: Icon, color, bg, title, desc }) => (
+                    <div key={title} className="flex items-start space-x-4">
+                      <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`w-5 h-5 ${color}`} />
+                      </div>
+                      <div>
+                        <h3 className={`text-base font-medium mb-1 ${textPrimary}`}>{title}</h3>
+                        <p className={`text-sm ${textMuted}`}>{desc}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg mb-1 text-gray-900 dark:text-white">80+ PM Skills</h3>
-                      <p className="text-gray-600 dark:text-gray-400">See conversational AI execute strategy docs, PRDs, meeting prep, and weekly updates</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <MessageSquare className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg mb-1 text-gray-900 dark:text-white">Auto Work Context</h3>
-                      <p className="text-gray-600 dark:text-gray-400">Watch AI automatically capture your role, projects, and tasks from natural conversation</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg mb-1 text-gray-900 dark:text-white">Bring Your Docs</h3>
-                      <p className="text-gray-600 dark:text-gray-400">See how Evols extracts intelligence from your actual documents and meeting notes</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
               {/* Right - Calendar Embed */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+              <div className={`rounded-2xl border overflow-hidden ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
                 <div
                   id="my-cal-inline"
                   style={{ width: '100%', height: '100%', overflow: 'auto' }}
@@ -140,14 +132,16 @@ export default function BookDemo() {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="container mx-auto px-6 py-12 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-12">
-          <div className="flex items-center space-x-6">
-            <Link href="/docs" className="hover:text-blue-500 transition">Documentation</Link>
-            <Link href="/support" className="hover:text-blue-500 transition">Contact Support</Link>
-            <Link href="/register" className="hover:text-blue-500 transition">Sign Up</Link>
+        <footer className={`border-t ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} py-12 transition-colors duration-300`}>
+          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`}>
+            <LogoWordmark iconSize={32} />
+            <div className="flex items-center gap-6 flex-wrap justify-center">
+              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Docs</Link>
+              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Support</Link>
+              <Link href="/register" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Sign Up</Link>
+            </div>
+            <p className="text-xs">© 2026 Evols AI</p>
           </div>
-          <p>© 2026 Evols. Evolve your product roadmap.</p>
         </footer>
       </div>
     </>

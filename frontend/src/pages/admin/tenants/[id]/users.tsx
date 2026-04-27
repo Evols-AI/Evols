@@ -48,7 +48,7 @@ export default function TenantUsers() {
   const loadUsers = async () => {
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${id}/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -69,7 +69,7 @@ export default function TenantUsers() {
   const handleCreateUser = async (formData: any) => {
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${id}/users`, {
         method: 'POST',
         headers: {
@@ -94,7 +94,7 @@ export default function TenantUsers() {
   const handleChangeRole = async (userId: number, newRole: string) => {
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${id}/users/${userId}`, {
         method: 'PUT',
         headers: {
@@ -122,7 +122,7 @@ export default function TenantUsers() {
 
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/admin/tenants/${id}/users/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -159,7 +159,7 @@ export default function TenantUsers() {
           <div className="mb-8">
             <Link
               href="/admin/tenants"
-              className="flex items-center gap-2 text-blue-500 dark:text-blue-300 hover:text-blue-600 mb-4"
+              className="flex items-center gap-2 text-[#A78BFA] dark:text-[#A78BFA] hover:text-[#A78BFA] mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Tenants
@@ -176,7 +176,7 @@ export default function TenantUsers() {
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                className="flex items-center gap-2 bg-[#8B5CF6] text-white px-4 py-2 rounded-lg hover:bg-[#7C3AED]"
               >
                 <Plus className="w-5 h-5" />
                 Add User
@@ -214,9 +214,9 @@ export default function TenantUsers() {
                   <tr key={user.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 rounded-full flex items-center justify-center">
                           {user.role === 'TENANT_ADMIN' ? (
-                            <Shield className="w-5 h-5 text-blue-500 dark:text-blue-300" />
+                            <Shield className="w-5 h-5 text-[#A78BFA] dark:text-[#A78BFA]" />
                           ) : (
                             <UserIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                           )}
@@ -390,7 +390,7 @@ function CreateUserModal({ onClose, onCreate }: { onClose: () => void, onCreate:
             </button>
             <button
               type="submit"
-              className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              className="flex-1 bg-[#8B5CF6] text-white px-4 py-2 rounded-lg hover:bg-[#7C3AED]"
             >
               Create User
             </button>

@@ -1,357 +1,639 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRef, useEffect, useCallback } from 'react'
 import {
-  GitBranch,
-  Users,
-  Sparkles,
-  ArrowRight,
-  CheckCircle,
-  Moon,
-  Sun
+  ArrowRight, Moon, Sun,
+  Zap, Users, Brain, Shield,
+  BarChart3, GitMerge, AlertTriangle, RefreshCw, DollarSign,
+  MessageSquare, Layers, Activity
 } from 'lucide-react'
 import { LogoWordmark } from '@/components/Logo'
 import { useTheme } from '@/contexts/ThemeContext'
 
+// ─── Cruip-style mouse-tracking spotlight card with lavender glow ─────────────
+function SpotlightCard({
+  children,
+  dark,
+  className = '',
+}: {
+  children: React.ReactNode
+  dark: boolean
+  className?: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const el = ref.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    el.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+    el.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+  }, [])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.addEventListener('mousemove', handleMouseMove)
+    return () => el.removeEventListener('mousemove', handleMouseMove)
+  }, [handleMouseMove])
+
+  return (
+    <div
+      ref={ref}
+      className={`
+        group/card relative h-full overflow-hidden rounded-2xl p-px
+        ${dark ? 'bg-white/[0.07]' : 'bg-black/[0.08]'}
+        before:pointer-events-none before:absolute before:-left-40 before:-top-40 before:z-10
+        before:h-80 before:w-80
+        before:translate-x-[var(--mouse-x,0px)] before:translate-y-[var(--mouse-y,0px)]
+        before:rounded-full before:bg-[#A78BFA]/70 before:opacity-0 before:blur-3xl
+        before:transition-opacity before:duration-500
+        after:pointer-events-none after:absolute after:-left-48 after:-top-48 after:z-30
+        after:h-64 after:w-64
+        after:translate-x-[var(--mouse-x,0px)] after:translate-y-[var(--mouse-y,0px)]
+        after:rounded-full after:bg-[#A78BFA] after:opacity-0 after:blur-3xl
+        after:transition-opacity after:duration-500
+        hover:after:opacity-15 hover:before:opacity-100
+        ${className}
+      `}
+    >
+      <div className={`relative z-20 h-full overflow-hidden rounded-[inherit] ${dark ? 'bg-[#111113]' : 'bg-white'}`}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+const NAV_LINKS = [
+  { label: 'Product', href: '#product' },
+  { label: 'Docs', href: '/docs' },
+]
+
+const PROBLEMS = [
+  {
+    icon: <GitMerge className="w-5 h-5" />,
+    label: 'Handoff Tax',
+    title: 'Context built once, rebuilt constantly',
+    body: 'PM research, engineering decisions, UX insights — every teammate rebuilds from scratch. The same 12,000 tokens of context compiled daily across every role.',
+  },
+  {
+    icon: <RefreshCw className="w-5 h-5" />,
+    label: 'Invisible Waste',
+    title: 'Duplicate work nobody sees coming',
+    body: 'Two engineers solve the same infra problem. Three PMs research the same competitor. Work collides at review — after the tokens are burned.',
+  },
+  {
+    icon: <BarChart3 className="w-5 h-5" />,
+    label: 'Quota Blindness',
+    title: 'Capacity burns or expires, both wasted',
+    body: 'Some teammates hit session lockouts mid-task. Others let quota reset unused. No tool shows collective AI capacity across the team.',
+  },
+  {
+    icon: <AlertTriangle className="w-5 h-5" />,
+    label: 'Low-Value Output',
+    title: 'Polished output, shallow substance',
+    body: 'AI drafts look complete. Teammates spend time verifying, rewriting, clarifying — the hidden rework tax on every AI-assisted deliverable.',
+  },
+  {
+    icon: <Layers className="w-5 h-5" />,
+    label: 'Tool Fragmentation',
+    title: 'Debugging across too many layers',
+    body: 'Agentic systems span models, orchestrators, APIs, logs, dashboards. When something breaks, engineers reconstruct what happened from scratch.',
+  },
+  {
+    icon: <DollarSign className="w-5 h-5" />,
+    label: 'Cost Blowups',
+    title: 'Token costs grow faster than value',
+    body: 'Teams underestimate how fast inference costs scale. Productivity gains get erased by optimization work and unplanned budget pressure.',
+  },
+]
+
+const FEATURES = [
+  {
+    icon: <Brain className="w-6 h-6" />,
+    title: 'Zero Cold Start',
+    description: 'New teammates inherit the team knowledge graph on day one. No setup, no accumulation period — full context from the first session.',
+    stat: 'Day one',
+    statLabel: 'full context',
+  },
+  {
+    icon: <Zap className="w-6 h-6" />,
+    title: 'Auto-Compiled Knowledge',
+    description: 'Every AI session contributes to a shared team knowledge base automatically. Query it instead of rebuilding it — at 8× fewer tokens.',
+    stat: '~8×',
+    statLabel: 'token efficiency',
+  },
+  {
+    icon: <Users className="w-6 h-6" />,
+    title: 'Redundancy Prevention',
+    description: 'Detect duplicate AI work before tokens are burned — not after the work collides at code review or the decks land in the same meeting.',
+    stat: '0',
+    statLabel: 'duplicate sessions',
+  },
+  {
+    icon: <Activity className="w-6 h-6" />,
+    title: 'Quota Visibility',
+    description: 'See collective team AI capacity in real time. Redirect expiring quota to backlog tasks before it resets unused.',
+    stat: '+15%',
+    statLabel: 'effective quota',
+  },
+  {
+    icon: <Shield className="w-6 h-6" />,
+    title: 'Governance & Access',
+    description: 'Project-level and role-level context permissions. Teams control who sees what knowledge — built for orgs that handle sensitive context.',
+    stat: 'SOC 2',
+    statLabel: 'in progress',
+  },
+  {
+    icon: <MessageSquare className="w-6 h-6" />,
+    title: 'Works Where You Work',
+    description: 'One plugin install activates everything in Claude Code. MCP integration covers Copilot, Kiro, Cursor, and Cline automatically.',
+    stat: '1 cmd',
+    statLabel: 'to activate',
+  },
+]
+
+const TESTIMONIALS = [
+  {
+    quote: 'I think there is room here for an incredible new product instead of a hacky collection of scripts.',
+    author: 'Andrej Karpathy',
+    role: 'AI Researcher',
+    initials: 'AK',
+    date: 'April 2026',
+  },
+  {
+    quote: "We're stopping at individual productivity. One department doesn't know what the other one does. That's where it cracks.",
+    author: 'Sven Peters',
+    role: 'AI Evangelist, Atlassian',
+    initials: 'SP',
+    date: 'March 2026',
+  },
+]
+
+const STATS = [
+  { value: '84%', label: 'of technical workers use AI daily' },
+  { value: '75%', label: 'say tools focus too much on individuals' },
+  { value: '~300K', label: 'tokens saved weekly per 10-person team' },
+  { value: '+15%', label: 'effective quota extension' },
+]
+
 export default function Home() {
   const { theme, toggleTheme } = useTheme()
+  const dark = theme === 'dark'
+  const heroRef = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0])
+  const heroY = useTransform(scrollYProgress, [0, 0.6], [0, 40])
+
+  // override globals.css body bg so it doesn't bleed through
+  useEffect(() => {
+    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.backgroundImage = 'none'
+  }, [dark])
+
+  // Theme tokens
+  const bg        = dark ? 'bg-[#0A0A0B]'       : 'bg-[#F7F7F8]'
+  const bgAlt     = dark ? 'bg-[#0D0D0F]'       : 'bg-[#EFEFF2]'
+  const bgCard    = dark ? 'bg-[#111113]'        : 'bg-white'
+  const border    = dark ? 'border-white/[0.06]' : 'border-black/[0.07]'
+  const text      = dark ? 'text-[#FAFAFA]'      : 'text-[#0A0A0B]'
+  const textMuted = dark ? 'text-[#A1A1AA]'      : 'text-[#52525B]'
+  const textFaint = dark ? 'text-[#71717A]'      : 'text-[#A1A1AA]'
+  const navBg     = dark ? 'bg-[#0A0A0B]/80'    : 'bg-white/80'
+
+  // Lavender accent
+  const lav       = '#A78BFA'
+  const lavDeep   = '#8B5CF6'
+  const lavDeeper = '#7C3AED'
+  const lavIconBg = dark
+    ? 'bg-[#A78BFA]/10 border border-[#A78BFA]/20 text-[#A78BFA]'
+    : 'bg-[#EDE9FE] border border-[#C4B5FD] text-[#8B5CF6]'
+  const lavPill = dark
+    ? 'border-[#A78BFA]/30 bg-[#A78BFA]/10 text-[#C4B5FD]'
+    : 'border-[#A78BFA]/40 bg-[#EDE9FE] text-[#8B5CF6]'
 
   return (
     <>
       <Head>
-        <title>Evols - Stop Wasting Your Team's AI Conversations</title>
+        <title>Evols AI — The Team AI Operating System</title>
+        <meta name="description" content="Evols eliminates the handoff tax. Every AI session your team runs compounds into shared intelligence — zero cold start, no duplicate work, full quota visibility." />
+        <meta property="og:title" content="Evols AI — The Team AI Operating System" />
+        <meta property="og:description" content="Turn every AI session into team intelligence. One plugin install activates everything." />
+        <meta name="robots" content="index, follow" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Evols AI",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "offers": { "@type": "Offer", "price": "49", "priceCurrency": "USD" },
+          "description": "The team AI operating system.",
+          "url": "https://evols.ai",
+        })}} />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-violet-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
-        {/* Header */}
-        <header className="container mx-auto px-6 py-8">
-          <nav className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <LogoWordmark iconSize={60} />
+      <div className={`min-h-screen ${bg} ${text} antialiased transition-colors duration-300`}>
+
+        {/* ── NAV ── */}
+        <nav className={`fixed top-0 left-0 right-0 z-50 border-b ${border} backdrop-blur-xl ${navBg} transition-colors duration-300`}>
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <LogoWordmark iconSize={36} />
+            <div className="hidden md:flex items-center gap-8">
+              {NAV_LINKS.map(l => (
+                <a key={l.label} href={l.href}
+                  className={`text-sm ${textMuted} hover:${text} transition-colors duration-150 tracking-[-0.01em]`}>
+                  {l.label}
+                </a>
+              ))}
             </div>
-            <div className="flex items-center space-x-6">
-              <button onClick={toggleTheme}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition transform hover:scale-110 active:scale-90 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
                 aria-label="Toggle theme"
+                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                  dark
+                    ? 'text-[#71717A] hover:text-[#A1A1AA] hover:bg-white/[0.06]'
+                    : 'text-[#A1A1AA] hover:text-[#52525B] hover:bg-black/[0.05]'
+                }`}
               >
-                {theme === 'light' ? (
-                  <Moon className="w-5 h-5 text-gray-600" />
-                ) : (
-                  <Sun className="w-5 h-5 text-gray-300" />
-                )}
+                {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
-              <Link href="/login" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-                Login
+              <Link href="/login"
+                className={`text-sm ${textMuted} hover:${text} transition-colors duration-150 px-3 py-1.5`}>
+                Sign in
               </Link>
               <Link href="/register"
-                className="bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce"
-              >
-                Get Started
+                style={{ backgroundColor: lavDeep }}
+                className="text-sm font-medium px-4 py-2 rounded-lg text-white transition-all duration-150 tracking-[-0.01em] hover:opacity-90">
+                Get early access
               </Link>
             </div>
-          </nav>
-        </header>
+          </div>
+        </nav>
 
-        {/* Hero Section */}
-        <section className="container mx-auto px-6 py-20">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center lg:text-left"
-            >
-              <div className="inline-flex items-center space-x-2 bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full text-sm text-blue-600 dark:text-blue-400 mb-6">
-                <Sparkles className="w-4 h-4" />
-                <span>Team AI Operating System</span>
-              </div>
+        {/* ── HERO ── */}
+        <section ref={heroRef} className="relative pt-40 pb-32 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] blur-[120px] rounded-full ${dark ? 'bg-[#A78BFA]/10' : 'bg-[#A78BFA]/7'}`} />
+            <div className={`absolute top-20 left-1/4 w-[400px] h-[300px] blur-[100px] rounded-full ${dark ? 'bg-[#A78BFA]/6' : 'bg-[#A78BFA]/4'}`} />
+          </div>
+          <div className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: dark
+                ? 'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)'
+                : 'linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)',
+              backgroundSize: '60px 60px',
+            }} />
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl mb-6 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent leading-tight pb-2">
-                Eliminate the Handoff Tax
-                <br />
-                <span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">On Your Team</span>
-              </h1>
+          <motion.div style={{ opacity: heroOpacity, y: heroY }}
+            className="relative max-w-4xl mx-auto px-6 text-center">
 
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto lg:mx-0">
-                Every AI session your team runs disappears when the window closes.
-                Evols turns those sessions into a shared, auto-compiled team knowledge base —
-                so every teammate inherits what the last one learned.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
-                <Link href="/book-demo"
-                  className="w-full sm:w-auto bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-4 px-10 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 hover:brightness-110 flex items-center justify-center space-x-2 text-lg h-[56px]"
-                >
-                  <span>Book a 15-Minute Demo</span>
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-                <Link href="/register"
-                  className="w-full sm:w-auto border-2 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-10 py-4 rounded-full text-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition transform hover:scale-105 active:scale-95 flex items-center justify-center h-[56px]"
-                >
-                  Start Free Trial
-                </Link>
-              </div>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-8 ${lavPill} text-xs font-medium tracking-wide`}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: lav }} />
+              Now in early access — limited design partner spots
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="hidden lg:flex justify-center"
-            >
-              <img
-                src="/Innovation-amico.svg"
-                alt="Innovation illustration"
-                className="w-full max-w-lg drop-shadow-lg"
-              />
-            </motion.div>
-          </div>
-        </section>
+            <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}
+              className="text-5xl md:text-7xl font-medium tracking-[-0.03em] leading-[1.04] mb-6 text-balance">
+              The team brain<br />
+              <span style={{ color: lav }}>for every AI session</span>
+            </motion.h1>
 
-        {/* Problems We Solve */}
-        <section className="container mx-auto px-6 py-20">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl mb-6 text-gray-900 dark:text-white">
-              The Problems We Solve
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard icon={<Sparkles className="w-8 h-8" />}
-              title="The Handoff Tax"
-              description="Knowledge generated in one person's AI session never reaches the teammate who needs it. PM research, engineering decisions, UX insights — rebuilt from scratch every time."
-            />
-            <FeatureCard icon={<Users className="w-8 h-8" />}
-              title="Invisible Waste"
-              description="Teams have no visibility into what AI work is being done. Two PMs research the same competitor. Two engineers solve the same problem. Nobody knows until the work collides."
-            />
-            <FeatureCard icon={<GitBranch className="w-8 h-8" />}
-              title="Quota Blindness"
-              description="Some team members hit session lockouts mid-task. Others let quota expire unused. Neither is visible. Teams have no way to see, balance, or redirect AI capacity across the team."
-            />
-          </div>
-        </section>
+            <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.1 }}
+              className={`text-lg md:text-xl ${textMuted} max-w-2xl mx-auto mb-10 leading-relaxed tracking-[-0.01em]`}>
+              Evols turns every AI session your team runs into shared, compounding intelligence →
+              zero cold start, no duplicate work, full quota visibility. One plugin install activates everything.
+            </motion.p>
 
-        {/* Benefits & Features */}
-        <section className="container mx-auto px-6 py-20">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-            <div className="grid md:grid-cols-2 gap-12 p-12">
-              <div>
-                <h2 className="text-4xl mb-8 text-gray-900 dark:text-white">
-                  How Evols Transforms Your Team
-                </h2>
-                <div className="space-y-6">
-                  <ValueProp text="Zero-Friction Onboarding: Inherit your team's accumulated AI knowledge on day one — no setup, no cold start, no accumulation period" />
-                  <ValueProp text="Auto-Compiled Team Knowledge Base: Every AI session contributes to a shared wiki automatically. You query it instead of rebuilding it from scratch each time" />
-                  <ValueProp text="Redundancy Prevention: Get alerted before you spend tokens on work a teammate already completed — before the session starts, not after" />
-                  <ValueProp text="Quota Visibility: See collective team AI capacity in real time. Redirect expiring quota to backlog tasks before it resets unused" />
-                  <ValueProp text="Works Where You Work: One plugin install activates everything in Claude Code. MCP integration covers Copilot, Kiro, Cursor, and Cline" />
-                </div>
-              </div>
-              <div className="hidden md:flex items-center justify-center">
-                <img
-                  src="/Innovation-pana.svg"
-                  alt="Innovation illustration"
-                  className="w-full max-w-md drop-shadow-lg"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Comparison Section */}
-        <section className="container mx-auto px-6 py-20 pb-32">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-4xl md:text-5xl mb-6 text-gray-900 dark:text-white">
-              Why Evols vs <br /><span className="bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">Generic AI Assistants?</span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">
-              Stop adapting your PM workflow to generic AI tools. Get AI that understands how product teams actually work.
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-gray-700">
-              {/* Generic AI Tools Column */}
-              <div className="p-8 bg-gray-50/50 dark:bg-gray-800/50">
-                <h3 className="text-sm text-gray-500 dark:text-gray-400 mb-6 uppercase tracking-wider">Generic AI Assistants</h3>
-                <div className="space-y-6">
-                  <ComparisonItem name="❌ Generic business advice" price="" />
-                  <ComparisonItem name="❌ Each conversation starts from zero" price="" />
-                  <ComparisonItem name="❌ Individual work, no sharing" price="" />
-                  <ComparisonItem name="❌ Insights disappear after conversation" price="" />
-                  <ComparisonItem name="❌ Everyone duplicates the same work" price="" />
-                  <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                      Result: 2+ hours daily handoff tax recreating context between AI tools
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Evols Column */}
-              <div className="p-8 bg-gradient-to-b from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <Sparkles className="w-32 h-32 text-blue-500" />
-                </div>
-                <div className="relative z-10">
-                  <h3 className="text-sm text-blue-600 dark:text-blue-400 mb-6 uppercase tracking-wider">
-                    Evols Team Intelligence
-                  </h3>
-                  <div className="space-y-6">
-                    <ComparisonItem name="✅ Shared team knowledge base, auto-compiled" price="" />
-                    <ComparisonItem name="✅ Team context inherited on day one" price="" />
-                    <ComparisonItem name="✅ Redundancy detected before work starts" price="" />
-                    <ComparisonItem name="✅ Quota visible and redirectable across team" price="" />
-                    <ComparisonItem name="✅ One plugin install — everything activates" price="" />
-                  </div>
-                  <div className="pt-6 mt-6 border-t border-blue-200 dark:border-blue-800">
-                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-6">
-                      Result: Eliminate handoff tax, make your entire team smarter
-                    </p>
-                    <Link href="/book-demo" className="block w-full text-center bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-4 px-6 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 hover:brightness-110 active:scale-95">
-                      See How It Works
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Token Savings */}
-          <div className="max-w-2xl mx-auto mt-16 text-center bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-8 rounded-2xl">
-            <h3 className="text-2xl mb-4 text-gray-900 dark:text-white">Your Team's Quota Goes Further</h3>
-            <div className="space-y-3 text-gray-600 dark:text-gray-300">
-              <p>84% of technical workers use AI tools daily — spending the majority of their tokens compiling knowledge from scratch every session</p>
-              <p>Evols pre-compiles that knowledge once, shared across the team</p>
-              <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">Retrieving pre-compiled knowledge costs ~8x fewer tokens than building it fresh</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">For a 10-person team: ~300,000 tokens saved per week — ~15% quota extension</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Market Validation */}
-        <section className="container mx-auto px-6 py-20">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl mb-6 text-gray-900 dark:text-white">
-              The Problem Is Real
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
-              <div className="mb-6">
-                <p className="text-gray-700 dark:text-gray-300 italic text-lg">
-                  "I think there is room here for an incredible new product instead of a hacky collection of scripts."
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                  AK
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 dark:text-white">Andrej Karpathy</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">AI Researcher, April 2026</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
-              <div className="mb-6">
-                <p className="text-gray-700 dark:text-gray-300 italic text-lg">
-                  "We're stopping at individual productivity. One department doesn't know what the other one does. That's where it cracks."
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                  SP
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 dark:text-white">Sven Peters</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">AI Evangelist, Atlassian</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Final CTA */}
-        <section className="container mx-auto px-6 py-20">
-          <div className="text-center max-w-2xl mx-auto bg-gradient-to-r from-purple-400 to-blue-500 p-12 rounded-3xl text-white">
-            <h2 className="text-4xl mb-6">Stop Rebuilding What Your Team Already Knows</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Every session your team runs should compound into shared intelligence — not disappear.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.15 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/register"
+                style={{ backgroundColor: lavDeep }}
+                className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-white font-medium text-sm tracking-[-0.01em] transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shadow-lg"
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = lavDeeper)}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = lavDeep)}>
+                Get early access
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
               <Link href="/book-demo"
-                className="w-full sm:w-auto bg-white text-purple-600 py-4 px-10 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 font-semibold flex items-center justify-center space-x-2 h-[56px]"
-              >
-                <span>Book Demo Now</span>
-                <ArrowRight className="w-5 h-5" />
+                className={`inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border font-medium text-sm tracking-[-0.01em] transition-all duration-200 ${
+                  dark
+                    ? 'border-white/10 hover:border-white/20 text-[#A1A1AA] hover:text-white hover:bg-white/[0.03]'
+                    : 'border-black/10 hover:border-black/20 text-[#52525B] hover:text-[#0A0A0B] hover:bg-black/[0.03]'
+                }`}>
+                Book a demo
               </Link>
-              <Link href="/register"
-                className="w-full sm:w-auto border-2 border-white text-white px-10 py-4 rounded-full hover:bg-white hover:text-purple-600 transition transform hover:scale-105 active:scale-95 flex items-center justify-center h-[56px]"
-              >
-                Start Free Trial
-              </Link>
+            </motion.div>
+
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+              className={`mt-6 text-xs ${textFaint}`}>
+              Active with Claude Code, Copilot, Kiro, Cursor, and Cline
+            </motion.p>
+          </motion.div>
+
+          {/* Hero terminal */}
+          <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
+            className="relative max-w-3xl mx-auto mt-20 px-6">
+            <div className={`rounded-2xl border ${border} ${bgCard} overflow-hidden shadow-2xl ${dark ? 'shadow-black/60' : 'shadow-black/8'}`}>
+              <div className={`flex items-center gap-1.5 px-4 py-3 border-b ${border}`}>
+                <div className="w-3 h-3 rounded-full bg-[#FF5F57]" />
+                <div className="w-3 h-3 rounded-full bg-[#FEBC2E]" />
+                <div className="w-3 h-3 rounded-full bg-[#28C840]" />
+                <span className={`ml-3 text-xs ${textFaint} font-mono`}>evols · session end</span>
+              </div>
+              <div className="p-5 font-mono text-xs leading-relaxed">
+                <p className="text-[#22C55E]">✅ Session complete: retention pain points mapped</p>
+                <p className={`${textFaint} mt-2`}>Added to team knowledge base:</p>
+                <p className={`${textMuted} ml-3`}>→ 5 insights on SMB churn triggers</p>
+                <p className={`${textMuted} ml-3`}>→ 2 product decisions: onboarding over activation</p>
+                <p className={`${textMuted} ml-3`}>→ Interview framework filed under /customers/smb/</p>
+                <div className={`mt-3 pt-3 border-t ${border}`}>
+                  <p className={textFaint}>Retrieved from team knowledge base:</p>
+                  <p className={`${textMuted} ml-3`}>→ Tom's pricing research <span className={textFaint}>(847 tokens — saved ~6,800)</span></p>
+                  <p className={`${textMuted} ml-3`}>→ Jordan's onboarding drop-off analysis <span className={textFaint}>(623 tokens — saved ~5,200)</span></p>
+                </div>
+                <div className={`mt-3 pt-3 border-t ${border}`}>
+                  <p className={textFaint}>Quota: <span style={{ color: lav }}>████████░░ 68% used</span> · resets in 4h 12m</p>
+                  <p className={textFaint}>Background task: <span className={textMuted}>PRD-47 gap analysis queued ↗</span></p>
+                </div>
+              </div>
+            </div>
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-2/3 h-16 blur-2xl rounded-full pointer-events-none"
+              style={{ backgroundColor: `${lav}20` }} />
+          </motion.div>
+        </section>
+
+        {/* ── STATS STRIP ── */}
+        <section className={`border-y ${border} py-12 ${bgAlt} transition-colors duration-300`}>
+          <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+            {STATS.map((s, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.07 }}
+                className="text-center">
+                <div className={`text-3xl font-medium tracking-[-0.03em] ${text} mb-1`}>{s.value}</div>
+                <div className={`text-xs ${textFaint} leading-snug`}>{s.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── PROBLEMS ── */}
+        <section id="product" className="py-28 max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <SectionLabel dark={dark} border={border} textFaint={textFaint}>The problem</SectionLabel>
+            <h2 className={`text-4xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.08] mb-5 ${text}`}>
+              Six ways teams waste<br />
+              <span className={textMuted}>their collective AI investment</span>
+            </h2>
+            <p className={`${textFaint} max-w-xl mx-auto text-base leading-relaxed`}>
+              AI tools are built for individuals. Teams using them collectively suffer compounding failures that no single tool today addresses.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {PROBLEMS.map((p, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                className="h-full">
+                <SpotlightCard dark={dark}>
+                  <div className="p-6">
+                    <div className="flex items-center gap-2.5 mb-4">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${lavIconBg}`}>
+                        {p.icon}
+                      </div>
+                      <span className={`text-xs font-medium ${textFaint} tracking-wide uppercase`}>{p.label}</span>
+                    </div>
+                    <h3 className={`text-base font-medium tracking-[-0.02em] mb-2 ${text}`}>{p.title}</h3>
+                    <p className={`text-sm ${textFaint} leading-relaxed`}>{p.body}</p>
+                  </div>
+                </SpotlightCard>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── HOW IT WORKS ── */}
+        <section className={`py-28 ${bgAlt} border-y ${border} transition-colors duration-300`}>
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <SectionLabel dark={dark} border={border} textFaint={textFaint}>The solution</SectionLabel>
+              <h2 className={`text-4xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.08] mb-5 ${text}`}>
+                One install. Everything connects.
+              </h2>
+              <p className={`${textFaint} max-w-xl mx-auto text-base leading-relaxed`}>
+                The Evols plugin bundles hooks, MCP server, and team context — no manual configuration.
+              </p>
+            </div>
+
+            <div className="max-w-2xl mx-auto mb-16">
+              <div className={`rounded-2xl border ${border} ${bgCard} overflow-hidden shadow-lg ${dark ? 'shadow-black/40' : 'shadow-black/6'}`}>
+                <div className={`flex items-center gap-1.5 px-4 py-3 border-b ${border}`}>
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
+                  <span className={`ml-3 text-xs ${textFaint} font-mono`}>terminal</span>
+                </div>
+                <div className="p-5 font-mono text-sm">
+                  <p><span className={textFaint}>$ </span><span className={text}>claude plugin install evols</span></p>
+                  <p className={`${textMuted} mt-2`}>→ Enter your team workspace URL: <span style={{ color: lav }}>app.evols.ai/acme</span></p>
+                  <p className={textMuted}>→ Enter your API key: <span style={{ color: lav }}>••••••••••••</span></p>
+                  <p className="text-[#22C55E] mt-2">✓ Hooks registered · MCP server active · Team context loaded</p>
+                  <p className="text-[#22C55E]">✓ Done. Your team's knowledge base is ready.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {[
+                { step: '01', title: 'Session starts', body: 'Evols fires the SessionStart hook. Team knowledge base context is injected immediately. No cold start. No accumulation period. Day one.' },
+                { step: '02', title: 'Every prompt, enriched', body: 'UserPromptSubmit hook checks for redundant work. Injects relevant prior context. Tracks session token usage client-side in real time.' },
+                { step: '03', title: 'Session ends, team gets smarter', body: 'Stop hook syncs outcomes to the team knowledge base. StopFailure hook detects rate limits and queues work for the next window.' },
+              ].map((s, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                  className="h-full">
+                  <SpotlightCard dark={dark}>
+                    <div className="p-6">
+                      <div className={`text-4xl font-medium tracking-[-0.04em] mb-4 ${dark ? 'text-white/10' : 'text-black/10'}`}>{s.step}</div>
+                      <h3 className={`text-base font-medium tracking-[-0.02em] mb-2 ${text}`}>{s.title}</h3>
+                      <p className={`text-sm ${textFaint} leading-relaxed`}>{s.body}</p>
+                    </div>
+                  </SpotlightCard>
+                </motion.div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="container mx-auto px-6 py-12 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400">
-          <div className="mb-4">
-            <LogoWordmark iconSize={40} />
+        {/* ── FEATURES ── */}
+        <section className="py-28 max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <SectionLabel dark={dark} border={border} textFaint={textFaint}>Capabilities</SectionLabel>
+            <h2 className={`text-4xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.08] mb-5 ${text}`}>
+              Four capabilities.<br />
+              <span className={textMuted}>One compounding system.</span>
+            </h2>
           </div>
-          <div className="flex items-center space-x-6">
-            <Link href="/docs" className="hover:text-blue-500 transition">Documentation</Link>
-            <Link href="/support" className="hover:text-blue-500 transition">Contact Support</Link>
-            <Link href="/register" className="hover:text-blue-500 transition">Sign Up</Link>
-            <a
-              href="https://storyset.com/innovation"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-500 transition"
-            >
-              Illustration by Storyset
-            </a>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {FEATURES.map((f, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                className="h-full">
+                <SpotlightCard dark={dark}>
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-5">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${lavIconBg}`}>
+                        {f.icon}
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xl font-medium tracking-[-0.03em] ${text}`}>{f.stat}</div>
+                        <div className={`text-[10px] ${textFaint} tracking-wide uppercase`}>{f.statLabel}</div>
+                      </div>
+                    </div>
+                    <h3 className={`text-base font-medium tracking-[-0.02em] mb-2 ${text}`}>{f.title}</h3>
+                    <p className={`text-sm ${textFaint} leading-relaxed`}>{f.description}</p>
+                  </div>
+                </SpotlightCard>
+              </motion.div>
+            ))}
           </div>
-          <p>© 2026 Evols. The team AI operating system.</p>
+        </section>
+
+        {/* ── TESTIMONIALS ── */}
+        <section className={`py-28 ${bgAlt} border-y ${border} transition-colors duration-300`}>
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="text-center mb-14">
+              <SectionLabel dark={dark} border={border} textFaint={textFaint}>Validation</SectionLabel>
+              <h2 className={`text-4xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.08] ${text}`}>
+                The gap is publicly named<br />
+                <span className={textMuted}>at the highest level</span>
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {TESTIMONIALS.map((t, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                  className="h-full">
+                  <SpotlightCard dark={dark}>
+                    <div className="p-8">
+                      <p className={`${text} text-lg leading-relaxed tracking-[-0.01em] mb-6`}>
+                        "{t.quote}"
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0"
+                          style={{ backgroundColor: lavDeep }}>
+                          {t.initials}
+                        </div>
+                        <div>
+                          <div className={`text-sm font-medium ${text}`}>{t.author}</div>
+                          <div className={`text-xs ${textFaint}`}>{t.role} · {t.date}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </SpotlightCard>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="mt-8 grid md:grid-cols-3 gap-4">
+              {[
+                { icon: '📰', text: 'Token exhaustion documented by BBC, Forbes, MacRumors — March 2026' },
+                { icon: '💡', text: 'VCs calling team context infrastructure "the next big thing in AI" — Forbes, April 2026' },
+                { icon: '🔴', text: 'GitHub Copilot Workspace shut down. No replacement exists.' },
+              ].map((s, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                  className="h-full">
+                  <SpotlightCard dark={dark}>
+                    <div className="flex items-start gap-3 p-4">
+                      <span className="text-lg">{s.icon}</span>
+                      <p className={`text-xs ${textFaint} leading-relaxed`}>{s.text}</p>
+                    </div>
+                  </SpotlightCard>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FINAL CTA ── */}
+        <section className={`py-28 ${bgAlt} border-t ${border} transition-colors duration-300`}>
+          <div className="max-w-3xl mx-auto px-6 text-center">
+            <div className="relative">
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] blur-[100px] rounded-full"
+                  style={{ backgroundColor: `${lav}18` }} />
+              </div>
+              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+                <h2 className={`text-4xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.08] mb-5 ${text}`}>
+                  Stop rebuilding what<br />
+                  <span className={textMuted}>your team already knows</span>
+                </h2>
+                <p className={`${textFaint} text-lg mb-10 leading-relaxed`}>
+                  Every session should compound into shared intelligence — not disappear when the window closes.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Link href="/register"
+                    style={{ backgroundColor: lavDeep }}
+                    className="group inline-flex items-center gap-2 px-7 py-4 rounded-xl text-white font-medium text-base tracking-[-0.01em] transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shadow-lg"
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = lavDeeper)}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = lavDeep)}>
+                    Get early access
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                  <Link href="/book-demo"
+                    className={`inline-flex items-center gap-2 px-7 py-4 rounded-xl border font-medium text-base tracking-[-0.01em] transition-all duration-200 ${
+                      dark
+                        ? 'border-white/10 hover:border-white/20 text-[#A1A1AA] hover:text-white hover:bg-white/[0.03]'
+                        : 'border-black/10 hover:border-black/20 text-[#52525B] hover:text-[#0A0A0B] hover:bg-black/[0.03]'
+                    }`}>
+                    Book a demo
+                  </Link>
+                </div>
+                <p className={`mt-5 text-xs ${textFaint}`}>No credit card · 14-day trial · Cancel anytime</p>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── FOOTER ── */}
+        <footer className={`border-t ${border} py-12 transition-colors duration-300`}>
+          <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <LogoWordmark iconSize={32} />
+            <div className="flex items-center gap-6 flex-wrap justify-center">
+              {[
+                { label: 'Docs', href: '/docs' },
+                { label: 'Support', href: '/support' },
+                { label: 'Login', href: '/login' },
+              ].map(l => (
+                <Link key={l.label} href={l.href}
+                  className={`text-sm ${textFaint} transition-colors duration-150`}>
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+            <p className={`text-xs ${textFaint}`}>© 2026 Evols AI</p>
+          </div>
         </footer>
+
       </div>
     </>
   )
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
+function SectionLabel({ dark, border, textFaint, children }: {
+  dark: boolean
+  border: string
+  textFaint: string
+  children: React.ReactNode
+}) {
   return (
-    <motion.div whileHover={{ scale: 1.05 }}
-      className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition"
-    >
-      <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-blue-500 rounded-lg flex items-center justify-center text-white mb-4">
-        {icon}
-      </div>
-      <h3 className="text-xl mb-2 text-gray-900 dark:text-white">{title}</h3>
-      <p className="text-gray-600 dark:text-gray-300">{description}</p>
-    </motion.div>
-  )
-}
-
-function ValueProp({ text }: { text: string }) {
-  return (
-    <div className="flex items-start space-x-3">
-      <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
-      <p className="text-gray-700 dark:text-gray-300">{text}</p>
-    </div>
-  )
-}
-
-function ComparisonItem({ name, price }: { name: string, price: string }) {
-  return (
-    <div className="flex items-start justify-between">
-      <div className="flex items-start space-x-3 flex-1">
-        {!name.startsWith('✅') && !name.startsWith('❌') && (
-          <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0" />
-        )}
-        <span className="text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{name}</span>
-      </div>
-      {price && <span className="text-gray-900 dark:text-white ml-4">{price}</span>}
+    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${border} ${dark ? 'bg-white/[0.03]' : 'bg-black/[0.03]'} ${textFaint} text-xs font-medium tracking-wide mb-5`}>
+      {children}
     </div>
   )
 }

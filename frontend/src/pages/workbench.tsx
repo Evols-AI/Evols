@@ -19,6 +19,7 @@ import { useRouter } from 'next/router'
 import { isAuthenticated } from '@/utils/auth'
 import { apiClient } from '@/services/api'
 import Header from '@/components/Header'
+import { Loading } from '@/components/PageContainer'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Workbench() {
@@ -131,10 +132,7 @@ export default function Workbench() {
 
           {!error && !iframeSrc && (
             <div className="flex items-center justify-center h-full">
-              <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500">
-                <div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm">Loading Workbench…</span>
-              </div>
+              <Loading text="Loading Workbench…" />
             </div>
           )}
 

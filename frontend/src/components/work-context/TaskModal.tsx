@@ -123,7 +123,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -136,7 +136,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
               <select
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               >
                 {PRIORITIES.map((p) => (
                   <option key={p.value} value={p.value}>
@@ -153,7 +153,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               >
                 {STATUSES.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -173,7 +173,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -186,7 +186,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
               type="date"
               value={formData.deadline}
               onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -201,7 +201,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
                 onChange={(e) => setFormData({ ...formData, why_critical: e.target.value })}
                 rows={2}
                 placeholder="What makes this critical today?"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               />
             </div>
           )}
@@ -216,7 +216,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
                 onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
                 rows={2}
                 placeholder="What's the high-leverage impact?"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               />
             </div>
           )}
@@ -232,7 +232,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
                   value={formData.stakeholder_name}
                   onChange={(e) => setFormData({ ...formData, stakeholder_name: e.target.value })}
                   placeholder="Who is this for?"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
                 />
               </div>
               <div>
@@ -244,7 +244,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
                   onChange={(e) => setFormData({ ...formData, stakeholder_reason: e.target.value })}
                   rows={2}
                   placeholder="Why is this important for this relationship?"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
                 />
               </div>
             </div>
@@ -260,7 +260,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
               placeholder="Where did this come from?"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -272,7 +272,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -288,7 +288,7 @@ export default function TaskModal({ isOpen, onClose, onSuccess, task, productId 
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 flex items-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {task ? 'Update' : 'Create'} Task

@@ -26,7 +26,7 @@ export default function WorkbenchDocumentation() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center">
-                <span className="text-2xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                <span className="text-2xl text-[#A78BFA]">
                   Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
                 </span>
                 <span className="text-lg font-medium text-gray-600 dark:text-gray-400 ml-2">Docs</span>
@@ -76,12 +76,12 @@ export default function WorkbenchDocumentation() {
               tailored to different decision contexts:
             </p>
             <div className="grid md:grid-cols-2 gap-4 mt-6 not-prose">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-5">
+              <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Briefcase className="w-5 h-5 text-blue-500 dark:text-blue-300" />
-                  <h3 className="text-blue-900 dark:text-blue-100">PM Mode</h3>
+                  <Briefcase className="w-5 h-5 text-[#A78BFA] dark:text-[#A78BFA]" />
+                  <h3 className="text-[#4C1D95] dark:text-[#A78BFA]">PM Mode</h3>
                 </div>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
+                <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
                   For product managers making roadmap decisions based on existing customer feedback and themes.
                 </p>
               </div>
@@ -113,7 +113,7 @@ export default function WorkbenchDocumentation() {
 
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                  <BarChart3 className="w-5 h-5 text-[#A78BFA]" />
                   How PM Mode Works
                 </h3>
                 <ol className="space-y-4">
@@ -151,7 +151,7 @@ export default function WorkbenchDocumentation() {
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Users className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Users className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-gray-900 dark:text-white">Customer-Validated:</strong>
                       <p className="text-sm">Personas represent real customer perspectives</p>
@@ -165,7 +165,7 @@ export default function WorkbenchDocumentation() {
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <Sparkles className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-gray-900 dark:text-white">AI-Powered:</strong>
                       <p className="text-sm">Strategic options generated from patterns in your data</p>
@@ -225,7 +225,7 @@ export default function WorkbenchDocumentation() {
                 <h3 className="text-lg text-gray-900 dark:text-white mb-3">Key Benefits</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
-                    <Globe className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Globe className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-gray-900 dark:text-white">Real Market Data:</strong>
                       <p className="text-sm">Scrapes actual discussions from Reddit for market validation</p>
@@ -246,7 +246,7 @@ export default function WorkbenchDocumentation() {
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <Sparkles className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-gray-900 dark:text-white">Pre-Launch Ready:</strong>
                       <p className="text-sm">Works even without a product name (use description only)</p>
@@ -255,11 +255,11 @@ export default function WorkbenchDocumentation() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 className="text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+              <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-4">
+                <h4 className="text-[#4C1D95] dark:text-[#A78BFA] mb-2 flex items-center gap-2">
                   💡 Pro Tip
                 </h4>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
+                <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
                   Don't have a product name yet? No problem! Founder Mode works with just a product description.
                   This is perfect for idea-stage validation when you're still exploring problem spaces.
                 </p>
@@ -322,9 +322,9 @@ export default function WorkbenchDocumentation() {
           {/* Getting Started */}
           <Section title="Getting Started">
             <div className="space-y-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-5">
-                <h3 className="text-blue-900 dark:text-blue-100 mb-3">🚀 First Time Using the Workbench?</h3>
-                <ol className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+              <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-5">
+                <h3 className="text-[#4C1D95] dark:text-[#A78BFA] mb-3">🚀 First Time Using the Workbench?</h3>
+                <ol className="space-y-2 text-sm text-[#6D28D9] dark:text-[#A78BFA]">
                   <li>1. <strong>Choose your mode:</strong> PM Mode for roadmap decisions, Founder Mode for strategic startup decisions</li>
                   <li>2. <strong>Frame your decision:</strong> Be specific about what you're trying to decide</li>
                   <li>3. <strong>Pull context:</strong> Let the system gather relevant data automatically</li>
@@ -393,14 +393,14 @@ export default function WorkbenchDocumentation() {
           </Section>
 
           {/* Footer CTA */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 text-center">
+          <div className="bg-[#A78BFA]/5 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-6 text-center">
             <h3 className="text-xl text-gray-900 dark:text-white mb-2">Ready to Make Better Decisions?</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-4">
               Start using the Decision Workbench to validate your product decisions with real data and customer insights.
             </p>
             <Link
               href="/workbench"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-lg font-medium transition-colors"
             >
               <Sparkles className="w-5 h-5" />
               Open Workbench

@@ -84,7 +84,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#A78BFA]" />
       </div>
     )
   }
@@ -92,8 +92,8 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
   return (
     <div>
       {/* Info Banner */}
-      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <p className="text-sm text-blue-800 dark:text-blue-200">
+      <div className="mb-6 p-4 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg">
+        <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
           💡 <strong>Document your product context</strong> - AI skills will reference this information to provide personalized,
           context-aware recommendations instead of generic advice.
         </p>
@@ -107,7 +107,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? 'bg-blue-500 text-white shadow-sm'
+                ? 'bg-[#8B5CF6] text-white shadow-sm'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
@@ -142,7 +142,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
             onChange={(e) => setContent({ ...content, [activeTab]: e.target.value })}
             className="w-full h-96 p-4 border border-gray-300 dark:border-gray-700 rounded-lg
                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                       font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                       font-mono text-sm focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-transparent
                        resize-y"
             placeholder={`Enter your ${KNOWLEDGE_TABS.find(t => t.id === activeTab)?.name.toLowerCase()} here...\n\nSupports Markdown formatting:\n- # Heading\n- **Bold** and *Italic*\n- - Bullet lists\n- 1. Numbered lists\n- [Links](url)`}
           />
@@ -155,7 +155,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
             <button
               onClick={saveKnowledge}
               disabled={saving}
-              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400
+              className="flex items-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:bg-gray-400
                          disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg
                          font-medium transition-colors"
             >

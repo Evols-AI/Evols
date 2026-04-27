@@ -150,7 +150,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 required
                 placeholder="Brief summary of the decision"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               />
             </div>
 
@@ -161,7 +161,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -183,7 +183,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
               required
               rows={3}
               placeholder="What prompted this decision?"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -196,7 +196,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
               <button
                 type="button"
                 onClick={addOption}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                className="text-sm text-[#A78BFA] dark:text-[#A78BFA] hover:underline flex items-center gap-1"
               >
                 <Plus className="w-4 h-4" />
                 Add Option
@@ -225,7 +225,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
                     onChange={(e) => updateOption(idx, 'option', e.target.value)}
                     placeholder="Option description"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none text-sm"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <textarea
@@ -233,14 +233,14 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
                       onChange={(e) => updateOption(idx, 'pros', e.target.value)}
                       placeholder="Pros"
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none text-sm"
                     />
                     <textarea
                       value={opt.cons}
                       onChange={(e) => updateOption(idx, 'cons', e.target.value)}
                       placeholder="Cons"
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none text-sm"
                     />
                   </div>
                 </div>
@@ -259,7 +259,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
               required
               rows={2}
               placeholder="What was decided?"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -274,7 +274,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
               required
               rows={3}
               placeholder="Why this option?"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -288,7 +288,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
               onChange={(e) => setFormData({ ...formData, tradeoffs: e.target.value })}
               rows={2}
               placeholder="What are we giving up?"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -304,7 +304,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
                 onChange={(e) => setStakeholderInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addStakeholder())}
                 placeholder="Add stakeholder name"
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               />
               <button
                 type="button"
@@ -319,13 +319,13 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
                 {formData.stakeholders.map((stakeholder, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA] rounded-full text-sm"
                   >
                     {stakeholder}
                     <button
                       type="button"
                       onClick={() => removeStakeholder(idx)}
-                      className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
+                      className="hover:bg-[#A78BFA]/10 rounded-full p-0.5"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -345,7 +345,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
               onChange={(e) => setFormData({ ...formData, expected_outcome: e.target.value })}
               rows={2}
               placeholder="What do you expect to happen?"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
             />
           </div>
 
@@ -361,7 +361,7 @@ export default function DecisionModal({ isOpen, onClose, onSuccess, decision, pr
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 flex items-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {decision ? 'Update' : 'Log'} Decision

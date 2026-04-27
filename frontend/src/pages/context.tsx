@@ -32,6 +32,7 @@ export default function Context() {
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [selectedEntityType, setSelectedEntityType] = useState<string>('all')
+  const [processingSourceIds, setProcessingSourceIds] = useState<Set<number>>(new Set())
   const productId = selectedProductIds[0]
 
   useEffect(() => {
@@ -56,6 +57,43 @@ export default function Context() {
       setLoading(false)
     }
   }, [router, selectedProductIds])
+
+  // Poll LightRAG processing status for newly uploaded sources
+  useEffect(() => {
+    if (processingSourceIds.size === 0) return
+    const ids = Array.from(processingSourceIds)
+    const interval = setInterval(async () => {
+      try {
+        const res = await apiClient.get('/api/v1/graph/processing-status', {
+          params: { source_ids: ids.join(',') },
+          validateStatus: () => true,
+        })
+        if (res.status !== 200) return
+        const statuses: Record<string, string> = res.data?.sources ?? {}
+        const stillPending = ids.filter(id => {
+          const s = statuses[String(id)]
+          return s === 'pending' || s === 'processing' || s === 'unknown'
+        })
+        const done = ids.filter(id => {
+          const s = statuses[String(id)]
+          return s === 'processed' || s === 'failed'
+        })
+        if (done.length > 0) {
+          setProcessingSourceIds(prev => {
+            const next = new Set(prev)
+            done.forEach(id => next.delete(id))
+            return next
+          })
+          loadContext() // refresh source list to pick up entity counts
+          if (selectedView === 'entities') loadGraphEntities()
+        }
+        if (stillPending.length === 0) clearInterval(interval)
+      } catch {
+        // ignore transient errors
+      }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [processingSourceIds])
 
   const handleTabChange = (view: ViewType) => {
     setSelectedView(view)
@@ -246,7 +284,7 @@ export default function Context() {
                       onClick={() => handleTabChange('sources')}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'sources'
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
                           : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
@@ -260,7 +298,7 @@ export default function Context() {
                       }}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'entities'
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
                           : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
@@ -271,7 +309,7 @@ export default function Context() {
                       onClick={() => handleTabChange('knowledge_graph')}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'knowledge_graph'
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
                           : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
@@ -288,7 +326,7 @@ export default function Context() {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Search..."
-                      className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
                     />
                   </div>
                 </div>
@@ -299,7 +337,7 @@ export default function Context() {
                 <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { value: 'all',            label: 'All',              Icon: Target,       active: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                      { value: 'all',            label: 'All',              Icon: Target,       active: 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]' },
                       { value: 'persona',        label: 'Personas',         Icon: Users,        active: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
                       { value: 'person',         label: 'People',           Icon: User,         active: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
                       { value: 'pain_point',     label: 'Pain Points',      Icon: AlertCircle,  active: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
@@ -310,7 +348,7 @@ export default function Context() {
                       { value: 'product',        label: 'Products',         Icon: Database,     active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
                       { value: 'technology',     label: 'Technology',       Icon: Zap,          active: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
                       { value: 'project',        label: 'Projects',         Icon: Target,       active: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
-                      { value: 'business_goal',  label: 'Business Goals',   Icon: Target,       active: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                      { value: 'business_goal',  label: 'Business Goals',   Icon: Target,       active: 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]' },
                       { value: 'metric',         label: 'Metrics',          Icon: Zap,          active: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
                       { value: 'decision',       label: 'Decisions',        Icon: Lightbulb,    active: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
                       { value: 'market',         label: 'Markets',          Icon: Building2,    active: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' },
@@ -338,6 +376,7 @@ export default function Context() {
                   sources={filteredSources}
                   groups={sourceGroups}
                   expandedGroups={expandedGroups}
+                  processingSourceIds={processingSourceIds}
                   onToggleGroup={(groupId) => {
                     const newExpanded = new Set(expandedGroups)
                     if (newExpanded.has(groupId)) {
@@ -372,9 +411,12 @@ export default function Context() {
           <AddContextModal
             selectedProductIds={selectedProductIds}
             onClose={() => setShowAddModal(false)}
-            onSuccess={() => {
+            onSuccess={(newSourceId?: number) => {
               setShowAddModal(false)
               loadContext()
+              if (newSourceId) {
+                setProcessingSourceIds(prev => new Set(prev).add(newSourceId))
+              }
             }}
           />
         )}
@@ -387,6 +429,7 @@ function SourcesView({
   sources,
   groups,
   expandedGroups,
+  processingSourceIds,
   onToggleGroup,
   onRefresh,
   onDeleteGroup
@@ -394,6 +437,7 @@ function SourcesView({
   sources: any[]
   groups: any[]
   expandedGroups: Set<number>
+  processingSourceIds: Set<number>
   onToggleGroup: (groupId: number) => void
   onRefresh: () => void
   onDeleteGroup: (groupId: number, groupName: string, e: React.MouseEvent) => void
@@ -448,7 +492,7 @@ function SourcesView({
               <div className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Database className="w-6 h-6 text-blue-500" />
+                    <Database className="w-6 h-6 text-[#A78BFA]" />
                     <div>
                       <h3 className="text-lg text-gray-900 dark:text-white">{group.name}</h3>
                       {group.description && (
@@ -496,11 +540,11 @@ function SourcesView({
             <div className="mt-4 ml-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
               {loadingGroupId === group.id ? (
                 <div className="col-span-2 text-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#A78BFA]" />
                 </div>
               ) : (
                 groupSources[group.id]?.map((source: any) => (
-                  <ContextSourceCard key={source.id} source={source} onRefresh={onRefresh} />
+                  <ContextSourceCard key={source.id} source={source} onRefresh={onRefresh} isProcessing={processingSourceIds.has(source.id)} />
                 ))
               )}
             </div>
@@ -512,7 +556,7 @@ function SourcesView({
       {sources.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {sources.map((source) => (
-            <ContextSourceCard key={source.id} source={source} onRefresh={onRefresh} />
+            <ContextSourceCard key={source.id} source={source} onRefresh={onRefresh} isProcessing={processingSourceIds.has(source.id)} />
           ))}
         </div>
       )}
@@ -577,7 +621,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
         <Card>
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <Database className="w-8 h-8 text-blue-500" />
+              <Database className="w-8 h-8 text-[#A78BFA]" />
               <span className="text-3xl">{sources.length}</span>
             </div>
             <p className="text-sm text-muted">Context Sources</p>
@@ -635,7 +679,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
   )
 }
 
-function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () => void }) {
+function ContextSourceCard({ source, onRefresh, isProcessing }: { source: any; onRefresh: () => void; isProcessing?: boolean }) {
   const [deleting, setDeleting] = React.useState(false)
 
   const toTitleCase = (str: string) => {
@@ -664,7 +708,7 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-      case 'processing': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+      case 'processing': return 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]'
       case 'failed': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
       case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
       default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
@@ -704,7 +748,7 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
         </button>
 
         <div className="flex items-start gap-4 pr-8">
-          <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+          <div className="p-3 rounded-lg bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#A78BFA] dark:text-[#A78BFA]">
             {getSourceIcon(source.source_type)}
           </div>
 
@@ -725,7 +769,13 @@ function ContextSourceCard({ source, onRefresh }: { source: any; onRefresh: () =
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(source.status)}`}>
                 {source.status}
               </span>
-              {source.entities_extracted_count > 0 && (
+              {isProcessing && (
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Extracting entities…
+                </span>
+              )}
+              {!isProcessing && source.entities_extracted_count > 0 && (
                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
                   {source.entities_extracted_count} entities
                 </span>
@@ -770,7 +820,7 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
     'pain_point': 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
     'feature_request': 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
     'competitor': 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-    'business_goal': 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+    'business_goal': 'bg-[#A78BFA]/10 text-[#A78BFA] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]',
     'metric': 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
     'decision': 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
     'product': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
@@ -797,7 +847,7 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
   }
   const impactColor = (i: string) => {
     if (/high/i.test(i)) return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-    if (/medium/i.test(i)) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+    if (/medium/i.test(i)) return 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]'
     return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
   }
 
@@ -854,7 +904,7 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
             </div>
             <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full bg-blue-500"
+                className="h-full rounded-full bg-[#8B5CF6]"
                 style={{ width: `${Math.round(entity.confidence_score * 100)}%` }}
               />
             </div>
@@ -872,7 +922,7 @@ export function AddContextModal({
 }: {
   selectedProductIds: number[]
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (newSourceId?: number) => void
 }) {
   const [step, setStep] = useState<'select-type' | 'upload'>('select-type')
   const [sourceType, setSourceType] = useState('')
@@ -962,7 +1012,7 @@ export function AddContextModal({
       if (response.data.error_message) {
         setError(response.data.error_message)
       } else {
-        onSuccess()
+        onSuccess(response.data.id)
       }
     } catch (err: any) {
       // Handle duplicate content error (409)
@@ -981,7 +1031,7 @@ export function AddContextModal({
         if (choice) {
           // Link to existing source
           setError('')
-          onSuccess() // Close modal and refresh
+          onSuccess() // Close modal and refresh (no new source to poll)
           alert('✓ Linked to existing source successfully')
         } else {
           // User wants to upload anyway - add force flag
@@ -991,7 +1041,7 @@ export function AddContextModal({
             if (retryResponse.data.error_message) {
               setError(retryResponse.data.error_message)
             } else {
-              onSuccess()
+              onSuccess(retryResponse.data.id)
             }
           } catch (retryErr: any) {
             setError(retryErr.response?.data?.detail || 'Failed to upload file')
@@ -1042,7 +1092,7 @@ export function AddContextModal({
                       className={`p-4 rounded-lg border-2 transition text-left relative ${
                         !type.enabled
                           ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-[#A78BFA] hover:bg-[#A78BFA]/5 dark:hover:bg-[#A78BFA]/10'
                       }`}
                     >
                       <type.icon className="w-6 h-6 mb-2 text-gray-600 dark:text-gray-400" />
@@ -1102,7 +1152,7 @@ export function AddContextModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Q1 Customer Survey"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               />
             </div>
 
@@ -1114,7 +1164,7 @@ export function AddContextModal({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Brief description of this context source..."
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
               />
             </div>
 
@@ -1125,7 +1175,7 @@ export function AddContextModal({
                 <button
                   type="button"
                   onClick={() => setShowRetentionDropdown(!showRetentionDropdown)}
-                  className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA] transition"
                 >
                   <span className="flex items-center gap-2 text-sm">
                     {retentionPolicy === 'delete_immediately' && '🔒 Maximum Privacy'}
@@ -1154,14 +1204,14 @@ export function AddContextModal({
                         }}
                         className={`w-full text-left px-3 py-3 rounded transition-colors ${
                           retentionPolicy === 'delete_immediately'
-                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]'
                             : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">🔒 Maximum Privacy</span>
                           {retentionPolicy === 'delete_immediately' && (
-                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <Check className="w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
                           )}
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -1177,7 +1227,7 @@ export function AddContextModal({
                         }}
                         className={`w-full text-left px-3 py-3 rounded transition-colors ${
                           retentionPolicy === '30_days'
-                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]'
                             : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
@@ -1189,7 +1239,7 @@ export function AddContextModal({
                             </span>
                           </div>
                           {retentionPolicy === '30_days' && (
-                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <Check className="w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
                           )}
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -1205,14 +1255,14 @@ export function AddContextModal({
                         }}
                         className={`w-full text-left px-3 py-3 rounded transition-colors ${
                           retentionPolicy === '90_days'
-                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]'
                             : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">📅 Extended Retention</span>
                           {retentionPolicy === '90_days' && (
-                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <Check className="w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
                           )}
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -1228,14 +1278,14 @@ export function AddContextModal({
                         }}
                         className={`w-full text-left px-3 py-3 rounded transition-colors ${
                           retentionPolicy === 'retain_encrypted'
-                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]'
                             : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">📁 Full Retention (Encrypted)</span>
                           {retentionPolicy === 'retain_encrypted' && (
-                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <Check className="w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
                           )}
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400">

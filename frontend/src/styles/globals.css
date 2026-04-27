@@ -24,51 +24,50 @@
 
 @layer base {
   :root {
-    /* Premium Design System - Light Mode */
-    --background: 220 18% 98%;
-    --foreground: 220 20% 14%;
+    /* Evols Design System - Light Mode */
+    --background: 240 5% 97%;
+    --foreground: 240 5% 4%;
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 14%;
+    --card-foreground: 240 5% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 14%;
-    --primary: 217 91% 60%;
+    --popover-foreground: 240 5% 4%;
+    --primary: 263 89% 66%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 20% 14%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 217 91% 60%;
+    --secondary: 240 5% 94%;
+    --secondary-foreground: 240 5% 4%;
+    --muted: 240 5% 93%;
+    --muted-foreground: 240 4% 40%;
+    --accent: 263 89% 66%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 263 89% 66%;
     --radius: 0.875rem;
-    /* Ensure font variables are available globally (fallback for Next.js font API) */
     --font-expletus-sans: 'Expletus Sans', sans-serif;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 14%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 14%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
+    --background: 240 5% 4%;
+    --foreground: 240 5% 98%;
+    --card: 240 6% 7%;
+    --card-foreground: 240 5% 98%;
+    --popover: 240 6% 7%;
+    --popover-foreground: 240 5% 98%;
+    --primary: 263 89% 76%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 91% 60%;
+    --secondary: 240 5% 10%;
+    --secondary-foreground: 240 5% 98%;
+    --muted: 240 5% 10%;
+    --muted-foreground: 240 4% 64%;
+    --accent: 263 89% 76%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 217 91% 60%;
+    --border: 240 5% 14%;
+    --input: 240 5% 14%;
+    --ring: 263 89% 76%;
   }
 }
 
@@ -83,20 +82,14 @@
     letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Premium background with ambient gradients */
     background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--primary) / 0.15) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 0% 100%, hsl(var(--accent) / 0.08) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 100% 100%, hsl(var(--primary) / 0.08) 0%, transparent 60%);
-    background-attachment: fixed;
     min-height: 100vh;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'GT Alpina Standard', Georgia, sans-serif;
-    font-weight: 400;
-    letter-spacing: -0.02em;
+    font-family: 'Syne', system-ui, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     line-height: 1.2;
   }
 }
@@ -116,9 +109,9 @@
   .page-title {
     @apply text-lg md:text-xl;
     color: hsl(var(--foreground));
-    font-family: 'GT Alpina Standard', Georgia, sans-serif;
+    font-family: 'Syne', system-ui, sans-serif;
     font-weight: 400;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     line-height: 1.1;
   }
 
@@ -149,19 +142,18 @@
 
   .card-hover:hover {
     box-shadow:
-      0 10px 25px -5px rgb(0 0 0 / 0.1),
-      0 8px 10px -6px rgb(0 0 0 / 0.1),
-      0 0 0 1px hsl(var(--primary) / 0.2);
-    border-color: hsl(var(--primary) / 0.4);
-    transform: translateY(-4px) scale(1.01);
+      0 8px 20px -4px rgb(0 0 0 / 0.1),
+      0 0 0 1px rgba(167, 139, 250, 0.2);
+    border-color: rgba(167, 139, 250, 0.4);
+    transform: translateY(-2px);
   }
 
   .card-header {
     @apply text-xl;
     color: hsl(var(--card-foreground));
-    font-family: 'GT Alpina Standard', Georgia, sans-serif;
+    font-family: 'Syne', system-ui, sans-serif;
     font-weight: 400;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
 
   /* Premium Buttons - Refined and polished */
@@ -174,27 +166,16 @@
 
   .btn-primary {
     @apply btn;
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.9) 100%);
-    color: hsl(var(--primary-foreground));
-    box-shadow:
-      0 2px 4px 0 rgb(0 0 0 / 0.1),
-      0 0 0 1px hsl(var(--primary) / 0.1) inset;
+    background: #8B5CF6;
+    color: #ffffff;
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.95) 0%, hsl(var(--primary) / 0.85) 100%);
-    box-shadow:
-      0 8px 16px -4px rgb(0 0 0 / 0.2),
-      0 4px 6px -2px rgb(0 0 0 / 0.1),
-      0 0 0 1px hsl(var(--primary) / 0.2) inset;
-    transform: translateY(-2px);
+    background: #7C3AED;
   }
 
   .btn-primary:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow:
-      0 1px 2px 0 rgb(0 0 0 / 0.1),
-      0 0 0 1px hsl(var(--primary) / 0.1) inset;
+    background: #6D28D9;
   }
 
   .btn-secondary {
@@ -303,10 +284,8 @@
 
   .input:focus {
     outline: none;
-    border-color: hsl(var(--primary));
-    box-shadow:
-      0 0 0 4px hsl(var(--primary) / 0.1),
-      0 1px 2px 0 rgb(0 0 0 / 0.05);
+    border-color: #A78BFA;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.15);
   }
 
   .input::placeholder {
@@ -341,8 +320,9 @@
 
   /* Loading States */
   .loading-spinner {
-    @apply animate-spin rounded-full h-12 w-12 border-b-2;
-    border-color: hsl(var(--primary));
+    @apply animate-spin rounded-full h-8 w-8 border-2;
+    border-color: rgba(167, 139, 250, 0.2);
+    border-top-color: #A78BFA;
   }
 
   /* Elegant Empty States - No scrolling needed */
@@ -355,16 +335,16 @@
 
   .empty-state-icon {
     @apply flex justify-center mb-6;
-    color: hsl(var(--primary));
-    opacity: 0.2;
+    color: #A78BFA;
+    opacity: 0.6;
   }
 
   .empty-state-title {
     @apply text-3xl md:text-4xl mb-4;
     color: hsl(var(--foreground));
-    font-family: 'GT Alpina Standard', Georgia, sans-serif;
+    font-family: 'Syne', system-ui, sans-serif;
     font-weight: 400;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     line-height: 1.1;
   }
 

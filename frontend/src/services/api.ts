@@ -1,12 +1,9 @@
-/**
- * API Client
- * Centralized API communication layer
- */
+// API Client — uses same-origin routing so nginx proxies /api/* to the backend
 
 import axios from 'axios'
 import { getAuthToken } from '@/utils/auth'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 // Create axios instance with default config
 export const apiClient = axios.create({

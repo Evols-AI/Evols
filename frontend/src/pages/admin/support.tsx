@@ -57,7 +57,7 @@ export default function SupportTicketsAdmin() {
   const loadTickets = async () => {
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/support/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -78,7 +78,7 @@ export default function SupportTicketsAdmin() {
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     try {
       const token = localStorage.getItem('token')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/support/${ticketId}`, {
         method: 'PUT',
         headers: {
@@ -101,7 +101,7 @@ export default function SupportTicketsAdmin() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string, icon: any }> = {
-      open: { color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400', icon: AlertCircle },
+      open: { color: 'bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]', icon: AlertCircle },
       in_progress: { color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400', icon: Clock },
       resolved: { color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400', icon: CheckCircle },
       closed: { color: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300', icon: XCircle }
@@ -203,7 +203,7 @@ export default function SupportTicketsAdmin() {
                         Filter by Status
                       </div>
                       {[
-                        { value: 'open', label: 'Open', color: 'text-blue-600 dark:text-blue-400' },
+                        { value: 'open', label: 'Open', color: 'text-[#A78BFA] dark:text-[#A78BFA]' },
                         { value: 'in_progress', label: 'In Progress', color: 'text-yellow-600 dark:text-yellow-400' },
                         { value: 'resolved', label: 'Resolved', color: 'text-green-600 dark:text-green-400' },
                         { value: 'closed', label: 'Closed', color: 'text-gray-600 dark:text-gray-400' },
@@ -215,7 +215,7 @@ export default function SupportTicketsAdmin() {
                         >
                           <div className="w-4 h-4 flex items-center justify-center border-2 border-gray-300 dark:border-gray-500 rounded">
                             {filterStatus.includes(status.value) && (
-                              <Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                              <Check className="w-3 h-3 text-[#A78BFA] dark:text-[#A78BFA]" />
                             )}
                           </div>
                           <span className={`text-sm font-medium ${status.color}`}>
@@ -238,7 +238,7 @@ export default function SupportTicketsAdmin() {
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Open</div>
-              <div className="text-2xl text-blue-600 dark:text-blue-400">
+              <div className="text-2xl text-[#A78BFA] dark:text-[#A78BFA]">
                 {tickets.filter(t => t.status === 'open').length}
               </div>
             </div>

@@ -2,24 +2,30 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Mail, Lock, AlertCircle } from 'lucide-react'
+import { Mail, Lock, AlertCircle, Moon, Sun } from 'lucide-react'
 import { LogoWordmark } from '@/components/Logo'
 import { isAuthenticated } from '@/utils/auth'
+import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Login() {
   const router = useRouter()
+  const { theme, toggleTheme } = useTheme()
+  const dark = theme === 'dark'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // OIDC flow params (present when arriving from LibreChat login redirect)
   const isOidcCallback = router.query.oidc_callback === '1'
   const oidcRedirectUri = (router.query.redirect_uri as string) || ''
   const oidcState = (router.query.state as string) || ''
 
-  // Redirect to workbench if already authenticated (skip if in OIDC flow)
+  useEffect(() => {
+    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.backgroundImage = 'none'
+  }, [dark])
+
   useEffect(() => {
     const checkAuth = () => {
       if (isAuthenticated() && !isOidcCallback) {
@@ -38,7 +44,6 @@ export default function Login() {
         setCheckingAuth(false)
       }
     }
-    // Only run once router.query is populated (isReady)
     if (router.isReady) checkAuth()
   }, [router, isOidcCallback])
 
@@ -46,21 +51,15 @@ export default function Login() {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
-        // Store token and user data
         localStorage.setItem('token', data.access_token)
         localStorage.setItem('user', JSON.stringify({
           id: data.user_id,
@@ -69,25 +68,18 @@ export default function Login() {
           tenant_id: data.tenant_id,
           role: data.role,
         }))
-
-        // If this login was triggered by an OIDC flow (e.g. from LibreChat),
-        // redirect back to the OIDC callback endpoint with the fresh JWT.
         if (isOidcCallback && oidcRedirectUri) {
-          const callbackParams = new URLSearchParams({
-            token: data.access_token,
-            redirect_uri: oidcRedirectUri,
-          })
+          const callbackParams = new URLSearchParams({ token: data.access_token, redirect_uri: oidcRedirectUri })
           if (oidcState) callbackParams.set('state', oidcState)
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+          const backendUrl = process.env.NEXT_PUBLIC_API_URL || ''
           window.location.href = `${backendUrl}/api/v1/oidc/callback?${callbackParams.toString()}`
           return
         }
-
-        // Normal login: redirect based on role
+        const nextUrl = new URLSearchParams(window.location.search).get('next')
         if (data.role === 'SUPER_ADMIN') {
           window.location.href = '/admin/tenants'
         } else {
-          window.location.href = '/workbench'
+          window.location.href = nextUrl || '/workbench'
         }
       } else {
         setError(data.detail || 'Login failed. Please check your credentials.')
@@ -99,36 +91,54 @@ export default function Login() {
     }
   }
 
-  // Show nothing while checking authentication to prevent flicker
-  if (checkingAuth) {
-    return null
-  }
+  if (checkingAuth) return null
+
+  const inputClass = `block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none ${
+    dark
+      ? 'border-white/[0.08] bg-white/[0.04] text-[#FAFAFA] placeholder-[#71717A] focus:border-[#A78BFA]/50 focus:ring-1 focus:ring-[#A78BFA]/30'
+      : 'border-black/[0.1] bg-white text-[#0A0A0B] placeholder-[#A1A1AA] focus:border-[#A78BFA]/50 focus:ring-1 focus:ring-[#A78BFA]/30'
+  }`
+  const labelClass = `block text-sm font-medium mb-2 ${dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'}`
+  const iconClass = `h-5 w-5 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`
 
   return (
     <>
       <Head>
         <title>Login - Evols</title>
+        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex flex-col items-center justify-between p-6">
-        <div className="w-full max-w-6xl flex-grow flex items-center justify-center py-12">
-          <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
-            {/* Left Column - Illustration */}
-            <div className="hidden lg:flex flex-col items-center justify-center">
-              {/* Logo */}
-              <Link href="/" className="mb-8">
-                <LogoWordmark iconSize={60} />
+      <div className={`min-h-screen flex flex-col transition-colors ${dark ? 'bg-[#0A0A0B]' : 'bg-[#F7F7F8]'}`}>
+        <nav className={`fixed top-0 left-0 right-0 z-50 border-b ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} backdrop-blur-xl ${dark ? 'bg-[#0A0A0B]/80' : 'bg-white/80'} transition-colors duration-300`}>
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <Link href="/">
+              <LogoWordmark iconSize={36} />
+            </Link>
+            <div className="flex items-center space-x-4">
+              <button onClick={toggleTheme} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5" aria-label="Toggle theme">
+                {theme === 'light' ? <Moon className="w-5 h-5 text-[#52525B]" /> : <Sun className="w-5 h-5 text-[#A1A1AA]" />}
+              </button>
+              <Link href="/register" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-2 px-5 rounded-lg text-sm font-medium transition-colors">
+                Get Early Access
               </Link>
+            </div>
+          </div>
+        </nav>
+        <div className="h-16" />
+        <div className="flex-grow flex items-center justify-center px-6 py-12">
+          <div className="grid lg:grid-cols-2 gap-12 items-center w-full max-w-6xl">
+            {/* Left Column */}
+            <div className="hidden lg:flex flex-col items-center justify-center">
               <img
                 src="/Authentication-rafiki.svg"
                 alt="Authentication illustration"
                 className="w-full max-w-md mb-10 drop-shadow-lg"
               />
               <div className="text-center">
-                <h2 className="text-3xl text-gray-900 dark:text-white mb-4">
+                <h2 className={`text-3xl font-medium mb-4 ${dark ? 'text-[#FAFAFA]' : 'text-[#0A0A0B]'}`}>
                   Welcome Back!
                 </h2>
-                <p className="text-gray-600 dark:text-gray-300 max-w-md">
+                <p className={`max-w-md ${dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'}`}>
                   Access your AI-powered product decision platform and continue making data-driven decisions.
                 </p>
               </div>
@@ -136,102 +146,68 @@ export default function Login() {
 
             {/* Right Column - Form */}
             <div className="w-full">
-              {/* Logo */}
-              <div className="text-center mb-8 lg:hidden">
-                <Link href="/" className="mb-2">
-                  <LogoWordmark iconSize={60} />
-                </Link>
-                <p className="text-gray-600 dark:text-gray-300">Sign in to your account</p>
-              </div>
-
-              {/* Login Form */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+              <div className={`rounded-2xl p-8 border ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
                 {error && (
-                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  <div className={`mb-6 p-4 border rounded-lg flex items-start space-x-3 ${dark ? 'bg-red-900/10 border-red-500/20' : 'bg-red-50 border-red-200'}`}>
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-500">{error}</p>
                   </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Email Field */}
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
-                    </label>
+                    <label htmlFor="email" className={labelClass}>Email</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        <Mail className={iconClass} />
                       </div>
-                      <input id="email"
-                        type="email"
-                        required
-                        value={email}
+                      <input id="email" type="email" required value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="you@company.com"
-                      />
+                        className={inputClass} placeholder="you@company.com" />
                     </div>
                   </div>
 
-                  {/* Password Field */}
                   <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Password
-                    </label>
+                    <label htmlFor="password" className={labelClass}>Password</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        <Lock className={iconClass} />
                       </div>
-                      <input id="password"
-                        type="password"
-                        required
-                        value={password}
+                      <input id="password" type="password" required value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="••••••••"
-                      />
+                        className={inputClass} placeholder="••••••••" />
                     </div>
                   </div>
 
-                  {/* Submit Button */}
-                  <button type="submit"
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white py-3 px-6 rounded-full shadow-lg transform transition-all duration-500 ease-in-out hover:scale-110 hover:brightness-110 hover:animate-pulse active:animate-bounce disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
-                  >
+                  <button type="submit" disabled={loading}
+                    className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 px-6 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     {loading ? 'Signing in...' : 'Sign In'}
                   </button>
                 </form>
 
-                {/* Links */}
                 <div className="mt-6 text-center text-sm">
-                  <p className="text-gray-600 dark:text-gray-300">
+                  <p className={dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'}>
                     Don't have an account?{' '}
-                    <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                    <Link href="/register" className="text-[#A78BFA] hover:text-[#8B5CF6] font-medium transition-colors">
                       Sign up
                     </Link>
                   </p>
                 </div>
               </div>
-
-              {/* Demo Credentials */}
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
-                  <strong>Demo:</strong> First time? Create an account to get started!
-                </p>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="w-full py-8 flex flex-col items-center justify-center space-y-4 text-center text-gray-600 dark:text-gray-400">
-          <div className="flex items-center space-x-6">
-            <Link href="/docs" className="hover:text-blue-500 transition">Documentation</Link>
-            <Link href="/support" className="hover:text-blue-500 transition">Contact Support</Link>
-            <Link href="/register" className="hover:text-blue-500 transition">Sign Up</Link>
+        <footer className={`border-t ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} py-12 w-full transition-colors duration-300`}>
+          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`}>
+            <LogoWordmark iconSize={32} />
+            <div className="flex items-center gap-6 flex-wrap justify-center">
+              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Docs</Link>
+              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Support</Link>
+              <Link href="/register" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Sign Up</Link>
+            </div>
+            <p className="text-xs">© 2026 Evols AI</p>
           </div>
-          <p>© 2026 Evols. Evolve your product roadmap.</p>
         </footer>
       </div>
     </>

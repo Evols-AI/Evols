@@ -2,13 +2,22 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { CheckCircle, XCircle, Loader, Mail } from 'lucide-react'
+import { CheckCircle, XCircle, Loader } from 'lucide-react'
+import { useTheme } from '@/contexts/ThemeContext'
+import { LogoWordmark } from '@/components/Logo'
 
 export default function VerifyEmail() {
   const router = useRouter()
+  const { theme } = useTheme()
+  const dark = theme === 'dark'
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState('')
   const [redirecting, setRedirecting] = useState(false)
+
+  useEffect(() => {
+    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.backgroundImage = 'none'
+  }, [dark])
 
   useEffect(() => {
     if (router.isReady && router.query.token) {
@@ -21,19 +30,14 @@ export default function VerifyEmail() {
 
   const verifyEmail = async (token: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/auth/verify-email`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
-        // Store token and user data
         localStorage.setItem('token', data.access_token)
         localStorage.setItem('user', JSON.stringify({
           id: data.user_id,
@@ -42,10 +46,7 @@ export default function VerifyEmail() {
           tenant_id: data.tenant_id,
           role: data.role,
         }))
-
         setStatus('success')
-
-        // Redirect after 2 seconds
         setTimeout(() => {
           setRedirecting(true)
           router.push('/workbench')
@@ -60,32 +61,34 @@ export default function VerifyEmail() {
     }
   }
 
+  const textPrimary = dark ? 'text-[#FAFAFA]' : 'text-[#0A0A0B]'
+  const textMuted = dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'
+
   return (
     <>
       <Head>
         <title>Verify Email - Evols</title>
+        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 flex items-center justify-center p-6">
+      <div className={`min-h-screen flex items-center justify-center p-6 transition-colors ${dark ? 'bg-[#0A0A0B]' : 'bg-[#F7F7F8]'}`}>
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center justify-center mb-4">
-              <span className="text-4xl bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
-              </span>
+              <LogoWordmark iconSize={52} />
             </Link>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+          <div className={`rounded-2xl p-8 border ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
             {status === 'loading' && (
               <div className="text-center py-8">
                 <div className="flex justify-center mb-6">
-                  <Loader className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin" />
+                  <Loader className="w-12 h-12 text-[#A78BFA] animate-spin" />
                 </div>
-                <h2 className="text-2xl text-gray-900 dark:text-white mb-3">
+                <h2 className={`text-2xl font-medium mb-3 ${textPrimary}`}>
                   Verifying your email...
                 </h2>
-                <p className="text-gray-600 dark:text-gray-300">
+                <p className={textMuted}>
                   Please wait while we verify your email address and set up your account.
                 </p>
               </div>
@@ -94,20 +97,20 @@ export default function VerifyEmail() {
             {status === 'success' && (
               <div className="text-center py-8">
                 <div className="flex justify-center mb-6">
-                  <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-3">
-                    <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
+                  <div className="rounded-full bg-emerald-500/10 p-3">
+                    <CheckCircle className="w-12 h-12 text-emerald-500" />
                   </div>
                 </div>
-                <h2 className="text-2xl text-gray-900 dark:text-white mb-3">
+                <h2 className={`text-2xl font-medium mb-3 ${textPrimary}`}>
                   Email Verified!
                 </h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                <p className={`mb-6 ${textMuted}`}>
                   Your account has been successfully created. {redirecting ? 'Redirecting you to the dashboard...' : 'You will be redirected shortly.'}
                 </p>
                 {!redirecting && (
                   <Link
                     href="/workbench"
-                    className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-medium rounded-full shadow-lg transform transition-all duration-300 hover:scale-105"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium rounded-lg transition-colors"
                   >
                     Go to Dashboard
                   </Link>
@@ -118,26 +121,24 @@ export default function VerifyEmail() {
             {status === 'error' && (
               <div className="text-center py-8">
                 <div className="flex justify-center mb-6">
-                  <div className="rounded-full bg-red-100 dark:bg-red-900/20 p-3">
-                    <XCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
+                  <div className="rounded-full bg-red-500/10 p-3">
+                    <XCircle className="w-12 h-12 text-red-500" />
                   </div>
                 </div>
-                <h2 className="text-2xl text-gray-900 dark:text-white mb-3">
+                <h2 className={`text-2xl font-medium mb-3 ${textPrimary}`}>
                   Verification Failed
                 </h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  {error}
-                </p>
+                <p className={`mb-6 ${textMuted}`}>{error}</p>
                 <div className="space-y-3">
                   <Link
                     href="/register"
-                    className="block w-full px-6 py-3 bg-gradient-to-r from-purple-400 to-blue-500 hover:from-pink-500 hover:to-purple-600 text-white font-medium rounded-full shadow-lg transform transition-all duration-300 hover:scale-105"
+                    className="block w-full px-6 py-3 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium rounded-lg text-center transition-colors"
                   >
                     Try Registering Again
                   </Link>
                   <Link
                     href="/login"
-                    className="block w-full px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-full hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all duration-300"
+                    className={`block w-full px-6 py-3 border rounded-lg font-medium text-center transition-colors ${dark ? 'border-white/[0.08] text-[#A1A1AA] hover:border-[#A78BFA]/40 hover:text-[#A78BFA]' : 'border-black/[0.1] text-[#52525B] hover:border-[#A78BFA]/40 hover:text-[#A78BFA]'}`}
                   >
                     Back to Login
                   </Link>
@@ -146,10 +147,10 @@ export default function VerifyEmail() {
             )}
           </div>
 
-          <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+          <div className={`mt-6 text-center text-sm ${textMuted}`}>
             <p>
               Need help?{' '}
-              <Link href="/support" className="text-blue-600 dark:text-blue-400 hover:underline">
+              <Link href="/support" className="text-[#A78BFA] hover:text-[#8B5CF6] transition-colors">
                 Contact Support
               </Link>
             </p>
