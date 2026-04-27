@@ -9,9 +9,11 @@ Each data type is formatted to make the three target clusters emerge naturally:
   - Customer cluster: anchored on customer persona names
 """
 
+import asyncio
 import logging
 import os
-from typing import Optional
+import time
+from typing import Any, Optional
 
 import httpx
 
@@ -19,10 +21,43 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+_jwt_cache: dict[str, Any] = {}
+_jwt_lock = asyncio.Lock()
+
 
 def _lightrag_url() -> str:
     url = getattr(settings, "LIGHTRAG_URL", None) or os.environ.get("LIGHTRAG_URL", "")
     return url.rstrip("/")
+
+
+async def lightrag_auth_headers() -> dict[str, str]:
+    """Return headers with a valid LightRAG JWT, obtained via POST /login. Cached ~55 min."""
+    async with _jwt_lock:
+        if _jwt_cache.get("token") and _jwt_cache.get("expires_at", 0) > time.time() + 30:
+            return {"Content-Type": "application/json", "Authorization": f"Bearer {_jwt_cache['token']}"}
+        api_key = getattr(settings, "LIGHTRAG_API_KEY", None) or os.environ.get("LIGHTRAG_API_KEY", "")
+        if not api_key:
+            logger.error("LIGHTRAG_API_KEY not configured — cannot authenticate to LightRAG")
+            return {"Content-Type": "application/json"}
+        url = _lightrag_url()
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                f"{url}/login",
+                data={"username": "evols", "password": api_key},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+        if resp.status_code != 200:
+            logger.error(f"LightRAG login failed: {resp.status_code} {resp.text[:200]}")
+            return {"Content-Type": "application/json"}
+        token = resp.json().get("access_token") or resp.json().get("token", "")
+        _jwt_cache["token"] = token
+        _jwt_cache["expires_at"] = time.time() + 3300  # ~55 min
+        return {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
+
+
+def invalidate_lightrag_jwt() -> None:
+    """Force-expire the cached LightRAG JWT so the next call re-authenticates."""
+    _jwt_cache.clear()
 
 
 async def _insert_texts(texts: list[str], file_sources: list[str]) -> bool:
@@ -37,10 +72,12 @@ async def _insert_texts(texts: list[str], file_sources: list[str]) -> bool:
         return True
     texts_clean, sources_clean = zip(*pairs)
     try:
+        headers = await lightrag_auth_headers()
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(
                 f"{url}/documents/texts",
                 json={"texts": list(texts_clean), "file_sources": list(sources_clean)},
+                headers=headers,
             )
         if resp.status_code not in (200, 202):
             logger.error(f"LightRAG insert failed: {resp.status_code} {resp.text[:200]}")

@@ -5,6 +5,7 @@ Handles auth and returns graph data (nodes + edges) for visualization.
 Also provides a /sync endpoint to bulk-push existing Evols data into LightRAG.
 """
 
+
 import logging
 import os
 from typing import Any
@@ -29,6 +30,8 @@ from app.services.lightrag_ingestion_service import (
     ingest_meeting_note,
     ingest_pm_decision,
     ingest_knowledge_entries,
+    lightrag_auth_headers,
+    invalidate_lightrag_jwt,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,10 +46,6 @@ def _lightrag_url() -> str:
     return url.rstrip("/")
 
 
-def _lightrag_headers() -> dict[str, str]:
-    # LightRAG runs with auth_mode="disabled" in our Docker setup — no Authorization header needed.
-    # Sending a Bearer token to a no-auth LightRAG causes it to return 401 "Invalid token".
-    return {"Content-Type": "application/json"}
 
 
 def _require_lightrag() -> str:
@@ -135,15 +134,23 @@ async def get_graph(
     """
     url = _require_lightrag()
 
-    # Fetch the full graph from LightRAG
+    # Fetch the full graph from LightRAG; retry once if JWT expired (401)
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.get(
             f"{url}/graphs",
             params={"label": label, "max_depth": max_depth, "max_nodes": 1000},
-            headers=_lightrag_headers(),
+            headers=await lightrag_auth_headers(),
         )
+        if resp.status_code == 401:
+            invalidate_lightrag_jwt()
+            resp = await client.get(
+                f"{url}/graphs",
+                params={"label": label, "max_depth": max_depth, "max_nodes": 1000},
+                headers=await lightrag_auth_headers(),
+            )
     if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail="Knowledge graph service error")
+        logger.warning(f"LightRAG /graphs returned {resp.status_code}: {resp.text[:200]}")
+        raise HTTPException(status_code=503, detail="Knowledge graph service unavailable")
 
     data = resp.json()
 
@@ -188,11 +195,64 @@ async def query_graph(
         resp = await client.post(
             f"{url}/query",
             json={"query": q, "mode": mode},
-            headers=_lightrag_headers(),
+            headers=await lightrag_auth_headers(),
         )
+        if resp.status_code == 401:
+            invalidate_lightrag_jwt()
+            resp = await client.post(
+                f"{url}/query",
+                json={"query": q, "mode": mode},
+                headers=await lightrag_auth_headers(),
+            )
     if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail="Knowledge graph query failed")
+        raise HTTPException(status_code=503, detail="Knowledge graph query failed")
     return resp.json()
+
+
+@router.get("/processing-status")
+async def get_processing_status(
+    source_ids: str = Query(..., description="Comma-separated context_source IDs to check"),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """
+    Check LightRAG processing status for recently uploaded context sources.
+    Returns per-source status: pending | processing | processed | failed | unknown.
+    """
+    url = _lightrag_url()
+    if not url:
+        return {"sources": {}}
+
+    ids = [s.strip() for s in source_ids.split(",") if s.strip()]
+    file_paths = {f"context_source:{sid}" for sid in ids}
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{url}/documents", headers=await lightrag_auth_headers())
+            if resp.status_code == 401:
+                invalidate_lightrag_jwt()
+                resp = await client.get(f"{url}/documents", headers=await lightrag_auth_headers())
+        if resp.status_code != 200:
+            return {"sources": {sid: "unknown" for sid in ids}}
+
+        data = resp.json()
+        # LightRAG returns {"statuses": {"processed": [...], "pending": [...], "failed": [...]}}
+        statuses_by_path: dict[str, str] = {}
+        for status_name, docs in data.get("statuses", {}).items():
+            for doc in (docs or []):
+                fp = doc.get("file_path", "")
+                for part in fp.split("<SEP>"):
+                    part = part.strip()
+                    if part in file_paths:
+                        statuses_by_path[part] = status_name
+
+        result = {}
+        for sid in ids:
+            fp = f"context_source:{sid}"
+            result[sid] = statuses_by_path.get(fp, "pending")
+        return {"sources": result}
+    except Exception as e:
+        logger.warning(f"LightRAG processing-status check failed: {e}")
+        return {"sources": {sid: "unknown" for sid in ids}}
 
 
 @router.get("/health")
@@ -203,7 +263,7 @@ async def graph_health(current_user: User = Depends(get_current_user)) -> dict[s
         return {"status": "unconfigured"}
     try:
         async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(f"{url}/health", headers=_lightrag_headers())
+            resp = await client.get(f"{url}/health", headers=await lightrag_auth_headers())
         return {"status": "ok" if resp.status_code == 200 else "degraded"}
     except Exception:
         return {"status": "unreachable"}

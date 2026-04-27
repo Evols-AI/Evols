@@ -25,7 +25,12 @@ import logging
 import os
 import uuid
 import httpx
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
+
+# Dedicated thread pool for Bedrock boto3 calls — keeps them off the default executor
+# so they don't starve LightRAG embedding concurrency
+_BEDROCK_POOL = ThreadPoolExecutor(max_workers=16, thread_name_prefix="bedrock")
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -423,7 +428,7 @@ async def proxy_bedrock_embeddings(
 
     try:
         embeddings, total_tokens = await asyncio.get_event_loop().run_in_executor(
-            None, _embed_sync, inputs
+            _BEDROCK_POOL, _embed_sync, inputs
         )
     except Exception as e:
         logger.error(f"[bedrock embeddings] {e}")
