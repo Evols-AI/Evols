@@ -106,14 +106,31 @@ echo "Backend URL: ${BACKEND_URL}"
 # Fall back to backend Cloud Run URL if no custom domain was set
 PUBLIC_BASE="${PUBLIC_BASE:-${BACKEND_URL}}"
 
-# ── 1b. LightRAG — deploy / update ───────────────────────────────────────────
+# ── 1b. LightRAG — build custom image + deploy ────────────────────────────────
+# We maintain a patched LightRAG image (evols-lightrag) that adds ENTITY_ATTRIBUTES
+# support.  The patch lives in lightrag-entity-attributes.patch and is applied at
+# build time on top of the upstream lightrag-hku wheel.
+#
 # WARNING: Never use `gcloud run services update --set-env-vars` for LightRAG — it
 # replaces ALL env vars and falls back to Ollama defaults, wiping the config.
-# Always redeploy with the full env var set.
+# Always redeploy with the full env var set (see the block below).
 # EMBEDDING_TIMEOUT=120 → worker timeout 240s to handle Bedrock cold-start latency.
 LIGHTRAG_IMAGE="${LIGHTRAG_IMAGE:-us-central1-docker.pkg.dev/${PROJECT_ID}/evols-repo/evols-lightrag:latest}"
 SQL_CONNECTION_NAME="${SQL_CONNECTION_NAME:-$(gcloud sql instances describe evols-postgres --format='value(connectionName)' --project "${PROJECT_ID}")}"
+
+echo "==> Building evols-lightrag image..."
+gcloud builds submit \
+  --tag "${LIGHTRAG_IMAGE}" \
+  --project "${PROJECT_ID}" \
+  --file docker/lightrag.Dockerfile \
+  .
+
 echo "==> Deploying evols-lightrag..."
+# PM-domain entity types and attributes — must be kept in sync with
+# docker/docker-compose.yml ENTITY_TYPES / ENTITY_ATTRIBUTES env vars.
+ENTITY_TYPES='["Person","Organization","Product","Feature","PainPoint","FeatureRequest","Persona","Competitor","BusinessGoal","Metric","Decision","Meeting","Project","Technology","Market"]'
+ENTITY_ATTRIBUTES='["sentiment","urgency","business_impact","context_snippet","confidence"]'
+
 gcloud run deploy evols-lightrag \
   --image "${LIGHTRAG_IMAGE}" \
   --region "${REGION}" --platform managed \
@@ -137,6 +154,8 @@ gcloud run deploy evols-lightrag \
   --set-env-vars "EMBEDDING_TIMEOUT=120" \
   --set-env-vars "MAX_ASYNC=2" \
   --set-env-vars "MAX_TOKENS=32768" \
+  --set-env-vars "ENTITY_TYPES=${ENTITY_TYPES}" \
+  --set-env-vars "ENTITY_ATTRIBUTES=${ENTITY_ATTRIBUTES}" \
   --set-env-vars "AUTH_ACCOUNTS=evols:${LIGHTRAG_API_KEY}" \
   --set-env-vars "TOKEN_SECRET=81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02" \
   --set-secrets "POSTGRES_PASSWORD=lightrag-pg-password:latest" \

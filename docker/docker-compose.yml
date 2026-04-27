@@ -54,7 +54,11 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   # LightRAG — knowledge graph extraction, storage, and visual explorer
+  # Build: docker compose build lightrag  (or docker build -f docker/lightrag.Dockerfile .)
   lightrag:
+    build:
+      context: ..
+      dockerfile: docker/lightrag.Dockerfile
     image: evols-lightrag:entity-attributes
     container_name: evols-lightrag
     environment:

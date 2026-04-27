@@ -169,6 +169,18 @@ async def get_graph(
     tenant_nodes = [n for n in all_nodes if _node_belongs(n, valid_paths)]
     tenant_node_ids = {n["id"] for n in tenant_nodes}
 
+    # Deserialise the `attributes` field from JSON string → dict so the frontend
+    # can read node.properties.attributes directly without a JSON.parse call.
+    import json as _json
+    for node in tenant_nodes:
+        props = node.get("properties") or {}
+        raw_attrs = props.get("attributes")
+        if isinstance(raw_attrs, str) and raw_attrs:
+            try:
+                props["attributes"] = _json.loads(raw_attrs)
+            except _json.JSONDecodeError:
+                props["attributes"] = None
+
     # Filter edges — keep only edges where BOTH endpoints are in tenant nodes
     all_edges: list[dict] = data.get("edges", [])
     tenant_edges = [
