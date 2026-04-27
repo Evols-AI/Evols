@@ -278,7 +278,7 @@ Embedding Model: text-embedding-3-small
 ```
 Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxx
-Model: claude-3-5-sonnet-20241022 (recommended)
+Model: claude-sonnet-4-6 (recommended)
 ```
 
 **Get API Key:**
@@ -312,7 +312,7 @@ Auth Method: API Key
 AWS Access Key ID: AKIAXXXXXXXXX
 AWS Secret Access Key: xxxxxxxxxxxxx
 Region: us-east-1
-Model: anthropic.claude-3-5-sonnet-20241022-v2:0
+Model: anthropic.claude-sonnet-4-6
 ```
 
 **Credentials Method:**
@@ -320,7 +320,7 @@ Model: anthropic.claude-3-5-sonnet-20241022-v2:0
 Provider: AWS Bedrock
 Auth Method: AWS Credentials
 Region: us-east-1
-Model: anthropic.claude-3-5-sonnet-20241022-v2:0
+Model: anthropic.claude-sonnet-4-6
 ```
 
 **Get Credentials:**
@@ -425,16 +425,17 @@ Without configured LLM keys:
 - Bedrock: Request model access in AWS Console
 - Azure: Verify model is deployed in your resource
 
-### Recommended Models (March 2024)
+### Recommended Models (April 2026)
 
 **For Best Quality:**
-- OpenAI: `gpt-4o` or `gpt-4-turbo`
-- Anthropic: `claude-3-5-sonnet-20241022`
-- Bedrock: `anthropic.claude-3-5-sonnet-20241022-v2:0`
+- OpenAI: `gpt-4o`
+- Anthropic: `claude-sonnet-4-6` or `claude-opus-4-7`
+- Bedrock: `anthropic.claude-sonnet-4-6` or `anthropic.claude-opus-4-7`
 
 **For Cost Efficiency:**
-- OpenAI: `gpt-4o-mini` or `gpt-3.5-turbo`
-- Bedrock: `anthropic.claude-3-haiku-20240307-v1:0`
+- OpenAI: `gpt-4o-mini`
+- Anthropic: `claude-haiku-4-5-20251001`
+- Bedrock: `anthropic.claude-haiku-4-5-20251001`
 
 **For Embeddings:**
 - OpenAI: `text-embedding-3-small` (recommended)

@@ -2,6 +2,96 @@
 
 All notable changes to Evols will be documented in this file.
 
+## [1.2.0] - 2026-04-26
+
+### Added — Team Knowledge Graph 🧠
+
+#### Shared Institutional Memory
+- **Team knowledge entries**: each entry has title, content, role, session_type, entry_type, tags, product_area, and token counts
+- **Semantic search**: pgvector cosine similarity search over embedded entries
+- **Redundancy detection**: `check_redundancy` returns the most similar recent work (last 48h) with similarity score and token savings estimate
+- **Compressed context**: `get_relevant_context` returns entries as concatenated text with token budget control and compression ratio
+- **API endpoints**:
+  - `POST /api/v1/team-knowledge/entries` — add knowledge entry
+  - `GET /api/v1/team-knowledge/entries` — list entries with pagination
+  - `POST /api/v1/team-knowledge/relevant` — semantic search (returns context_text + entries + savings estimate)
+  - `POST /api/v1/team-knowledge/check-redundancy` — redundancy check for a task description
+  - `GET /api/v1/team-knowledge/stats` — token counts and entry summary
+
+### Added — LightRAG Knowledge Graph Integration 🔗
+
+- Self-hosted LightRAG instance for deep relationship extraction from ingested data
+- Pushes context sources, extracted entities, personas, and work context to LightRAG on ingest/update
+- `LIGHTRAG_URL` and `LIGHTRAG_API_KEY` env vars for configuration
+- `lightrag_ingestion_service.py` — formats Evols data as natural-language text for graph extraction
+- Graph clusters: team (user/role), product (product name), customer (persona names)
+- `/api/v1/graph` endpoint exposes LightRAG search for the Evols frontend
+
+### Added — MCP Streamable-HTTP Endpoint 🔌
+
+- `POST/GET/DELETE /api/v1/mcp` — MCP 2025-03-26 spec, streamable-HTTP transport
+- Auth: Bearer JWT or `evols_...` API key; sessions expire after 24h
+- **Team knowledge tools**: `get_team_context`, `check_redundancy`, `sync_session_context`
+- **Product data tools**: `get_skill_details`, `get_work_context_summary`, `get_personas`, `get_themes`, `get_feedback_items`, `get_product_strategy`, `get_customer_segments`, `get_competitive_landscape`, `get_features`, `get_past_skill_work`
+
+### Added — API Key Management 🔑
+
+- Long-lived API keys (`evols_` + 32 hex chars) for plugin and service auth
+- Keys are bcrypt-hashed in Postgres — never stored in plaintext
+- `POST /api/v1/api-keys` — create key (returns plaintext once, then gone)
+- `GET /api/v1/api-keys` — list keys (name, created_at, last_used_at; key value masked)
+- `DELETE /api/v1/api-keys/{id}` — revoke key
+- Optional expiry; omit for long-lived plugin keys
+
+### Added — OIDC Provider Bridge 🔐
+
+- Evols backend acts as a minimal OIDC provider for AI Workbench single sign-on
+- Implements Authorization Code flow: `/authorize`, `/callback`, `/token`, `/userinfo`, `/jwks`
+- `/.well-known/openid-configuration` discovery document
+- Auth codes stored in Redis with 5-minute TTL
+- New env vars: `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`
+
+### Added — LLM Proxy 🔀
+
+- `POST /api/v1/llm-proxy/{provider}/...` — OpenAI-compatible proxy for all LLM providers
+- Looks up tenant BYOK keys from Postgres; no keys needed at deploy time
+- Supports Anthropic, OpenAI, Azure OpenAI, AWS Bedrock, and Gemini
+- Two auth modes: standard Bearer JWT, or `X-Evols-User-Id` header for LibreChat OIDC sub injection
+- Dedicated Bedrock thread pool (16 workers) to avoid starving LightRAG embedding concurrency
+
+### Added — AI Workbench Config 💬
+
+- `librechat.yaml` — LibreChat server config for Evols AI Workbench
+- App title: "Evols AI Workbench"; self-registration disabled (OIDC only)
+- LLM endpoints: Claude (Anthropic), GPT (OpenAI), Gemini — all proxied through `/api/v1/llm-proxy`
+- `librechat.env.example` — all required env vars for LibreChat Cloud Run deployment
+- `deploy-workbench.sh` — builds Docker image, pushes to GCR, deploys to Cloud Run
+- Nginx reverse proxy routes `/workbench/app/*` → LibreChat, `/*` → Evols Next.js
+- Frontend header: "AI Workbench" nav link (external tab) when `NEXT_PUBLIC_WORKBENCH_URL` is set
+
+### Added — Internet Search Tools 🌐
+
+- **Tavily AI** (primary): `TAVILY_API_KEY` env var, 1,000 free searches/month
+- **Serper** (fallback): `SERPER_API_KEY` env var, 2,500 free searches/month
+- Skills can now perform live web research as part of task execution
+
+### Added — Skill Customizations ✏️
+
+- Users can override any skill's instructions, context, and output format preferences
+- Customizations are user-scoped (not tenant-wide); other team members are unaffected
+- Input sanitization via `SecuritySanitizer` to prevent prompt injection
+- `POST /api/v1/skill-customizations` — create or update customization
+- `GET /api/v1/skill-customizations` — list user's customizations
+- `DELETE /api/v1/skill-customizations/{skill_name}` — remove customization
+
+### Added — Memory & Retrospective API 📖
+
+- `GET /api/v1/memory/skills` — list past skill executions (summary, skill name, category, created_at)
+- `GET /api/v1/memory/skills/{id}` — full detail including input/output data
+- Backed by `MemoryManager` in the unified PM OS service layer
+
+---
+
 ## [1.1.0] - 2026-03-15
 
 ### Added - AI Skills System 🤖
