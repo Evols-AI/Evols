@@ -8,15 +8,22 @@ import { ProductSelector } from '@/components/ProductSelector'
 import { TenantSwitcher } from '@/components/TenantSwitcher'
 import { getCurrentUser } from '@/utils/auth'
 
+const NAV_LINKS = [
+  { label: 'Features', href: '#features' },
+  { label: 'How it works', href: '#how' },
+  { label: 'Pricing', href: '#pricing' },
+]
+
 interface HeaderProps {
   user?: {
     full_name?: string
     email?: string
   } | null
   currentPage?: string
+  variant?: 'app' | 'landing'
 }
 
-export default function Header({ user, currentPage }: HeaderProps) {
+export default function Header({ user, currentPage, variant = 'app' }: HeaderProps) {
   const router = useRouter()
   const { theme, toggleTheme } = useTheme()
   const dark = theme === 'dark'
@@ -24,7 +31,7 @@ export default function Header({ user, currentPage }: HeaderProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const fullUser = getCurrentUser()
 
-  const textMuted = dark ? '#A1A1AA' : '#52525B'
+  const textMuted = 'hsl(var(--muted-foreground))'
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -54,122 +61,116 @@ export default function Header({ user, currentPage }: HeaderProps) {
     { href: '/admin/support', label: 'Support', key: 'support', icon: LifeBuoy },
   ]
 
+  const position = variant === 'landing' ? 'fixed' : 'sticky'
+
   return (
-    <header className="sticky top-0 z-50 border-b" style={{
-      background: dark ? 'rgba(10,10,11,0.85)' : 'rgba(247,247,248,0.85)',
-      borderColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)'
-    }}>
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-8 min-w-0">
-            <Link href="/" className="group flex-shrink-0">
-              <LogoWordmark iconSize={44} />
-            </Link>
-            {user && fullUser?.role !== 'SUPER_ADMIN' && <ProductSelector />}
-            {user && fullUser?.role !== 'SUPER_ADMIN' && (
-              <nav className="flex items-center space-x-6">
-                {navItems.map((item) => {
-                  const isActive = currentPage === item.key || router.pathname.startsWith(item.href)
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="flex items-center gap-1.5 text-sm transition-colors font-medium"
-                      style={{ color: isActive ? '#A78BFA' : textMuted }}
-                    >
-                      {Icon && <Icon className="w-3.5 h-3.5" />}
-                      {item.label}
+    <header className={`${position} top-0 left-0 right-0 z-50 border-b border-border bg-background`}>
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+
+        {/* Left: logo + app nav */}
+        <div className="flex items-center gap-8 min-w-0">
+          <Link href="/" className="flex-shrink-0">
+            <LogoWordmark iconSize={36} />
+          </Link>
+
+          {variant === 'landing' && (
+            <nav className="hidden md:flex items-center gap-8">
+              {NAV_LINKS.map(l => (
+                <a key={l.label} href={l.href}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors tracking-[-0.01em]">
+                  {l.label}
+                </a>
+              ))}
+            </nav>
+          )}
+
+          {variant === 'app' && user && fullUser?.role !== 'SUPER_ADMIN' && <ProductSelector />}
+          {variant === 'app' && user && fullUser?.role !== 'SUPER_ADMIN' && (
+            <nav className="flex items-center space-x-6">
+              {navItems.map((item) => {
+                const isActive = currentPage === item.key || router.pathname.startsWith(item.href)
+                const Icon = item.icon
+                return (
+                  <Link key={item.href} href={item.href}
+                    className="flex items-center gap-1.5 text-sm transition-colors font-medium"
+                    style={{ color: isActive ? 'hsl(var(--primary))' : textMuted }}
+                  >
+                    {Icon && <Icon className="w-3.5 h-3.5" />}
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+          )}
+          {variant === 'app' && user && fullUser?.role === 'SUPER_ADMIN' && (
+            <nav className="flex items-center space-x-6">
+              {adminNavItems.map((item) => {
+                const isActive = currentPage === item.key || router.pathname.startsWith(item.href)
+                const Icon = item.icon
+                return (
+                  <Link key={item.href} href={item.href}
+                    className="flex items-center gap-1.5 text-sm transition-colors font-medium"
+                    style={{ color: isActive ? 'hsl(var(--primary))' : textMuted }}
+                  >
+                    {Icon && <Icon className="w-3.5 h-3.5" />}
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+          )}
+        </div>
+
+        {/* Right: theme toggle + landing CTAs or app user menu */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={toggleTheme} className="w-9 h-9 rounded-lg flex items-center justify-center transition hover-lift" aria-label="Toggle theme">
+            {theme === 'light' ? <Moon className="w-4 h-4" style={{ color: textMuted }} /> : <Sun className="w-4 h-4" style={{ color: textMuted }} />}
+          </button>
+
+          {variant === 'landing' && (
+            <>
+              <Link href="/login" className="text-sm px-3 py-1.5 transition-colors" style={{ color: textMuted }}>
+                Sign in
+              </Link>
+              <Link href="/register"
+                className="text-sm font-medium px-4 py-2 rounded-lg text-primary-foreground bg-primary hover:bg-primary/85 transition-all tracking-[-0.01em]">
+                Get early access
+              </Link>
+            </>
+          )}
+
+          {variant === 'app' && user && (
+            <div className="relative" ref={dropdownRef}>
+              <button onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2 text-sm transition-colors font-medium"
+                style={{ color: textMuted }}
+              >
+                <span>{(user.full_name || user.email || 'User').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg border border-border bg-card py-1 z-[100]">
+                  <TenantSwitcher />
+                  {fullUser?.role === 'TENANT_ADMIN' && (
+                    <Link href="/settings?tab=team"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-foreground transition-colors hover-lift rounded-lg mx-1"
+                      onClick={() => setIsDropdownOpen(false)}>
+                      <UsersRound className="w-4 h-4" />Team
                     </Link>
-                  )
-                })}
-              </nav>
-            )}
-            {user && fullUser?.role === 'SUPER_ADMIN' && (
-              <nav className="flex items-center space-x-6">
-                {adminNavItems.map((item) => {
-                  const isActive = currentPage === item.key || router.pathname.startsWith(item.href)
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="flex items-center gap-1.5 text-sm transition-colors font-medium"
-                      style={{ color: isActive ? '#A78BFA' : textMuted }}
-                    >
-                      {Icon && <Icon className="w-3.5 h-3.5" />}
-                      {item.label}
-                    </Link>
-                  )
-                })}
-              </nav>
-            )}
-          </div>
-          <div className="flex items-center space-x-4 flex-shrink-0">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg transition hover-lift"
-              aria-label="Toggle theme"
-            >
-              {theme === 'light' ? (
-                <Moon className="w-5 h-5" style={{ color: textMuted }} />
-              ) : (
-                <Sun className="w-5 h-5" style={{ color: textMuted }} />
+                  )}
+                  <Link href="/settings"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-foreground transition-colors hover-lift rounded-lg mx-1"
+                    onClick={() => setIsDropdownOpen(false)}>
+                    <Settings className="w-4 h-4" />Settings
+                  </Link>
+                  <button onClick={handleLogout}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-destructive transition-colors hover-lift rounded-lg mx-1 text-left">
+                    <LogOut className="w-4 h-4" />Logout
+                  </button>
+                </div>
               )}
-            </button>
-            {user && (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2 text-sm transition-colors font-medium"
-                  style={{ color: textMuted }}
-                >
-                  <span>{(user.full_name || user.email || 'User').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg border py-1 z-[100]" style={{
-                    background: dark ? '#111113' : '#ffffff',
-                    borderColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'
-                  }}>
-                    <TenantSwitcher />
-
-                    {fullUser?.role === 'TENANT_ADMIN' && (
-                      <Link
-                        href="/settings?tab=team"
-                        className="flex items-center gap-2 px-4 py-2 text-sm transition-colors hover-lift rounded-lg mx-1"
-                        style={{ color: dark ? '#FAFAFA' : '#0A0A0B' }}
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <UsersRound className="w-4 h-4" />
-                        Team
-                      </Link>
-                    )}
-                    <Link
-                      href="/settings"
-                      className="flex items-center gap-2 px-4 py-2 text-sm transition-colors hover-lift rounded-lg mx-1"
-                      style={{ color: dark ? '#FAFAFA' : '#0A0A0B' }}
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <Settings className="w-4 h-4" />
-                      Settings
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm transition-colors hover-lift rounded-lg mx-1 text-left"
-                      style={{ color: '#ef4444' }}
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

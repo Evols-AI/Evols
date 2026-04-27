@@ -154,8 +154,8 @@ export const ProductSelector: React.FC = () => {
   // Prevent hydration mismatch by not rendering until mounted on client
   if (!isMounted || isLoading) {
     return (
-      <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md">
-        <span className="text-sm text-gray-500">Loading...</span>
+      <div className="flex items-center gap-2 px-4 py-2 bg-input border border-border rounded-md">
+        <span className="text-sm text-muted-foreground">Loading...</span>
       </div>
     );
   }
@@ -164,37 +164,37 @@ export const ProductSelector: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-input border border-border rounded-md hover:bg-muted transition-colors"
         aria-label="Select products"
       >
-        <span className="text-sm font-medium text-gray-900 dark:text-white">
+        <span className="text-sm font-medium text-foreground">
           {getDisplayText()}
         </span>
         <ChevronDown
-          className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform ${
+          className={`w-4 h-4 text-muted-foreground transition-transform ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+        <div className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
           <div className="p-2">
             {/* All Products option (excludes demo) */}
             <button
               onClick={handleAllProducts}
-              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded transition-colors text-left"
             >
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
+              <span className="text-sm font-medium text-foreground">
                 All Products (no demo)
               </span>
             </button>
 
-            <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
+            <div className="border-t border-border my-2" />
 
             {/* Individual products */}
             {products.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="px-3 py-2 text-sm text-muted-foreground">
                 No products available
               </div>
             ) : (
@@ -202,17 +202,17 @@ export const ProductSelector: React.FC = () => {
                 <button
                   key={product.id}
                   onClick={() => handleToggle(product.id)}
-                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded transition-colors"
                 >
-                  <div className="w-4 h-4 border border-gray-300 dark:border-gray-600 rounded flex items-center justify-center flex-shrink-0">
+                  <div className="w-4 h-4 border border-border rounded flex items-center justify-center flex-shrink-0">
                     {selectedProductIds.includes(product.id) && (
-                      <Check className="w-3 h-3 text-[#A78BFA] dark:text-[#A78BFA]" />
+                      <Check className="w-3 h-3 text-primary" />
                     )}
                   </div>
-                  <span className="text-sm flex-1 text-left text-gray-900 dark:text-white">
+                  <span className="text-sm flex-1 text-left text-foreground">
                     {product.name}
                     {product.is_demo && (
-                      <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="ml-1 text-xs text-muted-foreground">
                         (Demo)
                       </span>
                     )}
@@ -224,10 +224,10 @@ export const ProductSelector: React.FC = () => {
             {/* Add Product button - only show for admins */}
             {currentUser?.role === 'TENANT_ADMIN' || currentUser?.role === 'PRODUCT_ADMIN' ? (
               <>
-                <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
+                <div className="border-t border-border my-2" />
                 <button
                   onClick={handleAddProduct}
-                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[#A78BFA]/5 dark:hover:bg-[#A78BFA]/10 rounded transition-colors text-[#A78BFA] dark:text-[#A78BFA]"
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-primary/5 dark:hover:bg-primary/10 rounded transition-colors text-primary dark:text-primary"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="text-sm font-medium">Add Product</span>
@@ -251,10 +251,10 @@ export const ProductSelector: React.FC = () => {
             }
           }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full relative" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-lg shadow-xl max-w-md w-full relative" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="page-title text-gray-900 dark:text-white">
+                <h2 className="page-title text-foreground">
                   Add New Product
                 </h2>
                 <button
@@ -263,7 +263,7 @@ export const ProductSelector: React.FC = () => {
                     setNewProductName('');
                     setNewProductDescription('');
                   }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -271,7 +271,7 @@ export const ProductSelector: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Product Name *
                   </label>
                   <input
@@ -279,15 +279,13 @@ export const ProductSelector: React.FC = () => {
                     value={newProductName}
                     onChange={(e) => setNewProductName(e.target.value)}
                     placeholder="e.g., Mobile App, Enterprise Platform"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md
-                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                               focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-transparent"
                     disabled={isCreating}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Description (optional)
                   </label>
                   <textarea
@@ -295,15 +293,13 @@ export const ProductSelector: React.FC = () => {
                     onChange={(e) => setNewProductDescription(e.target.value)}
                     placeholder="Brief description of this product..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md
-                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                               focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-transparent resize-none"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-transparent resize-none"
                     disabled={isCreating}
                   />
                 </div>
 
-                <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-md p-3">
-                  <p className="text-xs text-[#6D28D9] dark:text-[#A78BFA]">
+                <div className="bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-md p-3">
+                  <p className="text-xs text-primary/85 dark:text-primary">
                     💡 Products define the scope for knowledge, personas, and workbench conversations.
                     You can add product-specific context in the Knowledge tab after creation.
                   </p>
@@ -318,18 +314,14 @@ export const ProductSelector: React.FC = () => {
                     setNewProductDescription('');
                   }}
                   disabled={isCreating}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600
-                             text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50
-                             dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 border border-border text-muted-foreground rounded-md hover:bg-muted transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateProduct}
                   disabled={isCreating || !newProductName.trim()}
-                  className="flex-1 px-4 py-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-md
-                             font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed
-                             flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-primary hover:bg-primary/85 text-primary-foreground rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isCreating ? (
                     <>

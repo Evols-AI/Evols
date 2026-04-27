@@ -16,7 +16,7 @@ export default function BookDemo() {
   const dark = theme === 'dark'
 
   useEffect(() => {
-    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.background = ''
     document.body.style.backgroundImage = 'none'
   }, [dark])
 
@@ -63,8 +63,8 @@ export default function BookDemo() {
     setTimeout(initCal, 100);
   }, [])
 
-  const textPrimary = dark ? 'text-[#FAFAFA]' : 'text-[#0A0A0B]'
-  const textMuted = dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'
+  const textPrimary = 'text-foreground'
+  const textMuted = 'text-muted-foreground'
 
   return (
     <>
@@ -72,15 +72,15 @@ export default function BookDemo() {
         <title>Book a Demo - Evols</title>
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
-      <div className={`min-h-screen transition-colors ${dark ? 'bg-[#0A0A0B]' : 'bg-[#F7F7F8]'}`}>
+      <div className={`min-h-screen transition-colors bg-background`}>
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-between">
             <Link href="/">
               <LogoWordmark iconSize={44} />
             </Link>
             <div className="flex items-center space-x-6">
-              <Link href="/login" className={`text-sm transition-colors ${textMuted} hover:text-[#A78BFA]`}>Login</Link>
-              <Link href="/register" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-2 px-5 rounded-lg text-sm font-medium transition-colors">
+              <Link href="/login" className={`text-sm transition-colors ${textMuted} hover:text-primary`}>Login</Link>
+              <Link href="/register" className="bg-primary hover:bg-primary/85 text-primary-foreground py-2 px-5 rounded-lg text-sm font-medium transition-colors">
                 Get Early Access
               </Link>
             </div>
@@ -103,9 +103,9 @@ export default function BookDemo() {
                 </p>
                 <div className="space-y-6">
                   {[
-                    { icon: Sparkles, color: 'text-[#A78BFA]', bg: 'bg-[#A78BFA]/10', title: '80+ PM Skills', desc: 'See conversational AI execute strategy docs, PRDs, meeting prep, and weekly updates' },
-                    { icon: MessageSquare, color: 'text-[#A78BFA]', bg: 'bg-[#A78BFA]/10', title: 'Auto Work Context', desc: 'Watch AI automatically capture your role, projects, and tasks from natural conversation' },
-                    { icon: CheckCircle, color: 'text-[#A78BFA]', bg: 'bg-[#A78BFA]/10', title: 'Bring Your Docs', desc: 'See how Evols extracts intelligence from your actual documents and meeting notes' },
+                    { icon: Sparkles, color: 'text-primary', bg: 'bg-primary/10', title: '80+ PM Skills', desc: 'See conversational AI execute strategy docs, PRDs, meeting prep, and weekly updates' },
+                    { icon: MessageSquare, color: 'text-primary', bg: 'bg-primary/10', title: 'Auto Work Context', desc: 'Watch AI automatically capture your role, projects, and tasks from natural conversation' },
+                    { icon: CheckCircle, color: 'text-primary', bg: 'bg-primary/10', title: 'Bring Your Docs', desc: 'See how Evols extracts intelligence from your actual documents and meeting notes' },
                   ].map(({ icon: Icon, color, bg, title, desc }) => (
                     <div key={title} className="flex items-start space-x-4">
                       <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
@@ -121,7 +121,7 @@ export default function BookDemo() {
               </div>
 
               {/* Right - Calendar Embed */}
-              <div className={`rounded-2xl border overflow-hidden ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
+              <div className={`rounded-2xl border overflow-hidden bg-card border-border`}>
                 <div
                   id="my-cal-inline"
                   style={{ width: '100%', height: '100%', overflow: 'auto' }}
@@ -132,13 +132,13 @@ export default function BookDemo() {
           </div>
         </div>
 
-        <footer className={`border-t ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} py-12 transition-colors duration-300`}>
-          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`}>
+        <footer className={`border-t border-border py-12 transition-colors duration-300`}>
+          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground`}>
             <LogoWordmark iconSize={32} />
             <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Docs</Link>
-              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Support</Link>
-              <Link href="/register" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Sign Up</Link>
+              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-primary">Docs</Link>
+              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-primary">Support</Link>
+              <Link href="/register" className="text-sm transition-colors duration-150 hover:text-primary">Sign Up</Link>
             </div>
             <p className="text-xs">© 2026 Evols AI</p>
           </div>

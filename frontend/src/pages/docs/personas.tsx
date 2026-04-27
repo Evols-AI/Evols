@@ -11,16 +11,16 @@ export default function PersonasDocumentation() {
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         {/* Header */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <header className="bg-card border-b border-border">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center">
-                <span className="text-2xl text-[#A78BFA]">
-                  Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
+                <span className="text-2xl text-primary">
+                  Evols<span className="text-muted-foreground font-medium">.ai</span>
                 </span>
-                <span className="text-lg font-medium text-gray-600 dark:text-gray-400 ml-2">Docs</span>
+                <span className="text-lg font-medium text-muted-foreground ml-2">Docs</span>
               </Link>
-              <Link href="/docs" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+              <Link href="/docs" className="flex items-center space-x-2 text-muted-foreground hover:text-gray-900 dark:hover:text-primary-foreground">
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to Docs</span>
               </Link>
@@ -47,8 +47,8 @@ export default function PersonasDocumentation() {
             <circle cx="175" cy="185" r="20" fill="white" opacity="0.4"/>
             <path d="M 145 215 Q 175 205 205 215" stroke="white" strokeWidth="6" fill="none" strokeLinecap="round" opacity="0.4"/>
           </svg>
-          <h1 className="text-4xl mb-4 text-gray-900 dark:text-white">Customer Personas</h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+          <h1 className="text-4xl mb-4 text-foreground">Customer Personas</h1>
+          <p className="text-xl text-muted-foreground mb-8">
             Learn how Evols automatically generates customer personas from VoC data and calculates product metrics.
           </p>
 
@@ -68,7 +68,7 @@ export default function PersonasDocumentation() {
           {/* Persona Generation */}
           <Section title="How Personas Are Generated">
             <div className="space-y-4">
-              <h3 className="text-lg text-gray-900 dark:text-white">1. Customer Segmentation</h3>
+              <h3 className="text-lg text-foreground">1. Customer Segmentation</h3>
               <p>
                 Personas are created by grouping feedback from customers with similar attributes:
               </p>
@@ -78,13 +78,13 @@ export default function PersonasDocumentation() {
                 <li><strong>Job Role:</strong> Executive, Engineering, Management, etc.</li>
               </ul>
 
-              <h3 className="text-lg text-gray-900 dark:text-white mt-6">2. Duplicate Detection</h3>
+              <h3 className="text-lg text-foreground mt-6">2. Duplicate Detection</h3>
               <p>
                 The system uses <strong>semantic similarity (85% threshold)</strong> to prevent creating duplicate personas.
                 If a new persona is similar to an existing one, the existing persona is updated with new data instead.
               </p>
 
-              <h3 className="text-lg text-gray-900 dark:text-white mt-6">3. Incremental Updates</h3>
+              <h3 className="text-lg text-foreground mt-6">3. Incremental Updates</h3>
               <p>
                 When you refresh personas, only <strong>new feedback since the last refresh</strong> is processed.
                 This makes refreshes fast and cost-effective while keeping personas up-to-date.
@@ -95,25 +95,25 @@ export default function PersonasDocumentation() {
           {/* Persona Lifecycle */}
           <Section title="Persona Lifecycle">
             <div className="space-y-4">
-              <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-4">
-                <h4 className="text-[#4C1D95] dark:text-[#A78BFA] mb-2">🆕 New</h4>
-                <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
+              <div className="bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg p-4">
+                <h4 className="text-primary dark:text-primary mb-2">🆕 New</h4>
+                <p className="text-sm text-primary/85 dark:text-primary">
                   Newly generated personas start with "New" status. These are available for review but not
                   used in voting or decision-making yet.
                 </p>
               </div>
 
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="bg-chart-3/10 border border-chart-3/30 rounded-lg p-4">
                 <h4 className="text-green-900 dark:text-green-100 mb-2">✅ Active</h4>
-                <p className="text-sm text-green-800 dark:text-green-200">
+                <p className="text-sm text-chart-3">
                   Active personas used in trade-off voting, Ask Personas, and workbench. Only "Active" personas
                   participate in product decisions.
                 </p>
               </div>
 
-              <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                <h4 className="text-gray-900 dark:text-gray-100 mb-2">🚫 Inactive</h4>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="text-foreground mb-2">🚫 Inactive</h4>
+                <p className="text-sm text-muted-foreground">
                   Hidden personas that are no longer relevant or accurate. These are excluded from all
                   platform features and won't be updated during refresh.
                 </p>
@@ -123,37 +123,37 @@ export default function PersonasDocumentation() {
 
           {/* Revenue Contribution */}
           <Section title="Revenue Contribution">
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 mb-6">
+            <div className="bg-chart-3/10 border border-chart-3/30 rounded-lg p-6 mb-6">
               <div className="flex items-start space-x-3">
-                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400 mt-1" />
+                <DollarSign className="w-6 h-6 text-chart-3 mt-1" />
                 <div>
                   <h3 className="text-lg text-green-900 dark:text-green-100 mb-2">
                     Average Revenue Per Customer
                   </h3>
-                  <p className="text-green-800 dark:text-green-200">
+                  <p className="text-chart-3">
                     Calculated from revenue data in feedback extra_data fields.
                   </p>
                 </div>
               </div>
             </div>
 
-            <h3 className="text-lg text-gray-900 dark:text-white mb-3">Data Sources</h3>
+            <h3 className="text-lg text-foreground mb-3">Data Sources</h3>
             <p className="mb-3">
               Evols extracts revenue data from the following fields in your feedback data:
             </p>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm mb-4">
-              <div className="text-gray-400">// Feedback extra_data fields:</div>
-              <div>"arr": 50000,           <span className="text-gray-500">// Annual Recurring Revenue</span></div>
-              <div>"revenue": 50000,       <span className="text-gray-500">// Total Revenue</span></div>
-              <div>"account_value": 50000  <span className="text-gray-500">// Account Value</span></div>
+              <div className="text-muted-foreground">// Feedback extra_data fields:</div>
+              <div>"arr": 50000,           <span className="text-muted-foreground">// Annual Recurring Revenue</span></div>
+              <div>"revenue": 50000,       <span className="text-muted-foreground">// Total Revenue</span></div>
+              <div>"account_value": 50000  <span className="text-muted-foreground">// Account Value</span></div>
             </div>
 
-            <h3 className="text-lg text-gray-900 dark:text-white mb-3">Calculation</h3>
+            <h3 className="text-lg text-foreground mb-3">Calculation</h3>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm">
               <div>revenue_contribution = sum(revenue_values) / count(revenue_values)</div>
             </div>
 
-            <h3 className="text-lg text-gray-900 dark:text-white mt-6 mb-3">Updates</h3>
+            <h3 className="text-lg text-foreground mt-6 mb-3">Updates</h3>
             <p>
               When a persona is updated with new feedback, revenue contribution is recalculated using a
               <strong> weighted average</strong> based on feedback counts:
@@ -171,33 +171,33 @@ export default function PersonasDocumentation() {
 
           {/* Usage Frequency */}
           <Section title="Usage Frequency">
-            <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-6 mb-6">
+            <div className="bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg p-6 mb-6">
               <div className="flex items-start space-x-3">
-                <TrendingUp className="w-6 h-6 text-[#A78BFA] dark:text-[#A78BFA] mt-1" />
+                <TrendingUp className="w-6 h-6 text-primary dark:text-primary mt-1" />
                 <div>
-                  <h3 className="text-lg text-[#4C1D95] dark:text-[#A78BFA] mb-2">
+                  <h3 className="text-lg text-primary dark:text-primary mb-2">
                     Product Usage Pattern
                   </h3>
-                  <p className="text-[#6D28D9] dark:text-[#A78BFA]">
+                  <p className="text-primary/85 dark:text-primary">
                     Extracted from usage frequency data in feedback extra_data fields.
                   </p>
                 </div>
               </div>
             </div>
 
-            <h3 className="text-lg text-gray-900 dark:text-white mb-3">Data Sources</h3>
+            <h3 className="text-lg text-foreground mb-3">Data Sources</h3>
             <p className="mb-3">
               Evols extracts usage patterns from these fields:
             </p>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm mb-4">
-              <div className="text-gray-400">// Feedback extra_data fields:</div>
-              <div>"usage_frequency": "Daily",  <span className="text-gray-500">// Direct usage frequency</span></div>
-              <div>"login_frequency": "Weekly", <span className="text-gray-500">// Login pattern</span></div>
-              <div>"daily_active": true,        <span className="text-gray-500">// Daily active flag</span></div>
-              <div>"weekly_active": true        <span className="text-gray-500">// Weekly active flag</span></div>
+              <div className="text-muted-foreground">// Feedback extra_data fields:</div>
+              <div>"usage_frequency": "Daily",  <span className="text-muted-foreground">// Direct usage frequency</span></div>
+              <div>"login_frequency": "Weekly", <span className="text-muted-foreground">// Login pattern</span></div>
+              <div>"daily_active": true,        <span className="text-muted-foreground">// Daily active flag</span></div>
+              <div>"weekly_active": true        <span className="text-muted-foreground">// Weekly active flag</span></div>
             </div>
 
-            <h3 className="text-lg text-gray-900 dark:text-white mb-3">Calculation</h3>
+            <h3 className="text-lg text-foreground mb-3">Calculation</h3>
             <p>
               Usage frequency is determined by finding the <strong>most common pattern</strong> across all
               feedback items for that persona:
@@ -206,7 +206,7 @@ export default function PersonasDocumentation() {
               <div>usage_frequency = most_common(usage_patterns)</div>
             </div>
 
-            <h3 className="text-lg text-gray-900 dark:text-white mt-6 mb-3">Common Values</h3>
+            <h3 className="text-lg text-foreground mt-6 mb-3">Common Values</h3>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li><strong>Daily:</strong> Users who log in or use the product daily</li>
               <li><strong>Weekly:</strong> Users who engage with the product weekly</li>
@@ -232,22 +232,22 @@ export default function PersonasDocumentation() {
             </div>
 
             <div className="space-y-3">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+              <div className="bg-card rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">≥ 25 feedback items</span>
-                  <span className="text-sm text-green-600 dark:text-green-400">High (≥75%)</span>
+                  <span className="text-sm text-muted-foreground">≥ 25 feedback items</span>
+                  <span className="text-sm text-chart-3">High (≥75%)</span>
                 </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+              <div className="bg-card rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">10-24 feedback items</span>
-                  <span className="text-sm text-yellow-600 dark:text-yellow-400">Medium (60-74%)</span>
+                  <span className="text-sm text-muted-foreground">10-24 feedback items</span>
+                  <span className="text-sm text-chart-4">Medium (60-74%)</span>
                 </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+              <div className="bg-card rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">&lt; 10 feedback items</span>
-                  <span className="text-sm text-red-600 dark:text-red-400">Low (&lt;60%)</span>
+                  <span className="text-sm text-muted-foreground">&lt; 10 feedback items</span>
+                  <span className="text-sm text-destructive dark:text-destructive">Low (&lt;60%)</span>
                 </div>
               </div>
             </div>
@@ -256,33 +256,33 @@ export default function PersonasDocumentation() {
           {/* Best Practices */}
           <Section title="Best Practices">
             <div className="space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="text-gray-900 dark:text-white mb-2">✅ Review "New" personas regularly</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+              <div className="bg-card rounded-lg border border-border p-4">
+                <h4 className="text-foreground mb-2">✅ Review "New" personas regularly</h4>
+                <p className="text-sm text-muted-foreground">
                   New personas need to be reviewed and marked as "Active" to participate in decisions.
                   Filter by "New" status to see personas waiting for review.
                 </p>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="text-gray-900 dark:text-white mb-2">✅ Include revenue and usage data</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  For accurate metrics, include <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">extra_data</code> fields
+              <div className="bg-card rounded-lg border border-border p-4">
+                <h4 className="text-foreground mb-2">✅ Include revenue and usage data</h4>
+                <p className="text-sm text-muted-foreground">
+                  For accurate metrics, include <code className="text-xs bg-muted px-1 py-0.5 rounded">extra_data</code> fields
                   in your feedback with revenue (arr, revenue, account_value) and usage (usage_frequency, login_frequency) information.
                 </p>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="text-gray-900 dark:text-white mb-2">✅ Merge similar personas</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+              <div className="bg-card rounded-lg border border-border p-4">
+                <h4 className="text-foreground mb-2">✅ Merge similar personas</h4>
+                <p className="text-sm text-muted-foreground">
                   If you find similar personas, use the merge feature to combine them. This creates a
                   more accurate persona with higher confidence scores.
                 </p>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="text-gray-900 dark:text-white mb-2">✅ Refresh after major data uploads</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+              <div className="bg-card rounded-lg border border-border p-4">
+                <h4 className="text-foreground mb-2">✅ Refresh after major data uploads</h4>
+                <p className="text-sm text-muted-foreground">
                   Click "Refresh Personas" after uploading significant new feedback to keep personas
                   current. The system will intelligently update existing personas rather than creating duplicates.
                 </p>
@@ -291,8 +291,8 @@ export default function PersonasDocumentation() {
           </Section>
 
           {/* Back Link */}
-          <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <Link href="/docs" className="inline-flex items-center space-x-2 text-[#A78BFA] dark:text-[#A78BFA] hover:text-[#A78BFA]">
+          <div className="mt-12 pt-8 border-t border-border">
+            <Link href="/docs" className="inline-flex items-center space-x-2 text-primary dark:text-primary hover:text-primary">
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Documentation</span>
             </Link>
@@ -306,7 +306,7 @@ export default function PersonasDocumentation() {
 function Section({ title, children }: { title: string, children: React.ReactNode }) {
   return (
     <section className="mb-12">
-      <h2 className="text-2xl mb-4 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+      <h2 className="text-2xl mb-4 text-foreground border-b border-border pb-2">
         {title}
       </h2>
       <div className="prose dark:prose-invert max-w-none">

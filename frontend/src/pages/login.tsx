@@ -22,7 +22,7 @@ export default function Login() {
   const oidcState = (router.query.state as string) || ''
 
   useEffect(() => {
-    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.background = ''
     document.body.style.backgroundImage = 'none'
   }, [dark])
 
@@ -95,11 +95,11 @@ export default function Login() {
 
   const inputClass = `block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none ${
     dark
-      ? 'border-white/[0.08] bg-white/[0.04] text-[#FAFAFA] placeholder-[#71717A] focus:border-[#A78BFA]/50 focus:ring-1 focus:ring-[#A78BFA]/30'
-      : 'border-black/[0.1] bg-white text-[#0A0A0B] placeholder-[#A1A1AA] focus:border-[#A78BFA]/50 focus:ring-1 focus:ring-[#A78BFA]/30'
+      ? 'border-border bg-input text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30'
+      : 'border-border bg-card text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30'
   }`
-  const labelClass = `block text-sm font-medium mb-2 ${dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'}`
-  const iconClass = `h-5 w-5 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`
+  const labelClass = `block text-sm font-medium mb-2 text-muted-foreground`
+  const iconClass = `h-5 w-5 text-muted-foreground`
 
   return (
     <>
@@ -108,17 +108,17 @@ export default function Login() {
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
-      <div className={`min-h-screen flex flex-col transition-colors ${dark ? 'bg-[#0A0A0B]' : 'bg-[#F7F7F8]'}`}>
-        <nav className={`fixed top-0 left-0 right-0 z-50 border-b ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} backdrop-blur-xl ${dark ? 'bg-[#0A0A0B]/80' : 'bg-white/80'} transition-colors duration-300`}>
+      <div className={`min-h-screen flex flex-col transition-colors bg-background`}>
+        <nav className={`fixed top-0 left-0 right-0 z-50 border-b border-border backdrop-blur-xl bg-background/80 transition-colors duration-300`}>
           <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <Link href="/">
               <LogoWordmark iconSize={36} />
             </Link>
             <div className="flex items-center space-x-4">
               <button onClick={toggleTheme} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5" aria-label="Toggle theme">
-                {theme === 'light' ? <Moon className="w-5 h-5 text-[#52525B]" /> : <Sun className="w-5 h-5 text-[#A1A1AA]" />}
+                {theme === 'light' ? <Moon className="w-5 h-5 text-muted-foreground" /> : <Sun className="w-5 h-5 text-muted-foreground" />}
               </button>
-              <Link href="/register" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-2 px-5 rounded-lg text-sm font-medium transition-colors">
+              <Link href="/register" className="bg-primary hover:bg-primary/85 text-primary-foreground py-2 px-5 rounded-lg text-sm font-medium transition-colors">
                 Get Early Access
               </Link>
             </div>
@@ -135,10 +135,10 @@ export default function Login() {
                 className="w-full max-w-md mb-10 drop-shadow-lg"
               />
               <div className="text-center">
-                <h2 className={`text-3xl font-medium mb-4 ${dark ? 'text-[#FAFAFA]' : 'text-[#0A0A0B]'}`}>
+                <h2 className={`text-3xl font-medium mb-4 text-foreground`}>
                   Welcome Back!
                 </h2>
-                <p className={`max-w-md ${dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'}`}>
+                <p className={`max-w-md text-muted-foreground`}>
                   Access your AI-powered product decision platform and continue making data-driven decisions.
                 </p>
               </div>
@@ -146,11 +146,11 @@ export default function Login() {
 
             {/* Right Column - Form */}
             <div className="w-full">
-              <div className={`rounded-2xl p-8 border ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
+              <div className={`rounded-2xl p-8 border bg-card border-border`}>
                 {error && (
-                  <div className={`mb-6 p-4 border rounded-lg flex items-start space-x-3 ${dark ? 'bg-red-900/10 border-red-500/20' : 'bg-red-50 border-red-200'}`}>
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-500">{error}</p>
+                  <div className={`mb-6 p-4 border rounded-lg flex items-start space-x-3 ${dark ? 'bg-destructive/10 border-destructive/20' : 'bg-destructive/10 border-destructive/30'}`}>
+                    <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-destructive">{error}</p>
                   </div>
                 )}
 
@@ -180,15 +180,15 @@ export default function Login() {
                   </div>
 
                   <button type="submit" disabled={loading}
-                    className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 px-6 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="w-full bg-primary hover:bg-primary/85 text-primary-foreground py-3 px-6 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     {loading ? 'Signing in...' : 'Sign In'}
                   </button>
                 </form>
 
                 <div className="mt-6 text-center text-sm">
-                  <p className={dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'}>
+                  <p className={'text-muted-foreground'}>
                     Don't have an account?{' '}
-                    <Link href="/register" className="text-[#A78BFA] hover:text-[#8B5CF6] font-medium transition-colors">
+                    <Link href="/register" className="text-primary hover:text-primary font-medium transition-colors">
                       Sign up
                     </Link>
                   </p>
@@ -198,13 +198,13 @@ export default function Login() {
           </div>
         </div>
 
-        <footer className={`border-t ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} py-12 w-full transition-colors duration-300`}>
-          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`}>
+        <footer className={`border-t border-border py-12 w-full transition-colors duration-300`}>
+          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground`}>
             <LogoWordmark iconSize={32} />
             <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Docs</Link>
-              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Support</Link>
-              <Link href="/register" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Sign Up</Link>
+              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-primary">Docs</Link>
+              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-primary">Support</Link>
+              <Link href="/register" className="text-sm transition-colors duration-150 hover:text-primary">Sign Up</Link>
             </div>
             <p className="text-xs">© 2026 Evols AI</p>
           </div>

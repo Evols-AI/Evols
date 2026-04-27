@@ -620,7 +620,7 @@ export default function Settings() {
         <div className="p-6">
           {activeTab === 'profile' && (
             <div className="max-w-2xl space-y-4">
-              <h3 className="text-lg mb-4 text-gray-900 dark:text-white">Profile Information</h3>
+              <h3 className="text-lg mb-4 text-foreground">Profile Information</h3>
               <div>
                 <label className="block text-sm font-medium mb-2 text-heading">Full Name</label>
                 <input
@@ -652,14 +652,14 @@ export default function Settings() {
           {/* Appearance tab - Temporarily hidden
           {activeTab === 'appearance' && (
             <div className="max-w-2xl">
-              <h3 className="text-lg mb-4 text-gray-900 dark:text-white">Theme Preferences</h3>
-              <div className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
+              <h3 className="text-lg mb-4 text-foreground">Theme Preferences</h3>
+              <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Toggle between light and dark theme</p>
+                  <p className="font-medium text-foreground">Dark Mode</p>
+                  <p className="text-sm text-muted-foreground">Toggle between light and dark theme</p>
                 </div>
-                <button onClick={toggleTheme} className={`relative inline-flex h-6 w-11 items-center rounded-full ${theme === 'dark' ? 'bg-[#8B5CF6]' : 'bg-gray-300'}`}>
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
+                <button onClick={toggleTheme} className={`relative inline-flex h-6 w-11 items-center rounded-full ${theme === 'dark' ? 'bg-primary' : 'bg-muted'}`}>
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-card ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
             </div>
@@ -702,14 +702,14 @@ export default function Settings() {
               </div>
               {/* Two-Factor Authentication - Coming soon
               <div>
-                <h3 className="text-lg mb-4 text-gray-900 dark:text-white">Two-Factor Authentication</h3>
-                <div className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
+                <h3 className="text-lg mb-4 text-foreground">Two-Factor Authentication</h3>
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Enable 2FA</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Add extra security layer to your account</p>
+                    <p className="font-medium text-foreground">Enable 2FA</p>
+                    <p className="text-sm text-muted-foreground">Add extra security layer to your account</p>
                   </div>
-                  <button onClick={() => setTwoFactorEnabled(!twoFactorEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full ${twoFactorEnabled ? 'bg-[#8B5CF6]' : 'bg-gray-300'}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                  <button onClick={() => setTwoFactorEnabled(!twoFactorEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full ${twoFactorEnabled ? 'bg-primary' : 'bg-muted'}`}>
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-card ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
               </div>
@@ -719,43 +719,43 @@ export default function Settings() {
 
           {activeTab === 'notifications' && (
             <div className="max-w-2xl">
-              <h3 className="text-lg mb-4 text-gray-900 dark:text-white">Notification Preferences</h3>
+              <h3 className="text-lg mb-4 text-foreground">Notification Preferences</h3>
               <div className="space-y-3">
                 {Object.entries({ email_notifications: 'Email Notifications', push_notifications: 'Push Notifications', feedback_alerts: 'Feedback Alerts', theme_updates: 'Theme Updates', decision_reminders: 'Decision Reminders', weekly_digest: 'Weekly Digest' }).map(([key, label]) => (
-                  <div key={key} className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
-                    <p className="text-gray-900 dark:text-white">{label}</p>
-                    <button onClick={() => setNotificationSettings({ ...notificationSettings, [key]: !notificationSettings[key as keyof typeof notificationSettings] })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings[key as keyof typeof notificationSettings] ? 'bg-[#8B5CF6]' : 'bg-gray-300'}`}>
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white ${notificationSettings[key as keyof typeof notificationSettings] ? 'translate-x-6' : 'translate-x-1'}`} />
+                  <div key={key} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <p className="text-foreground">{label}</p>
+                    <button onClick={() => setNotificationSettings({ ...notificationSettings, [key]: !notificationSettings[key as keyof typeof notificationSettings] })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings[key as keyof typeof notificationSettings] ? 'bg-primary' : 'bg-muted'}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-card ${notificationSettings[key as keyof typeof notificationSettings] ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
                 ))}
-                <button className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors mt-4">Save Preferences</button>
+                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/85 transition-colors mt-4">Save Preferences</button>
               </div>
             </div>
           )}
 
           {activeTab === 'llm' && (
             <div>
-              <h3 className="text-lg mb-2 text-gray-900 dark:text-white">LLM Configuration</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">BYOK - Bring Your Own Keys. API keys are encrypted at rest.</p>
+              <h3 className="text-lg mb-2 text-foreground">LLM Configuration</h3>
+              <p className="text-muted-foreground mb-6">BYOK - Bring Your Own Keys. API keys are encrypted at rest.</p>
 
               {currentLLMSettings && (
-                <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <p className="text-sm text-green-800 dark:text-green-400 mb-2">✓ Current Configuration</p>
-                  <p className="text-sm text-green-700 dark:text-green-300"><strong>Provider:</strong> {currentLLMSettings.provider}</p>
-                  <p className="text-sm text-green-700 dark:text-green-300"><strong>Model:</strong> {currentLLMSettings.model}</p>
-                  {currentLLMSettings.api_key_masked && <p className="text-sm text-green-700 dark:text-green-300"><strong>Key:</strong> {currentLLMSettings.api_key_masked}</p>}
+                <div className="mb-6 p-4 bg-chart-3/10 border border-chart-3/30 rounded-lg">
+                  <p className="text-sm text-chart-3 mb-2">✓ Current Configuration</p>
+                  <p className="text-sm text-chart-3"><strong>Provider:</strong> {currentLLMSettings.provider}</p>
+                  <p className="text-sm text-chart-3"><strong>Model:</strong> {currentLLMSettings.model}</p>
+                  {currentLLMSettings.api_key_masked && <p className="text-sm text-chart-3"><strong>Key:</strong> {currentLLMSettings.api_key_masked}</p>}
                 </div>
               )}
 
 
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Provider</label>
+                <label className="block text-sm font-medium mb-2 text-foreground">Provider</label>
                 <div className="relative">
                   <select
                     value={llmProvider}
                     onChange={(e) => handleLLMProviderChange(e.target.value as LLMProvider)}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                    className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
                   >
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
@@ -763,40 +763,40 @@ export default function Settings() {
                     <option value="aws_bedrock">AWS Bedrock</option>
                     <option value="google_gemini">Google Gemini</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
 
               {llmProvider === 'openai' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">API Key *</label>
+                    <label className="block text-sm font-medium mb-2 text-foreground">API Key *</label>
                     <div className="relative">
                       <input
                         type={showApiKey ? 'text' : 'password'}
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
                         {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Model Available</label>
-                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                    <label className="block text-sm font-medium text-foreground mb-2">Model Available</label>
+                    <div className="px-3 py-2 border border-border rounded-md bg-muted/30 text-foreground">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{getLatestModel('openai')}</span>
-                        <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                        <span className="text-xs bg-chart-1/15 text-chart-1 px-2 py-1 rounded">
                           Most Effective
                         </span>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Curated model selection optimized for product management workflows and strategic analysis.
                     </p>
                   </div>
@@ -806,33 +806,33 @@ export default function Settings() {
               {llmProvider === 'anthropic' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">API Key *</label>
+                    <label className="block text-sm font-medium mb-2 text-foreground">API Key *</label>
                     <div className="relative">
                       <input
                         type={showApiKey ? 'text' : 'password'}
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
                         {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Model Available</label>
-                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model Available</label>
+                    <div className="px-3 py-2 border border-border rounded-md bg-muted/30 text-foreground">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{getLatestModel('anthropic')}</span>
-                        <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                        <span className="text-xs bg-chart-1/15 text-chart-1 px-2 py-1 rounded">
                           Most Effective
                         </span>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Curated model selection optimized for product management workflows and strategic analysis.
                     </p>
                   </div>
@@ -842,41 +842,41 @@ export default function Settings() {
               {llmProvider === 'azure_openai' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">API Key *</label>
+                    <label className="block text-sm font-medium mb-2 text-foreground">API Key *</label>
                     <div className="relative">
                       <input
                         type={showApiKey ? 'text' : 'password'}
                         placeholder="API Key"
                         value={llmConfig.api_key}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
                       <button
                         onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
                         {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Endpoint URL *</label>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Endpoint URL *</label>
                     <input
                       type="text"
                       placeholder="https://your-resource.openai.azure.com"
                       value={llmConfig.endpoint}
                       onChange={(e) => setLLMConfig({ ...llmConfig, endpoint: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Deployment Name *</label>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Deployment Name *</label>
                     <input
                       type="text"
                       placeholder="gpt-4"
                       value={llmConfig.deployment_name}
                       onChange={(e) => setLLMConfig({ ...llmConfig, deployment_name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
                     />
                   </div>
                 </div>
@@ -886,7 +886,7 @@ export default function Settings() {
                 <div className="space-y-4">
                   {/* Authentication Method Selection */}
                   <div>
-                    <label className="block text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">Authentication Method</label>
+                    <label className="block text-sm font-medium mb-3 text-foreground">Authentication Method</label>
                     <div className="flex gap-4">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -895,9 +895,9 @@ export default function Settings() {
                           value="api_key"
                           checked={awsAuthMethod === 'api_key'}
                           onChange={(e) => handleAWSAuthMethodChange(e.target.value as AWSAuthMethod)}
-                          className="w-4 h-4 text-[#A78BFA] focus:ring-[#A78BFA]/50"
+                          className="w-4 h-4 text-primary focus:ring-ring/50"
                         />
-                        <span className="text-sm text-gray-900 dark:text-gray-100">API Key</span>
+                        <span className="text-sm text-foreground">API Key</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -906,9 +906,9 @@ export default function Settings() {
                           value="credentials"
                           checked={awsAuthMethod === 'credentials'}
                           onChange={(e) => handleAWSAuthMethodChange(e.target.value as AWSAuthMethod)}
-                          className="w-4 h-4 text-[#A78BFA] focus:ring-[#A78BFA]/50"
+                          className="w-4 h-4 text-primary focus:ring-ring/50"
                         />
-                        <span className="text-sm text-gray-900 dark:text-gray-100">AWS Credentials (IAM)</span>
+                        <span className="text-sm text-foreground">AWS Credentials (IAM)</span>
                       </label>
                     </div>
                   </div>
@@ -916,18 +916,18 @@ export default function Settings() {
                   {/* API Key Method */}
                   {awsAuthMethod === 'api_key' && (
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">API Key *</label>
+                      <label className="block text-sm font-medium mb-2 text-foreground">API Key *</label>
                       <div className="relative">
                         <input
                           type={showApiKey ? 'text' : 'password'}
                           placeholder="Enter your AWS Bedrock API key"
                           value={llmConfig.api_key}
                           onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                          className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                          className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
                         />
                         <button
                           onClick={() => setShowApiKey(!showApiKey)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
                           {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -939,28 +939,28 @@ export default function Settings() {
                   {awsAuthMethod === 'credentials' && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Access Key ID *</label>
+                        <label className="block text-sm font-medium mb-2 text-foreground">Access Key ID *</label>
                         <input
                           type="text"
                           placeholder="AKIAIOSFODNN7EXAMPLE"
                           value={llmConfig.aws_access_key_id}
                           onChange={(e) => setLLMConfig({ ...llmConfig, aws_access_key_id: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                          className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Secret Access Key *</label>
+                        <label className="block text-sm font-medium mb-2 text-foreground">Secret Access Key *</label>
                         <div className="relative">
                           <input
                             type={showSecretKey ? 'text' : 'password'}
                             placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
                             value={llmConfig.aws_secret_access_key}
                             onChange={(e) => setLLMConfig({ ...llmConfig, aws_secret_access_key: e.target.value })}
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                            className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
                           />
                           <button
                             onClick={() => setShowSecretKey(!showSecretKey)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           >
                             {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
@@ -971,29 +971,29 @@ export default function Settings() {
 
                   {/* Common Fields */}
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Region</label>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Region</label>
                     <div className="relative">
                       <select
                         value={llmConfig.aws_region}
                         onChange={(e) => setLLMConfig({ ...llmConfig, aws_region: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none cursor-pointer focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       >
                         {modelOptions?.aws_regions.map((r) => <option key={r} value={r}>{r}</option>)}
                       </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Model Available</label>
-                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                    <label className="block text-sm font-medium text-foreground mb-2">Model Available</label>
+                    <div className="px-3 py-2 border border-border rounded-md bg-muted/30 text-foreground">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{getLatestModel('aws_bedrock')}</span>
-                        <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                        <span className="text-xs bg-chart-1/15 text-chart-1 px-2 py-1 rounded">
                           Most Effective
                         </span>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Curated model selection optimized for product management workflows and strategic analysis.
                     </p>
                   </div>
@@ -1003,7 +1003,7 @@ export default function Settings() {
               {llmProvider === 'google_gemini' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Google AI Studio API Key
                     </label>
                     <div className="relative">
@@ -1012,41 +1012,41 @@ export default function Settings() {
                         value={llmConfig.api_key || ''}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
                         placeholder="Enter your Google AI Studio API key"
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
                       <button
                         type="button"
                         onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
                         {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-[#A78BFA] hover:underline">Google AI Studio</a>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Model Available
                     </label>
-                    <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                    <div className="px-3 py-2 border border-border rounded-md bg-muted/30 text-foreground">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{getLatestModel('google_gemini')}</span>
-                        <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                        <span className="text-xs bg-chart-1/15 text-chart-1 px-2 py-1 rounded">
                           Most Effective
                         </span>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Curated model selection optimized for product management workflows and strategic analysis.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Temperature
                       </label>
                       <input
@@ -1056,13 +1056,13 @@ export default function Settings() {
                         step="0.1"
                         value={llmConfig.temperature || 0.7}
                         onChange={(e) => setLLMConfig({ ...llmConfig, temperature: parseFloat(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">0.0 = deterministic, 1.0 = creative</p>
+                      <p className="mt-1 text-xs text-muted-foreground">0.0 = deterministic, 1.0 = creative</p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Top-P
                       </label>
                       <input
@@ -1072,13 +1072,13 @@ export default function Settings() {
                         step="0.05"
                         value={llmConfig.top_p || 0.95}
                         onChange={(e) => setLLMConfig({ ...llmConfig, top_p: parseFloat(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Nucleus sampling parameter</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Nucleus sampling parameter</p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Top-K
                       </label>
                       <input
@@ -1088,9 +1088,9 @@ export default function Settings() {
                         step="1"
                         value={llmConfig.top_k || 40}
                         onChange={(e) => setLLMConfig({ ...llmConfig, top_k: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Top-k sampling parameter</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Top-k sampling parameter</p>
                     </div>
                   </div>
                 </div>
@@ -1099,13 +1099,13 @@ export default function Settings() {
               {testResult && (
                 <div className={`mt-4 p-4 rounded-lg border ${
                   testResult.success
-                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                    ? 'bg-chart-3/10 border-chart-3/30'
+                    : 'bg-destructive/10 border-destructive/30'
                 }`}>
                   <p className={`text-sm ${
                     testResult.success
-                      ? 'text-green-800 dark:text-green-400'
-                      : 'text-red-800 dark:text-red-400'
+                      ? 'text-chart-3'
+                      : 'text-destructive'
                   }`}>
                     {testResult.success ? '✓' : '✗'} {testResult.message}
                   </p>
@@ -1116,29 +1116,29 @@ export default function Settings() {
                 <button
                   onClick={handleTestLLMConnection}
                   disabled={testing || !isConfigValid()}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                  className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {testing ? 'Testing...' : 'Test Connection'}
                 </button>
                 <button
                   onClick={handleSaveLLMSettings}
                   disabled={saving || !isConfigValid()}
-                  className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] disabled:bg-[#A78BFA]/40 dark:disabled:bg-[#7C3AED]/40 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/85 disabled:bg-primary/40 dark:disabled:bg-primary/40 disabled:cursor-not-allowed transition-colors"
                 >
                   {saving ? 'Saving...' : 'Save Settings'}
                 </button>
                 {currentLLMSettings && (
                   <button
                     onClick={handleDeleteLLMSettings}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                    className="px-4 py-2 bg-destructive text-primary-foreground rounded-md hover:bg-destructive/85 transition-colors"
                   >
                     Remove Configuration
                   </button>
                 )}
               </div>
 
-              <div className="mt-6 p-4 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg">
-                <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]"><strong>ℹ️ About Authentication Methods:</strong> AWS Bedrock supports two authentication methods: (1) <strong>API Key</strong> - simpler authentication with a single key, or (2) <strong>AWS Credentials (IAM)</strong> - traditional AWS authentication using Access Key ID + Secret Access Key. Other providers (OpenAI, Anthropic, Azure, Google Gemini) use single API keys specific to their platforms.</p>
+              <div className="mt-6 p-4 bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg">
+                <p className="text-sm text-primary/85 dark:text-primary"><strong>ℹ️ About Authentication Methods:</strong> AWS Bedrock supports two authentication methods: (1) <strong>API Key</strong> - simpler authentication with a single key, or (2) <strong>AWS Credentials (IAM)</strong> - traditional AWS authentication using Access Key ID + Secret Access Key. Other providers (OpenAI, Anthropic, Azure, Google Gemini) use single API keys specific to their platforms.</p>
               </div>
             </div>
           )}
@@ -1146,8 +1146,8 @@ export default function Settings() {
           {/* Data Refresh Tab */}
           {activeTab === 'data_refresh' && (
             <div>
-              <h3 className="text-lg mb-2 text-gray-900 dark:text-white">Context Intelligence Refresh</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <h3 className="text-lg mb-2 text-foreground">Context Intelligence Refresh</h3>
+              <p className="text-muted-foreground mb-6">
                 Automatically re-extract insights from uploaded context sources on a schedule.
                 Use the manual "Refresh Context" button on the Context page for on-demand updates.
               </p>
@@ -1155,10 +1155,10 @@ export default function Settings() {
               {/* Unified Context Refresh Settings */}
               <div className="mt-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg">
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white">Enable Auto-Refresh</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <h4 className="font-medium text-foreground">Enable Auto-Refresh</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
                         Automatically re-extract entities and insights from all context sources on a schedule.
                       </p>
                     </div>
@@ -1169,13 +1169,13 @@ export default function Settings() {
                         onChange={(e) => setPersonaRefreshEnabled(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#A78BFA]/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#8B5CF6]"></div>
+                      <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ring/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                     </label>
                   </div>
 
                   {personaRefreshEnabled && (
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
                         Refresh Interval (Days)
                       </label>
                       <input
@@ -1184,9 +1184,9 @@ export default function Settings() {
                         max="365"
                         value={personaRefreshDays}
                         onChange={(e) => setPersonaRefreshDays(Number(e.target.value))}
-                        className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                        className="w-32 px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      <p className="text-xs text-muted-foreground mt-2">
                         Context intelligence will be refreshed every {personaRefreshDays} day(s)
                       </p>
                     </div>
@@ -1195,13 +1195,13 @@ export default function Settings() {
                   <button
                     onClick={handleSavePersonaRefreshSettings}
                     disabled={savingPersonaRefresh}
-                    className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] disabled:bg-[#A78BFA]/40 dark:disabled:bg-[#7C3AED]/40 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/85 disabled:bg-primary/40 dark:disabled:bg-primary/40 disabled:cursor-not-allowed transition-colors"
                   >
                     {savingPersonaRefresh ? 'Saving...' : 'Save Refresh Settings'}
                   </button>
 
                   {lastRefreshDate && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       Last refresh: {new Date(lastRefreshDate).toLocaleDateString()}
                     </p>
                   )}
@@ -1215,15 +1215,15 @@ export default function Settings() {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-lg text-gray-900 dark:text-white">API Keys</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <h3 className="text-lg text-foreground">API Keys</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Long-lived keys for the Evols Claude Code plugin. Configure once in{' '}
-                    <code className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1 py-0.5 rounded">~/.evols/config.json</code>.
+                    <code className="text-xs bg-muted text-muted-foreground px-1 py-0.5 rounded">~/.evols/config.json</code>.
                   </p>
                 </div>
                 <button
                   onClick={() => setShowCreateKeyModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition-colors whitespace-nowrap flex-shrink-0 ml-4"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85 transition-colors whitespace-nowrap flex-shrink-0 ml-4"
                 >
                   <Plus className="w-4 h-4" />
                   New Key
@@ -1232,15 +1232,15 @@ export default function Settings() {
 
               {/* Newly-created key banner */}
               {newKeyData && (
-                <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg">
-                  <p className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                <div className="mb-6 p-4 bg-chart-3/10 border border-chart-3/30 rounded-lg">
+                  <p className="text-sm font-medium text-chart-3 mb-2">
                     ✓ Key created — copy it now. It won&apos;t be shown again.
                   </p>
-                  <p className="text-xs text-green-700 dark:text-green-400 mb-3">
+                  <p className="text-xs text-chart-3/80 mb-3">
                     <strong>{newKeyData.name}</strong>
                   </p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-green-300 dark:border-green-700 rounded px-3 py-2 font-mono break-all">
+                    <code className="flex-1 text-xs bg-card text-foreground border border-chart-3/30 rounded px-3 py-2 font-mono break-all">
                       {newKeyData.key}
                     </code>
                     <button
@@ -1249,19 +1249,19 @@ export default function Settings() {
                         setCopiedKey(true)
                         setTimeout(() => setCopiedKey(false), 2000)
                       }}
-                      className="flex-shrink-0 p-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                      className="flex-shrink-0 p-2 bg-chart-3 text-primary-foreground rounded hover:bg-chart-3/85 transition-colors"
                       title="Copy key"
                     >
                       {copiedKey ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
-                  <p className="text-xs text-green-700 dark:text-green-400 mt-3">
-                    Add to <code className="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-1 rounded">~/.evols/config.json</code> as{' '}
-                    <code className="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-1 rounded">&quot;api_key&quot;: &quot;{newKeyData.key.slice(0, 12)}...&quot;</code>
+                  <p className="text-xs text-chart-3/80 mt-3">
+                    Add to <code className="bg-chart-3/10 text-chart-3 px-1 rounded">~/.evols/config.json</code> as{' '}
+                    <code className="bg-chart-3/10 text-chart-3 px-1 rounded">&quot;api_key&quot;: &quot;{newKeyData.key.slice(0, 12)}...&quot;</code>
                   </p>
                   <button
                     onClick={() => setNewKeyData(null)}
-                    className="mt-3 text-xs text-green-600 dark:text-green-400 underline"
+                    className="mt-3 text-xs text-chart-3 underline"
                   >
                     Dismiss
                   </button>
@@ -1269,36 +1269,36 @@ export default function Settings() {
               )}
 
               {loadingApiKeys ? (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading keys...</div>
+                <div className="text-center py-12 text-muted-foreground">Loading keys...</div>
               ) : apiKeys.length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                  <Key className="w-10 h-10 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">No API keys yet.</p>
+                <div className="text-center py-12 border border-dashed border-border rounded-lg">
+                  <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">No API keys yet.</p>
                   <button
                     onClick={() => setShowCreateKeyModal(true)}
-                    className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED]"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85"
                   >
                     Create First Key
                   </button>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
                   {apiKeys.map((k: any) => (
-                    <div key={k.id} className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800">
+                    <div key={k.id} className="flex items-center justify-between px-4 py-3 bg-card">
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{k.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <p className="text-sm font-medium text-foreground">{k.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           <code className="font-mono">{k.key_prefix}...</code>
                           {' · '}
                           Created {new Date(k.created_at).toLocaleDateString()}
                           {k.last_used_at && ` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`}
-                          {!k.is_active && <span className="ml-2 text-red-500">Revoked</span>}
+                          {!k.is_active && <span className="ml-2 text-destructive">Revoked</span>}
                         </p>
                       </div>
                       {k.is_active && (
                         <button
                           onClick={() => handleRevokeApiKey(k.id, k.name)}
-                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          className="p-2 text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/15 rounded transition-colors"
                           title="Revoke key"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1326,14 +1326,14 @@ export default function Settings() {
           {activeTab === 'team' && (
             <div>
               {/* Team Subtabs */}
-              <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="mb-6 border-b border-border">
                 <nav className="flex space-x-8">
                   <button
                     onClick={() => setTeamSubtab('members')}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       teamSubtab === 'members'
-                        ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                        ? 'border-primary text-primary dark:text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -1345,8 +1345,8 @@ export default function Settings() {
                     onClick={() => setTeamSubtab('invites')}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       teamSubtab === 'invites'
-                        ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                        ? 'border-primary text-primary dark:text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -1362,12 +1362,12 @@ export default function Settings() {
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-lg text-gray-900 dark:text-white">Team Members</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Current members of your organization</p>
+                      <h3 className="text-lg text-foreground">Team Members</h3>
+                      <p className="text-sm text-muted-foreground">Current members of your organization</p>
                     </div>
                     <button
                       onClick={() => setShowInviteModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85 transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                       Invite Member
@@ -1376,47 +1376,47 @@ export default function Settings() {
 
                   {loadingTeam ? (
                     <div className="text-center py-12">
-                      <div className="text-gray-500 dark:text-gray-400">Loading team members...</div>
+                      <div className="text-muted-foreground">Loading team members...</div>
                     </div>
                   ) : teamMembers.length === 0 ? (
-                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">No team members yet</p>
+                    <div className="text-center py-12 bg-muted/30 rounded-lg border border-border">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground mb-4">No team members yet</p>
                       <button
                         onClick={() => setShowInviteModal(true)}
-                        className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED]"
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85"
                       >
                         Invite First Member
                       </button>
                     </div>
                   ) : (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="bg-card rounded-lg border border-border overflow-hidden">
                       <table className="w-full">
-                        <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                        <thead className="bg-muted/40 border-b border-border">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">User</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Role</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">User</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody className="divide-y divide-border">
                           {teamMembers.map((member: any) => (
                             <tr key={member.id}>
                               <td className="px-6 py-4">
-                                <div className="font-medium text-gray-900 dark:text-white">
+                                <div className="font-medium text-foreground">
                                   {member.full_name || 'No name'}
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                              <td className="px-6 py-4 text-sm text-muted-foreground">
                                 {member.email}
                               </td>
                               <td className="px-6 py-4">
                                 <span className={`px-2 py-1 text-xs rounded ${
                                   member.role === 'TENANT_ADMIN'
-                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                    ? 'bg-chart-1/15 text-chart-1'
+                                    : 'bg-muted text-muted-foreground'
                                 }`}>
                                   {member.role.replace('_', ' ')}
                                 </span>
@@ -1424,8 +1424,8 @@ export default function Settings() {
                               <td className="px-6 py-4">
                                 <span className={`px-2 py-1 text-xs rounded ${
                                   member.is_active
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                    ? 'bg-chart-3/15 text-chart-3'
+                                    : 'bg-destructive/10 text-destructive'
                                 }`}>
                                   {member.is_active ? 'Active' : 'Inactive'}
                                 </span>
@@ -1434,7 +1434,7 @@ export default function Settings() {
                                 {member.id !== user?.id && (
                                   <button
                                     onClick={() => handleDeleteUser(member.id)}
-                                    className="text-red-600 dark:text-red-400 hover:text-red-700"
+                                    className="text-destructive dark:text-destructive hover:text-destructive"
                                     title="Remove user"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -1455,12 +1455,12 @@ export default function Settings() {
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-lg text-gray-900 dark:text-white">Pending Invitations</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Invitations waiting to be accepted</p>
+                      <h3 className="text-lg text-foreground">Pending Invitations</h3>
+                      <p className="text-sm text-muted-foreground">Invitations waiting to be accepted</p>
                     </div>
                     <button
                       onClick={() => setShowInviteModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85 transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                       Send Invitation
@@ -1469,15 +1469,15 @@ export default function Settings() {
 
                   {loadingInvites ? (
                     <div className="text-center py-12">
-                      <div className="text-gray-500 dark:text-gray-400">Loading invitations...</div>
+                      <div className="text-muted-foreground">Loading invitations...</div>
                     </div>
                   ) : invites.length === 0 ? (
-                    <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <Mail className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">No pending invitations</p>
+                    <div className="text-center py-12 bg-card rounded-lg border border-border">
+                      <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground mb-4">No pending invitations</p>
                       <button
                         onClick={() => setShowInviteModal(true)}
-                        className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED]"
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85"
                       >
                         Send First Invitation
                       </button>
@@ -1493,36 +1493,36 @@ export default function Settings() {
                         return (
                           <div
                             key={invite.id}
-                            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
+                            className="bg-card rounded-lg border border-border p-6"
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                                  <h3 className="text-lg font-medium text-foreground">
                                     {invite.email}
                                   </h3>
                                   {invite.is_accepted ? (
-                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-chart-3/15 text-chart-3">
                                       <CheckCircle className="w-3 h-3" />
                                       Accepted
                                     </span>
                                   ) : expired ? (
-                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive">
                                       <XCircle className="w-3 h-3" />
                                       Expired
                                     </span>
                                   ) : (
-                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+                                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-chart-4/20 text-chart-4">
                                       <Clock className="w-3 h-3" />
                                       Expires in {expiresIn} days
                                     </span>
                                   )}
                                 </div>
 
-                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                                   <span>
                                     Role:{' '}
-                                    <span className="font-medium text-gray-900 dark:text-white">
+                                    <span className="font-medium text-foreground">
                                       {invite.role.replace('_', ' ')}
                                     </span>
                                   </span>
@@ -1533,7 +1533,7 @@ export default function Settings() {
                                 </div>
 
                                 {invite.message && (
-                                  <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                  <div className="bg-muted/30 rounded p-3 text-sm text-muted-foreground mb-3">
                                     <p className="italic">"{invite.message}"</p>
                                   </div>
                                 )}
@@ -1542,7 +1542,7 @@ export default function Settings() {
                                   <div className="flex items-center gap-2">
                                     <button
                                       onClick={() => copyInviteLink(invite.token, invite.id)}
-                                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-muted text-muted-foreground rounded hover:bg-muted/70 transition-colors"
                                     >
                                       {copiedToken === invite.id ? (
                                         <>
@@ -1564,7 +1564,7 @@ export default function Settings() {
                                 {!invite.is_accepted && !expired && (
                                   <button
                                     onClick={() => handleResendInvite(invite.id)}
-                                    className="p-2 text-[#A78BFA] dark:text-[#A78BFA] hover:bg-[#A78BFA]/5 dark:hover:bg-[#A78BFA]/10 rounded transition-colors"
+                                    className="p-2 text-primary dark:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded transition-colors"
                                     title="Resend invitation"
                                   >
                                     <Send className="w-4 h-4" />
@@ -1573,7 +1573,7 @@ export default function Settings() {
                                 {!invite.is_accepted && (
                                   <button
                                     onClick={() => handleDeleteInvite(invite.id)}
-                                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                    className="p-2 text-destructive dark:text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/15 rounded transition-colors"
                                     title="Revoke invitation"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -1674,17 +1674,17 @@ function CreateApiKeyModal({ onClose, onSuccess }: { onClose: () => void; onSucc
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create API Key</h2>
+      <div className="bg-card rounded-lg max-w-md w-full p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Create API Key</h2>
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-destructive dark:text-destructive flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-destructive dark:text-destructive">{error}</p>
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Key Name</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Key Name</label>
             <input
               type="text"
               required
@@ -1694,13 +1694,13 @@ function CreateApiKeyModal({ onClose, onSuccess }: { onClose: () => void; onSucc
               placeholder="e.g. Work MacBook, CI Pipeline"
               autoFocus
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Helps you identify which key is which when you have multiple devices.</p>
+            <p className="text-xs text-muted-foreground mt-1">Helps you identify which key is which when you have multiple devices.</p>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={saving || !name.trim()} className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <button type="submit" disabled={saving || !name.trim()} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               {saving ? 'Creating...' : 'Create Key'}
             </button>
           </div>
@@ -1737,21 +1737,21 @@ function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-        <h2 className="page-title text-gray-900 dark:text-white mb-4">
+      <div className="bg-card rounded-lg max-w-md w-full p-6">
+        <h2 className="page-title text-foreground mb-4">
           Invite Team Member
         </h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-destructive dark:text-destructive flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-destructive dark:text-destructive">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Email Address
             </label>
             <input
@@ -1759,36 +1759,36 @@ function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-card text-foreground"
               placeholder="colleague@company.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Role
             </label>
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-card text-foreground"
             >
               <option value="USER">User</option>
               <option value="TENANT_ADMIN">Admin</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-muted-foreground">
               Users can view and collaborate. Admins can manage team members.
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Personal Message (Optional)
             </label>
             <textarea
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-card text-foreground"
               placeholder="Hey! Join our team to collaborate on product decisions..."
               rows={3}
               maxLength={500}
@@ -1799,14 +1799,14 @@ function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 border border-border text-muted-foreground rounded-lg hover:bg-muted transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={sending}
-              className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? 'Sending...' : 'Send Invitation'}
             </button>

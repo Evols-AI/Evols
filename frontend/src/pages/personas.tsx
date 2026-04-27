@@ -382,13 +382,13 @@ export default function Personas() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+        return 'bg-chart-3/15 text-chart-3'
       case 'new':
-        return 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]'
+        return 'bg-primary/10 text-primary'
       case 'inactive':
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+        return 'bg-muted text-muted-foreground'
       default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+        return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -454,31 +454,31 @@ export default function Personas() {
                 <div className="relative" ref={statusDropdownRef}>
                   <button
                     onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    className="px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[160px]"
+                    className="px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground hover:bg-muted transition-colors flex items-center gap-2 min-w-[160px]"
                   >
                     <span className="text-sm font-medium">{getFilterDisplayText()}</span>
-                    <ChevronDown className="absolute right-3 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    <ChevronDown className="absolute right-3 w-4 h-4 text-muted-foreground" />
                   </button>
 
                   {showStatusDropdown && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
+                    <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-md shadow-lg z-50">
                       <div className="p-2">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
+                        <div className="text-xs text-muted-foreground px-3 py-2">
                           Filter by Status
                         </div>
                         {[
-                          { value: 'new', label: 'New', color: 'text-[#A78BFA] dark:text-[#A78BFA]' },
-                          { value: 'active', label: 'Active', color: 'text-green-600 dark:text-green-400' },
-                          { value: 'inactive', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
+                          { value: 'new', label: 'New', color: 'text-primary' },
+                          { value: 'active', label: 'Active', color: 'text-chart-3' },
+                          { value: 'inactive', label: 'Inactive', color: 'text-muted-foreground' },
                         ].map((status) => (
                           <button
                             key={status.value}
                             onClick={() => toggleStatusFilter(status.value)}
-                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded transition-colors"
                           >
-                            <div className="w-4 h-4 flex items-center justify-center border-2 border-gray-300 dark:border-gray-500 rounded">
+                            <div className="w-4 h-4 flex items-center justify-center border-2 border-border rounded">
                               {tagFilter.includes(status.value) && (
-                                <Check className="w-3 h-3 text-[#A78BFA] dark:text-[#A78BFA]" />
+                                <Check className="w-3 h-3 text-primary" />
                               )}
                             </div>
                             <span className={`text-sm font-medium ${status.color}`}>
@@ -495,11 +495,11 @@ export default function Personas() {
               {/* No Results Message */}
               <Card>
                 <div className="text-center py-12">
-                  <Users className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
-                  <h3 className="text-lg text-gray-900 dark:text-white mb-2">
+                  <Users className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg text-foreground mb-2">
                     No {getFilterDisplayText().toLowerCase()} personas found
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     Try selecting different filters to view other personas
                   </p>
                 </div>
@@ -510,10 +510,10 @@ export default function Personas() {
 
               {/* Merge Selection Info */}
               {selectedForMerge.length >= 2 && (
-                <div className="mb-4 p-4 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 rounded-lg flex items-center justify-between">
+                <div className="mb-4 p-4 bg-primary/5 dark:bg-primary/10 rounded-lg flex items-center justify-between">
                   <div>
                     <p className="font-medium">{selectedForMerge.length} personas selected</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       Select a primary persona and merge
                     </p>
                   </div>
@@ -537,31 +537,31 @@ export default function Personas() {
                   <div className="relative" ref={statusDropdownRef}>
                     <button
                       onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                      className="px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[160px]"
+                      className="px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground hover:bg-muted transition-colors flex items-center gap-2 min-w-[160px]"
                     >
                       <span className="text-sm font-medium">{getFilterDisplayText()}</span>
-                      <ChevronDown className="absolute right-3 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      <ChevronDown className="absolute right-3 w-4 h-4 text-muted-foreground" />
                     </button>
 
                     {showStatusDropdown && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
+                      <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-md shadow-lg z-50">
                         <div className="p-2">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
+                          <div className="text-xs text-muted-foreground px-3 py-2">
                             Filter by Status
                           </div>
                           {[
-                            { value: 'new', label: 'New', color: 'text-[#A78BFA] dark:text-[#A78BFA]' },
-                            { value: 'active', label: 'Active', color: 'text-green-600 dark:text-green-400' },
-                            { value: 'inactive', label: 'Inactive', color: 'text-gray-600 dark:text-gray-400' },
+                            { value: 'new', label: 'New', color: 'text-primary dark:text-primary' },
+                            { value: 'active', label: 'Active', color: 'text-chart-3' },
+                            { value: 'inactive', label: 'Inactive', color: 'text-muted-foreground' },
                           ].map((status) => (
                             <button
                               key={status.value}
                               onClick={() => toggleStatusFilter(status.value)}
-                              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded transition-colors"
                             >
-                              <div className="w-4 h-4 flex items-center justify-center border-2 border-gray-300 dark:border-gray-500 rounded">
+                              <div className="w-4 h-4 flex items-center justify-center border-2 border-border rounded">
                                 {tagFilter.includes(status.value) && (
-                                  <Check className="w-3 h-3 text-[#A78BFA] dark:text-[#A78BFA]" />
+                                  <Check className="w-3 h-3 text-primary dark:text-primary" />
                                 )}
                               </div>
                               <span className={`text-sm font-medium ${status.color}`}>
@@ -578,17 +578,17 @@ export default function Personas() {
                   <div className="relative" ref={sortDropdownRef}>
                     <button
                       onClick={() => setShowSortDropdown(!showSortDropdown)}
-                      className="px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[180px]"
+                      className="px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground hover:bg-muted transition-colors flex items-center gap-2 min-w-[180px]"
                     >
-                      <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm font-medium">{getSortDisplayText()}</span>
-                      <ChevronDown className="absolute right-3 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      <ChevronDown className="absolute right-3 w-4 h-4 text-muted-foreground" />
                     </button>
 
                     {showSortDropdown && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
+                      <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-md shadow-lg z-50">
                         <div className="p-2">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
+                          <div className="text-xs text-muted-foreground px-3 py-2">
                             Sort By
                           </div>
                           {[
@@ -603,18 +603,18 @@ export default function Personas() {
                                 setSortBy(option.value as any)
                                 setShowSortDropdown(false)
                               }}
-                              className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors ${
-                                sortBy === option.value ? 'bg-gray-100 dark:bg-gray-600' : ''
+                              className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded transition-colors ${
+                                sortBy === option.value ? 'bg-muted' : ''
                               }`}
                             >
                               <span className="text-base">{option.icon}</span>
                               <span className={`text-sm font-medium ${
-                                sortBy === option.value ? 'text-[#A78BFA] dark:text-[#A78BFA]' : 'text-gray-900 dark:text-gray-100'
+                                sortBy === option.value ? 'text-primary' : 'text-foreground'
                               }`}>
                                 {option.label}
                               </span>
                               {sortBy === option.value && (
-                                <Check className="ml-auto w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
+                                <Check className="ml-auto w-4 h-4 text-primary" />
                               )}
                             </button>
                           ))}
@@ -726,9 +726,9 @@ function ActionCard({
   icon: React.ReactNode, title: string, description: string, onClick: () => void, color: string
 }) {
   const colorClasses: Record<string, string> = {
-    blue: 'from-[#8B5CF6] to-[#7C3AED]',
-    purple: 'from-purple-600 to-purple-700',
-    green: 'from-green-600 to-green-700',
+    blue: 'from-primary to-primary/85',
+    purple: 'from-chart-1 to-chart-1',
+    green: 'from-chart-3 to-chart-3',
   }
 
   return (
@@ -736,7 +736,7 @@ function ActionCard({
       onClick={onClick}
       className="card-hover p-6 text-left w-full"
     >
-      <div className={`w-12 h-12 bg-gradient-to-br ${colorClasses[color]} rounded-lg flex items-center justify-center text-white mb-4`}>
+      <div className={`w-12 h-12 bg-gradient-to-br ${colorClasses[color]} rounded-lg flex items-center justify-center text-primary-foreground mb-4`}>
         {icon}
       </div>
       <h3 className="text-lg text-heading mb-2">{title}</h3>
@@ -765,9 +765,9 @@ function PersonaCard({
   formatLastUpdated: (date: string) => string
 }) {
   const segmentColors: Record<string, string> = {
-    Enterprise: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    'Mid-Market': 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]',
-    SMB: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    Enterprise: 'bg-chart-1/15 text-chart-1',
+    'Mid-Market': 'bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary',
+    SMB: 'bg-chart-3/15 text-chart-3',
   }
 
   return (
@@ -779,7 +779,7 @@ function PersonaCard({
             type="checkbox"
             checked={isSelectedForMerge}
             onChange={() => onToggleMerge(persona.id)}
-            className="w-4 h-4 text-[#A78BFA] rounded"
+            className="w-4 h-4 text-primary rounded"
           />
         </div>
       )}
@@ -791,7 +791,7 @@ function PersonaCard({
             <h3 className="text-lg text-heading mb-1">{persona.name}</h3>
             <div className="flex items-center gap-2">
               {persona.isExtracted ? (
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-chart-1/15 text-chart-1">
                   🤖 AI-Extracted
                 </span>
               ) : (
@@ -800,7 +800,7 @@ function PersonaCard({
                     {persona.segment}
                   </span>
                   {persona.status === 'new' && (
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]">
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary">
                       New
                     </span>
                   )}
@@ -811,10 +811,10 @@ function PersonaCard({
 
           {/* Last Updated & Confidence */}
           <div className="text-right">
-            <div className="text-sm text-[#A78BFA] dark:text-[#A78BFA]">
+            <div className="text-sm text-primary dark:text-primary">
               {Math.round((persona.confidence_score || 0) * 100)}%
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <div className="text-xs text-muted-foreground mt-1">
               Updated {formatLastUpdated(persona.updated_at)}
             </div>
           </div>
@@ -828,7 +828,7 @@ function PersonaCard({
             <div className="flex flex-wrap gap-1.5">
               {persona.key_pain_points.slice(0, 3).map((point: string, idx: number) => (
                 <span key={idx}
-                  className="px-2.5 py-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-full text-xs font-medium"
+                  className="px-2.5 py-1 bg-destructive/10 dark:bg-destructive/15 text-destructive dark:text-destructive rounded-full text-xs font-medium"
                 >
                   {point}
                 </span>
@@ -843,7 +843,7 @@ function PersonaCard({
             <div className="flex flex-wrap gap-1.5">
               {persona.feature_priorities.slice(0, 3).map((priority: string, idx: number) => (
                 <span key={idx}
-                  className="px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full text-xs font-medium"
+                  className="px-2.5 py-1 bg-chart-3/15 text-chart-3 rounded-full text-xs font-medium"
                 >
                   {priority}
                 </span>
@@ -852,7 +852,7 @@ function PersonaCard({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-t border-border pt-4">
           <div>
             <div className="text-xs font-medium text-body mb-1">Revenue Contribution</div>
             <div className="text-sm text-heading">
@@ -869,14 +869,14 @@ function PersonaCard({
           </div>
         </div>
 
-        <div className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+        <div className="text-xs text-muted-foreground mb-4">
           Based on {persona.based_on_feedback_count || 0} anecdotes
           {persona.based_on_interview_count > 0 && `, ${persona.based_on_interview_count} interviews`}
           {persona.based_on_deal_count > 0 && `, ${persona.based_on_deal_count} deals`}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between gap-4 pt-4 border-t border-border">
           {persona.isExtracted ? (
             /* Promote button for extracted personas */
             <button
@@ -899,7 +899,7 @@ function PersonaCard({
 
               {/* Active/Inactive Toggle */}
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-medium ${persona.status === 'active' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                <span className={`text-xs font-medium ${persona.status === 'active' ? 'text-chart-3' : 'text-muted-foreground'}`}>
                   {persona.status === 'active' ? 'Active' : 'Inactive'}
                 </span>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -912,7 +912,7 @@ function PersonaCard({
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                  <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-chart-3"></div>
                 </label>
               </div>
             </>
@@ -948,10 +948,10 @@ function EditPersonaModal({ persona, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div className="bg-card rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-border flex items-center justify-between">
           <h2 className="page-title">Edit Persona</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1055,16 +1055,16 @@ function MergePersonasModal({ personaIds, personas, onClose, onMerge }: {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div className="bg-card rounded-xl shadow-2xl max-w-2xl w-full">
+        <div className="p-6 border-b border-border flex items-center justify-between">
           <h2 className="page-title">Merge Personas</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             Select which persona should be the primary (its name and segment will be kept).
             All attributes will be intelligently combined.
           </p>
@@ -1076,17 +1076,17 @@ function MergePersonasModal({ personaIds, personas, onClose, onMerge }: {
                 onClick={() => setPrimaryId(persona.id)}
                 className={`w-full text-left p-4 rounded-lg border-2 transition ${
                   primaryId === persona.id
-                    ? 'border-[#A78BFA] bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                    : 'border-border hover:border-muted-foreground/30'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="">{persona.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{persona.segment}</p>
+                    <p className="text-sm text-muted-foreground">{persona.segment}</p>
                   </div>
                   {primaryId === persona.id && (
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#A78BFA]/10 text-[#A78BFA]">
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
                       Primary
                     </span>
                   )}

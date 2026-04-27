@@ -24,50 +24,77 @@
 
 @layer base {
   :root {
-    /* Evols Design System - Light Mode */
-    --background: 240 5% 97%;
-    --foreground: 240 5% 4%;
+    /* Indigo Spectrum - Light Mode */
+    --background: 240 100% 98.04%;
+    --foreground: 240 27.57% 22.75%;
     --card: 0 0% 100%;
-    --card-foreground: 240 5% 4%;
+    --card-foreground: 240 27.57% 22.75%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 5% 4%;
-    --primary: 263 89% 66%;
+    --popover-foreground: 240 27.57% 22.75%;
+    --primary: 252 55.75% 57.45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 94%;
-    --secondary-foreground: 240 5% 4%;
-    --muted: 240 5% 93%;
-    --muted-foreground: 240 4% 40%;
-    --accent: 263 89% 66%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
+    --secondary: 249 99.89% 93.72%;
+    --secondary-foreground: 249 33.33% 37.65%;
+    --muted: 240 49.79% 96.07%;
+    --muted-foreground: 240 12.18% 48.24%;
+    --accent: 218 99.96% 92.35%;
+    --accent-foreground: 240 27.57% 22.75%;
+    --destructive: 350 100% 66.47%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 263 89% 66%;
-    --radius: 0.875rem;
+    --border: 240 34.71% 90.98%;
+    --input: 240 100% 98.04%;
+    --ring: 252 55.75% 57.45%;
+    --chart-1: 251 99.98% 78.04%;
+    --chart-2: 230 44.09% 63.53%;
+    --chart-3: 207 89.06% 67.84%;
+    --chart-4: 174 41.83% 50.8%;
+    --chart-5: 326 100% 73.72%;
+    --sidebar: 240 49.79% 96.07%;
+    --sidebar-foreground: 240 27.57% 22.75%;
+    --sidebar-primary: 252 55.75% 57.45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 218 99.96% 92.35%;
+    --sidebar-accent-foreground: 240 27.57% 22.75%;
+    --sidebar-border: 240 34.71% 90.98%;
+    --sidebar-ring: 252 55.75% 57.45%;
+    --radius: 0.5rem;
     --font-expletus-sans: 'Expletus Sans', sans-serif;
   }
 
   .dark {
-    --background: 240 5% 4%;
-    --foreground: 240 5% 98%;
-    --card: 240 6% 7%;
-    --card-foreground: 240 5% 98%;
-    --popover: 240 6% 7%;
-    --popover-foreground: 240 5% 98%;
-    --primary: 263 89% 76%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 10%;
-    --secondary-foreground: 240 5% 98%;
-    --muted: 240 5% 10%;
-    --muted-foreground: 240 4% 64%;
-    --accent: 263 89% 76%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 5% 14%;
-    --input: 240 5% 14%;
-    --ring: 263 89% 76%;
+    /* Indigo Spectrum - Dark Mode */
+    --background: 240 26.86% 8.04%;
+    --foreground: 240 48.81% 92.36%;
+    --card: 240 27.77% 14.11%;
+    --card-foreground: 240 48.81% 92.36%;
+    --popover: 240 27.77% 14.11%;
+    --popover-foreground: 240 48.81% 92.36%;
+    --primary: 251 99.98% 78.04%;
+    --primary-foreground: 240 26.86% 8.04%;
+    --secondary: 243 32.81% 25.1%;
+    --secondary-foreground: 242 100% 88.04%;
+    --muted: 240 33.35% 20%;
+    --muted-foreground: 240 20.23% 69.02%;
+    --accent: 240 33.33% 28.23%;
+    --accent-foreground: 240 48.81% 92.36%;
+    --destructive: 350 100% 66.47%;
+    --destructive-foreground: 240 48.81% 92.36%;
+    --border: 240 26.17% 25.49%;
+    --input: 240 26.86% 8.04%;
+    --ring: 251 99.98% 78.04%;
+    --chart-1: 251 99.98% 78.04%;
+    --chart-2: 230 44.09% 63.53%;
+    --chart-3: 207 89.06% 67.84%;
+    --chart-4: 174 41.83% 50.8%;
+    --chart-5: 326 100% 73.72%;
+    --sidebar: 240 27.77% 14.11%;
+    --sidebar-foreground: 240 48.81% 92.36%;
+    --sidebar-primary: 251 99.98% 78.04%;
+    --sidebar-primary-foreground: 240 26.86% 8.04%;
+    --sidebar-accent: 240 33.33% 28.23%;
+    --sidebar-accent-foreground: 240 48.81% 92.36%;
+    --sidebar-border: 240 26.17% 25.49%;
+    --sidebar-ring: 251 99.98% 78.04%;
   }
 }
 
@@ -143,8 +170,8 @@
   .card-hover:hover {
     box-shadow:
       0 8px 20px -4px rgb(0 0 0 / 0.1),
-      0 0 0 1px rgba(167, 139, 250, 0.2);
-    border-color: rgba(167, 139, 250, 0.4);
+      0 0 0 1px hsl(var(--primary) / 0.2);
+    border-color: hsl(var(--primary) / 0.4);
     transform: translateY(-2px);
   }
 
@@ -166,16 +193,16 @@
 
   .btn-primary {
     @apply btn;
-    background: #8B5CF6;
-    color: #ffffff;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: #7C3AED;
+    background: hsl(var(--primary) / 0.85);
   }
 
   .btn-primary:active:not(:disabled) {
-    background: #6D28D9;
+    background: hsl(var(--primary) / 0.7);
   }
 
   .btn-secondary {
@@ -212,13 +239,13 @@
 
   .badge-blue {
     @apply badge;
-    background: hsl(215 70% 96%);
-    color: hsl(215 70% 40%);
+    background: hsl(var(--primary) / 0.15);
+    color: hsl(var(--primary));
   }
 
   .dark .badge-blue {
-    background: hsl(215 70% 20% / 0.3);
-    color: hsl(215 70% 70%);
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary));
   }
 
   .badge-green {
@@ -256,13 +283,13 @@
 
   .badge-purple {
     @apply badge;
-    background: hsl(270 67% 96%);
-    color: hsl(270 67% 45%);
+    background: hsl(var(--primary) / 0.15);
+    color: hsl(var(--primary));
   }
 
   .dark .badge-purple {
-    background: hsl(270 67% 20% / 0.3);
-    color: hsl(270 67% 70%);
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary));
   }
 
   .badge-gray {
@@ -284,8 +311,8 @@
 
   .input:focus {
     outline: none;
-    border-color: #A78BFA;
-    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.15);
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.15);
   }
 
   .input::placeholder {
@@ -321,8 +348,8 @@
   /* Loading States */
   .loading-spinner {
     @apply animate-spin rounded-full h-8 w-8 border-2;
-    border-color: rgba(167, 139, 250, 0.2);
-    border-top-color: #A78BFA;
+    border-color: hsl(var(--primary) / 0.2);
+    border-top-color: hsl(var(--primary));
   }
 
   /* Elegant Empty States - No scrolling needed */
@@ -335,7 +362,7 @@
 
   .empty-state-icon {
     @apply flex justify-center mb-6;
-    color: #A78BFA;
+    color: hsl(var(--primary));
     opacity: 0.6;
   }
 

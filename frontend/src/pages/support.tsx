@@ -13,7 +13,7 @@ export default function Support() {
   const [showTopicDropdown, setShowTopicDropdown] = useState(false)
 
   useEffect(() => {
-    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.background = ''
     document.body.style.backgroundImage = 'none'
   }, [dark])
 
@@ -47,11 +47,11 @@ export default function Support() {
     }
   }
 
-  const textPrimary = dark ? 'text-[#FAFAFA]' : 'text-[#0A0A0B]'
-  const textMuted = dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'
-  const iconClass = `h-5 w-5 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`
-  const inputClass = `block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none ${dark ? 'border-white/[0.08] bg-white/[0.04] text-[#FAFAFA] placeholder-[#71717A] focus:border-[#A78BFA]/50 focus:ring-1 focus:ring-[#A78BFA]/30' : 'border-black/[0.1] bg-white text-[#0A0A0B] placeholder-[#A1A1AA] focus:border-[#A78BFA]/50 focus:ring-1 focus:ring-[#A78BFA]/30'}`
-  const labelClass = `block text-sm font-medium mb-2 ${dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'}`
+  const textPrimary = 'text-foreground'
+  const textMuted = 'text-muted-foreground'
+  const iconClass = `h-5 w-5 text-muted-foreground`
+  const inputClass = `block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none ${dark ? 'border-border bg-input text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30' : 'border-border bg-card text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30'}`
+  const labelClass = `block text-sm font-medium mb-2 text-muted-foreground`
 
   return (
     <>
@@ -60,18 +60,18 @@ export default function Support() {
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
-      <div className={`min-h-screen flex flex-col transition-colors ${dark ? 'bg-[#0A0A0B]' : 'bg-[#F7F7F8]'}`}>
-        <nav className={`fixed top-0 left-0 right-0 z-50 border-b ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} backdrop-blur-xl ${dark ? 'bg-[#0A0A0B]/80' : 'bg-white/80'} transition-colors duration-300`}>
+      <div className={`min-h-screen flex flex-col transition-colors bg-background`}>
+        <nav className={`fixed top-0 left-0 right-0 z-50 border-b border-border backdrop-blur-xl bg-background/80 transition-colors duration-300`}>
           <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <Link href="/">
               <LogoWordmark iconSize={36} />
             </Link>
             <div className="flex items-center space-x-4">
               <button onClick={toggleTheme} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5" aria-label="Toggle theme">
-                {theme === 'light' ? <Moon className="w-5 h-5 text-[#52525B]" /> : <Sun className="w-5 h-5 text-[#A1A1AA]" />}
+                {theme === 'light' ? <Moon className="w-5 h-5 text-muted-foreground" /> : <Sun className="w-5 h-5 text-muted-foreground" />}
               </button>
-              <Link href="/login" className={`hidden md:block text-sm transition-colors ${textMuted} hover:text-[#A78BFA]`}>Login</Link>
-              <Link href="/register" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-2 px-5 rounded-lg text-sm font-medium transition-colors">
+              <Link href="/login" className={`hidden md:block text-sm transition-colors ${textMuted} hover:text-primary`}>Login</Link>
+              <Link href="/register" className="bg-primary hover:bg-primary/85 text-primary-foreground py-2 px-5 rounded-lg text-sm font-medium transition-colors">
                 Get Early Access
               </Link>
             </div>
@@ -94,24 +94,24 @@ export default function Support() {
               </div>
 
               {/* Right - Form */}
-              <div className={`py-10 px-8 rounded-2xl border ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
+              <div className={`py-10 px-8 rounded-2xl border bg-card border-border`}>
                 <h2 className={`text-2xl font-medium mb-6 text-center ${textPrimary}`}>Contact Us</h2>
 
                 {status === 'success' ? (
-                  <div className="rounded-xl bg-emerald-500/10 p-8 text-center flex flex-col items-center">
-                    <CheckCircle className="h-14 w-14 text-emerald-500 mb-4" />
+                  <div className="rounded-xl bg-chart-3/15 p-8 text-center flex flex-col items-center">
+                    <CheckCircle className="h-14 w-14 text-chart-3 mb-4" />
                     <h3 className={`text-xl font-medium mb-2 ${textPrimary}`}>Message Sent!</h3>
                     <p className={`mb-6 ${textMuted}`}>Thanks for reaching out. Our support team will get back to you within 24 hours.</p>
-                    <button onClick={() => setStatus('idle')} className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-6 py-2 rounded-lg font-medium text-sm transition-colors">
+                    <button onClick={() => setStatus('idle')} className="bg-primary hover:bg-primary/85 text-primary-foreground px-6 py-2 rounded-lg font-medium text-sm transition-colors">
                       Send Another Message
                     </button>
                   </div>
                 ) : (
                   <form className="space-y-5" onSubmit={handleSubmit}>
                     {status === 'error' && (
-                      <div className={`rounded-lg p-4 border flex items-start gap-3 ${dark ? 'bg-red-900/10 border-red-500/20' : 'bg-red-50 border-red-200'}`}>
-                        <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-red-500">Failed to send message. Please try again later.</p>
+                      <div className={`rounded-lg p-4 border flex items-start gap-3 ${dark ? 'bg-destructive/10 border-destructive/20' : 'bg-destructive/10 border-destructive/30'}`}>
+                        <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-destructive">Failed to send message. Please try again later.</p>
                       </div>
                     )}
 
@@ -141,21 +141,21 @@ export default function Support() {
                       <label className={labelClass}>What can we help you with?</label>
                       <div className="relative">
                         <button type="button" onClick={() => setShowTopicDropdown(!showTopicDropdown)}
-                          className={`w-full flex items-center justify-between px-3 py-3 border rounded-lg text-sm transition-colors ${dark ? 'border-white/[0.08] bg-white/[0.04] text-[#FAFAFA]' : 'border-black/[0.1] bg-white text-[#0A0A0B]'}`}>
+                          className={`w-full flex items-center justify-between px-3 py-3 border rounded-lg text-sm transition-colors ${dark ? 'border-border bg-input text-foreground' : 'border-border bg-card text-foreground'}`}>
                           <span>{topicOptions.find(opt => opt.value === formData.topic)?.label}</span>
-                          <ChevronDown className={`h-4 w-4 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`} />
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground`} />
                         </button>
                         {showTopicDropdown && (
-                          <div className={`absolute z-50 mt-1 w-full rounded-lg border shadow-lg overflow-hidden ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
+                          <div className={`absolute z-50 mt-1 w-full rounded-lg border shadow-lg overflow-hidden bg-card border-border`}>
                             <div className="p-1">
                               {topicOptions.map((option) => (
                                 <button key={option.value} type="button"
                                   onClick={() => { setFormData({ ...formData, topic: option.value }); setShowTopicDropdown(false); }}
                                   className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors ${formData.topic === option.value
-                                    ? 'bg-[#A78BFA]/10 text-[#A78BFA]'
+                                    ? 'bg-primary/10 text-primary'
                                     : `${textPrimary} hover:bg-black/5 dark:hover:bg-white/5`}`}>
                                   {option.label}
-                                  {formData.topic === option.value && <Check className="h-4 w-4 text-[#A78BFA]" />}
+                                  {formData.topic === option.value && <Check className="h-4 w-4 text-primary" />}
                                 </button>
                               ))}
                             </div>
@@ -176,10 +176,10 @@ export default function Support() {
                     </div>
 
                     <button type="submit" disabled={status === 'submitting'}
-                      className="w-full flex justify-center items-center gap-2 py-3 px-6 text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      className="w-full flex justify-center items-center gap-2 py-3 px-6 text-primary-foreground bg-primary hover:bg-primary/85 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                       {status === 'submitting' ? (
                         <>
-                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-4 w-4 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
@@ -199,13 +199,13 @@ export default function Support() {
           </div>
         </main>
 
-        <footer className={`border-t ${dark ? 'border-white/[0.06]' : 'border-black/[0.07]'} py-12 transition-colors duration-300`}>
-          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 ${dark ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`}>
+        <footer className={`border-t border-border py-12 transition-colors duration-300`}>
+          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground`}>
             <LogoWordmark iconSize={32} />
             <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Docs</Link>
-              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Support</Link>
-              <Link href="/login" className="text-sm transition-colors duration-150 hover:text-[#A78BFA]">Login</Link>
+              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-primary">Docs</Link>
+              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-primary">Support</Link>
+              <Link href="/login" className="text-sm transition-colors duration-150 hover:text-primary">Login</Link>
             </div>
             <p className="text-xs">© 2026 Evols AI</p>
           </div>

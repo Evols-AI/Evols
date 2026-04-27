@@ -119,7 +119,7 @@ export default function Workbench() {
           {error && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center p-8">
-                <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
+                <p className="text-destructive dark:text-destructive mb-4">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
                   className="btn-secondary"

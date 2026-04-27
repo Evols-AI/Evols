@@ -30,13 +30,13 @@ export function PageHeader({ title, subtitle, description, icon, action, classNa
     <div className={`flex flex-wrap items-start justify-between gap-4 mb-8 ${className}`}>
       <div>
         <div className="flex items-center gap-3">
-          {Icon && <Icon className="w-7 h-7 text-[#A78BFA]" />}
-          <h1 className="text-xl font-medium text-[#0A0A0B] dark:text-[#FAFAFA]">
+          {Icon && <Icon className="w-7 h-7 text-primary" />}
+          <h1 className="text-xl font-medium text-foreground dark:text-foreground">
             {title}
           </h1>
         </div>
         {displayText && (
-          <p className="mt-2 text-sm text-[#52525B] dark:text-[#A1A1AA]">
+          <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">
             {displayText}
           </p>
         )}
@@ -46,7 +46,7 @@ export function PageHeader({ title, subtitle, description, icon, action, classNa
           {typeof action === 'object' && action !== null && 'label' in action ? (
             <button
               onClick={action.onClick}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground rounded-lg bg-primary hover:bg-primary/85 transition-colors"
             >
               {action.icon && <action.icon className="w-4 h-4" />}
               {action.label}
@@ -77,12 +77,12 @@ export function Card({ children, className = '', padding = 'md', hover = false, 
   }
 
   const hoverClass = hover
-    ? 'cursor-pointer hover:border-[#A78BFA]/30 dark:hover:border-[#A78BFA]/30 hover:shadow-sm transition-all'
+    ? 'cursor-pointer hover:border-primary/30 dark:hover:border-primary/30 hover:shadow-sm transition-all'
     : ''
 
   return (
     <div
-      className={`rounded-xl border border-black/[0.07] dark:border-white/[0.06] bg-white dark:bg-[#111113] ${paddingMap[padding]} ${hoverClass} ${className}`}
+      className={`rounded-xl border border-border dark:border-border bg-card dark:bg-card ${paddingMap[padding]} ${hoverClass} ${className}`}
       onClick={onClick}
     >
       {children}
@@ -106,14 +106,14 @@ export function EmptyState({ icon, illustration, title, description, action }: E
       {illustration ? (
         <img src={illustration} alt={title} className="w-64 mx-auto mb-6 drop-shadow-lg" />
       ) : Icon ? (
-        <div className="mb-6 p-4 rounded-2xl bg-[#A78BFA]/10">
-          <Icon className="w-12 h-12 text-[#A78BFA]" />
+        <div className="mb-6 p-4 rounded-2xl bg-primary/10">
+          <Icon className="w-12 h-12 text-primary" />
         </div>
       ) : null}
-      <h3 className="text-lg font-medium text-[#0A0A0B] dark:text-[#FAFAFA] mb-3">
+      <h3 className="text-lg font-medium text-foreground dark:text-foreground mb-3">
         {title}
       </h3>
-      <p className="text-sm text-[#52525B] dark:text-[#A1A1AA] max-w-sm mb-6">
+      <p className="text-sm text-muted-foreground dark:text-muted-foreground max-w-sm mb-6">
         {description}
       </p>
       {action && (
@@ -121,7 +121,7 @@ export function EmptyState({ icon, illustration, title, description, action }: E
           {typeof action === 'object' && action !== null && 'label' in action ? (
             <button
               onClick={action.onClick}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground rounded-lg bg-primary hover:bg-primary/85 transition-colors"
             >
               {action.icon && <action.icon className="w-4 h-4" />}
               {action.label}
@@ -147,27 +147,27 @@ interface StatCardProps {
 
 export function StatCard({ title, value, subtitle, icon, trend, trendValue, color = 'blue' }: StatCardProps) {
   const colorMap = {
-    blue:   'text-[#A78BFA] bg-[#A78BFA]/10',
-    green:  'text-emerald-500 bg-emerald-500/10',
-    purple: 'text-[#A78BFA] bg-[#A78BFA]/10',
-    orange: 'text-orange-500 bg-orange-500/10',
-    red:    'text-red-500 bg-red-500/10',
+    blue:   'text-primary bg-primary/10',
+    green:  'text-chart-3 bg-chart-3/15',
+    purple: 'text-primary bg-primary/10',
+    orange: 'text-chart-4 bg-chart-4/20',
+    red:    'text-destructive bg-destructive/100/10',
   }
 
   const trendColors = {
-    up:      'text-emerald-500',
-    down:    'text-red-500',
-    neutral: 'text-[#71717A]',
+    up:      'text-chart-3',
+    down:    'text-destructive',
+    neutral: 'text-muted-foreground',
   }
 
   return (
     <Card>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-[#52525B] dark:text-[#A1A1AA] mb-1">
+          <p className="text-sm font-medium text-muted-foreground dark:text-muted-foreground mb-1">
             {title}
           </p>
-          <p className="text-3xl font-medium text-[#0A0A0B] dark:text-[#FAFAFA] mb-1">
+          <p className="text-3xl font-medium text-foreground dark:text-foreground mb-1">
             {value}
           </p>
           {(subtitle || trend) && (
@@ -178,7 +178,7 @@ export function StatCard({ title, value, subtitle, icon, trend, trendValue, colo
                 </span>
               )}
               {subtitle && (
-                <span className="text-[#52525B] dark:text-[#A1A1AA]">{subtitle}</span>
+                <span className="text-muted-foreground dark:text-muted-foreground">{subtitle}</span>
               )}
             </div>
           )}
@@ -199,8 +199,8 @@ export function Loading({ text = 'Loading...' }: LoadingProps) {
   return (
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
-        <div className="w-8 h-8 border-2 border-[#A78BFA]/20 border-t-[#A78BFA] rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm text-[#52525B] dark:text-[#A1A1AA]">{text}</p>
+        <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-sm text-muted-foreground dark:text-muted-foreground">{text}</p>
       </div>
     </div>
   )

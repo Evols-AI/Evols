@@ -76,7 +76,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
   if (!productId) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 dark:text-gray-400">Please select a product first</p>
+        <p className="text-muted-foreground">Please select a product first</p>
       </div>
     )
   }
@@ -84,7 +84,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-[#A78BFA]" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -92,8 +92,8 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
   return (
     <div>
       {/* Info Banner */}
-      <div className="mb-6 p-4 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg">
-        <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
+      <div className="mb-6 p-4 bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg">
+        <p className="text-sm text-primary/85 dark:text-primary">
           💡 <strong>Document your product context</strong> - AI skills will reference this information to provide personalized,
           context-aware recommendations instead of generic advice.
         </p>
@@ -107,8 +107,8 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? 'bg-[#8B5CF6] text-white shadow-sm'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                ? 'bg-secondary text-secondary-foreground border border-primary/30 shadow-sm'
+                : 'bg-card text-muted-foreground hover:bg-muted border border-border'
             }`}
           >
             {tab.name}
@@ -121,16 +121,16 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="text-lg text-gray-900 dark:text-white mb-1">
+              <h3 className="text-lg text-foreground mb-1">
                 {KNOWLEDGE_TABS.find(t => t.id === activeTab)?.name}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 {KNOWLEDGE_TABS.find(t => t.id === activeTab)?.description}
               </p>
             </div>
 
             {saved && (
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
+              <div className="flex items-center gap-2 text-chart-3 text-sm">
                 <CheckCircle className="w-4 h-4" />
                 Saved
               </div>
@@ -140,24 +140,19 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
           <textarea
             value={content[activeTab] || ''}
             onChange={(e) => setContent({ ...content, [activeTab]: e.target.value })}
-            className="w-full h-96 p-4 border border-gray-300 dark:border-gray-700 rounded-lg
-                       bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                       font-mono text-sm focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-transparent
-                       resize-y"
+            className="w-full h-96 p-4 border border-border rounded-lg bg-input text-foreground font-mono text-sm focus:ring-2 focus:ring-ring/50 focus:border-transparent resize-y"
             placeholder={`Enter your ${KNOWLEDGE_TABS.find(t => t.id === activeTab)?.name.toLowerCase()} here...\n\nSupports Markdown formatting:\n- # Heading\n- **Bold** and *Italic*\n- - Bullet lists\n- 1. Numbered lists\n- [Links](url)`}
           />
 
           <div className="flex justify-between items-center mt-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
               {content[activeTab]?.length || 0} characters
             </p>
 
             <button
               onClick={saveKnowledge}
               disabled={saving}
-              className="flex items-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:bg-gray-400
-                         disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg
-                         font-medium transition-colors"
+              className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
@@ -176,34 +171,34 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
       </Card>
 
       {/* Help Section */}
-      <div className="mt-6 p-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
-        <h4 className="text-gray-900 dark:text-white mb-3">
+      <div className="mt-6 p-6 bg-muted/30 border border-border rounded-lg">
+        <h4 className="text-foreground mb-3">
           💡 Tips for Each Section
         </h4>
 
-        <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+        <div className="space-y-3 text-sm text-muted-foreground">
           <div>
-            <strong className="text-gray-900 dark:text-white">Product Strategy:</strong> What are your strategic pillars?
+            <strong className="text-foreground">Product Strategy:</strong> What are your strategic pillars?
             What's your vision and mission? What are you optimizing for?
           </div>
 
           <div>
-            <strong className="text-gray-900 dark:text-white">Customer Segments:</strong> Who are your target customers?
+            <strong className="text-foreground">Customer Segments:</strong> Who are your target customers?
             What are their characteristics, pain points, and goals?
           </div>
 
           <div>
-            <strong className="text-gray-900 dark:text-white">Competitive Landscape:</strong> Who are your main competitors?
+            <strong className="text-foreground">Competitive Landscape:</strong> Who are your main competitors?
             How do you differentiate? What's your positioning?
           </div>
 
           <div>
-            <strong className="text-gray-900 dark:text-white">Value Proposition:</strong> What unique value do you provide?
+            <strong className="text-foreground">Value Proposition:</strong> What unique value do you provide?
             Why should customers choose you?
           </div>
 
           <div>
-            <strong className="text-gray-900 dark:text-white">Metrics & Targets:</strong> What are your key KPIs?
+            <strong className="text-foreground">Metrics & Targets:</strong> What are your key KPIs?
             What are your goals for the next quarter/year?
           </div>
         </div>

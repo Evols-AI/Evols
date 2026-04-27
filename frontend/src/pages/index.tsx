@@ -3,13 +3,14 @@ import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useRef, useEffect, useCallback } from 'react'
 import {
-  ArrowRight, Moon, Sun,
+  ArrowRight,
   Zap, Users, Brain, Shield,
   BarChart3, GitMerge, AlertTriangle, RefreshCw, DollarSign,
   MessageSquare, Layers, Activity
 } from 'lucide-react'
-import { LogoWordmark } from '@/components/Logo'
 import { useTheme } from '@/contexts/ThemeContext'
+import Header from '@/components/Header'
+import { LogoWordmark } from '@/components/Logo'
 
 // ─── Cruip-style mouse-tracking spotlight card with lavender glow ─────────────
 function SpotlightCard({
@@ -47,28 +48,24 @@ function SpotlightCard({
         before:pointer-events-none before:absolute before:-left-40 before:-top-40 before:z-10
         before:h-80 before:w-80
         before:translate-x-[var(--mouse-x,0px)] before:translate-y-[var(--mouse-y,0px)]
-        before:rounded-full before:bg-[#A78BFA]/70 before:opacity-0 before:blur-3xl
+        before:rounded-full before:bg-primary/70 before:opacity-0 before:blur-3xl
         before:transition-opacity before:duration-500
         after:pointer-events-none after:absolute after:-left-48 after:-top-48 after:z-30
         after:h-64 after:w-64
         after:translate-x-[var(--mouse-x,0px)] after:translate-y-[var(--mouse-y,0px)]
-        after:rounded-full after:bg-[#A78BFA] after:opacity-0 after:blur-3xl
+        after:rounded-full after:bg-primary after:opacity-0 after:blur-3xl
         after:transition-opacity after:duration-500
         hover:after:opacity-15 hover:before:opacity-100
         ${className}
       `}
     >
-      <div className={`relative z-20 h-full overflow-hidden rounded-[inherit] ${dark ? 'bg-[#111113]' : 'bg-white'}`}>
+      <div className={`relative z-20 h-full overflow-hidden rounded-[inherit] bg-card`}>
         {children}
       </div>
     </div>
   )
 }
 
-const NAV_LINKS = [
-  { label: 'Product', href: '#product' },
-  { label: 'Docs', href: '/docs' },
-]
 
 const PROBLEMS = [
   {
@@ -179,7 +176,7 @@ const STATS = [
 ]
 
 export default function Home() {
-  const { theme, toggleTheme } = useTheme()
+  const { theme } = useTheme()
   const dark = theme === 'dark'
   const heroRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
@@ -188,30 +185,30 @@ export default function Home() {
 
   // override globals.css body bg so it doesn't bleed through
   useEffect(() => {
-    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.background = ''
     document.body.style.backgroundImage = 'none'
   }, [dark])
 
   // Theme tokens
-  const bg        = dark ? 'bg-[#0A0A0B]'       : 'bg-[#F7F7F8]'
-  const bgAlt     = dark ? 'bg-[#0D0D0F]'       : 'bg-[#EFEFF2]'
-  const bgCard    = dark ? 'bg-[#111113]'        : 'bg-white'
-  const border    = dark ? 'border-white/[0.06]' : 'border-black/[0.07]'
-  const text      = dark ? 'text-[#FAFAFA]'      : 'text-[#0A0A0B]'
-  const textMuted = dark ? 'text-[#A1A1AA]'      : 'text-[#52525B]'
-  const textFaint = dark ? 'text-[#71717A]'      : 'text-[#A1A1AA]'
-  const navBg     = dark ? 'bg-[#0A0A0B]/80'    : 'bg-white/80'
+  const bg        = dark ? 'bg-background'       : 'bg-background'
+  const bgAlt     = dark ? 'bg-background'       : 'bg-secondary'
+  const bgCard    = dark ? 'bg-card'        : 'bg-card'
+  const border    = 'border-border'
+  const text      = dark ? 'text-foreground'      : 'text-foreground'
+  const textMuted = dark ? 'text-muted-foreground'      : 'text-muted-foreground'
+  const textFaint = dark ? 'text-muted-foreground'      : 'text-muted-foreground'
 
-  // Lavender accent
-  const lav       = '#A78BFA'
-  const lavDeep   = '#8B5CF6'
-  const lavDeeper = '#7C3AED'
+  // Lavender accent (using CSS variables via getComputedStyle is not needed;
+  // keep string constants for the few inline style usages that remain)
+  const lav       = 'hsl(var(--primary))'
+  const lavDeep   = 'hsl(var(--primary))'
+  const lavDeeper = 'hsl(var(--primary) / 0.85)'
   const lavIconBg = dark
-    ? 'bg-[#A78BFA]/10 border border-[#A78BFA]/20 text-[#A78BFA]'
-    : 'bg-[#EDE9FE] border border-[#C4B5FD] text-[#8B5CF6]'
+    ? 'bg-primary/10 border border-primary/20 text-primary'
+    : 'bg-primary/15 border border-primary/30 text-primary'
   const lavPill = dark
-    ? 'border-[#A78BFA]/30 bg-[#A78BFA]/10 text-[#C4B5FD]'
-    : 'border-[#A78BFA]/40 bg-[#EDE9FE] text-[#8B5CF6]'
+    ? 'border-primary/30 bg-primary/10 text-primary/80'
+    : 'border-primary/40 bg-primary/15 text-primary'
 
   return (
     <>
@@ -236,47 +233,13 @@ export default function Home() {
       <div className={`min-h-screen ${bg} ${text} antialiased transition-colors duration-300`}>
 
         {/* ── NAV ── */}
-        <nav className={`fixed top-0 left-0 right-0 z-50 border-b ${border} backdrop-blur-xl ${navBg} transition-colors duration-300`}>
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <LogoWordmark iconSize={36} />
-            <div className="hidden md:flex items-center gap-8">
-              {NAV_LINKS.map(l => (
-                <a key={l.label} href={l.href}
-                  className={`text-sm ${textMuted} hover:${text} transition-colors duration-150 tracking-[-0.01em]`}>
-                  {l.label}
-                </a>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleTheme}
-                aria-label="Toggle theme"
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                  dark
-                    ? 'text-[#71717A] hover:text-[#A1A1AA] hover:bg-white/[0.06]'
-                    : 'text-[#A1A1AA] hover:text-[#52525B] hover:bg-black/[0.05]'
-                }`}
-              >
-                {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-              <Link href="/login"
-                className={`text-sm ${textMuted} hover:${text} transition-colors duration-150 px-3 py-1.5`}>
-                Sign in
-              </Link>
-              <Link href="/register"
-                style={{ backgroundColor: lavDeep }}
-                className="text-sm font-medium px-4 py-2 rounded-lg text-white transition-all duration-150 tracking-[-0.01em] hover:opacity-90">
-                Get early access
-              </Link>
-            </div>
-          </div>
-        </nav>
+        <Header variant="landing" />
 
         {/* ── HERO ── */}
         <section ref={heroRef} className="relative pt-40 pb-32 overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
-            <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] blur-[120px] rounded-full ${dark ? 'bg-[#A78BFA]/10' : 'bg-[#A78BFA]/7'}`} />
-            <div className={`absolute top-20 left-1/4 w-[400px] h-[300px] blur-[100px] rounded-full ${dark ? 'bg-[#A78BFA]/6' : 'bg-[#A78BFA]/4'}`} />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] blur-[120px] rounded-full bg-primary/10" />
+            <div className={`absolute top-20 left-1/4 w-[400px] h-[300px] blur-[100px] rounded-full ${dark ? 'bg-primary/5' : 'bg-primary/[0.07]'}`} />
           </div>
           <div className="absolute inset-0 pointer-events-none"
             style={{
@@ -311,7 +274,7 @@ export default function Home() {
               className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/register"
                 style={{ backgroundColor: lavDeep }}
-                className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-white font-medium text-sm tracking-[-0.01em] transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shadow-lg"
+                className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-primary-foreground font-medium text-sm tracking-[-0.01em] transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shadow-lg"
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = lavDeeper)}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = lavDeep)}>
                 Get early access
@@ -320,8 +283,8 @@ export default function Home() {
               <Link href="/book-demo"
                 className={`inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border font-medium text-sm tracking-[-0.01em] transition-all duration-200 ${
                   dark
-                    ? 'border-white/10 hover:border-white/20 text-[#A1A1AA] hover:text-white hover:bg-white/[0.03]'
-                    : 'border-black/10 hover:border-black/20 text-[#52525B] hover:text-[#0A0A0B] hover:bg-black/[0.03]'
+                    ? 'border-white/10 hover:border-white/20 text-muted-foreground hover:text-primary-foreground hover:bg-white/[0.03]'
+                    : 'border-black/10 hover:border-black/20 text-muted-foreground hover:text-foreground hover:bg-black/[0.03]'
                 }`}>
                 Book a demo
               </Link>
@@ -456,7 +419,7 @@ export default function Home() {
                   className="h-full">
                   <SpotlightCard dark={dark}>
                     <div className="p-6">
-                      <div className={`text-4xl font-medium tracking-[-0.04em] mb-4 ${dark ? 'text-white/10' : 'text-black/10'}`}>{s.step}</div>
+                      <div className={`text-4xl font-medium tracking-[-0.04em] mb-4 ${dark ? 'text-primary-foreground/10' : 'text-black/10'}`}>{s.step}</div>
                       <h3 className={`text-base font-medium tracking-[-0.02em] mb-2 ${text}`}>{s.title}</h3>
                       <p className={`text-sm ${textFaint} leading-relaxed`}>{s.body}</p>
                     </div>
@@ -524,7 +487,7 @@ export default function Home() {
                         "{t.quote}"
                       </p>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0"
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium flex-shrink-0"
                           style={{ backgroundColor: lavDeep }}>
                           {t.initials}
                         </div>
@@ -579,7 +542,7 @@ export default function Home() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <Link href="/register"
                     style={{ backgroundColor: lavDeep }}
-                    className="group inline-flex items-center gap-2 px-7 py-4 rounded-xl text-white font-medium text-base tracking-[-0.01em] transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shadow-lg"
+                    className="group inline-flex items-center gap-2 px-7 py-4 rounded-xl text-primary-foreground font-medium text-base tracking-[-0.01em] transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shadow-lg"
                     onMouseEnter={e => (e.currentTarget.style.backgroundColor = lavDeeper)}
                     onMouseLeave={e => (e.currentTarget.style.backgroundColor = lavDeep)}>
                     Get early access
@@ -588,8 +551,8 @@ export default function Home() {
                   <Link href="/book-demo"
                     className={`inline-flex items-center gap-2 px-7 py-4 rounded-xl border font-medium text-base tracking-[-0.01em] transition-all duration-200 ${
                       dark
-                        ? 'border-white/10 hover:border-white/20 text-[#A1A1AA] hover:text-white hover:bg-white/[0.03]'
-                        : 'border-black/10 hover:border-black/20 text-[#52525B] hover:text-[#0A0A0B] hover:bg-black/[0.03]'
+                        ? 'border-white/10 hover:border-white/20 text-muted-foreground hover:text-primary-foreground hover:bg-white/[0.03]'
+                        : 'border-black/10 hover:border-black/20 text-muted-foreground hover:text-foreground hover:bg-black/[0.03]'
                     }`}>
                     Book a demo
                   </Link>

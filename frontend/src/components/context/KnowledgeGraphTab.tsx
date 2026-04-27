@@ -11,28 +11,35 @@ import { Loader2, Search, RefreshCw, AlertCircle, Network, Upload } from 'lucide
 
 // ── Entity type colours (includes new PM types) ───────────────────────────────
 
+// Uses CSS variable references so nodes respond to light/dark theme automatically.
+// bg uses alpha channel on chart vars; border/text use the chart var directly.
 const TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  // Generic / legacy
-  person:         { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af' },
-  organization:   { bg: '#dcfce7', border: '#22c55e', text: '#166534' },
-  concept:        { bg: '#fef9c3', border: '#eab308', text: '#854d0e' },
-  event:          { bg: '#fce7f3', border: '#ec4899', text: '#9d174d' },
-  location:       { bg: '#f3e8ff', border: '#a855f7', text: '#6b21a8' },
-  technology:     { bg: '#ffedd5', border: '#f97316', text: '#9a3412' },
-  // PM domain types
-  painpoint:      { bg: '#fee2e2', border: '#ef4444', text: '#991b1b' },
-  featurerequest: { bg: '#e0f2fe', border: '#0284c7', text: '#0c4a6e' },
-  persona:        { bg: '#fdf4ff', border: '#c026d3', text: '#701a75' },
-  competitor:     { bg: '#fff7ed', border: '#ea580c', text: '#7c2d12' },
-  businessgoal:   { bg: '#f0fdf4', border: '#16a34a', text: '#14532d' },
-  metric:         { bg: '#fefce8', border: '#ca8a04', text: '#713f12' },
-  decision:       { bg: '#eff6ff', border: '#2563eb', text: '#1e3a8a' },
-  meeting:        { bg: '#f8fafc', border: '#64748b', text: '#1e293b' },
-  project:        { bg: '#ecfdf5', border: '#059669', text: '#064e3b' },
-  market:         { bg: '#fdf2f8', border: '#db2777', text: '#831843' },
-  product:        { bg: '#eef2ff', border: '#4f46e5', text: '#1e1b4b' },
-  feature:        { bg: '#f0fdfa', border: '#0d9488', text: '#134e4a' },
-  default:        { bg: '#f3f4f6', border: '#6b7280', text: '#374151' },
+  // chart-5 periwinkle
+  person:         { bg: 'hsl(var(--chart-5) / 0.12)', border: 'hsl(var(--chart-5))', text: 'hsl(var(--chart-5))' },
+  decision:       { bg: 'hsl(var(--chart-5) / 0.12)', border: 'hsl(var(--chart-5))', text: 'hsl(var(--chart-5))' },
+  // chart-3 teal
+  organization:   { bg: 'hsl(var(--chart-3) / 0.12)', border: 'hsl(var(--chart-3))', text: 'hsl(var(--chart-3))' },
+  product:        { bg: 'hsl(var(--chart-3) / 0.12)', border: 'hsl(var(--chart-3))', text: 'hsl(var(--chart-3))' },
+  feature:        { bg: 'hsl(var(--chart-3) / 0.12)', border: 'hsl(var(--chart-3))', text: 'hsl(var(--chart-3))' },
+  // chart-1 amethyst
+  persona:        { bg: 'hsl(var(--chart-1) / 0.12)', border: 'hsl(var(--chart-1))', text: 'hsl(var(--chart-1))' },
+  businessgoal:   { bg: 'hsl(var(--chart-1) / 0.12)', border: 'hsl(var(--chart-1))', text: 'hsl(var(--chart-1))' },
+  project:        { bg: 'hsl(var(--chart-1) / 0.12)', border: 'hsl(var(--chart-1))', text: 'hsl(var(--chart-1))' },
+  concept:        { bg: 'hsl(var(--chart-1) / 0.12)', border: 'hsl(var(--chart-1))', text: 'hsl(var(--chart-1))' },
+  location:       { bg: 'hsl(var(--chart-1) / 0.12)', border: 'hsl(var(--chart-1))', text: 'hsl(var(--chart-1))' },
+  // chart-2 rose
+  competitor:     { bg: 'hsl(var(--chart-2) / 0.12)', border: 'hsl(var(--chart-2))', text: 'hsl(var(--chart-2))' },
+  technology:     { bg: 'hsl(var(--chart-2) / 0.12)', border: 'hsl(var(--chart-2))', text: 'hsl(var(--chart-2))' },
+  market:         { bg: 'hsl(var(--chart-2) / 0.12)', border: 'hsl(var(--chart-2))', text: 'hsl(var(--chart-2))' },
+  event:          { bg: 'hsl(var(--chart-2) / 0.12)', border: 'hsl(var(--chart-2))', text: 'hsl(var(--chart-2))' },
+  // chart-4 gold
+  featurerequest: { bg: 'hsl(var(--chart-4) / 0.15)', border: 'hsl(var(--chart-4))', text: 'hsl(var(--chart-4))' },
+  metric:         { bg: 'hsl(var(--chart-4) / 0.15)', border: 'hsl(var(--chart-4))', text: 'hsl(var(--chart-4))' },
+  // destructive
+  painpoint:      { bg: 'hsl(var(--destructive) / 0.10)', border: 'hsl(var(--destructive))', text: 'hsl(var(--destructive))' },
+  // muted default
+  meeting:        { bg: 'hsl(var(--muted))', border: 'hsl(var(--border))', text: 'hsl(var(--muted-foreground))' },
+  default:        { bg: 'hsl(var(--muted))', border: 'hsl(var(--border))', text: 'hsl(var(--muted-foreground))' },
 }
 
 function colorFor(entityType: string) {
@@ -89,9 +96,9 @@ function confidenceLabel(score: number): string {
 }
 
 function confidenceColor(score: number): string {
-  if (score >= 0.75) return '#16a34a'
-  if (score >= 0.45) return '#ca8a04'
-  return '#dc2626'
+  if (score >= 0.75) return 'hsl(var(--chart-3))'
+  if (score >= 0.45) return 'hsl(var(--chart-4))'
+  return 'hsl(var(--destructive))'
 }
 
 // ── Custom node ───────────────────────────────────────────────────────────────
@@ -99,12 +106,9 @@ function confidenceColor(score: number): string {
 function EntityNode({ data }: NodeProps) {
   const c = colorFor(data.entityType)
   const conf: number = data.confidence ?? 0
-  // Scale border opacity by confidence so low-confidence nodes appear faded
-  const borderOpacity = 0.35 + conf * 0.65
-  const borderColor = `${c.border}${Math.round(borderOpacity * 255).toString(16).padStart(2, '0')}`
   return (
     <div
-      style={{ background: c.bg, borderColor, color: c.text }}
+      style={{ background: c.bg, borderColor: c.border, color: c.text }}
       className="rounded-lg border-2 px-3 py-2 shadow-sm text-xs font-medium max-w-[140px] text-center cursor-pointer"
       title={data.description}
     >
@@ -169,10 +173,10 @@ function buildEdges(rawEdges: any[]): Edge[] {
     source: e.source,
     target: e.target,
     label: e.properties?.keywords?.split(',')[0]?.trim() ?? '',
-    labelStyle: { fontSize: 10, fill: '#6b7280' },
+    labelStyle: { fontSize: 10, fill: 'hsl(var(--muted-foreground))' },
     labelBgStyle: { fill: 'transparent' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
-    style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--border))' },
+    style: { stroke: 'hsl(var(--border))', strokeWidth: 1.5 },
     animated: false,
   }))
 }
@@ -184,12 +188,12 @@ function ConfidenceBar({ score }: { score: number }) {
   const label = confidenceLabel(score)
   const color = confidenceColor(score)
   return (
-    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+    <div className="mt-3 pt-3 border-t border-border">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-gray-500 dark:text-gray-400">Confidence</span>
+        <span className="text-xs text-muted-foreground">Confidence</span>
         <span className="text-xs font-semibold" style={{ color }}>{label} · {pct}%</span>
       </div>
-      <div className="rounded-full overflow-hidden h-1.5 bg-gray-200 dark:bg-gray-700">
+      <div className="rounded-full overflow-hidden h-1.5 bg-muted">
         <div
           style={{ width: `${pct}%`, background: color }}
           className="h-full rounded-full transition-all"
@@ -206,9 +210,9 @@ function ConfidenceBar({ score }: { score: number }) {
 
 function ScorePill({ label, value, raw }: { label: string; value: number; raw?: boolean }) {
   return (
-    <div className="bg-gray-50 dark:bg-gray-800 rounded px-1 py-1">
-      <div className="text-gray-400 text-[10px]">{label}</div>
-      <div className="text-gray-700 dark:text-gray-200 text-xs font-medium">{value}%</div>
+    <div className="bg-muted rounded px-1 py-1">
+      <div className="text-muted-foreground text-[10px]">{label}</div>
+      <div className="text-foreground text-xs font-medium">{value}%</div>
     </div>
   )
 }
@@ -230,7 +234,7 @@ function NodeDetail({ node, onClose }: { node: Node | null; onClose: () => void 
   const descScore = Math.min((node.data.descLength ?? 0) / 300, 1.0)
 
   return (
-    <div className="absolute top-4 right-4 z-10 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4">
+    <div className="absolute top-4 right-4 z-10 w-72 bg-card border border-border rounded-xl shadow-lg p-4">
       <div className="flex items-start justify-between mb-2">
         <span
           style={{ background: c.bg, color: c.text, borderColor: c.border }}
@@ -240,16 +244,16 @@ function NodeDetail({ node, onClose }: { node: Node | null; onClose: () => void 
         </span>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none"
+          className="text-muted-foreground hover:text-foreground text-lg leading-none"
         >×</button>
       </div>
 
-      <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-2">
+      <h3 className="font-semibold text-foreground text-sm mb-2">
         {node.data.label}
       </h3>
 
       {node.data.description && (
-        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           {node.data.description}
         </p>
       )}
@@ -259,35 +263,35 @@ function NodeDetail({ node, onClose }: { node: Node | null; onClose: () => void 
         <div className="mt-2 flex flex-wrap gap-1">
           {attrs.sentiment && attrs.sentiment !== 'null' && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-              attrs.sentiment === 'negative' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-              : attrs.sentiment === 'positive' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+              attrs.sentiment === 'negative' ? 'bg-destructive/10 text-destructive'
+              : attrs.sentiment === 'positive' ? 'bg-chart-3/15 text-chart-3'
+              : 'bg-muted text-muted-foreground'
             }`}>{attrs.sentiment}</span>
           )}
           {attrs.urgency && attrs.urgency !== 'null' && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-              attrs.urgency === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-              : attrs.urgency === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+              attrs.urgency === 'high' ? 'bg-destructive/10 text-destructive'
+              : attrs.urgency === 'medium' ? 'bg-chart-4/20 text-chart-4'
+              : 'bg-muted text-muted-foreground'
             }`}>{attrs.urgency} urgency</span>
           )}
           {attrs.business_impact && attrs.business_impact !== 'null' && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA] font-medium" title={attrs.business_impact}>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary font-medium" title={attrs.business_impact}>
               impact: {String(attrs.business_impact).slice(0, 30)}{String(attrs.business_impact).length > 30 ? '…' : ''}
             </span>
           )}
         </div>
       )}
       {attrs?.context_snippet && attrs.context_snippet !== 'null' && (
-        <p className="mt-1.5 text-[10px] text-gray-500 dark:text-gray-500 italic leading-relaxed">
+        <p className="mt-1.5 text-[10px] text-muted-foreground italic leading-relaxed">
           "{String(attrs.context_snippet).slice(0, 120)}{String(attrs.context_snippet).length > 120 ? '…' : ''}"
         </p>
       )}
 
       {/* Confidence breakdown */}
-      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+      <div className="mt-3 pt-3 border-t border-border">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs text-gray-500 dark:text-gray-400">Confidence</span>
+          <span className="text-xs text-muted-foreground">Confidence</span>
           <span
             className="text-xs font-semibold"
             style={{ color: confidenceColor(conf) }}
@@ -296,7 +300,7 @@ function NodeDetail({ node, onClose }: { node: Node | null; onClose: () => void 
           </span>
         </div>
         {/* Overall bar */}
-        <div className="rounded-full overflow-hidden h-1.5 bg-gray-200 dark:bg-gray-700 mb-3">
+        <div className="rounded-full overflow-hidden h-1.5 bg-muted mb-3">
           <div
             style={{ width: `${Math.round(conf * 100)}%`, background: confidenceColor(conf) }}
             className="h-full rounded-full"
@@ -344,11 +348,11 @@ function SignalRow({
   const pct = Math.round(score * 100)
   return (
     <div title={tooltip}>
-      <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
+      <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
         <span>{label}</span>
         <span className="tabular-nums">{pct}% <span className="opacity-50">×{weight}</span></span>
       </div>
-      <div className="rounded-full overflow-hidden h-1 bg-gray-200 dark:bg-gray-700">
+      <div className="rounded-full overflow-hidden h-1 bg-muted">
         <div
           style={{ width: `${pct}%`, background: confidenceColor(score) }}
           className="h-full rounded-full"
@@ -391,22 +395,22 @@ function QueryPanel() {
   }
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900/50">
+    <div className="border-t border-border p-4 bg-muted/30">
       <div className="flex gap-2 mb-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && runQuery()}
             placeholder="Ask the knowledge graph anything…"
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none"
           />
         </div>
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value as any)}
-          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-2 focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
+          className="text-sm border border-border rounded-lg bg-input text-foreground px-2 py-2 focus:ring-2 focus:ring-ring/50 outline-none"
         >
           <option value="hybrid">Hybrid</option>
           <option value="local">Local</option>
@@ -415,19 +419,19 @@ function QueryPanel() {
         <button
           onClick={runQuery}
           disabled={loading || !query.trim()}
-          className="px-4 py-2 bg-[#7C3AED] text-white text-sm rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 bg-primary/85 text-primary-foreground text-sm rounded-lg hover:bg-primary/85 disabled:opacity-50 flex items-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ask'}
         </button>
       </div>
       {error && (
-        <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+        <div className="flex items-start gap-2 text-sm text-destructive dark:text-destructive bg-destructive/10 dark:bg-destructive/15 rounded-lg p-3">
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           {error}
         </div>
       )}
       {result && (
-        <div className="text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+        <div className="text-sm text-foreground bg-card rounded-lg p-3 border border-border whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
           {result}
         </div>
       )}
@@ -440,13 +444,13 @@ function QueryPanel() {
 function Legend({ types }: { types: string[] }) {
   if (types.length === 0) return null
   return (
-    <div className="absolute bottom-4 left-4 z-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow text-xs space-y-1.5 max-h-48 overflow-y-auto">
+    <div className="absolute bottom-4 left-4 z-10 bg-card border border-border rounded-lg p-3 shadow text-xs space-y-1.5 max-h-48 overflow-y-auto">
       {types.map((t) => {
         const c = colorFor(t)
         return (
           <div key={t} className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: c.bg, border: `1.5px solid ${c.border}` }} />
-            <span className="capitalize text-gray-700 dark:text-gray-300">{t}</span>
+            <span className="capitalize text-foreground">{t}</span>
           </div>
         )
       })}
@@ -537,17 +541,17 @@ export default function KnowledgeGraphTab() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 gap-3 text-gray-500 dark:text-gray-400">
-        <AlertCircle className="w-8 h-8 text-red-400" />
+      <div className="flex flex-col items-center justify-center h-96 gap-3 text-muted-foreground">
+        <AlertCircle className="w-8 h-8 text-destructive" />
         <p className="text-sm">{error}</p>
-        <button onClick={loadGraph} className="text-sm text-[#A78BFA] hover:underline">Retry</button>
+        <button onClick={loadGraph} className="text-sm text-primary hover:underline">Retry</button>
       </div>
     )
   }
 
   if (nodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 gap-4 text-gray-500 dark:text-gray-400">
+      <div className="flex flex-col items-center justify-center h-96 gap-4 text-muted-foreground">
         <Network className="w-10 h-10 opacity-30" />
         <p className="text-sm font-medium">No knowledge graph data yet</p>
         <p className="text-xs text-center max-w-sm">
@@ -556,24 +560,24 @@ export default function KnowledgeGraphTab() {
         <button
           onClick={syncAll}
           disabled={syncing}
-          className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] text-white text-sm rounded-lg hover:bg-[#7C3AED] disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-primary/85 text-primary-foreground text-sm rounded-lg hover:bg-primary/85 disabled:opacity-50"
         >
           {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
           {syncing ? 'Syncing…' : 'Sync All Data to Graph'}
         </button>
         {syncResult && (
-          <p className="text-xs text-center max-w-md text-green-600 dark:text-green-400">{syncResult}</p>
+          <p className="text-xs text-center max-w-md text-chart-3">{syncResult}</p>
         )}
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-900">
+    <div className="flex flex-col border border-border rounded-xl overflow-hidden bg-card">
       {/* Toolbar */}
-      <div className="relative flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span className="font-medium text-gray-700 dark:text-gray-200">Knowledge Graph</span>
+      <div className="relative flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Knowledge Graph</span>
           <span>{nodeCount} entities</span>
           <span>{edgeCount} relationships</span>
         </div>
@@ -581,7 +585,7 @@ export default function KnowledgeGraphTab() {
           <button
             onClick={syncAll}
             disabled={syncing}
-            className="flex items-center gap-1.5 text-xs text-[#A78BFA] hover:text-[#8B5CF6] dark:text-[#A78BFA] disabled:opacity-50 transition"
+            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary dark:text-primary disabled:opacity-50 transition"
             title="Push all context sources, entities, personas, and work context into the graph"
           >
             {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
@@ -589,14 +593,14 @@ export default function KnowledgeGraphTab() {
           </button>
           <button
             onClick={loadGraph}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </button>
         </div>
         {syncResult && (
-          <div className="absolute top-10 right-4 z-20 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg px-3 py-2 text-xs text-green-700 dark:text-green-300 max-w-sm shadow">
+          <div className="absolute top-10 right-4 z-20 bg-chart-3/10 border border-chart-3/30 rounded-lg px-3 py-2 text-xs text-chart-3 max-w-sm shadow">
             {syncResult}
           </div>
         )}
@@ -617,12 +621,12 @@ export default function KnowledgeGraphTab() {
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
         >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e5e7eb" />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--border))" />
           <Controls showInteractive={false} />
           <MiniMap
             nodeColor={(n) => colorFor(n.data?.entityType).border}
             maskColor="rgba(0,0,0,0.05)"
-            style={{ background: 'white' }}
+            style={{ background: 'hsl(var(--card))' }}
           />
         </ReactFlow>
         <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} />

@@ -277,15 +277,15 @@ export default function Context() {
           ) : (
             <>
               {/* Primary Tabs */}
-              <div className="border-b border-gray-200 dark:border-gray-700 mb-4">
+              <div className="border-b border-border mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleTabChange('sources')}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'sources'
-                          ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
-                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                       }`}
                     >
                       <Database className="w-4 h-4 inline mr-2" />
@@ -298,8 +298,8 @@ export default function Context() {
                       }}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'entities'
-                          ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
-                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                       }`}
                     >
                       <Lightbulb className="w-4 h-4 inline mr-2" />
@@ -309,8 +309,8 @@ export default function Context() {
                       onClick={() => handleTabChange('knowledge_graph')}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'knowledge_graph'
-                          ? 'border-[#A78BFA] text-[#A78BFA] dark:text-[#A78BFA]'
-                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                       }`}
                     >
                       <Network className="w-4 h-4 inline mr-2" />
@@ -320,13 +320,13 @@ export default function Context() {
 
                   {/* Search */}
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Search..."
-                      className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
+                      className="pl-10 pr-4 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none"
                     />
                   </div>
                 </div>
@@ -334,32 +334,32 @@ export default function Context() {
 
               {/* Secondary Tabs (Entity Type Filter) - Only show for Extracted Intelligence */}
               {selectedView === 'entities' && (
-                <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="mb-6 pb-4 border-b border-border">
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { value: 'all',            label: 'All',              Icon: Target,       active: 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]' },
-                      { value: 'persona',        label: 'Personas',         Icon: Users,        active: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
-                      { value: 'person',         label: 'People',           Icon: User,         active: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
-                      { value: 'pain_point',     label: 'Pain Points',      Icon: AlertCircle,  active: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-                      { value: 'feature_request',label: 'Feature Requests', Icon: Lightbulb,    active: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
-                      { value: 'feature',        label: 'Features',         Icon: Zap,          active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-                      { value: 'competitor',     label: 'Competitors',      Icon: Building2,    active: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
-                      { value: 'organization',   label: 'Organizations',    Icon: Building2,    active: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300' },
-                      { value: 'product',        label: 'Products',         Icon: Database,     active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-                      { value: 'technology',     label: 'Technology',       Icon: Zap,          active: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
-                      { value: 'project',        label: 'Projects',         Icon: Target,       active: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
-                      { value: 'business_goal',  label: 'Business Goals',   Icon: Target,       active: 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]' },
-                      { value: 'metric',         label: 'Metrics',          Icon: Zap,          active: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
-                      { value: 'decision',       label: 'Decisions',        Icon: Lightbulb,    active: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
-                      { value: 'market',         label: 'Markets',          Icon: Building2,    active: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' },
-                    ].map(({ value, label, Icon, active }) => (
+                      { value: 'all',             label: 'All',              Icon: Target    },
+                      { value: 'persona',         label: 'Personas',         Icon: Users     },
+                      { value: 'person',          label: 'People',           Icon: User      },
+                      { value: 'pain_point',      label: 'Pain Points',      Icon: AlertCircle },
+                      { value: 'feature_request', label: 'Feature Requests', Icon: Lightbulb },
+                      { value: 'feature',         label: 'Features',         Icon: Zap       },
+                      { value: 'competitor',      label: 'Competitors',      Icon: Building2 },
+                      { value: 'organization',    label: 'Organizations',    Icon: Building2 },
+                      { value: 'product',         label: 'Products',         Icon: Database  },
+                      { value: 'technology',      label: 'Technology',       Icon: Zap       },
+                      { value: 'project',         label: 'Projects',         Icon: Target    },
+                      { value: 'business_goal',   label: 'Business Goals',   Icon: Target    },
+                      { value: 'metric',          label: 'Metrics',          Icon: Zap       },
+                      { value: 'decision',        label: 'Decisions',        Icon: Lightbulb },
+                      { value: 'market',          label: 'Markets',          Icon: Building2 },
+                    ].map(({ value, label, Icon }) => (
                       <button
                         key={value}
                         onClick={() => setSelectedEntityType(value)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 border ${
                           selectedEntityType === value
-                            ? active
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                            ? 'bg-secondary text-secondary-foreground border-primary/30'
+                            : 'bg-card text-muted-foreground hover:bg-muted border-border'
                         }`}
                       >
                         <Icon className="w-3.5 h-3.5" />
@@ -486,38 +486,38 @@ function SourcesView({
         <div key={`group-${group.id}`}>
           <button
             onClick={() => handleToggleGroup(group.id)}
-            className="w-full text-left text-gray-900 dark:text-white"
+            className="w-full text-left text-foreground"
           >
             <Card>
               <div className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Database className="w-6 h-6 text-[#A78BFA]" />
+                    <Database className="w-6 h-6 text-primary" />
                     <div>
-                      <h3 className="text-lg text-gray-900 dark:text-white">{group.name}</h3>
+                      <h3 className="text-lg text-foreground">{group.name}</h3>
                       {group.description && (
-                        <p className="text-sm text-gray-700 dark:text-gray-400 mt-1">{group.description}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <div className="text-sm text-gray-700 dark:text-gray-400">
+                      <div className="text-sm text-muted-foreground">
                         {group.sources_count} sources
                       </div>
-                      <div className="text-sm text-gray-700 dark:text-gray-400">
+                      <div className="text-sm text-muted-foreground">
                         {group.total_entities} entities
                       </div>
                     </div>
                     <button
                       onClick={(e) => onDeleteGroup(group.id, group.name, e)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition"
                       title="Delete source group"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                     <svg
-                      className={`w-5 h-5 text-gray-700 dark:text-gray-400 transition-transform ${
+                      className={`w-5 h-5 text-muted-foreground transition-transform ${
                         expandedGroups.has(group.id) ? 'rotate-180' : ''
                       }`}
                       fill="none"
@@ -540,7 +540,7 @@ function SourcesView({
             <div className="mt-4 ml-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
               {loadingGroupId === group.id ? (
                 <div className="col-span-2 text-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#A78BFA]" />
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
                 </div>
               ) : (
                 groupSources[group.id]?.map((source: any) => (
@@ -621,7 +621,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
         <Card>
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <Database className="w-8 h-8 text-[#A78BFA]" />
+              <Database className="w-8 h-8 text-primary" />
               <span className="text-3xl">{sources.length}</span>
             </div>
             <p className="text-sm text-muted">Context Sources</p>
@@ -631,7 +631,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
         <Card>
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <Users className="w-8 h-8 text-purple-500" />
+              <Users className="w-8 h-8 text-chart-1" />
               <span className="text-3xl">
                 {entities.filter(e => e.entity_type === 'persona').length}
               </span>
@@ -643,7 +643,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
         <Card>
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <AlertCircle className="w-8 h-8 text-red-500" />
+              <AlertCircle className="w-8 h-8 text-destructive" />
               <span className="text-3xl">
                 {entities.filter(e => e.entity_type === 'pain_point').length}
               </span>
@@ -655,7 +655,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
         <Card>
           <div className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <Zap className="w-8 h-8 text-yellow-500" />
+              <Zap className="w-8 h-8 text-chart-4" />
               <span className="text-3xl">
                 {entities.filter(e => e.entity_type === 'product_capability').length}
               </span>
@@ -668,7 +668,7 @@ function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }
       {/* Coming Soon */}
       <Card>
         <div className="p-12 text-center">
-          <Zap className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
+          <Zap className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-xl mb-2">AI-Powered Insights Coming Soon</h3>
           <p className="text-muted max-w-2xl mx-auto">
             Get automatic trend analysis, sentiment tracking, opportunity identification, and strategic recommendations based on your context data
@@ -707,11 +707,11 @@ function ContextSourceCard({ source, onRefresh, isProcessing }: { source: any; o
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-      case 'processing': return 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]'
-      case 'failed': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-      case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-      default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+      case 'completed': return 'bg-chart-3/15 text-chart-3'
+      case 'processing': return 'bg-primary/10 text-primary'
+      case 'failed': return 'bg-destructive/10 text-destructive'
+      case 'pending': return 'bg-chart-4/20 text-chart-4'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -737,7 +737,7 @@ function ContextSourceCard({ source, onRefresh, isProcessing }: { source: any; o
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition disabled:opacity-50"
+          className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition disabled:opacity-50"
           title="Delete source"
         >
           {deleting ? (
@@ -748,18 +748,18 @@ function ContextSourceCard({ source, onRefresh, isProcessing }: { source: any; o
         </button>
 
         <div className="flex items-start gap-4 pr-8">
-          <div className="p-3 rounded-lg bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#A78BFA] dark:text-[#A78BFA]">
+          <div className="p-3 rounded-lg bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary">
             {getSourceIcon(source.source_type)}
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg text-gray-900 dark:text-white mb-1">{toTitleCase(source.name)}</h3>
+            <h3 className="text-lg text-foreground mb-1">{toTitleCase(source.name)}</h3>
             {source.description && (
-              <p className="text-sm text-gray-700 dark:text-gray-400 mb-2 line-clamp-2">{source.description}</p>
+              <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{source.description}</p>
             )}
             {source.content_summary && (
-              <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 mb-3">
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+              <div className="bg-muted/50 border border-border rounded px-3 py-2 mb-3">
+                <p className="text-xs text-muted-foreground">
                   <strong>Content deleted:</strong> {source.content_summary}
                 </p>
               </div>
@@ -770,32 +770,32 @@ function ContextSourceCard({ source, onRefresh, isProcessing }: { source: any; o
                 {source.status}
               </span>
               {isProcessing && (
-                <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]">
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   Extracting entities…
                 </span>
               )}
               {!isProcessing && source.entities_extracted_count > 0 && (
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-chart-1/15 text-chart-1">
                   {source.entities_extracted_count} entities
                 </span>
               )}
               {source.content_deleted_at && (
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" title={`Content deleted on ${new Date(source.content_deleted_at).toLocaleDateString()}`}>
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground" title={`Content deleted on ${new Date(source.content_deleted_at).toLocaleDateString()}`}>
                   🔒 Content deleted
                 </span>
               )}
               {source.is_encrypted && (
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" title="Content encrypted">
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-chart-4/20 text-chart-4" title="Content encrypted">
                   🔐 Encrypted
                 </span>
               )}
               {source.deletion_scheduled_for && !source.content_deleted_at && (
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" title={`Scheduled for deletion on ${new Date(source.deletion_scheduled_for).toLocaleDateString()}`}>
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-chart-2/15 text-chart-2" title={`Scheduled for deletion on ${new Date(source.deletion_scheduled_for).toLocaleDateString()}`}>
                   ⏱️ Scheduled: {new Date(source.deletion_scheduled_for).toLocaleDateString()}
                 </span>
               )}
-              <span className="text-xs text-gray-700 dark:text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 {new Date(source.created_at).toLocaleDateString()}
               </span>
             </div>
@@ -816,18 +816,24 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
     'meeting': MessageSquare, 'project': Target, 'market': Building2,
   }
   const colorMap: Record<string, string> = {
-    'persona': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-    'pain_point': 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-    'feature_request': 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
-    'competitor': 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-    'business_goal': 'bg-[#A78BFA]/10 text-[#A78BFA] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]',
-    'metric': 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
-    'decision': 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-    'product': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-    'feature': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+    'persona':         'bg-chart-1/15 text-chart-1',
+    'person':          'bg-chart-5/15 text-chart-5',
+    'pain_point':      'text-destructive bg-destructive/10',
+    'feature_request': 'bg-chart-4/20 text-chart-4',
+    'feature':         'bg-chart-3/15 text-chart-3',
+    'competitor':      'bg-chart-2/15 text-chart-2',
+    'organization':    'bg-chart-5/15 text-chart-5',
+    'product':         'bg-chart-3/15 text-chart-3',
+    'technology':      'bg-chart-5/15 text-chart-5',
+    'business_goal':   'bg-chart-1/15 text-chart-1',
+    'metric':          'bg-chart-3/15 text-chart-3',
+    'decision':        'bg-chart-5/15 text-chart-5',
+    'project':         'bg-chart-1/15 text-chart-1',
+    'market':          'bg-chart-2/15 text-chart-2',
+    'meeting':         'bg-muted text-muted-foreground',
   }
   const Icon = iconMap[entity.entity_type] || Target
-  const iconColor = colorMap[entity.entity_type] || 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
+  const iconColor = colorMap[entity.entity_type] || 'bg-muted text-muted-foreground'
 
   const attrs = entity.attributes ?? {}
   const sentiment: string | null = attrs.sentiment && attrs.sentiment !== 'null' ? attrs.sentiment : null
@@ -836,19 +842,19 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
   const snippet: string | null = attrs.context_snippet && attrs.context_snippet !== 'null' ? attrs.context_snippet : null
 
   const sentimentColor = (s: string) => {
-    if (/positive|good|great/i.test(s)) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-    if (/negative|bad|poor/i.test(s)) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-    return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+    if (/positive|good|great/i.test(s)) return 'bg-chart-3/15 text-chart-3'
+    if (/negative|bad|poor/i.test(s)) return 'bg-destructive/10 text-destructive'
+    return 'bg-muted text-muted-foreground'
   }
   const urgencyColor = (u: string) => {
-    if (/high|critical|urgent/i.test(u)) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-    if (/medium|moderate/i.test(u)) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-    return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+    if (/high|critical|urgent/i.test(u)) return 'bg-destructive/10 text-destructive'
+    if (/medium|moderate/i.test(u)) return 'bg-chart-4/20 text-chart-4'
+    return 'bg-muted text-muted-foreground'
   }
   const impactColor = (i: string) => {
-    if (/high/i.test(i)) return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-    if (/medium/i.test(i)) return 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]'
-    return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+    if (/high/i.test(i)) return 'bg-chart-1/15 text-chart-1'
+    if (/medium/i.test(i)) return 'bg-primary/10 text-primary'
+    return 'bg-muted text-muted-foreground'
   }
 
   return (
@@ -860,10 +866,10 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">{entity.name}</h4>
-              <span className="text-xs text-gray-500 dark:text-gray-500 capitalize">{entity.entity_type.replace(/_/g, ' ')}</span>
+              <h4 className="text-sm font-medium text-foreground truncate">{entity.name}</h4>
+              <span className="text-xs text-muted-foreground capitalize">{entity.entity_type.replace(/_/g, ' ')}</span>
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">{entity.description}</p>
+            <p className="text-xs text-muted-foreground line-clamp-3">{entity.description}</p>
           </div>
         </div>
 
@@ -890,21 +896,21 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
 
         {/* Context snippet */}
         {snippet && (
-          <p className="text-xs text-gray-500 dark:text-gray-500 italic border-l-2 border-gray-300 dark:border-gray-600 pl-2 line-clamp-2">
+          <p className="text-xs text-muted-foreground italic border-l-2 border-border pl-2 line-clamp-2">
             "{snippet}"
           </p>
         )}
 
         {/* Confidence bar */}
         {entity.confidence_score != null && (
-          <div className="pt-1 border-t border-gray-100 dark:border-gray-700">
+          <div className="pt-1 border-t border-border">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-gray-500 dark:text-gray-500">Confidence</span>
-              <span className="font-medium text-gray-700 dark:text-gray-300">{Math.round(entity.confidence_score * 100)}%</span>
+              <span className="text-muted-foreground">Confidence</span>
+              <span className="font-medium text-foreground">{Math.round(entity.confidence_score * 100)}%</span>
             </div>
-            <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#8B5CF6]"
+                className="h-full rounded-full bg-primary"
                 style={{ width: `${Math.round(entity.confidence_score * 100)}%` }}
               />
             </div>
@@ -1061,12 +1067,12 @@ export function AddContextModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800 z-10">
+      <div className="bg-card rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-border flex items-center justify-between sticky top-0 bg-card z-10">
           <h2 className="page-title">
             {step === 'select-type' ? 'Select Source Type' : 'Upload File'}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1075,7 +1081,7 @@ export function AddContextModal({
           <div className="p-6 space-y-8">
             {sourceTypes.map((category) => (
               <div key={category.category}>
-                <h3 className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                <h3 className="text-sm text-muted-foreground mb-3">
                   {category.category}
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1091,14 +1097,14 @@ export function AddContextModal({
                       disabled={!type.enabled}
                       className={`p-4 rounded-lg border-2 transition text-left relative ${
                         !type.enabled
-                          ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-[#A78BFA] hover:bg-[#A78BFA]/5 dark:hover:bg-[#A78BFA]/10'
+                          ? 'opacity-50 cursor-not-allowed border-border'
+                          : 'border-border hover:border-primary hover:bg-primary/5'
                       }`}
                     >
-                      <type.icon className="w-6 h-6 mb-2 text-gray-600 dark:text-gray-400" />
+                      <type.icon className="w-6 h-6 mb-2 text-muted-foreground" />
                       <div className="text-sm font-medium">{type.label}</div>
                       {type.comingSoon && (
-                        <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium">
+                        <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-chart-4/20 text-chart-4 font-medium">
                           Soon
                         </span>
                       )}
@@ -1113,7 +1119,7 @@ export function AddContextModal({
             {/* File Upload */}
             <div>
               <label className="block text-sm font-medium mb-2">Upload File</label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                 <input
                   type="file"
                   id="file-upload"
@@ -1125,17 +1131,17 @@ export function AddContextModal({
                   htmlFor="file-upload"
                   className="cursor-pointer flex flex-col items-center"
                 >
-                  <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                  <Upload className="w-12 h-12 text-muted-foreground mb-3" />
                   {file ? (
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium text-foreground">
                       {file.name}
                     </p>
                   ) : (
                     <>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <p className="text-sm font-medium text-muted-foreground mb-1">
                         Click to upload or drag and drop
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         TXT, CSV, PDF, MD, JSON files supported
                       </p>
                     </>
@@ -1152,7 +1158,7 @@ export function AddContextModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Q1 Customer Survey"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none"
               />
             </div>
 
@@ -1164,7 +1170,7 @@ export function AddContextModal({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Brief description of this context source..."
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#A78BFA]/50 outline-none"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none"
               />
             </div>
 
@@ -1175,14 +1181,14 @@ export function AddContextModal({
                 <button
                   type="button"
                   onClick={() => setShowRetentionDropdown(!showRetentionDropdown)}
-                  className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA] transition"
+                  className="w-full flex items-center justify-between px-4 py-3 border border-border rounded-lg bg-input text-foreground hover:bg-muted focus:ring-2 focus:ring-ring/50 focus:border-ring transition"
                 >
                   <span className="flex items-center gap-2 text-sm">
                     {retentionPolicy === 'delete_immediately' && '🔒 Maximum Privacy'}
                     {retentionPolicy === '30_days' && (
                       <>
                         ⚖️ Balanced
-                        <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
+                        <span className="px-2 py-0.5 text-[10px] rounded-full bg-chart-3/15 text-chart-3 font-medium">
                           Recommended
                         </span>
                       </>
@@ -1190,11 +1196,11 @@ export function AddContextModal({
                     {retentionPolicy === '90_days' && '📅 Extended Retention'}
                     {retentionPolicy === 'retain_encrypted' && '📁 Full Retention (Encrypted)'}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${showRetentionDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showRetentionDropdown ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showRetentionDropdown && (
-                  <div className="absolute z-50 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                  <div className="absolute z-50 mt-2 w-full bg-card border border-border rounded-lg shadow-lg overflow-hidden">
                     <div className="p-1 space-y-1">
                       <button
                         type="button"
@@ -1204,17 +1210,17 @@ export function AddContextModal({
                         }}
                         className={`w-full text-left px-3 py-3 rounded transition-colors ${
                           retentionPolicy === 'delete_immediately'
-                            ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]'
-                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary'
+                            : 'text-foreground hover:bg-muted'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">🔒 Maximum Privacy</span>
                           {retentionPolicy === 'delete_immediately' && (
-                            <Check className="w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
+                            <Check className="w-4 h-4 text-primary dark:text-primary" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           Delete original file after AI extraction completes.
                         </p>
                       </button>
@@ -1227,22 +1233,22 @@ export function AddContextModal({
                         }}
                         className={`w-full text-left px-3 py-3 rounded transition-colors ${
                           retentionPolicy === '30_days'
-                            ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]'
-                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary'
+                            : 'text-foreground hover:bg-muted'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-sm">⚖️ Balanced</span>
-                            <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
+                            <span className="px-2 py-0.5 text-[10px] rounded-full bg-chart-3/15 text-chart-3 font-medium">
                               Recommended
                             </span>
                           </div>
                           {retentionPolicy === '30_days' && (
-                            <Check className="w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
+                            <Check className="w-4 h-4 text-primary dark:text-primary" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           Keep original for 30 days, then auto-delete.
                         </p>
                       </button>
@@ -1255,17 +1261,17 @@ export function AddContextModal({
                         }}
                         className={`w-full text-left px-3 py-3 rounded transition-colors ${
                           retentionPolicy === '90_days'
-                            ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]'
-                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary'
+                            : 'text-foreground hover:bg-muted'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">📅 Extended Retention</span>
                           {retentionPolicy === '90_days' && (
-                            <Check className="w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
+                            <Check className="w-4 h-4 text-primary dark:text-primary" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           Keep original for 90 days, then auto-delete.
                         </p>
                       </button>
@@ -1278,17 +1284,17 @@ export function AddContextModal({
                         }}
                         className={`w-full text-left px-3 py-3 rounded transition-colors ${
                           retentionPolicy === 'retain_encrypted'
-                            ? 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]'
-                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary'
+                            : 'text-foreground hover:bg-muted'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">📁 Full Retention (Encrypted)</span>
                           {retentionPolicy === 'retain_encrypted' && (
-                            <Check className="w-4 h-4 text-[#A78BFA] dark:text-[#A78BFA]" />
+                            <Check className="w-4 h-4 text-primary dark:text-primary" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           Keep original file indefinitely, encrypted.
                         </p>
                       </button>
@@ -1300,17 +1306,17 @@ export function AddContextModal({
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-destructive/10 border border-destructive/30 text-destructive dark:text-destructive px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex gap-3 pt-4 border-t border-border">
               <button
                 onClick={() => setStep('select-type')}
                 disabled={uploading}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition"
               >
                 Back
               </button>

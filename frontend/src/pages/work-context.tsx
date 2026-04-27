@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Briefcase, TrendingUp, Calendar, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2, Book, BarChart3, Coins, Users, Clock, BookOpen, Tag, ChevronRight, RefreshCw } from 'lucide-react'
+import { Briefcase, TrendingUp, Calendar, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2, Book, BarChart3, Coins, Users, Clock, BookOpen, Tag, ChevronRight, ChevronDown, RefreshCw } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -138,20 +138,20 @@ export default function WorkContext() {
 
   const getCapacityColor = (status?: string) => {
     switch (status) {
-      case 'sustainable':   return 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
-      case 'stretched':     return 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/10'
-      case 'overloaded':    return 'text-orange-600 dark:text-orange-400 bg-orange-500/10'
-      case 'unsustainable': return 'text-red-600 dark:text-red-400 bg-red-500/10'
+      case 'sustainable':   return 'text-chart-3 bg-chart-3/15'
+      case 'stretched':     return 'text-chart-4 bg-chart-4/20'
+      case 'overloaded':    return 'text-destructive bg-destructive/10'
+      case 'unsustainable': return 'text-destructive dark:text-destructive bg-destructive/100/10'
       default:              return 'text-muted-foreground bg-muted'
     }
   }
 
   const getProjectStatusColor = (status: string) => {
     switch (status) {
-      case 'green':     return 'bg-emerald-500'
-      case 'yellow':    return 'bg-yellow-500'
-      case 'red':       return 'bg-red-500'
-      case 'completed': return 'bg-[#8B5CF6]'
+      case 'green':     return 'bg-chart-3'
+      case 'yellow':    return 'bg-chart-4'
+      case 'red':       return 'bg-destructive/100'
+      case 'completed': return 'bg-primary'
       default:          return 'bg-muted-foreground/40'
     }
   }
@@ -171,8 +171,6 @@ export default function WorkContext() {
     { id: 'overview',    label: 'Overview',      icon: TrendingUp },
     { id: 'tasks',       label: 'Tasks',         icon: CheckSquare, badge: tasks.filter(t => t.status === 'todo' || t.status === 'in_progress').length },
     { id: 'decisions',   label: 'Decisions',     icon: Lightbulb,   badge: decisions.length },
-    { id: 'weekly-focus',label: 'Weekly Focus',  icon: Calendar },
-    { id: 'strategy',    label: 'Strategy Docs', icon: Book },
     { id: 'ai-sessions', label: 'AI Sessions',   icon: BarChart3 },
   ]
 
@@ -200,7 +198,7 @@ export default function WorkContext() {
                 onClick={() => setSelectedTab(id)}
                 className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap flex items-center gap-1.5 ${
                   selectedTab === id
-                    ? 'border-[#A78BFA] text-[#A78BFA]'
+                    ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -257,7 +255,7 @@ export default function WorkContext() {
               <Card padding="md">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-medium text-foreground">Three Things That Matter This Week</h3>
-                  <button onClick={() => setWeeklyFocusModalOpen(true)} className="text-sm text-[#A78BFA] hover:text-[#8B5CF6] flex items-center gap-1 transition-colors">
+                  <button onClick={() => setWeeklyFocusModalOpen(true)} className="text-sm text-primary hover:text-primary flex items-center gap-1 transition-colors">
                     <Edit className="w-4 h-4" />Edit
                   </button>
                 </div>
@@ -265,7 +263,7 @@ export default function WorkContext() {
                   {[weeklyFocus.focus_1, weeklyFocus.focus_2, weeklyFocus.focus_3].map((focus, i) =>
                     focus ? (
                       <div key={i} className="flex items-start gap-2">
-                        <span className="text-[#A78BFA] font-medium">{i + 1}.</span>
+                        <span className="text-primary font-medium">{i + 1}.</span>
                         <span className="text-foreground text-sm">{focus}</span>
                       </div>
                     ) : null
@@ -400,13 +398,13 @@ export default function WorkContext() {
                     #{decision.decision_number}: {decision.title}
                   </h3>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-1 rounded bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]">
+                    <span className="text-xs px-2 py-1 rounded bg-primary/10 text-primary dark:text-primary">
                       {decision.category}
                     </span>
-                    <button onClick={() => openDecisionModal(decision)} className="p-1 text-muted-foreground hover:text-[#A78BFA] rounded opacity-0 group-hover:opacity-100 transition" title="Edit">
+                    <button onClick={() => openDecisionModal(decision)} className="p-1 text-muted-foreground hover:text-primary rounded opacity-0 group-hover:opacity-100 transition" title="Edit">
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDeleteDecision(decision.id)} disabled={deletingDecisionId === decision.id} className="p-1 text-muted-foreground hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50" title="Delete">
+                    <button onClick={() => handleDeleteDecision(decision.id)} disabled={deletingDecisionId === decision.id} className="p-1 text-muted-foreground hover:text-destructive rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50" title="Delete">
                       {deletingDecisionId === decision.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                     </button>
                   </div>
@@ -465,15 +463,18 @@ export default function WorkContext() {
         {selectedTab === 'ai-sessions' && (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <select
-                value={aiDays}
-                onChange={e => setAiDays(Number(e.target.value))}
-                className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground"
-              >
-                <option value={7}>Last 7 days</option>
-                <option value={14}>Last 14 days</option>
-                <option value={30}>Last 30 days</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={aiDays}
+                  onChange={e => setAiDays(Number(e.target.value))}
+                  className="text-sm px-3 py-2 pr-8 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                >
+                  <option value={7}>Last 7 days</option>
+                  <option value={14}>Last 14 days</option>
+                  <option value={30}>Last 30 days</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
               <button onClick={loadAiSessions} disabled={aiLoading} className="btn-secondary flex items-center gap-2">
                 <RefreshCw className={`w-4 h-4 ${aiLoading ? 'animate-spin' : ''}`} />Refresh
               </button>
@@ -525,16 +526,16 @@ function TaskCard({ task, done, deleting, onEdit, onDelete }: {
   task: any; done: boolean; deleting: boolean; onEdit: () => void; onDelete: () => void
 }) {
   return (
-    <div className={`bg-card border border-border p-3 rounded-lg group hover:border-[#A78BFA]/30 transition ${done ? 'opacity-60' : ''}`}>
+    <div className={`bg-card border border-border p-3 rounded-lg group hover:border-primary/30 transition ${done ? 'opacity-60' : ''}`}>
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className={`flex-1 min-w-0 font-medium text-sm text-foreground ${done ? 'line-through' : ''}`}>
           {task.title}
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={onEdit} className="p-1 text-muted-foreground hover:text-[#A78BFA] rounded opacity-0 group-hover:opacity-100 transition" title="Edit">
+          <button onClick={onEdit} className="p-1 text-muted-foreground hover:text-primary rounded opacity-0 group-hover:opacity-100 transition" title="Edit">
             <Edit className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onDelete} disabled={deleting} className="p-1 text-muted-foreground hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition" title="Delete">
+          <button onClick={onDelete} disabled={deleting} className="p-1 text-muted-foreground hover:text-destructive rounded opacity-0 group-hover:opacity-100 transition" title="Delete">
             {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           </button>
         </div>
@@ -574,10 +575,10 @@ function timeAgo(isoDate: string): string {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  engineer: 'bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]',
-  pm:       'bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]',
-  designer: 'bg-pink-500/10 text-pink-600 dark:text-pink-400',
-  qa:       'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  engineer: 'bg-primary/10 text-primary dark:text-primary',
+  pm:       'bg-primary/10 text-primary dark:text-primary',
+  designer: 'bg-chart-2/15 text-chart-2',
+  qa:       'bg-chart-4/20 text-chart-4',
   other:    'bg-muted text-muted-foreground',
 }
 

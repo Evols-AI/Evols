@@ -212,8 +212,8 @@ export default function Skills() {
         />
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-red-700 dark:text-red-400">{error}</p>
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+            <p className="text-destructive dark:text-destructive">{error}</p>
           </div>
         )}
 
@@ -305,16 +305,16 @@ export default function Skills() {
                       {/* Category & Status Badges */}
                       <div className="flex items-center justify-between mb-4">
                         {skill.category && (
-                          <span className="inline-block px-2 py-1 text-xs rounded bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA] capitalize">
+                          <span className="inline-block px-2 py-1 text-xs rounded bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary capitalize">
                             {skill.category.replace(/-/g, ' ')}
                           </span>
                         )}
                         {customization ? (
-                          <span className="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs rounded bg-chart-3/15 text-chart-3 whitespace-nowrap">
                             Custom
                           </span>
                         ) : (
-                          <span className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs rounded bg-muted text-muted-foreground whitespace-nowrap">
                             Default
                           </span>
                         )}
@@ -342,9 +342,9 @@ export default function Skills() {
         )}
 
         {/* Quick Info */}
-        <div className="mt-8 p-6 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg">
+        <div className="mt-8 p-6 bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg">
           <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-[#A78BFA] dark:text-[#A78BFA] flex-shrink-0 mt-0.5" />
+            <Sparkles className="w-5 h-5 text-primary dark:text-primary flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="text-foreground mb-1">
                 How Skills Work
@@ -376,7 +376,7 @@ export default function Skills() {
                       {viewingSkill.name.split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                     </h2>
                     {viewingSkill.category && (
-                      <span className="inline-block px-2 py-1 text-xs rounded bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA] capitalize">
+                      <span className="inline-block px-2 py-1 text-xs rounded bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary capitalize">
                         {viewingSkill.category.replace(/-/g, ' ')}
                       </span>
                     )}
@@ -412,7 +412,7 @@ export default function Skills() {
                     <h3 className="text-foreground mb-2">Available Tools</h3>
                     <div className="flex flex-wrap gap-2">
                       {viewingSkill.tools.map((tool: string, i: number) => (
-                        <span key={i} className="px-2 py-1 text-xs rounded bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]">
+                        <span key={i} className="px-2 py-1 text-xs rounded bg-primary/10 text-primary dark:text-primary">
                           {tool}
                         </span>
                       ))}
@@ -456,7 +456,7 @@ export default function Skills() {
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center gap-3">
-                <Edit3 className="w-6 h-6 text-[#A78BFA] dark:text-[#A78BFA]" />
+                <Edit3 className="w-6 h-6 text-primary dark:text-primary" />
                 <h2 className="text-xl text-foreground">
                   Customize: {editingSkill.split(' ').map(word =>
                     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -489,7 +489,7 @@ export default function Skills() {
                       onChange={(e) => setFormData(prev => ({ ...prev, custom_context: e.target.value }))}
                       placeholder="Add context about your company, role, or specific situation..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring"
                     />
                   </div>
 
@@ -506,7 +506,7 @@ export default function Skills() {
                       onChange={(e) => setFormData(prev => ({ ...prev, custom_instructions: e.target.value }))}
                       placeholder="Add specific instructions for how this skill should work..."
                       rows={4}
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring"
                     />
                   </div>
 
@@ -523,7 +523,7 @@ export default function Skills() {
                       onChange={(e) => setFormData(prev => ({ ...prev, output_format_preferences: e.target.value }))}
                       placeholder="Specify your preferred output format..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring"
                     />
                   </div>
                 </div>
@@ -534,7 +534,7 @@ export default function Skills() {
                     <div>
                       <h3 className="text-lg font-medium text-foreground mb-3">Preview: Merged Instructions</h3>
                       <div className="bg-muted/40 rounded-lg p-4 border border-border">
-                        <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap overflow-x-auto">
+                        <pre className="text-sm text-foreground whitespace-pre-wrap overflow-x-auto">
                           {sanitizePreviewContent(previewData.merged_instructions)}
                         </pre>
                       </div>
@@ -571,7 +571,7 @@ export default function Skills() {
                 {getSkillCustomization(editingSkill!) && (
                   <button
                     onClick={resetCustomization}
-                    className="btn-secondary text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                    className="btn-secondary text-chart-4 hover:bg-chart-4/10"
                   >
                     <RotateCcw className="w-4 h-4" />
                     Reset

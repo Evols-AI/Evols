@@ -15,7 +15,7 @@ export default function VerifyEmail() {
   const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
-    document.body.style.background = dark ? '#0A0A0B' : '#F7F7F8'
+    document.body.style.background = ''
     document.body.style.backgroundImage = 'none'
   }, [dark])
 
@@ -61,8 +61,8 @@ export default function VerifyEmail() {
     }
   }
 
-  const textPrimary = dark ? 'text-[#FAFAFA]' : 'text-[#0A0A0B]'
-  const textMuted = dark ? 'text-[#A1A1AA]' : 'text-[#52525B]'
+  const textPrimary = 'text-foreground'
+  const textMuted = 'text-muted-foreground'
 
   return (
     <>
@@ -71,7 +71,7 @@ export default function VerifyEmail() {
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
-      <div className={`min-h-screen flex items-center justify-center p-6 transition-colors ${dark ? 'bg-[#0A0A0B]' : 'bg-[#F7F7F8]'}`}>
+      <div className={`min-h-screen flex items-center justify-center p-6 transition-colors bg-background`}>
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center justify-center mb-4">
@@ -79,11 +79,11 @@ export default function VerifyEmail() {
             </Link>
           </div>
 
-          <div className={`rounded-2xl p-8 border ${dark ? 'bg-[#111113] border-white/[0.06]' : 'bg-white border-black/[0.07]'}`}>
+          <div className={`rounded-2xl p-8 border bg-card border-border`}>
             {status === 'loading' && (
               <div className="text-center py-8">
                 <div className="flex justify-center mb-6">
-                  <Loader className="w-12 h-12 text-[#A78BFA] animate-spin" />
+                  <Loader className="w-12 h-12 text-primary animate-spin" />
                 </div>
                 <h2 className={`text-2xl font-medium mb-3 ${textPrimary}`}>
                   Verifying your email...
@@ -97,8 +97,8 @@ export default function VerifyEmail() {
             {status === 'success' && (
               <div className="text-center py-8">
                 <div className="flex justify-center mb-6">
-                  <div className="rounded-full bg-emerald-500/10 p-3">
-                    <CheckCircle className="w-12 h-12 text-emerald-500" />
+                  <div className="rounded-full bg-chart-3/15 p-3">
+                    <CheckCircle className="w-12 h-12 text-chart-3" />
                   </div>
                 </div>
                 <h2 className={`text-2xl font-medium mb-3 ${textPrimary}`}>
@@ -110,7 +110,7 @@ export default function VerifyEmail() {
                 {!redirecting && (
                   <Link
                     href="/workbench"
-                    className="inline-flex items-center justify-center px-6 py-3 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium rounded-lg transition-colors"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-primary hover:bg-primary/85 text-primary-foreground font-medium rounded-lg transition-colors"
                   >
                     Go to Dashboard
                   </Link>
@@ -121,8 +121,8 @@ export default function VerifyEmail() {
             {status === 'error' && (
               <div className="text-center py-8">
                 <div className="flex justify-center mb-6">
-                  <div className="rounded-full bg-red-500/10 p-3">
-                    <XCircle className="w-12 h-12 text-red-500" />
+                  <div className="rounded-full bg-destructive/100/10 p-3">
+                    <XCircle className="w-12 h-12 text-destructive" />
                   </div>
                 </div>
                 <h2 className={`text-2xl font-medium mb-3 ${textPrimary}`}>
@@ -132,13 +132,13 @@ export default function VerifyEmail() {
                 <div className="space-y-3">
                   <Link
                     href="/register"
-                    className="block w-full px-6 py-3 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium rounded-lg text-center transition-colors"
+                    className="block w-full px-6 py-3 bg-primary hover:bg-primary/85 text-primary-foreground font-medium rounded-lg text-center transition-colors"
                   >
                     Try Registering Again
                   </Link>
                   <Link
                     href="/login"
-                    className={`block w-full px-6 py-3 border rounded-lg font-medium text-center transition-colors ${dark ? 'border-white/[0.08] text-[#A1A1AA] hover:border-[#A78BFA]/40 hover:text-[#A78BFA]' : 'border-black/[0.1] text-[#52525B] hover:border-[#A78BFA]/40 hover:text-[#A78BFA]'}`}
+                    className={`block w-full px-6 py-3 border rounded-lg font-medium text-center transition-colors ${dark ? 'border-border text-muted-foreground hover:border-primary/40 hover:text-primary' : 'border-border text-muted-foreground hover:border-primary/40 hover:text-primary'}`}
                   >
                     Back to Login
                   </Link>
@@ -150,7 +150,7 @@ export default function VerifyEmail() {
           <div className={`mt-6 text-center text-sm ${textMuted}`}>
             <p>
               Need help?{' '}
-              <Link href="/support" className="text-[#A78BFA] hover:text-[#8B5CF6] transition-colors">
+              <Link href="/support" className="text-primary hover:text-primary transition-colors">
                 Contact Support
               </Link>
             </p>

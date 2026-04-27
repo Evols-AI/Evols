@@ -5,8 +5,8 @@ import { ArrowLeft, Briefcase, Rocket, Target, Users, TrendingUp, BarChart3, Glo
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-12">
-      <h2 className="text-2xl mb-4 text-gray-900 dark:text-white">{title}</h2>
-      <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
+      <h2 className="text-2xl mb-4 text-foreground">{title}</h2>
+      <div className="prose dark:prose-invert max-w-none text-muted-foreground">
         {children}
       </div>
     </section>
@@ -22,16 +22,16 @@ export default function WorkbenchDocumentation() {
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         {/* Header */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <header className="bg-card border-b border-border">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link href="/docs" className="flex items-center">
-                <span className="text-2xl text-[#A78BFA]">
-                  Evols<span className="text-gray-400 dark:text-gray-500 font-medium">.ai</span>
+                <span className="text-2xl text-primary">
+                  Evols<span className="text-muted-foreground font-medium">.ai</span>
                 </span>
-                <span className="text-lg font-medium text-gray-600 dark:text-gray-400 ml-2">Docs</span>
+                <span className="text-lg font-medium text-muted-foreground ml-2">Docs</span>
               </Link>
-              <Link href="/docs" className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+              <Link href="/docs" className="flex items-center space-x-2 text-muted-foreground hover:text-gray-900 dark:hover:text-primary-foreground">
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to Docs</span>
               </Link>
@@ -63,8 +63,8 @@ export default function WorkbenchDocumentation() {
             <path d="M 180 150 L 220 150" stroke="white" strokeWidth="3" fill="none" opacity="0.3"/>
           </svg>
 
-          <h1 className="text-4xl mb-4 text-gray-900 dark:text-white">Decision Workbench</h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+          <h1 className="text-4xl mb-4 text-foreground">Decision Workbench</h1>
+          <p className="text-xl text-muted-foreground mb-8">
             Make data-driven decisions with AI-powered analysis, customer insights, and persona validation — optimized for both Product Managers and Founders.
           </p>
 
@@ -76,18 +76,18 @@ export default function WorkbenchDocumentation() {
               tailored to different decision contexts:
             </p>
             <div className="grid md:grid-cols-2 gap-4 mt-6 not-prose">
-              <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-5">
+              <div className="bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Briefcase className="w-5 h-5 text-[#A78BFA] dark:text-[#A78BFA]" />
-                  <h3 className="text-[#4C1D95] dark:text-[#A78BFA]">PM Mode</h3>
+                  <Briefcase className="w-5 h-5 text-primary dark:text-primary" />
+                  <h3 className="text-primary dark:text-primary">PM Mode</h3>
                 </div>
-                <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
+                <p className="text-sm text-primary/85 dark:text-primary">
                   For product managers making roadmap decisions based on existing customer feedback and themes.
                 </p>
               </div>
-              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-5">
+              <div className="bg-chart-1/10 border border-purple-200 dark:border-purple-800 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Rocket className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <Rocket className="w-5 h-5 text-chart-1" />
                   <h3 className="text-purple-900 dark:text-purple-100">Founder Mode</h3>
                 </div>
                 <p className="text-sm text-purple-800 dark:text-purple-200">
@@ -101,7 +101,7 @@ export default function WorkbenchDocumentation() {
           <Section title="PM Mode: Product Roadmap Decisions">
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg text-gray-900 dark:text-white mb-3">When to Use PM Mode</h3>
+                <h3 className="text-lg text-foreground mb-3">When to Use PM Mode</h3>
                 <p className="mb-3">Perfect for product managers working on established products with existing customer data:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li><strong>Feature prioritization:</strong> "What should we build next for Enterprise customers?"</li>
@@ -111,63 +111,63 @@ export default function WorkbenchDocumentation() {
                 </ul>
               </div>
 
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-[#A78BFA]" />
+              <div className="bg-muted/30 rounded-lg p-5 border border-border">
+                <h3 className="text-lg text-foreground mb-3 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
                   How PM Mode Works
                 </h3>
                 <ol className="space-y-4">
                   <li>
-                    <strong className="text-gray-900 dark:text-white">1. Frame Your Decision</strong>
+                    <strong className="text-foreground">1. Frame Your Decision</strong>
                     <p className="text-sm mt-1">Define your objective, target segments, time horizon, and constraints</p>
                   </li>
                   <li>
-                    <strong className="text-gray-900 dark:text-white">2. Pull Context</strong>
+                    <strong className="text-foreground">2. Pull Context</strong>
                     <p className="text-sm mt-1">Auto-pull relevant themes and feedback from your VoC data</p>
                   </li>
                   <li>
-                    <strong className="text-gray-900 dark:text-white">3. Generate Options</strong>
+                    <strong className="text-foreground">3. Generate Options</strong>
                     <p className="text-sm mt-1">AI generates 3 strategic roadmap options with pros/cons and ARR impact</p>
                   </li>
                   <li>
-                    <strong className="text-gray-900 dark:text-white">4. Compare Options</strong>
+                    <strong className="text-foreground">4. Compare Options</strong>
                     <p className="text-sm mt-1">Review side-by-side comparison with segment impact and citations</p>
                   </li>
                   <li>
-                    <strong className="text-gray-900 dark:text-white">5. Get Persona Votes</strong>
+                    <strong className="text-foreground">5. Get Persona Votes</strong>
                     <p className="text-sm mt-1">Your customer personas vote on options based on their needs and priorities</p>
                   </li>
                 </ol>
               </div>
 
               <div>
-                <h3 className="text-lg text-gray-900 dark:text-white mb-3">Key Benefits</h3>
+                <h3 className="text-lg text-foreground mb-3">Key Benefits</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
                     <TrendingUp className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-gray-900 dark:text-white">Data-Driven:</strong>
+                      <strong className="text-foreground">Data-Driven:</strong>
                       <p className="text-sm">Decisions grounded in actual customer feedback and ARR data</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Users className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" />
+                    <Users className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-gray-900 dark:text-white">Customer-Validated:</strong>
+                      <strong className="text-foreground">Customer-Validated:</strong>
                       <p className="text-sm">Personas represent real customer perspectives</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Target className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                    <Target className="w-5 h-5 text-chart-1 flex-shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-gray-900 dark:text-white">Segment-Aware:</strong>
+                      <strong className="text-foreground">Segment-Aware:</strong>
                       <p className="text-sm">Understand impact across different customer segments</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" />
+                    <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-gray-900 dark:text-white">AI-Powered:</strong>
+                      <strong className="text-foreground">AI-Powered:</strong>
                       <p className="text-sm">Strategic options generated from patterns in your data</p>
                     </div>
                   </div>
@@ -180,7 +180,7 @@ export default function WorkbenchDocumentation() {
           <Section title="Founder Mode: Strategic Startup Decisions">
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg text-gray-900 dark:text-white mb-3">When to Use Founder Mode</h3>
+                <h3 className="text-lg text-foreground mb-3">When to Use Founder Mode</h3>
                 <p className="mb-3">Ideal for founders making strategic decisions about their startup, especially pre-launch or early-stage:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li><strong>Product direction:</strong> "Should we build a B2B SaaS or consumer app?"</li>
@@ -192,74 +192,74 @@ export default function WorkbenchDocumentation() {
                 </ul>
               </div>
 
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-purple-600" />
+              <div className="bg-muted/30 rounded-lg p-5 border border-border">
+                <h3 className="text-lg text-foreground mb-3 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-chart-1" />
                   How Founder Mode Works
                 </h3>
                 <ol className="space-y-4">
                   <li>
-                    <strong className="text-gray-900 dark:text-white">1. Frame Your Decision</strong>
+                    <strong className="text-foreground">1. Frame Your Decision</strong>
                     <p className="text-sm mt-1">Define your decision objective, target market, and product description (product name optional for pre-launch)</p>
                   </li>
                   <li>
-                    <strong className="text-gray-900 dark:text-white">2. Pull Market Data</strong>
+                    <strong className="text-foreground">2. Pull Market Data</strong>
                     <p className="text-sm mt-1">Scrapes real market data from Reddit, including customer pain points, competitor mentions, and trends</p>
                   </li>
                   <li>
-                    <strong className="text-gray-900 dark:text-white">3. Generate Personas (Optional)</strong>
+                    <strong className="text-foreground">3. Generate Personas (Optional)</strong>
                     <p className="text-sm mt-1">Create customer personas from market data, or use your existing personas</p>
                   </li>
                   <li>
-                    <strong className="text-gray-900 dark:text-white">4. Generate Strategic Options</strong>
+                    <strong className="text-foreground">4. Generate Strategic Options</strong>
                     <p className="text-sm mt-1">AI generates startup-appropriate options (market positioning, GTM strategies, product direction)</p>
                   </li>
                   <li>
-                    <strong className="text-gray-900 dark:text-white">5. Get Persona Votes</strong>
+                    <strong className="text-foreground">5. Get Persona Votes</strong>
                     <p className="text-sm mt-1">Personas vote based on market validation and customer needs</p>
                   </li>
                 </ol>
               </div>
 
               <div>
-                <h3 className="text-lg text-gray-900 dark:text-white mb-3">Key Benefits</h3>
+                <h3 className="text-lg text-foreground mb-3">Key Benefits</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
-                    <Globe className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" />
+                    <Globe className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-gray-900 dark:text-white">Real Market Data:</strong>
+                      <strong className="text-foreground">Real Market Data:</strong>
                       <p className="text-sm">Scrapes actual discussions from Reddit for market validation</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Rocket className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                    <Rocket className="w-5 h-5 text-chart-1 flex-shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-gray-900 dark:text-white">Startup-Focused:</strong>
+                      <strong className="text-foreground">Startup-Focused:</strong>
                       <p className="text-sm">Options tailored for strategic startup decisions</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <TrendingUp className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-gray-900 dark:text-white">Market Validation:</strong>
+                      <strong className="text-foreground">Market Validation:</strong>
                       <p className="text-sm">Understand customer pain points before building</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-5 h-5 text-[#A78BFA] flex-shrink-0 mt-0.5" />
+                    <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-gray-900 dark:text-white">Pre-Launch Ready:</strong>
+                      <strong className="text-foreground">Pre-Launch Ready:</strong>
                       <p className="text-sm">Works even without a product name (use description only)</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-4">
-                <h4 className="text-[#4C1D95] dark:text-[#A78BFA] mb-2 flex items-center gap-2">
+              <div className="bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg p-4">
+                <h4 className="text-primary dark:text-primary mb-2 flex items-center gap-2">
                   💡 Pro Tip
                 </h4>
-                <p className="text-sm text-[#6D28D9] dark:text-[#A78BFA]">
+                <p className="text-sm text-primary/85 dark:text-primary">
                   Don't have a product name yet? No problem! Founder Mode works with just a product description.
                   This is perfect for idea-stage validation when you're still exploring problem spaces.
                 </p>
@@ -271,48 +271,48 @@ export default function WorkbenchDocumentation() {
           <Section title="PM vs Founder Mode Comparison">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-100 dark:bg-gray-800">
+                <thead className="bg-muted">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Feature</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PM Mode</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Founder Mode</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Feature</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">PM Mode</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Founder Mode</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-card divide-y divide-gray-200 dark:divide-gray-700">
                   <tr>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">Best For</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Established products with customer data</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Pre-launch & early-stage startups</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">Best For</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Established products with customer data</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Pre-launch & early-stage startups</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">Data Source</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Your VoC data (themes & feedback)</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Real-time Reddit scraping</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">Data Source</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Your VoC data (themes & feedback)</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Real-time Reddit scraping</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">Decision Type</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Product roadmap & features</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Strategic startup direction</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">Decision Type</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Product roadmap & features</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Strategic startup direction</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">Options Generated</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Feature sets & roadmap paths</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Market positioning, GTM, pivots</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">Options Generated</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Feature sets & roadmap paths</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Market positioning, GTM, pivots</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">Personas</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Existing customer personas</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Generate from market or use existing</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">Personas</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Existing customer personas</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Generate from market or use existing</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">Metrics Focus</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">ARR impact, segment coverage</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Market validation, opportunity size</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">Metrics Focus</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">ARR impact, segment coverage</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Market validation, opportunity size</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">Product Name</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Required</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Optional (can use description only)</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">Product Name</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Required</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">Optional (can use description only)</td>
                   </tr>
                 </tbody>
               </table>
@@ -322,9 +322,9 @@ export default function WorkbenchDocumentation() {
           {/* Getting Started */}
           <Section title="Getting Started">
             <div className="space-y-6">
-              <div className="bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-5">
-                <h3 className="text-[#4C1D95] dark:text-[#A78BFA] mb-3">🚀 First Time Using the Workbench?</h3>
-                <ol className="space-y-2 text-sm text-[#6D28D9] dark:text-[#A78BFA]">
+              <div className="bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg p-5">
+                <h3 className="text-primary dark:text-primary mb-3">🚀 First Time Using the Workbench?</h3>
+                <ol className="space-y-2 text-sm text-primary/85 dark:text-primary">
                   <li>1. <strong>Choose your mode:</strong> PM Mode for roadmap decisions, Founder Mode for strategic startup decisions</li>
                   <li>2. <strong>Frame your decision:</strong> Be specific about what you're trying to decide</li>
                   <li>3. <strong>Pull context:</strong> Let the system gather relevant data automatically</li>
@@ -352,7 +352,7 @@ export default function WorkbenchDocumentation() {
           <Section title="Frequently Asked Questions">
             <div className="space-y-4">
               <div>
-                <h4 className="text-gray-900 dark:text-white mb-2">Can I switch between PM and Founder mode?</h4>
+                <h4 className="text-foreground mb-2">Can I switch between PM and Founder mode?</h4>
                 <p className="text-sm">
                   Yes! Use the mode toggle at the top of the workbench. Each mode maintains separate form state,
                   so you can switch without losing your work.
@@ -360,7 +360,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h4 className="text-gray-900 dark:text-white mb-2">Do I need existing personas to use the workbench?</h4>
+                <h4 className="text-foreground mb-2">Do I need existing personas to use the workbench?</h4>
                 <p className="text-sm">
                   <strong>PM Mode:</strong> Yes, you need existing customer personas from your VoC data.<br />
                   <strong>Founder Mode:</strong> No! You can generate personas from market data, or use existing ones if available.
@@ -368,7 +368,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h4 className="text-gray-900 dark:text-white mb-2">How does Founder Mode pull market data?</h4>
+                <h4 className="text-foreground mb-2">How does Founder Mode pull market data?</h4>
                 <p className="text-sm">
                   Founder Mode scrapes real discussions from Reddit using your product description and competitor names.
                   It extracts customer pain points, competitive insights, market trends, and opportunities from actual conversations.
@@ -376,7 +376,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h4 className="text-gray-900 dark:text-white mb-2">What happens to past decisions?</h4>
+                <h4 className="text-foreground mb-2">What happens to past decisions?</h4>
                 <p className="text-sm">
                   All decisions are automatically saved after persona voting. Access them anytime from the "Past Decisions"
                   section in the sidebar. Click any past decision to view its full decision brief.
@@ -384,7 +384,7 @@ export default function WorkbenchDocumentation() {
               </div>
 
               <div>
-                <h4 className="text-gray-900 dark:text-white mb-2">Can I regenerate options if I don't like them?</h4>
+                <h4 className="text-foreground mb-2">Can I regenerate options if I don't like them?</h4>
                 <p className="text-sm">
                   Yes! After viewing generated options, you can add additional constraints and regenerate to get different options.
                 </p>
@@ -393,14 +393,14 @@ export default function WorkbenchDocumentation() {
           </Section>
 
           {/* Footer CTA */}
-          <div className="bg-[#A78BFA]/5 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20 rounded-lg p-6 text-center">
-            <h3 className="text-xl text-gray-900 dark:text-white mb-2">Ready to Make Better Decisions?</h3>
-            <p className="text-gray-700 dark:text-gray-300 mb-4">
+          <div className="bg-primary/5 border border-primary/30 dark:border-primary/20 rounded-lg p-6 text-center">
+            <h3 className="text-xl text-foreground mb-2">Ready to Make Better Decisions?</h3>
+            <p className="text-muted-foreground mb-4">
               Start using the Decision Workbench to validate your product decisions with real data and customer insights.
             </p>
             <Link
               href="/workbench"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-lg font-medium transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/85 text-primary-foreground rounded-lg font-medium transition-colors"
             >
               <Sparkles className="w-5 h-5" />
               Open Workbench

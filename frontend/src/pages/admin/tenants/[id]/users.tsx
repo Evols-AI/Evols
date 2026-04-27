@@ -153,13 +153,13 @@ export default function TenantUsers() {
 
       <Header user={currentUser} currentPage="admin" />
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="min-h-screen bg-muted/30 py-8">
         <div className="container mx-auto px-6">
           {/* Header */}
           <div className="mb-8">
             <Link
               href="/admin/tenants"
-              className="flex items-center gap-2 text-[#A78BFA] dark:text-[#A78BFA] hover:text-[#A78BFA] mb-4"
+              className="flex items-center gap-2 text-primary dark:text-primary hover:text-primary mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Tenants
@@ -167,16 +167,16 @@ export default function TenantUsers() {
 
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl text-gray-900 dark:text-white mb-2">
+                <h1 className="text-3xl text-foreground mb-2">
                   Tenant Users
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-muted-foreground">
                   Manage users for this tenant
                 </p>
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 bg-[#8B5CF6] text-white px-4 py-2 rounded-lg hover:bg-[#7C3AED]"
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/85"
               >
                 <Plus className="w-5 h-5" />
                 Add User
@@ -185,50 +185,50 @@ export default function TenantUsers() {
           </div>
 
           {/* Users Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+              <thead className="bg-muted/40 border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     User
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Last Login
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-border">
                 {users.map(user => (
                   <tr key={user.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-primary/10 dark:bg-primary/10 rounded-full flex items-center justify-center">
                           {user.role === 'TENANT_ADMIN' ? (
-                            <Shield className="w-5 h-5 text-[#A78BFA] dark:text-[#A78BFA]" />
+                            <Shield className="w-5 h-5 text-primary dark:text-primary" />
                           ) : (
-                            <UserIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                            <UserIcon className="w-5 h-5 text-muted-foreground" />
                           )}
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900 dark:text-white">
+                          <div className="font-medium text-foreground">
                             {user.full_name || 'No name'}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {user.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -237,8 +237,8 @@ export default function TenantUsers() {
                         onChange={(e) => handleChangeRole(user.id, e.target.value)}
                         className={`px-2 py-1 text-xs rounded border-none cursor-pointer ${
                           user.role === 'TENANT_ADMIN'
-                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            ? 'bg-chart-1/15 text-chart-1'
+                            : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         <option value="USER">USER</option>
@@ -248,30 +248,30 @@ export default function TenantUsers() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs rounded ${
                         user.is_active
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          ? 'bg-chart-3/15 text-chart-3'
+                          : 'bg-destructive/10 text-destructive'
                       }`}>
                         {user.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {user.last_login_at ? (
                         <div>
-                          <div className="text-gray-900 dark:text-white">
+                          <div className="text-foreground">
                             {new Date(user.last_login_at).toLocaleDateString()}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-muted-foreground">
                             {new Date(user.last_login_at).toLocaleTimeString()}
                           </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400 dark:text-gray-500 italic">Never</span>
+                        <span className="text-muted-foreground italic">Never</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
                         onClick={() => handleDeleteUser(user.id, user.email)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-700 transition-colors"
+                        className="text-destructive dark:text-destructive hover:text-destructive transition-colors"
                         title="Delete user"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -284,9 +284,9 @@ export default function TenantUsers() {
 
             {users.length === 0 && (
               <div className="text-center py-12">
-                <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl text-gray-900 dark:text-white mb-2">No users yet</h3>
-                <p className="text-gray-600 dark:text-gray-400">Add the first user to this tenant</p>
+                <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl text-foreground mb-2">No users yet</h3>
+                <p className="text-muted-foreground">Add the first user to this tenant</p>
               </div>
             )}
           </div>
@@ -319,12 +319,12 @@ function CreateUserModal({ onClose, onCreate }: { onClose: () => void, onCreate:
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-        <h2 className="page-title text-gray-900 dark:text-white mb-4">Add User</h2>
+      <div className="bg-card rounded-lg max-w-md w-full p-6">
+        <h2 className="page-title text-foreground mb-4">Add User</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Email
             </label>
             <input
@@ -332,13 +332,13 @@ function CreateUserModal({ onClose, onCreate }: { onClose: () => void, onCreate:
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-card text-foreground"
               placeholder="user@company.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Full Name
             </label>
             <input
@@ -346,13 +346,13 @@ function CreateUserModal({ onClose, onCreate }: { onClose: () => void, onCreate:
               required
               value={formData.full_name}
               onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-card text-foreground"
               placeholder="John Doe"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Password
             </label>
             <input
@@ -361,19 +361,19 @@ function CreateUserModal({ onClose, onCreate }: { onClose: () => void, onCreate:
               minLength={8}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-card text-foreground"
               placeholder="Min 8 characters"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Role
             </label>
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-card text-foreground"
             >
               <option value="USER">User</option>
               <option value="TENANT_ADMIN">Tenant Admin</option>
@@ -384,13 +384,13 @@ function CreateUserModal({ onClose, onCreate }: { onClose: () => void, onCreate:
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="flex-1 px-4 py-2 border border-border text-muted-foreground rounded-lg hover:bg-muted"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-[#8B5CF6] text-white px-4 py-2 rounded-lg hover:bg-[#7C3AED]"
+              className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/85"
             >
               Create User
             </button>

@@ -58,10 +58,10 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
   }
   const cfg = typeConfig[signal.signal_type] || typeConfig.new_feedback
   const colorMap: Record<string, string> = {
-    blue: 'bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 text-[#A78BFA] dark:text-[#A78BFA]',
-    orange: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
-    purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-    green: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400',
+    blue: 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary',
+    orange: 'bg-chart-4/15 text-chart-4',
+    purple: 'bg-chart-1/10 text-chart-1',
+    green: 'bg-chart-3/10 text-chart-3',
   }
   return (
     <div className="card p-4">
@@ -80,10 +80,10 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
           <p className="text-xs text-body line-clamp-2">{signal.description}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
         <button
           onClick={onInvestigate}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#8B5CF6] dark:text-[#A78BFA] bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10 hover:bg-[#A78BFA]/10 dark:hover:bg-[#A78BFA]/10 rounded-lg transition"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary dark:text-primary bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/10 rounded-lg transition"
         >
           <Eye className="w-3.5 h-3.5" /> Investigate
         </button>
@@ -101,11 +101,11 @@ function SignalCard({ signal, onDismiss, onInvestigate }: {
 
 function DecisionStatusDot({ status }: { status: string }) {
   const cfg: Record<string, { color: string; label: string }> = {
-    active: { color: 'bg-[#8B5CF6] dark:bg-[#A78BFA]', label: 'Active' },
-    completed: { color: 'bg-green-500 dark:bg-green-400', label: 'Done' },
-    on_track: { color: 'bg-green-500 dark:bg-green-400', label: 'On Track' },
-    at_risk: { color: 'bg-yellow-500 dark:bg-yellow-400', label: 'At Risk' },
-    off_track: { color: 'bg-red-500 dark:bg-red-400', label: 'Off Track' },
+    active: { color: 'bg-primary dark:bg-primary', label: 'Active' },
+    completed: { color: 'bg-chart-3', label: 'Done' },
+    on_track: { color: 'bg-chart-3', label: 'On Track' },
+    at_risk: { color: 'bg-chart-4', label: 'At Risk' },
+    off_track: { color: 'bg-destructive', label: 'Off Track' },
   }
   const c = cfg[status] || cfg.active
   return (
@@ -226,7 +226,7 @@ export default function Dashboard() {
   return (
     <>
       <Head><title>Dashboard — Evols</title></Head>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen bg-background">
         <Header user={user} currentPage="dashboard" />
 
         <PageContainer className="max-w-7xl">
@@ -249,16 +249,16 @@ export default function Dashboard() {
             <Loading text="Loading your dashboard..." />
           ) : !hasData ? (
             <div className="space-y-6">
-              <div className="bg-gradient-to-br bg-[#A78BFA]/5 rounded-lg p-8 border border-[#A78BFA]/30 dark:border-[#A78BFA]/20">
+              <div className="bg-gradient-to-br bg-primary/5 rounded-lg p-8 border border-primary/30 dark:border-primary/20">
                 <h2 className="card-header mb-2">🚀 Let's get started</h2>
                 <p className="text-body mb-6 max-w-xl">
                   Upload your first VoC or connect a data source and Evols will auto-cluster themes, build persona twins, and help you make your first evidence-backed decision.
                 </p>
                 <div className="grid sm:grid-cols-3 gap-4">
                   {[
-                    { href: '/context', icon: <Upload className="w-6 h-6 text-[#A78BFA]" />, title: 'Upload Context', desc: 'CSV from Intercom, Zendesk, or manual input' },
-                    { href: '/knowledge', icon: <BarChart3 className="w-6 h-6 text-purple-600" />, title: 'Knowledge Graph', desc: 'Explore your AI-extracted knowledge graph' },
-                    { href: '/workbench', icon: <FlaskConical className="w-6 h-6 text-[#A78BFA]" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
+                    { href: '/context', icon: <Upload className="w-6 h-6 text-primary" />, title: 'Upload Context', desc: 'CSV from Intercom, Zendesk, or manual input' },
+                    { href: '/knowledge', icon: <BarChart3 className="w-6 h-6 text-chart-1" />, title: 'Knowledge Graph', desc: 'Explore your AI-extracted knowledge graph' },
+                    { href: '/workbench', icon: <FlaskConical className="w-6 h-6 text-primary" />, title: 'Open Workbench', desc: 'Start your first decision brief' },
                   ].map(item => (
                     <Link key={item.href} href={item.href}
                       className="card-hover p-5"
@@ -302,21 +302,21 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         {themes.map((theme: any) => (
                           <div key={theme.id} className="flex items-center gap-3 p-3 rounded-lg hover-lift">
-                            <div className="flex-shrink-0 w-1 h-10 rounded-full bg-[#8B5CF6] dark:bg-[#A78BFA]" />
+                            <div className="flex-shrink-0 w-1 h-10 rounded-full bg-primary dark:bg-primary" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-heading line-clamp-1">{theme.title}</p>
                               <p className="text-xs text-body">{theme.feedback_count || 0} items</p>
                             </div>
                             <div className="text-right flex-shrink-0">
                               {theme.total_arr > 0 && (
-                                <p className="text-sm text-green-600 dark:text-green-400">
+                                <p className="text-sm text-chart-3">
                                   ${(theme.total_arr / 1000).toFixed(0)}K
                                 </p>
                               )}
                               {theme.urgency_score != null && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${theme.urgency_score > 0.7 ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
-                                    theme.urgency_score > 0.4 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
-                                      'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${theme.urgency_score > 0.7 ? 'bg-destructive/10 text-destructive' :
+                                    theme.urgency_score > 0.4 ? 'bg-chart-4/20 text-chart-4' :
+                                      'bg-chart-3/15 text-chart-3'
                                   }`}>
                                   {theme.urgency_score > 0.7 ? 'High' : theme.urgency_score > 0.4 ? 'Med' : 'Low'}
                                 </span>
@@ -351,14 +351,14 @@ export default function Dashboard() {
 
                 <div className="space-y-6">
                   <Card>
-                    <h2 className="text-xl text-gray-900 dark:text-white mb-3">Quick Actions</h2>
+                    <h2 className="text-xl text-foreground mb-3">Quick Actions</h2>
                     <div className="space-y-2">
                       <button
                         onClick={() => setShowAddContextModal(true)}
                         className="flex items-center gap-3 p-2.5 rounded-lg hover-lift w-full text-left"
                       >
-                        <div className="p-2 rounded-lg flex-shrink-0 bg-purple-50 dark:bg-purple-900/20">
-                          <Database className="w-4 h-4 text-purple-600" />
+                        <div className="p-2 rounded-lg flex-shrink-0 bg-chart-1/10">
+                          <Database className="w-4 h-4 text-chart-1" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-heading">Add Context</div>
@@ -368,8 +368,8 @@ export default function Dashboard() {
                       </button>
 
                       <Link href="/workbench?skill=persona_analyzer" className="flex items-center gap-3 p-2.5 rounded-lg hover-lift">
-                        <div className="p-2 rounded-lg flex-shrink-0 bg-violet-50 dark:bg-violet-900/20">
-                          <MessageSquare className="w-4 h-4 text-violet-600" />
+                        <div className="p-2 rounded-lg flex-shrink-0 bg-chart-1/10">
+                          <MessageSquare className="w-4 h-4 text-chart-1" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-heading">Ask a Persona</div>
@@ -379,8 +379,8 @@ export default function Dashboard() {
                       </Link>
 
                       <Link href="/workbench?skill=decision_workbench" className="flex items-center gap-3 p-2.5 rounded-lg hover-lift">
-                        <div className="p-2 rounded-lg flex-shrink-0 bg-[#A78BFA]/5 dark:bg-[#A78BFA]/10">
-                          <FlaskConical className="w-4 h-4 text-[#A78BFA]" />
+                        <div className="p-2 rounded-lg flex-shrink-0 bg-primary/5 dark:bg-primary/10">
+                          <FlaskConical className="w-4 h-4 text-primary" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-heading">New Decision</div>
@@ -395,7 +395,7 @@ export default function Dashboard() {
                   {signals.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-3">
-                        <Bell className="w-4 h-4 text-orange-500" />
+                        <Bell className="w-4 h-4 text-chart-4" />
                         <h2 className="text-heading text-sm uppercase tracking-wide">Signal Feed</h2>
                       </div>
                       <div className="space-y-3">

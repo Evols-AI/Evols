@@ -101,10 +101,10 @@ export default function SupportTicketsAdmin() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string, icon: any }> = {
-      open: { color: 'bg-[#A78BFA]/10 dark:bg-[#A78BFA]/10 text-[#8B5CF6] dark:text-[#A78BFA]', icon: AlertCircle },
-      in_progress: { color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400', icon: Clock },
-      resolved: { color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400', icon: CheckCircle },
-      closed: { color: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300', icon: XCircle }
+      open: { color: 'bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary', icon: AlertCircle },
+      in_progress: { color: 'bg-chart-4/20 text-chart-4', icon: Clock },
+      resolved: { color: 'bg-chart-3/15 text-chart-3', icon: CheckCircle },
+      closed: { color: 'bg-muted text-muted-foreground', icon: XCircle }
     }
 
     const config = statusConfig[status] || statusConfig.open
@@ -161,7 +161,7 @@ export default function SupportTicketsAdmin() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-red-600 dark:text-red-400">{error}</div>
+        <div className="text-destructive dark:text-destructive">{error}</div>
       </div>
     )
   }
@@ -174,48 +174,48 @@ export default function SupportTicketsAdmin() {
 
       <Header user={currentUser} currentPage="support" />
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="min-h-screen bg-muted/30 py-8">
         <div className="container mx-auto px-6">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl text-gray-900 dark:text-white mb-2">
+                <h1 className="text-3xl text-foreground mb-2">
                   Support Tickets
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-muted-foreground">
                   Manage customer support requests
                 </p>
               </div>
               <div className="relative" ref={statusDropdownRef}>
                 <button
                   onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  className="px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[180px]"
+                  className="px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground hover:bg-muted transition-colors flex items-center gap-2 min-w-[180px]"
                 >
                   <span className="text-sm font-medium">{getFilterDisplayText()}</span>
-                  <ChevronDown className="absolute right-3 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <ChevronDown className="absolute right-3 w-4 h-4 text-muted-foreground" />
                 </button>
 
                 {showStatusDropdown && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50">
+                  <div className="absolute right-0 mt-2 w-56 bg-input border border-border rounded-md shadow-lg z-50">
                     <div className="p-2">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
+                      <div className="text-xs text-muted-foreground px-3 py-2">
                         Filter by Status
                       </div>
                       {[
-                        { value: 'open', label: 'Open', color: 'text-[#A78BFA] dark:text-[#A78BFA]' },
-                        { value: 'in_progress', label: 'In Progress', color: 'text-yellow-600 dark:text-yellow-400' },
-                        { value: 'resolved', label: 'Resolved', color: 'text-green-600 dark:text-green-400' },
-                        { value: 'closed', label: 'Closed', color: 'text-gray-600 dark:text-gray-400' },
+                        { value: 'open', label: 'Open', color: 'text-primary dark:text-primary' },
+                        { value: 'in_progress', label: 'In Progress', color: 'text-chart-4' },
+                        { value: 'resolved', label: 'Resolved', color: 'text-chart-3' },
+                        { value: 'closed', label: 'Closed', color: 'text-muted-foreground' },
                       ].map((status) => (
                         <button
                           key={status.value}
                           onClick={() => toggleStatusFilter(status.value)}
-                          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded transition-colors"
                         >
-                          <div className="w-4 h-4 flex items-center justify-center border-2 border-gray-300 dark:border-gray-500 rounded">
+                          <div className="w-4 h-4 flex items-center justify-center border-2 border-border rounded">
                             {filterStatus.includes(status.value) && (
-                              <Check className="w-3 h-3 text-[#A78BFA] dark:text-[#A78BFA]" />
+                              <Check className="w-3 h-3 text-primary dark:text-primary" />
                             )}
                           </div>
                           <span className={`text-sm font-medium ${status.color}`}>
@@ -232,31 +232,31 @@ export default function SupportTicketsAdmin() {
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total</div>
-              <div className="text-2xl text-gray-900 dark:text-white">{tickets.length}</div>
+            <div className="bg-card rounded-lg p-6 border border-border">
+              <div className="text-sm text-muted-foreground mb-1">Total</div>
+              <div className="text-2xl text-foreground">{tickets.length}</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Open</div>
-              <div className="text-2xl text-[#A78BFA] dark:text-[#A78BFA]">
+            <div className="bg-card rounded-lg p-6 border border-border">
+              <div className="text-sm text-muted-foreground mb-1">Open</div>
+              <div className="text-2xl text-primary dark:text-primary">
                 {tickets.filter(t => t.status === 'open').length}
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">In Progress</div>
-              <div className="text-2xl text-yellow-600 dark:text-yellow-400">
+            <div className="bg-card rounded-lg p-6 border border-border">
+              <div className="text-sm text-muted-foreground mb-1">In Progress</div>
+              <div className="text-2xl text-chart-4">
                 {tickets.filter(t => t.status === 'in_progress').length}
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Resolved</div>
-              <div className="text-2xl text-green-600 dark:text-green-400">
+            <div className="bg-card rounded-lg p-6 border border-border">
+              <div className="text-sm text-muted-foreground mb-1">Resolved</div>
+              <div className="text-2xl text-chart-3">
                 {tickets.filter(t => t.status === 'resolved').length}
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Closed</div>
-              <div className="text-2xl text-gray-600 dark:text-gray-400">
+            <div className="bg-card rounded-lg p-6 border border-border">
+              <div className="text-sm text-muted-foreground mb-1">Closed</div>
+              <div className="text-2xl text-muted-foreground">
                 {tickets.filter(t => t.status === 'closed').length}
               </div>
             </div>
@@ -265,12 +265,12 @@ export default function SupportTicketsAdmin() {
           {/* Tickets List */}
           <div className="space-y-4">
             {filteredTickets.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-                <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl text-gray-900 dark:text-white mb-2">
+              <div className="bg-card rounded-lg shadow-sm border border-border p-12 text-center">
+                <MessageSquare className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl text-foreground mb-2">
                   No tickets found
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-muted-foreground">
                   {filterStatus.length < 4 ? 'No tickets with the selected status filters' : 'No support tickets yet'}
                 </p>
               </div>
@@ -278,18 +278,18 @@ export default function SupportTicketsAdmin() {
               filteredTickets.map(ticket => (
                 <div
                   key={ticket.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                  className="bg-card rounded-lg shadow-sm border border-border p-6"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-2xl">{getTopicIcon(ticket.topic)}</span>
-                        <h3 className="text-lg text-gray-900 dark:text-white capitalize">
+                        <h3 className="text-lg text-foreground capitalize">
                           {ticket.topic.replace('_', ' ')}
                         </h3>
                         {getStatusBadge(ticket.status)}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <User className="w-4 h-4" />
                           {ticket.name}
@@ -307,7 +307,7 @@ export default function SupportTicketsAdmin() {
                     <select
                       value={ticket.status}
                       onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
-                      className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white cursor-pointer hover:border-gray-400 dark:hover:border-gray-500"
+                      className="px-3 py-1.5 text-sm border border-border rounded-lg bg-input text-foreground cursor-pointer hover:border-muted-foreground/50"
                     >
                       <option value="open">Open</option>
                       <option value="in_progress">In Progress</option>
@@ -315,8 +315,8 @@ export default function SupportTicketsAdmin() {
                       <option value="closed">Closed</option>
                     </select>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded p-4 border border-gray-200 dark:border-gray-700">
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{ticket.message}</p>
+                  <div className="bg-muted/30 rounded p-4 border border-border">
+                    <p className="text-muted-foreground whitespace-pre-wrap">{ticket.message}</p>
                   </div>
                 </div>
               ))
