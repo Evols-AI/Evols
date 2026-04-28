@@ -17,7 +17,6 @@ from app.core.security import get_password_hash
 from app.models.user import User, UserRole
 from app.models.tenant import Tenant
 from app.models.job import Job
-from app.services.demo_seed_service import seed_demo_product
 
 router = APIRouter()
 
@@ -167,14 +166,6 @@ async def create_tenant(
     new_tenant = Tenant(**tenant_data.model_dump())
     db.add(new_tenant)
     await db.flush()
-
-    # Seed demo product if requested
-    if seed_demo:
-        try:
-            await seed_demo_product(db, new_tenant.id)
-        except Exception as e:
-            # Log but don't fail
-            print(f"Warning: Failed to seed demo product for tenant {new_tenant.id}: {e}")
 
     await db.commit()
     await db.refresh(new_tenant)

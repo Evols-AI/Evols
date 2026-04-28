@@ -53,7 +53,6 @@ class Account(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="accounts")
-    feedback_items = relationship("Feedback", back_populates="account")
     context_sources = relationship("ContextSource", back_populates="account")
 
     def __repr__(self):

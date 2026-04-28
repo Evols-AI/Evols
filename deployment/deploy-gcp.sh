@@ -119,11 +119,9 @@ LIGHTRAG_IMAGE="${LIGHTRAG_IMAGE:-us-central1-docker.pkg.dev/${PROJECT_ID}/evols
 SQL_CONNECTION_NAME="${SQL_CONNECTION_NAME:-$(gcloud sql instances describe evols-postgres --format='value(connectionName)' --project "${PROJECT_ID}")}"
 
 echo "==> Building evols-lightrag image..."
-gcloud builds submit \
-  --tag "${LIGHTRAG_IMAGE}" \
-  --project "${PROJECT_ID}" \
-  --file docker/lightrag.Dockerfile \
-  .
+gcloud builds submit --config=deployment/cloudbuild-lightrag.yaml \
+  --substitutions="_TAG=${LIGHTRAG_IMAGE}" \
+  --project "${PROJECT_ID}" .
 
 echo "==> Deploying evols-lightrag..."
 # PM-domain entity types and attributes — must be kept in sync with

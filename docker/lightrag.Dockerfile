@@ -19,6 +19,7 @@ ARG LIGHTRAG_VERSION=1.4.15
 # System deps required by lightrag storage backends
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
+        patch \
         libpq-dev \
         gcc \
     && rm -rf /var/lib/apt/lists/*

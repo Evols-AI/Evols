@@ -15,7 +15,6 @@ from app.models.tenant_invite import TenantInvite
 from app.models.user_tenant import UserTenant
 from app.models.email_verification import EmailVerification
 from app.schemas.auth import UserLogin, UserRegister, Token, VerificationPendingResponse, EmailVerificationRequest
-from app.services.demo_seed_service import seed_demo_product
 from app.services.email_service import EmailService
 from sqlalchemy import select
 from datetime import datetime, timedelta
@@ -300,15 +299,6 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
                 }
             )
 
-    # Create demo product with sample data for new tenants (BEFORE user creation)
-    # This must happen before commit so everything is in same transaction
-    if not user_data.is_super_admin and tenant_id and is_new_tenant:
-        try:
-            await seed_demo_product(db, tenant_id)
-        except Exception as e:
-            # Log the error but don't fail registration
-            print(f"Warning: Failed to seed demo product for tenant {tenant_id}: {e}")
-
     # Create user
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
@@ -457,12 +447,6 @@ async def verify_email(
         )
         db.add(tenant)
         await db.flush()
-
-        # Seed demo data for new tenant
-        try:
-            await seed_demo_product(db, tenant.id)
-        except Exception as e:
-            print(f"Warning: Failed to seed demo product for tenant {tenant.id}: {e}")
 
         # Create user as TENANT_ADMIN (first user in new tenant)
         new_user = User(
