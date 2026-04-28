@@ -11,11 +11,7 @@ const KNOWLEDGE_TABS = [
   { id: 'metrics_and_targets', name: 'Metrics & Targets', description: 'KPIs, goals, and success metrics' }
 ]
 
-interface StrategyTabProps {
-  productId: number | undefined
-}
-
-export default function StrategyTab({ productId }: StrategyTabProps) {
+export default function StrategyTab() {
   const [activeTab, setActiveTab] = useState('strategy')
   const [content, setContent] = useState<Record<string, string>>({
     strategy: '',
@@ -29,16 +25,12 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (productId) {
-      loadKnowledge()
-    } else {
-      setLoading(false)
-    }
-  }, [productId])
+    loadKnowledge()
+  }, [])
 
   const loadKnowledge = async () => {
     try {
-      const response = await api.get(`/knowledge/products/${productId}/knowledge`)
+      const response = await api.get('/knowledge')
       setContent({
         strategy: response.data.strategy_doc || '',
         customer_segments: response.data.customer_segments_doc || '',
@@ -58,7 +50,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
     setSaved(false)
 
     try {
-      await api.put(`/knowledge/products/${productId}/knowledge`, {
+      await api.put('/knowledge', {
         doc_type: activeTab,
         content: content[activeTab] || ''
       })
@@ -71,14 +63,6 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
     } finally {
       setSaving(false)
     }
-  }
-
-  if (!productId) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Please select a product first</p>
-      </div>
-    )
   }
 
   if (loading) {
@@ -179,7 +163,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
         <div className="space-y-3 text-sm text-muted-foreground">
           <div>
             <strong className="text-foreground">Product Strategy:</strong> What are your strategic pillars?
-            What's your vision and mission? What are you optimizing for?
+            What&apos;s your vision and mission? What are you optimizing for?
           </div>
 
           <div>
@@ -189,7 +173,7 @@ export default function StrategyTab({ productId }: StrategyTabProps) {
 
           <div>
             <strong className="text-foreground">Competitive Landscape:</strong> Who are your main competitors?
-            How do you differentiate? What's your positioning?
+            How do you differentiate? What&apos;s your positioning?
           </div>
 
           <div>

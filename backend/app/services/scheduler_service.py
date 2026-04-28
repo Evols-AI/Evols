@@ -25,15 +25,6 @@ class SchedulerService:
         self.scheduler.start()
         logger.info("Scheduler started")
 
-        # Check for persona refresh jobs every hour
-        self.scheduler.add_job(
-            self.check_persona_refresh_jobs,
-            IntervalTrigger(hours=1),
-            id='check_persona_refresh',
-            name='Check Persona Refresh Jobs',
-            replace_existing=True
-        )
-
         # Check for knowledge source refresh jobs every hour
         self.scheduler.add_job(
             self.check_knowledge_refresh_jobs,
@@ -56,69 +47,6 @@ class SchedulerService:
         """Shutdown the scheduler"""
         self.scheduler.shutdown()
         logger.info("Scheduler stopped")
-
-    async def check_persona_refresh_jobs(self):
-        """Check all tenants and refresh personas if needed"""
-        try:
-            async with AsyncSessionLocal() as db:
-                result = await db.execute(select(Tenant))
-                tenants = result.scalars().all()
-
-                for tenant in tenants:
-                    await self._check_tenant_refresh(db, tenant)
-        except Exception as e:
-            logger.error(f"Error in check_persona_refresh_jobs: {e}")
-
-    async def _check_tenant_refresh(self, db: AsyncSession, tenant: Tenant):
-        """Check if a tenant needs persona refresh"""
-        settings = tenant.settings or {}
-
-        if not settings.get('persona_refresh_enabled', False):
-            return
-
-        interval_days = settings.get('persona_refresh_interval_days', 7)
-        last_refresh = settings.get('persona_last_refresh_date')
-
-        # Check if refresh is due
-        if last_refresh:
-            try:
-                # Strip 'Z' suffix if present for compatibility
-                last_refresh_str = last_refresh.rstrip('Z')
-                last_refresh_dt = datetime.fromisoformat(last_refresh_str)
-                next_refresh = last_refresh_dt + timedelta(days=interval_days)
-
-                if datetime.utcnow() < next_refresh:
-                    return  # Not due yet
-            except (ValueError, TypeError) as e:
-                logger.warning(f"Invalid last_refresh_date for tenant {tenant.id}: {e}")
-
-        # Execute refresh
-        logger.info(f"Running persona refresh for tenant {tenant.id}")
-        await self._refresh_personas_for_tenant(db, tenant)
-
-    async def _refresh_personas_for_tenant(self, db: AsyncSession, tenant: Tenant):
-        """Refresh personas for a tenant"""
-        try:
-            from app.services.persona_refresh_service import PersonaRefreshService
-
-            refresh_service = PersonaRefreshService(db)
-            await refresh_service.refresh_new_personas(tenant.id)
-
-            # Update last refresh timestamp
-            settings = tenant.settings or {}
-            settings['persona_last_refresh_date'] = datetime.utcnow().isoformat() + 'Z'
-            tenant.settings = settings
-
-            # Mark as modified for SQLAlchemy to detect JSON change
-            from sqlalchemy.orm import attributes
-            attributes.flag_modified(tenant, 'settings')
-
-            await db.commit()
-
-            logger.info(f"Completed persona refresh for tenant {tenant.id}")
-        except Exception as e:
-            logger.error(f"Failed to refresh personas for tenant {tenant.id}: {e}")
-            await db.rollback()
 
     async def check_knowledge_refresh_jobs(self):
         """Check all tenants and refresh knowledge sources if needed"""

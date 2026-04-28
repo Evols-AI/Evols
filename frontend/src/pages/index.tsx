@@ -213,7 +213,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Evols AI — The Team AI Operating System</title>
+        <title>Evols AI - The Team AI Operating System</title>
         <meta name="description" content="Evols eliminates the handoff tax. Every AI session your team runs compounds into shared intelligence — zero cold start, no duplicate work, full quota visibility." />
         <meta property="og:title" content="Evols AI — The Team AI Operating System" />
         <meta property="og:description" content="Turn every AI session into team intelligence. One plugin install activates everything." />
@@ -267,7 +267,7 @@ export default function Home() {
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.1 }}
               className={`text-lg md:text-xl ${textMuted} max-w-2xl mx-auto mb-10 leading-relaxed tracking-[-0.01em]`}>
               Evols turns every AI session your team runs into shared, compounding intelligence →
-              zero cold start, no duplicate work, full quota visibility. One plugin install activates everything.
+              zero cold start, no duplicate work, full quota visibility.
             </motion.p>
 
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.15 }}
@@ -292,7 +292,7 @@ export default function Home() {
 
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
               className={`mt-6 text-xs ${textFaint}`}>
-              Active with Claude Code, Copilot, Kiro, Cursor, and Cline
+              No credit card required · Try and Cancel anytime
             </motion.p>
           </motion.div>
 
@@ -378,7 +378,7 @@ export default function Home() {
         </section>
 
         {/* ── HOW IT WORKS ── */}
-        <section className={`py-28 ${bgAlt} border-y ${border} transition-colors duration-300`}>
+        <section id="how-it-works" className={`py-28 ${bgAlt} border-y ${border} transition-colors duration-300`}>
           <div className="max-w-6xl mx-auto px-6">
             <div className="text-center mb-16">
               <SectionLabel dark={dark} border={border} textFaint={textFaint}>The solution</SectionLabel>
@@ -431,7 +431,7 @@ export default function Home() {
         </section>
 
         {/* ── FEATURES ── */}
-        <section className="py-28 max-w-6xl mx-auto px-6">
+        <section id="features" className="py-28 max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <SectionLabel dark={dark} border={border} textFaint={textFaint}>Capabilities</SectionLabel>
             <h2 className={`text-4xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.08] mb-5 ${text}`}>
@@ -557,7 +557,7 @@ export default function Home() {
                     Book a demo
                   </Link>
                 </div>
-                <p className={`mt-5 text-xs ${textFaint}`}>No credit card · 14-day trial · Cancel anytime</p>
+                <p className={`mt-5 text-xs ${textFaint}`}>Active with Claude Code, Copilot, Kiro, Cursor, and Cline</p>
               </motion.div>
             </div>
           </div>
@@ -574,6 +574,7 @@ export default function Home() {
                 { label: 'Login', href: '/login' },
               ].map(l => (
                 <Link key={l.label} href={l.href}
+                  {...(l.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   className={`text-sm ${textFaint} transition-colors duration-150`}>
                   {l.label}
                 </Link>

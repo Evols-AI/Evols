@@ -58,7 +58,6 @@ class InitiativeResponse(InitiativeBase):
 
     id: int
     tenant_id: int
-    product_id: Optional[int] = None
     status: InitiativeStatus
     effort: Optional[InitiativeEffort] = None
     estimated_impact_score: Optional[float] = None

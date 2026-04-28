@@ -12,7 +12,6 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_tenant_llm_config, get_current_tenant_id
 from app.models.user import User
-from app.models.product import Product
 from app.services.team_knowledge_service import team_knowledge_service
 
 router = APIRouter()
@@ -204,68 +203,12 @@ async def check_redundancy(
     return result
 
 
-@router.get("/products")
-async def list_products_for_attribution(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    tenant_id: int = Depends(get_current_tenant_id),
-):
-    """
-    List products available for knowledge entry attribution.
-    Called by the MCP sync_session_context tool to offer the user a choice.
-    """
-    result = await db.execute(
-        select(Product).where(
-            Product.tenant_id == tenant_id,
-            Product.is_active == True,
-        ).order_by(Product.name)
-    )
-    products = result.scalars().all()
-    return [{"id": p.id, "name": p.name, "description": p.description} for p in products]
-
-
-@router.patch("/entries/{entry_id}/link-product", status_code=200)
-async def link_entry_to_product(
-    entry_id: int,
-    product_id: Optional[int] = None,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    tenant_id: int = Depends(get_current_tenant_id),
-):
-    """
-    Attribute a knowledge entry to a product after it was created.
-    Called by the MCP link_to_product tool once the user confirms which product.
-    Passing product_id=null clears attribution.
-    """
-    from app.models.team_knowledge import KnowledgeEntry
-    from sqlalchemy import and_
-    result = await db.execute(
-        select(KnowledgeEntry).where(
-            and_(KnowledgeEntry.id == entry_id, KnowledgeEntry.tenant_id == tenant_id)
-        )
-    )
-    entry = result.scalar_one_or_none()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Entry not found")
-
-    if product_id is not None:
-        # Verify product belongs to this tenant
-        prod_result = await db.execute(
-            select(Product).where(Product.id == product_id, Product.tenant_id == tenant_id)
-        )
-        if not prod_result.scalar_one_or_none():
-            raise HTTPException(status_code=404, detail="Product not found")
-
-    entry.product_id = product_id
-    await db.commit()
-    return {"id": entry.id, "product_id": entry.product_id}
 
 
 @router.get("/entries", response_model=List[EntryResponse])
 async def list_knowledge_entries(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    product_id: Optional[int] = Query(default=None, description="Filter by product attribution"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     tenant_id: int = Depends(get_current_tenant_id),
@@ -273,10 +216,9 @@ async def list_knowledge_entries(
     """
     Paginated list of knowledge entries for the Team Intelligence dashboard.
     Returns entries without embeddings (too large for list views).
-    Optionally filter by product_id for the /context AI Sessions tab.
     """
     entries = await team_knowledge_service.list_entries(
-        db=db, tenant_id=tenant_id, limit=limit, offset=offset, product_id=product_id
+        db=db, tenant_id=tenant_id, limit=limit, offset=offset
     )
     return [
         EntryResponse(

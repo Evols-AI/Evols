@@ -4,8 +4,8 @@ Main router that includes all endpoint routers
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, feedback, themes, personas, decisions
-from app.api.v1.endpoints import workbench, llm_settings, settings, projects, jobs, roadmap, products
+from app.api.v1.endpoints import auth, decisions
+from app.api.v1.endpoints import workbench, llm_settings, settings, projects, jobs, roadmap
 from app.api.v1.endpoints import admin, users, support, copilot, copilot_cleanup, context, invites
 from app.api.v1.endpoints import knowledge, memory, work_context, skill_customizations
 from app.api.v1.endpoints import team_knowledge, api_keys, mcp, oidc, llm_proxy
@@ -18,11 +18,7 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(invites.router, prefix="/invites", tags=["Invites"])
 api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
-api_router.include_router(products.router, prefix="/products", tags=["Products"])
-api_router.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
-api_router.include_router(themes.router, prefix="/themes", tags=["Themes"])
 api_router.include_router(roadmap.router, prefix="/roadmap", tags=["Roadmap"])
-api_router.include_router(personas.router, prefix="/personas", tags=["Personas"])
 api_router.include_router(decisions.router, prefix="/decisions", tags=["Decisions"])
 api_router.include_router(workbench.router, prefix="/workbench", tags=["Workbench"])
 api_router.include_router(llm_settings.router, prefix="/llm-settings", tags=["LLM Settings"])

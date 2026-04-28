@@ -47,9 +47,6 @@ class Project(TenantScopedModel):
     # Tenant association
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
 
-    # Product association (nullable for backward compatibility)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
-
     # Parent initiative
     initiative_id = Column(Integer, ForeignKey("initiative.id"), nullable=False, index=True)
 
@@ -74,9 +71,6 @@ class Project(TenantScopedModel):
     # Acceptance Criteria (AI-generated)
     acceptance_criteria = Column(JSON, nullable=True, comment="Array of success criteria strings")
 
-    # Matched personas (for persona_weight calculation)
-    matched_persona_ids = Column(ARRAY(Integer), nullable=True, comment="IDs of personas matched via embeddings")
-
     # Matched capabilities (to avoid duplicates)
     overlapping_capability_ids = Column(ARRAY(Integer), nullable=True, comment="IDs of capabilities this might duplicate")
 
@@ -85,7 +79,6 @@ class Project(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="projects")
-    product = relationship("Product", back_populates="projects")
     initiative = relationship("Initiative", back_populates="projects")
 
     def __repr__(self):

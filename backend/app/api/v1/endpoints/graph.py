@@ -19,13 +19,11 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.context import ContextSource, ExtractedEntity, ContextProcessingStatus
-from app.models.persona import Persona
 from app.models.user import User
 from app.models.work_context import WorkContext, ActiveProject, KeyRelationship, MeetingNote, PMDecision
 from app.services.lightrag_ingestion_service import (
     ingest_context_source,
     ingest_extracted_entities,
-    ingest_personas,
     ingest_work_context,
     ingest_meeting_note,
     ingest_pm_decision,
@@ -73,10 +71,6 @@ async def _tenant_file_paths(tenant_id: int, user_id: int, db: AsyncSession) -> 
     for (eid,) in r.all():
         paths.add(f"entity:{eid}")
 
-    # Personas
-    r = await db.execute(select(Persona.id).where(Persona.tenant_id == tenant_id))
-    for (pid,) in r.all():
-        paths.add(f"persona:{pid}")
 
     # Work context (user-scoped)
     r = await db.execute(select(WorkContext.id).where(WorkContext.user_id == user_id))
@@ -267,6 +261,90 @@ async def get_processing_status(
         return {"sources": {sid: "unknown" for sid in ids}}
 
 
+# ── Entity / Relation mutation endpoints (proxy to LightRAG) ─────────────────
+
+from pydantic import BaseModel  # noqa: E402 — local import avoids circular issues at module level
+
+
+class EntityEditRequest(BaseModel):
+    entity_name: str
+    updated_data: dict
+    allow_rename: bool = False
+    allow_merge: bool = False
+
+
+class EntityMergeRequest(BaseModel):
+    entities_to_change: list[str]
+    entity_to_change_into: str
+
+
+class EntityCreateRequest(BaseModel):
+    entity_name: str
+    entity_data: dict
+
+
+class RelationEditRequest(BaseModel):
+    source_id: str
+    target_id: str
+    updated_data: dict
+
+
+async def _lightrag_post(url: str, path: str, body: dict) -> Any:
+    """POST to LightRAG with auth, raise HTTPException on error."""
+    headers = await lightrag_auth_headers()
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(f"{url}{path}", json=body, headers=headers)
+        if resp.status_code == 401:
+            invalidate_lightrag_jwt()
+            headers = await lightrag_auth_headers()
+            async with httpx.AsyncClient(timeout=30) as client2:
+                resp = await client2.post(f"{url}{path}", json=body, headers=headers)
+    if resp.status_code not in (200, 201):
+        detail = resp.json().get("detail", resp.text[:300]) if resp.headers.get("content-type", "").startswith("application/json") else resp.text[:300]
+        raise HTTPException(status_code=resp.status_code, detail=detail)
+    return resp.json()
+
+
+@router.post("/entity/edit")
+async def edit_entity(
+    request: EntityEditRequest,
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """Update an entity's properties (description, entity_type, rename, merge)."""
+    url = _require_lightrag()
+    return await _lightrag_post(url, "/graph/entity/edit", request.model_dump())
+
+
+@router.post("/entities/merge")
+async def merge_entities(
+    request: EntityMergeRequest,
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """Merge multiple entities into one, transferring all relationships."""
+    url = _require_lightrag()
+    return await _lightrag_post(url, "/graph/entities/merge", request.model_dump())
+
+
+@router.post("/entity/create")
+async def create_entity(
+    request: EntityCreateRequest,
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """Create a new entity node in the knowledge graph."""
+    url = _require_lightrag()
+    return await _lightrag_post(url, "/graph/entity/create", request.model_dump())
+
+
+@router.post("/relation/edit")
+async def edit_relation(
+    request: RelationEditRequest,
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """Update a relationship's description or keywords."""
+    url = _require_lightrag()
+    return await _lightrag_post(url, "/graph/relation/edit", request.model_dump())
+
+
 @router.get("/health")
 async def graph_health(current_user: User = Depends(get_current_user)) -> dict[str, str]:
     """Check LightRAG service availability."""
@@ -293,7 +371,6 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
     counts = {
         "context_sources": 0,
         "extracted_entities": 0,
-        "personas": 0,
         "work_contexts": 0,
         "meeting_notes": 0,
         "pm_decisions": 0,
@@ -311,21 +388,8 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
     sources = sources_result.scalars().all()
     source_map = {s.id: s.name or s.title or "" for s in sources}
 
-    # Load product names once
-    product_names: dict[int, str] = {}
-    try:
-        from app.models.product import Product
-        products_result = await db.execute(
-            select(Product).where(Product.tenant_id == tenant_id)
-        )
-        for p in products_result.scalars().all():
-            product_names[p.id] = p.name
-    except Exception:
-        pass
-
     for source in sources:
-        product_name = product_names.get(source.product_id, "")
-        ok = await ingest_context_source(source, product_name)
+        ok = await ingest_context_source(source, "")
         if ok:
             counts["context_sources"] += 1
         else:
@@ -337,27 +401,13 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
     )
     entities = entities_result.scalars().all()
     if entities:
-        product_name = product_names.get(entities[0].product_id, "") if entities else ""
-        ok = await ingest_extracted_entities(entities, source_map, product_name)
+        ok = await ingest_extracted_entities(entities, source_map, "")
         if ok:
             counts["extracted_entities"] = len(entities)
         else:
             counts["errors"] += 1
 
-    # ── 3. Personas ───────────────────────────────────────────────────────────
-    personas_result = await db.execute(
-        select(Persona).where(Persona.tenant_id == tenant_id)
-    )
-    personas = personas_result.scalars().all()
-    if personas:
-        product_name = product_names.get(personas[0].product_id, "") if personas else ""
-        ok = await ingest_personas(personas, product_name)
-        if ok:
-            counts["personas"] = len(personas)
-        else:
-            counts["errors"] += 1
-
-    # ── 4. Work context for this user ─────────────────────────────────────────
+    # ── 3. Work context for this user ─────────────────────────────────────────
     wc_result = await db.execute(
         select(WorkContext).where(WorkContext.user_id == user_id)
     )
@@ -401,8 +451,7 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
         select(PMDecision).where(PMDecision.user_id == user_id)
     )
     for decision in decisions_result.scalars().all():
-        product_name = product_names.get(decision.product_id, "") if decision.product_id else ""
-        ok = await ingest_pm_decision(decision, user_name, product_name)
+        ok = await ingest_pm_decision(decision, user_name, "")
         if ok:
             counts["pm_decisions"] += 1
         else:

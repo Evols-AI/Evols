@@ -46,20 +46,14 @@ class Tenant(BaseModel):
     #   "theme": "light",
     #   "timezone": "UTC",
     #   "default_confidence_threshold": 0.7,
-    #   "persona_refresh_enabled": false,
-    #   "persona_refresh_interval_days": 7,
-    #   "persona_last_refresh_date": "2025-02-27T10:00:00"
     # }
 
     # Relationships
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")  # Legacy single-tenant
     user_memberships = relationship("UserTenant", back_populates="tenant", cascade="all, delete-orphan")
     invites = relationship("TenantInvite", back_populates="tenant", cascade="all, delete-orphan")
-    feedback_items = relationship("Feedback", back_populates="tenant", cascade="all, delete-orphan")
-    themes = relationship("Theme", back_populates="tenant", cascade="all, delete-orphan")
     initiatives = relationship("Initiative", back_populates="tenant", cascade="all, delete-orphan")
     accounts = relationship("Account", back_populates="tenant", cascade="all, delete-orphan")
-    personas = relationship("Persona", back_populates="tenant", cascade="all, delete-orphan")
     decisions = relationship("Decision", back_populates="tenant", cascade="all, delete-orphan")
     knowledge_sources = relationship("KnowledgeSource", back_populates="tenant", cascade="all, delete-orphan")
     capabilities = relationship("Capability", back_populates="tenant", cascade="all, delete-orphan")

@@ -28,7 +28,6 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     message: str
     conversation_id: Optional[str] = None
-    product_id: Optional[int] = None  # Filter tools by product
 
 
 class SkillInfo(BaseModel):
@@ -102,7 +101,6 @@ async def chat(
         result = await copilot.chat(
             conversation_id=request.conversation_id,
             message=request.message,
-            product_id=request.product_id
         )
         return result
     except Exception as e:

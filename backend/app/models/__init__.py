@@ -4,12 +4,8 @@ from app.models.tenant import Tenant
 from app.models.tenant_invite import TenantInvite
 from app.models.user_tenant import UserTenant
 from app.models.email_verification import EmailVerification
-from app.models.product import Product
-from app.models.feedback import Feedback, FeedbackCategory
-from app.models.theme import Theme
 from app.models.initiative import Initiative
 from app.models.account import Account
-from app.models.persona import Persona
 from app.models.decision import Decision, DecisionOption
 # Removed: app.models.conversation - merged into adviser conversations
 from app.models.job import Job, JobStatus, JobType
@@ -71,13 +67,8 @@ __all__ = [
     "UserTenant",
     "EmailVerification",
     "User",
-    "Product",
-    "Feedback",
-    "FeedbackCategory",
-    "Theme",
     "Initiative",
     "Account",
-    "Persona",
     "Decision",
     "DecisionOption",
     "Job",

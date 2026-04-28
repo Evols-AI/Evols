@@ -146,7 +146,7 @@ export default function Register() {
                   Join Evols Today
                 </h2>
                 <p className={`max-w-md text-muted-foreground`}>
-                  Start making confident product decisions backed by AI-powered insights and customer feedback analysis.
+                  Give your team a shared AI brain — knowledge, context, and coordination in one place.
                 </p>
               </div>
             </div>

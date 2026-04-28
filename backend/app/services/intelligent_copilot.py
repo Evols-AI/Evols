@@ -103,7 +103,6 @@ class IntelligentCopilot:
     async def build_system_prompt(
         self,
         skill_config: Optional[Dict[str, Any]] = None,
-        product_id: Optional[int] = None
     ) -> str:
         """Build system prompt for skill execution"""
         if skill_config:
@@ -131,7 +130,6 @@ IMPORTANT: Only call tools when you have enough information. If the user's reque
         conversation_id: Optional[str],
         message: str,
         stream: bool = False,
-        product_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Main chat method with intelligent skill routing.
@@ -143,7 +141,7 @@ IMPORTANT: Only call tools when you have enough information. If the user's reque
         """
 
         # 1. Load or create conversation
-        conversation = await self._get_or_create_conversation(conversation_id, product_id)
+        conversation = await self._get_or_create_conversation(conversation_id)
 
         # Extract conversation_id early to avoid detached session issues after tool calls
         conversation_id_str = conversation.id
@@ -152,7 +150,7 @@ IMPORTANT: Only call tools when you have enough information. If the user's reque
         history = await self._load_conversation_history(conversation_id_str)
 
         # 3. Aggregate lightweight context for skill decision (saves ~4,800 tokens)
-        aggregator = ContextAggregator(self.db, self.user, product_id)
+        aggregator = ContextAggregator(self.db, self.user)
         lightweight_context = await aggregator.get_full_context()  # Now returns lightweight skills catalog
 
         # 4. Save user message
@@ -185,7 +183,6 @@ IMPORTANT: Only call tools when you have enough information. If the user's reque
                     skill_name=decision['skill_name'],
                     context=lightweight_context,
                     skill_details=full_skill_context,
-                    product_id=product_id
                 )
             else:
                 response = await self._execute_general_conversation(
@@ -193,7 +190,6 @@ IMPORTANT: Only call tools when you have enough information. If the user's reque
                     message=message,
                     history=history,
                     context=lightweight_context,
-                    product_id=product_id
                 )
 
             # 7. Update conversation timestamp
@@ -424,7 +420,6 @@ Respond in JSON format:
         skill_name: str,
         context: Dict[str, Any],
         skill_details: Dict[str, Any],
-        product_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Execute using a specific skill.
@@ -435,7 +430,7 @@ Respond in JSON format:
         if 'error' in skill_details:
             logger.error(f"[IntelligentCopilot] Skill error: {skill_details['error']}")
             return await self._execute_general_conversation(
-                conversation_id, message, history, context, product_id
+                conversation_id, message, history, context
             )
 
         # 2. Build system prompt with skill instructions + context
@@ -881,7 +876,6 @@ EXAMPLES:
             llm_service=llm,
             tenant_id=self.user.tenant_id,
             db=self.db,
-            product_id=product_id,
             user=self.user
         )
 
@@ -909,7 +903,6 @@ EXAMPLES:
         message: str,
         history: List[SkillMessage],
         context: Dict[str, Any],
-        product_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Execute as general conversation (no specific skill).
@@ -1355,7 +1348,6 @@ IMPORTANT: You have access to function calling tools to get data and context."""
             llm_service=llm,
             tenant_id=self.user.tenant_id,
             db=self.db,
-            product_id=product_id,
             user=self.user
         )
 
@@ -1380,7 +1372,6 @@ IMPORTANT: You have access to function calling tools to get data and context."""
     async def _get_or_create_conversation(
         self,
         conversation_id: Optional[str],
-        product_id: Optional[int]
     ) -> SkillConversation:
         """Get existing conversation or create new one"""
         if conversation_id:
@@ -1393,12 +1384,11 @@ IMPORTANT: You have access to function calling tools to get data and context."""
 
         # Create new conversation
         import uuid
-        context_data = {'product_id': product_id} if product_id is not None else None
         conversation = SkillConversation(
             id=str(uuid.uuid4()),
             user_id=self.user.id,
             tenant_id=self.user.tenant_id,
-            context_data=context_data,
+            context_data=None,
             session_name="New Conversation",
             last_message_at=datetime.utcnow()
         )

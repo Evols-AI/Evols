@@ -111,18 +111,6 @@ export default function Settings() {
     weekly_digest: false,
   })
 
-  // Persona refresh state
-  const [personaRefreshEnabled, setPersonaRefreshEnabled] = useState(false)
-  const [personaRefreshDays, setPersonaRefreshDays] = useState(7)
-  const [lastRefreshDate, setLastRefreshDate] = useState<string | null>(null)
-  const [savingPersonaRefresh, setSavingPersonaRefresh] = useState(false)
-
-  // Theme refresh state
-  const [themeRefreshEnabled, setThemeRefreshEnabled] = useState(false)
-  const [themeRefreshDays, setThemeRefreshDays] = useState(7)
-  const [lastThemeRefreshDate, setLastThemeRefreshDate] = useState<string | null>(null)
-  const [savingThemeRefresh, setSavingThemeRefresh] = useState(false)
-
   // Knowledge source refresh state
   const [knowledgeRefreshEnabled, setKnowledgeRefreshEnabled] = useState(false)
   const [knowledgeRefreshDays, setKnowledgeRefreshDays] = useState(7)
@@ -163,7 +151,7 @@ export default function Settings() {
       loadCurrentLLMSettings()
       loadModelOptions()
     } else if (activeTab === 'data_refresh') {
-      loadPersonaRefreshSettings()
+      loadKnowledgeRefreshSettings()
     } else if (activeTab === 'team') {
       loadTeamMembers()
       loadInvites()
@@ -394,65 +382,9 @@ export default function Settings() {
     }
   }
 
-  const loadPersonaRefreshSettings = async () => {
-    try {
-      const response = await api.getPersonaRefreshSettings()
-      setPersonaRefreshEnabled(response.data.enabled)
-      setPersonaRefreshDays(response.data.interval_days)
-      setLastRefreshDate(response.data.last_refresh_date)
-    } catch (error) {
-      console.error('Failed to load persona refresh settings:', error)
-    }
-  }
-
-  const handleSavePersonaRefreshSettings = async () => {
-    try {
-      setSavingPersonaRefresh(true)
-      await api.updatePersonaRefreshSettings({
-        enabled: personaRefreshEnabled,
-        interval_days: personaRefreshDays,
-      })
-      await loadPersonaRefreshSettings()
-      alert('Persona refresh settings saved successfully!')
-    } catch (error) {
-      console.error('Failed to save settings:', error)
-      alert('Failed to save settings. Please try again.')
-    } finally {
-      setSavingPersonaRefresh(false)
-    }
-  }
-
-  const loadThemeRefreshSettings = async () => {
-    try {
-      const response = await api.getThemeRefreshSettings()
-      setThemeRefreshEnabled(response.data.enabled)
-      setThemeRefreshDays(response.data.interval_days)
-      setLastThemeRefreshDate(response.data.last_refresh_date)
-    } catch (error) {
-      console.error('Failed to load theme refresh settings:', error)
-    }
-  }
-
-  const handleSaveThemeRefreshSettings = async () => {
-    try {
-      setSavingThemeRefresh(true)
-      await api.updateThemeRefreshSettings({
-        enabled: themeRefreshEnabled,
-        interval_days: themeRefreshDays,
-      })
-      await loadThemeRefreshSettings()
-      alert('Theme refresh settings saved successfully!')
-    } catch (error) {
-      console.error('Failed to save settings:', error)
-      alert('Failed to save settings. Please try again.')
-    } finally {
-      setSavingThemeRefresh(false)
-    }
-  }
-
   const loadKnowledgeRefreshSettings = async () => {
     try {
-      const response = await api.getThemeRefreshSettings()
+      const response = await api.getKnowledgeRefreshSettings()
       setKnowledgeRefreshEnabled(response.data.enabled)
       setKnowledgeRefreshDays(response.data.interval_days)
       setLastKnowledgeRefreshDate(response.data.last_refresh_date)
@@ -464,7 +396,7 @@ export default function Settings() {
   const handleSaveKnowledgeRefreshSettings = async () => {
     try {
       setSavingKnowledgeRefresh(true)
-      await api.updateThemeRefreshSettings({
+      await api.updateKnowledgeRefreshSettings({
         enabled: knowledgeRefreshEnabled,
         interval_days: knowledgeRefreshDays,
       })
@@ -477,14 +409,6 @@ export default function Settings() {
       setSavingKnowledgeRefresh(false)
     }
   }
-
-  useEffect(() => {
-    if (activeTab === 'llm') {
-      loadPersonaRefreshSettings()
-      loadThemeRefreshSettings()
-      loadKnowledgeRefreshSettings()
-    }
-  }, [activeTab])
 
   // API Keys functions
   const loadApiKeys = async () => {
@@ -797,7 +721,7 @@ export default function Settings() {
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Curated model selection optimized for product management workflows and strategic analysis.
+                      Curated model selection optimized for team workflows and cross-functional collaboration.
                     </p>
                   </div>
                 </div>
@@ -833,7 +757,7 @@ export default function Settings() {
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Curated model selection optimized for product management workflows and strategic analysis.
+                      Curated model selection optimized for team workflows and cross-functional collaboration.
                     </p>
                   </div>
                 </div>
@@ -994,7 +918,7 @@ export default function Settings() {
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Curated model selection optimized for product management workflows and strategic analysis.
+                      Curated model selection optimized for team workflows and cross-functional collaboration.
                     </p>
                   </div>
                 </div>
@@ -1040,7 +964,7 @@ export default function Settings() {
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Curated model selection optimized for product management workflows and strategic analysis.
+                      Curated model selection optimized for team workflows and cross-functional collaboration.
                     </p>
                   </div>
 
@@ -1165,15 +1089,15 @@ export default function Settings() {
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={personaRefreshEnabled}
-                        onChange={(e) => setPersonaRefreshEnabled(e.target.checked)}
+                        checked={knowledgeRefreshEnabled}
+                        onChange={(e) => setKnowledgeRefreshEnabled(e.target.checked)}
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ring/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                     </label>
                   </div>
 
-                  {personaRefreshEnabled && (
+                  {knowledgeRefreshEnabled && (
                     <div>
                       <label className="block text-sm font-medium mb-2 text-foreground">
                         Refresh Interval (Days)
@@ -1182,27 +1106,27 @@ export default function Settings() {
                         type="number"
                         min="1"
                         max="365"
-                        value={personaRefreshDays}
-                        onChange={(e) => setPersonaRefreshDays(Number(e.target.value))}
+                        value={knowledgeRefreshDays}
+                        onChange={(e) => setKnowledgeRefreshDays(Number(e.target.value))}
                         className="w-32 px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
                       <p className="text-xs text-muted-foreground mt-2">
-                        Context intelligence will be refreshed every {personaRefreshDays} day(s)
+                        Knowledge sources will be re-indexed every {knowledgeRefreshDays} day(s)
                       </p>
                     </div>
                   )}
 
                   <button
-                    onClick={handleSavePersonaRefreshSettings}
-                    disabled={savingPersonaRefresh}
+                    onClick={handleSaveKnowledgeRefreshSettings}
+                    disabled={savingKnowledgeRefresh}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/85 disabled:bg-primary/40 dark:disabled:bg-primary/40 disabled:cursor-not-allowed transition-colors"
                   >
-                    {savingPersonaRefresh ? 'Saving...' : 'Save Refresh Settings'}
+                    {savingKnowledgeRefresh ? 'Saving...' : 'Save Refresh Settings'}
                   </button>
 
-                  {lastRefreshDate && (
+                  {lastKnowledgeRefreshDate && (
                     <p className="text-sm text-muted-foreground">
-                      Last refresh: {new Date(lastRefreshDate).toLocaleDateString()}
+                      Last refresh: {new Date(lastKnowledgeRefreshDate).toLocaleDateString()}
                     </p>
                   )}
                 </div>

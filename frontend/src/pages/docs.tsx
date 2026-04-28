@@ -1,22 +1,18 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect } from 'react'
-import { Sparkles, Book, Code, Zap, Server, Users, Briefcase, Moon, Sun } from 'lucide-react'
+import { Sparkles, Book, Code, Zap, Server, Briefcase, Brain, Network, Key, Building2, Lock } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
-import { LogoWordmark } from '@/components/Logo'
+import Header from '@/components/Header'
 
 export default function Docs() {
-  const { theme, toggleTheme } = useTheme()
+  const { theme } = useTheme()
   const dark = theme === 'dark'
 
   useEffect(() => {
     document.body.style.background = ''
     document.body.style.backgroundImage = 'none'
   }, [dark])
-
-  const textPrimary = 'text-foreground'
-  const textMuted = 'text-muted-foreground'
-  const borderColor = 'border-border'
 
   return (
     <>
@@ -25,123 +21,255 @@ export default function Docs() {
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
-      <div className={`min-h-screen transition-colors bg-background`}>
-        {/* Header */}
-        <nav className={`fixed top-0 left-0 right-0 z-50 border-b ${borderColor} backdrop-blur-xl bg-background/80 transition-colors duration-300`}>
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <Link href="/">
-              <LogoWordmark iconSize={36} />
-            </Link>
-            <div className="flex items-center space-x-4">
-              <button onClick={toggleTheme} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5" aria-label="Toggle theme">
-                {theme === 'light' ? <Moon className="w-5 h-5 text-muted-foreground" /> : <Sun className="w-5 h-5 text-muted-foreground" />}
-              </button>
-              <Link href="/login" className={`hidden md:block text-sm transition-colors ${textMuted} hover:text-primary`}>Login</Link>
-              <Link href="/register" className="bg-primary hover:bg-primary/85 text-primary-foreground py-2 px-5 rounded-lg text-sm font-medium transition-colors">
-                Get Early Access
-              </Link>
-            </div>
-          </div>
-        </nav>
-        <div className="h-16" />
+      <div className="min-h-screen bg-background">
+        <Header variant="landing" />
 
-        {/* Main Content */}
-        <main className="container mx-auto px-6 py-12">
+        <main className="container mx-auto px-6 pt-28 pb-12">
           {/* Hero */}
           <div className="text-center mb-12">
-            <img src="/Project Stages-rafiki.svg" alt="Project stages illustration" className="w-80 mx-auto mb-10 drop-shadow-lg" />
             <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full text-sm text-primary mb-6">
               <Book className="w-4 h-4" />
               <span>Documentation</span>
             </div>
-            <h1 className={`text-5xl font-medium mb-4 ${textPrimary}`}>Evols Documentation</h1>
-            <p className={`text-xl max-w-3xl mx-auto ${textMuted}`}>
-              Everything you need to know about your AI-powered PM operating system
+            <h1 className="text-5xl font-medium mb-4 text-foreground">Evols Documentation</h1>
+            <p className="text-xl max-w-3xl mx-auto text-muted-foreground">
+              Everything you need to know about your team's AI brain
             </p>
           </div>
 
           {/* Quick Links Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
             {[
-              { icon: Sparkles, title: 'Workbench',      description: 'Conversational AI copilot with 80+ PM skills',            href: '/docs/workbench' },
-              { icon: Briefcase, title: 'Work Context',   description: 'Auto-populated PM OS with role, tasks, and capacity',      href: '#features' },
-              { icon: Book,      title: 'Skills',         description: 'Strategy, execution, and analysis skills library',         href: '#features' },
-              { icon: Code,      title: 'Knowledge',      description: 'Document intelligence and semantic search',                href: '/docs/knowledge-base' },
-              { icon: Users,     title: 'Personas',       description: 'Customer personas and feedback analysis',                  href: '/docs/personas' },
-              { icon: Zap,       title: 'Getting Started',description: 'Quick start guide and setup instructions',                 href: '#getting-started' },
+              { icon: Sparkles,   title: 'AI Workbench',    description: 'Conversational AI with 80+ skills, RAG, and internet search', href: '/docs/workbench' },
+              { icon: Briefcase, title: 'Work Context',    description: 'Role, projects, tasks, and capacity — your AI work hub', href: '#work-context' },
+              { icon: Brain,     title: 'Knowledge',       description: 'Document intelligence and LightRAG entity extraction', href: '#knowledge' },
+              { icon: Network,   title: 'Knowledge Graph', description: 'Visual graph of entities, relationships, and confidence scores', href: '#knowledge' },
+              { icon: Key,       title: 'Developer Tools', description: 'MCP endpoint, API keys, Claude Code plugin', href: '#developer-tools' },
+              { icon: Building2, title: 'Tenancy & BYOK',  description: 'Workspace isolation, user roles, and bring-your-own LLM keys', href: '#tenancy' },
             ].map(({ icon: Icon, title, description, href }) => (
-              <Link key={title} href={href} className={`block p-6 rounded-xl border transition-all hover:border-primary/30 bg-card border-border`}>
+              <Link key={title} href={href} className="block p-6 rounded-xl border transition-all hover:border-primary/30 bg-card border-border">
                 <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground mb-4">
                   <Icon className="w-5 h-5" />
                 </div>
-                <h3 className={`text-base font-medium mb-1.5 ${textPrimary}`}>{title}</h3>
-                <p className={`text-sm ${textMuted}`}>{description}</p>
+                <h3 className="text-base font-medium mb-1.5 text-foreground">{title}</h3>
+                <p className="text-sm text-muted-foreground">{description}</p>
               </Link>
             ))}
           </div>
 
-          {/* Main Documentation Sections */}
+          {/* Documentation Sections */}
           <div className="max-w-4xl mx-auto space-y-12">
-            <Section id="getting-started" title="Getting Started" dark={dark}>
-              <div className={`prose max-w-none text-sm space-y-4 ${textMuted}`}>
-                <h3 className={`text-base font-medium ${textPrimary}`}>Installation</h3>
-                <p>Evols can be run with Docker Compose for the easiest setup:</p>
-                <pre className={`p-4 rounded-lg overflow-x-auto text-sm ${dark ? 'bg-input text-foreground' : 'bg-black/[0.04] text-foreground'}`}>
-                  <code>{`cd /Users/akshay/Desktop/workspace/Evols/docker\ndocker-compose up -d`}</code>
+
+            <Section id="getting-started" title="Getting Started">
+              <div className="space-y-4 text-sm text-muted-foreground">
+                <h3 className="text-base font-medium text-foreground">Self-hosted Installation</h3>
+                <p>Run Evols locally with Docker Compose:</p>
+                <pre className="p-4 rounded-lg overflow-x-auto text-sm bg-muted text-foreground">
+                  <code>{`cd docker\ndocker-compose up -d`}</code>
                 </pre>
-                <h3 className={`text-base font-medium ${textPrimary}`}>First Steps</h3>
+                <h3 className="text-base font-medium text-foreground">First Steps</h3>
                 <ol className="list-decimal list-inside space-y-1">
-                  <li>Create an account at <Link href="/register" className="text-primary hover:text-primary">/register</Link></li>
-                  <li>Configure your LLM API keys in Settings</li>
-                  <li>Upload sample documents to Knowledge</li>
-                  <li>Open Workbench and start chatting</li>
+                  <li>Create an account at <Link href="/register" className="text-primary hover:underline">/register</Link></li>
+                  <li>Configure your LLM provider in Settings (Claude, GPT-4, or any OpenAI-compatible model)</li>
+                  <li>Add sources to Knowledge (documents, meeting notes, PDFs)</li>
+                  <li>Open Workbench and start chatting with your team's AI brain</li>
                 </ol>
               </div>
             </Section>
 
-            <Section id="features" title="Core Features" dark={dark}>
+            <Section id="workbench" title="AI Workbench">
+              <FeatureDoc
+                title="Conversational AI for Teams"
+                description="The Workbench is an AI chat interface pre-configured with 80+ skills. It uses your uploaded knowledge for context-aware responses and supports internet search via Tavily/Serper."
+                features={[
+                  'Strategy skills: product strategy docs, competitive analysis, opportunity sizing, roadmap planning',
+                  'Execution skills: PRD writer, technical specs, sprint planning, acceptance criteria',
+                  'Communication skills: stakeholder updates, meeting prep, weekly updates, decision briefs',
+                  'Discovery skills: assumption mapping, user story generation, OKR drafting',
+                  'Internet search for real-time market data and competitor research',
+                  'RAG integration — responses use your uploaded documents and extracted knowledge',
+                ]}
+                link="/docs/workbench"
+                linkText="Full Workbench documentation →"
+              />
+            </Section>
+
+            <Section id="work-context" title="Work Context">
+              <FeatureDoc
+                title="Your Personal Work Hub"
+                description="Work Context is a structured view of your role, current projects, tasks, and team. It surfaces what matters most so the AI can ground its responses in your actual situation."
+                features={[
+                  'Role and capacity: define your title, team, reporting structure, and weekly bandwidth',
+                  'Project tracking: status, stakeholders, goals, and key milestones',
+                  'Task board with priority tiers: Critical, High Leverage, Stakeholder, Sweep, Backlog',
+                  'AI surfaces Work Context automatically when generating recommendations in Workbench',
+                ]}
+              />
+            </Section>
+
+            <Section id="knowledge" title="Knowledge & Knowledge Graph">
               <div className="space-y-4">
-                {[
-                  { title: 'AI Workbench',      description: 'Conversational AI copilot with 80+ PM skills for strategy, execution, and communication.', features: ['80+ skills from unified-pm-os and custom library','Conversational interface with memory of past work','Function calling for data access and actions','Skills include: PRD writer, OST generator, meeting prep, weekly updates'], link: '/docs/workbench', linkText: 'Learn more →' },
-                  { title: 'Work Context',      description: 'Your personal PM operating system that auto-populates from conversations.', features: ['AI auto-captures role, team, manager, capacity from conversations','Project tracking with status and stakeholders','Task board with kanban swimlanes','Priority tiers: Critical, High Leverage, Stakeholder, Sweep, Backlog'] },
-                  { title: 'Skills Library',    description: 'Extensive library of PM skills for every workflow stage.', features: ['Strategy: Product strategy docs, competitive analysis','Discovery: OST generator, assumption testing','Execution: PRD writer, technical specs','Communication: Stakeholder updates, meeting prep, feedback synthesis'] },
-                  { title: 'Knowledge',         description: 'Extract intelligence from documents and enable semantic search across your product knowledge.', features: ['Upload documents, meeting notes, PDFs, CSVs','AI extraction of entities: personas, features, pain points','Semantic search with embeddings','RAG integration with Workbench for context-aware responses'], link: '/docs/knowledge-base', linkText: 'Learn more →' },
-                  { title: 'Personas & Feedback',description: 'Customer personas with feedback analysis and persona-based feature voting.', features: ['Create customer personas manually or from feedback','Feedback themes with clustering','Persona voting for features and initiatives','Feedback sentiment analysis'], link: '/docs/personas', linkText: 'Learn more →' },
-                ].map((f) => (
-                  <FeatureDoc key={f.title} dark={dark} {...f} />
-                ))}
+                <FeatureDoc
+                  title="Document Intelligence"
+                  description="Upload documents, meeting notes, PDFs, or plain text. Evols extracts entities and relationships using LightRAG and builds a queryable knowledge graph."
+                  features={[
+                    'Supported sources: PDFs, plain text, meeting transcripts, CSV, Markdown',
+                    'LightRAG extracts entities: personas, features, pain points, competitors, decisions, and more',
+                    'Confidence scoring per entity based on source count, relationship density, and description richness',
+                    'Semantic search and graph query via the Query panel in the Knowledge Graph tab',
+                  ]}
+                />
+                <FeatureDoc
+                  title="Knowledge Graph"
+                  description="Explore extracted entities and their relationships in an interactive graph. Filter by entity type, inspect confidence breakdowns, edit or merge nodes."
+                  features={[
+                    'Entity List and Graph views — filter by type: persona, pain point, feature, competitor, and more',
+                    'Edit entity name, type, and description directly from either view',
+                    'Merge duplicate entities — relationships are transferred automatically',
+                    'Ask the graph natural language questions using hybrid RAG mode',
+                    'Personas appear as persona-type entities — automatically extracted, no manual management needed',
+                  ]}
+                />
               </div>
             </Section>
 
-            <Section id="api" title="API & Authentication" dark={dark}>
-              <div className={`space-y-4 text-sm ${textMuted}`}>
-                <h3 className={`text-base font-medium ${textPrimary}`}>Authentication</h3>
-                <p>Register a new user and get an access token:</p>
-                <pre className={`p-4 rounded-lg overflow-x-auto ${dark ? 'bg-input text-foreground' : 'bg-black/[0.04] text-foreground'}`}>
-                  <code>{`curl -X POST http://localhost:8000/api/v1/auth/register \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"pm@company.com","password":"...","full_name":"PM"}'`}</code>
+            <Section id="developer-tools" title="Developer Tools">
+              <div className="space-y-4">
+                <FeatureDoc
+                  title="MCP Endpoint"
+                  description="Evols exposes a Streamable-HTTP MCP (Model Context Protocol) server so AI tools can read your team's product knowledge directly."
+                  features={[
+                    'Connect Claude Desktop, Cursor, or any MCP-compatible client',
+                    'MCP endpoint: https://your-instance/mcp/sse',
+                    'Authenticate with an evols_... API key generated in Settings → API Keys',
+                    'Exposes tools: get_context, get_work_context, query_knowledge_graph, get_team_context',
+                  ]}
+                />
+                <FeatureDoc
+                  title="Claude Code Plugin"
+                  description="Share team product context with Claude Code during engineering sessions. Surfaces knowledge graph entities, team knowledge, and decisions inside Claude Code — useful for engineers who need PM context while building features."
+                  features={[
+                    'CLI install: claude mcp add evols -- npx @evols-ai/claude-code-plugin (set EVOLS_API_KEY env var to your key from Settings → API Keys)',
+                    'VSCode UI: open the Claude Code extension → click "MCP" in the sidebar → "Add Server" → set command to npx @evols-ai/claude-code-plugin → add EVOLS_API_KEY environment variable → save',
+                    'Cursor / other editors: add to your mcp.json with command npx @evols-ai/claude-code-plugin and env EVOLS_API_KEY set to your API key',
+                  ]}
+                />
+                <FeatureDoc
+                  title="API Keys"
+                  description="Generate API keys with the evols_... prefix for programmatic access to Evols data."
+                  features={[
+                    'Generate and revoke keys from Settings → API Keys',
+                    'Scoped per tenant — keys only access data within your workspace',
+                    'Use as Bearer tokens for the REST API or MCP endpoint',
+                  ]}
+                />
+              </div>
+            </Section>
+
+            <Section id="tenancy" title="Tenancy & Workspaces">
+              <div className="space-y-4">
+                <FeatureDoc
+                  title="Workspace Isolation"
+                  description="Every organisation in Evols is an isolated tenant. All data — knowledge sources, the knowledge graph, LLM configuration, skills, work context, and API keys — is scoped per workspace and never shared across tenants."
+                  features={[
+                    'Create your workspace at /register; each registration provisions a new isolated tenant',
+                    'Invite team members from Settings → Team (TENANT_ADMIN only)',
+                    'All knowledge, skills, and AI configuration are private to your workspace',
+                  ]}
+                />
+                <FeatureDoc
+                  title="User Roles"
+                  description="Evols has three roles with distinct permissions."
+                  features={[
+                    'USER — regular team member; can use Workbench, Knowledge, Work Context, and Skills',
+                    'TENANT_ADMIN — org administrator; everything a USER can do, plus: invite and remove users, configure the LLM provider (BYOK), and manage API keys',
+                    'SUPER_ADMIN — platform-level administrator (Evols-internal); no tenant; manages all tenants via the Admin Panel',
+                  ]}
+                />
+              </div>
+            </Section>
+
+            <Section id="byok" title="BYOK — Bring Your Own Keys">
+              <div className="space-y-4 text-sm text-muted-foreground">
+                <p>
+                  Evols does not bundle an LLM API key. Each workspace connects its own LLM provider — keys are stored
+                  AES-encrypted per tenant and are never shared with other workspaces. Only a <strong className="text-foreground">TENANT_ADMIN</strong> can
+                  configure or update the LLM settings (Settings → AI Configuration).
+                </p>
+                <div className="space-y-3">
+                  {[
+                    {
+                      provider: 'Anthropic Claude',
+                      fields: ['API key', 'Model (e.g. claude-sonnet-4-6)'],
+                      note: 'Recommended for highest quality PM outputs.',
+                    },
+                    {
+                      provider: 'OpenAI',
+                      fields: ['API key', 'Model (e.g. gpt-4o)'],
+                      note: 'Model list refreshes dynamically from the OpenAI API.',
+                    },
+                    {
+                      provider: 'Azure OpenAI',
+                      fields: ['API key', 'Endpoint URL', 'Deployment name', 'API version'],
+                      note: 'Useful for organisations with Azure enterprise agreements.',
+                    },
+                    {
+                      provider: 'AWS Bedrock',
+                      fields: ['AWS region', 'Access key ID', 'Secret access key', 'Model ID'],
+                      note: 'Model list refreshes dynamically from Bedrock. Supports Claude on Bedrock.',
+                    },
+                  ].map(({ provider, fields, note }) => (
+                    <div key={provider} className="p-4 rounded-xl border bg-card border-border">
+                      <h3 className="text-sm font-medium text-foreground mb-1">{provider}</h3>
+                      <p className="text-xs text-muted-foreground mb-2">{note}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {fields.map(f => (
+                          <span key={f} className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground border border-border">{f}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs">
+                  After saving, use <strong className="text-foreground">Test Connection</strong> to verify the key and model are reachable before the team starts using the Workbench.
+                </p>
+              </div>
+            </Section>
+
+            <Section id="api" title="REST API">
+              <div className="space-y-4 text-sm text-muted-foreground">
+                <h3 className="text-base font-medium text-foreground">Authentication</h3>
+                <p>Register and obtain a JWT token:</p>
+                <pre className="p-4 rounded-lg overflow-x-auto bg-muted text-foreground">
+                  <code>{`curl -X POST http://localhost:8000/api/v1/auth/register \\
+  -H "Content-Type: application/json" \\
+  -d '{"email":"pm@company.com","password":"...","full_name":"PM"}'`}</code>
                 </pre>
+                <p>Pass the token as a Bearer header on subsequent requests, or use an API key from Settings.</p>
+                <h3 className="text-base font-medium text-foreground">OpenAPI Docs</h3>
+                <p>Interactive API docs are available at <code className="bg-muted px-1 py-0.5 rounded text-xs">http://localhost:8000/docs</code> when running locally.</p>
               </div>
             </Section>
 
-            <Section id="support" title="Support" dark={dark}>
-              <div className={`text-sm space-y-2 ${textMuted}`}>
+            <Section id="support" title="Support">
+              <div className="text-sm space-y-2 text-muted-foreground">
                 <p>Need help? Reach us at:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li><strong>Email:</strong> support@evols.ai</li>
-                  <li><strong>GitHub:</strong> <a href="https://github.com/evols/issues" target="_blank" rel="noopener" className="text-primary hover:text-primary">Report bugs or request features</a></li>
+                  <li><strong>GitHub:</strong> <a href="https://github.com/evols-ai/evols/issues" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Report bugs or request features</a></li>
                 </ul>
               </div>
             </Section>
+
           </div>
         </main>
 
-        <footer className={`border-t ${borderColor} py-12 transition-colors duration-300`}>
-          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground`}>
-            <LogoWordmark iconSize={32} />
+        <footer className="border-t border-border py-12">
+          <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground">
             <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-primary">Docs</Link>
-              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-primary">Support</Link>
-              <Link href="/login" className="text-sm transition-colors duration-150 hover:text-primary">Login</Link>
+              <Link href="/docs" className="text-sm transition-colors hover:text-primary">Docs</Link>
+              <Link href="/support" className="text-sm transition-colors hover:text-primary">Support</Link>
+              <Link href="/login" className="text-sm transition-colors hover:text-primary">Login</Link>
             </div>
             <p className="text-xs">© 2026 Evols AI</p>
           </div>
@@ -151,10 +279,10 @@ export default function Docs() {
   )
 }
 
-function Section({ id, title, children, dark }: { id: string; title: string; children: React.ReactNode; dark: boolean }) {
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-20">
-      <h2 className={`text-2xl font-medium mb-6 pb-3 border-b ${dark ? 'border-border text-foreground' : 'border-border text-foreground'}`}>
+      <h2 className="text-2xl font-medium mb-6 pb-3 border-b border-border text-foreground">
         {title}
       </h2>
       {children}
@@ -162,24 +290,24 @@ function Section({ id, title, children, dark }: { id: string; title: string; chi
   )
 }
 
-function FeatureDoc({ title, description, features, link, linkText, dark }: {
-  title: string; description: string; features: string[]; link?: string; linkText?: string; dark: boolean
+function FeatureDoc({ title, description, features, link, linkText }: {
+  title: string; description: string; features: string[]; link?: string; linkText?: string
 }) {
   return (
-    <div className={`p-5 rounded-xl border bg-card border-border`}>
-      <h3 className={`text-base font-medium mb-1.5 text-foreground`}>{title}</h3>
-      <p className={`text-sm mb-3 text-muted-foreground`}>{description}</p>
+    <div className="p-5 rounded-xl border bg-card border-border">
+      <h3 className="text-base font-medium mb-1.5 text-foreground">{title}</h3>
+      <p className="text-sm mb-3 text-muted-foreground">{description}</p>
       <ul className="space-y-1.5">
         {features.map((feature, i) => (
           <li key={i} className="flex items-start gap-2">
             <span className="text-primary mt-0.5 leading-tight">•</span>
-            <span className={`text-sm text-muted-foreground`}>{feature}</span>
+            <span className="text-sm text-muted-foreground">{feature}</span>
           </li>
         ))}
       </ul>
       {link && linkText && (
         <div className="mt-4">
-          <Link href={link} className="text-sm text-primary hover:text-primary transition-colors">{linkText}</Link>
+          <Link href={link} className="text-sm text-primary hover:underline transition-colors">{linkText}</Link>
         </div>
       )}
     </div>

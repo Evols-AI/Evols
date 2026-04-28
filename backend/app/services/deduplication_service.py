@@ -96,7 +96,6 @@ class DeduplicationService:
             for entity in existing_entities:
                 new_entity = ExtractedEntity(
                     tenant_id=new_source.tenant_id,
-                    product_id=new_source.product_id,
                     source_id=new_source.id,
                     entity_type=entity.entity_type,
                     name=entity.name,

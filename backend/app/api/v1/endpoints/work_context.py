@@ -309,15 +309,11 @@ async def delete_key_relationship(
 
 @router.get("/pm-decisions", response_model=List[PMDecisionResponse])
 async def get_pm_decisions(
-    product_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all PM decisions for user (optionally filtered by product)"""
+    """Get all PM decisions for user"""
     stmt = select(PMDecision).filter(PMDecision.user_id == current_user.id)
-
-    if product_id is not None:
-        stmt = stmt.filter(PMDecision.product_id == product_id)
 
     stmt = stmt.order_by(PMDecision.decision_date.desc())
     result = await db.execute(stmt)
@@ -444,11 +440,10 @@ async def delete_pm_decision(
 async def get_tasks(
     priority: Optional[TaskPriority] = None,
     status: Optional[TaskStatus] = None,
-    product_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all tasks for user (filterable by priority, status, product)"""
+    """Get all tasks for user (filterable by priority, status)"""
     stmt = select(Task).filter(Task.user_id == current_user.id)
 
     if priority is not None:
@@ -456,9 +451,6 @@ async def get_tasks(
 
     if status is not None:
         stmt = stmt.filter(Task.status == status)
-
-    if product_id is not None:
-        stmt = stmt.filter(Task.product_id == product_id)
 
     # Order: incomplete tasks first (by priority), then completed tasks
     stmt = stmt.order_by(

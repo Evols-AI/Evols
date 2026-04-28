@@ -369,7 +369,6 @@ class WorkContextTools:
         stakeholder_name: Optional[str] = None,
         stakeholder_reason: Optional[str] = None,
         source: Optional[str] = None,
-        product_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Add a task to the user's task board
@@ -386,7 +385,6 @@ class WorkContextTools:
             stakeholder_name: Who it's for (for stakeholder tasks)
             stakeholder_reason: Why it matters to them
             source: Where this task came from
-            product_id: Associated product (optional)
         """
         try:
             # Check for duplicate tasks using semantic similarity
@@ -446,7 +444,6 @@ class WorkContextTools:
                     stakeholder_name=stakeholder_name,
                     stakeholder_reason=stakeholder_reason,
                     source=source,
-                    product_id=product_id
                 )
                 self.db.add(task)
                 await self.db.commit()

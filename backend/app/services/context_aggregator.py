@@ -30,7 +30,7 @@ class ContextAggregator:
     def __init__(self, db: AsyncSession, user: User, product_id: Optional[int] = None):
         self.db = db
         self.user = user
-        self.product_id = product_id
+        self.product_id = product_id  # kept for backwards-compat, not used
 
     async def get_full_context(self) -> Dict[str, Any]:
         """
@@ -53,9 +53,8 @@ class ContextAggregator:
         # 2. Load user's work context (their PM OS)
         context['work_context'] = await self._get_work_context()
 
-        # 3. Load product knowledge
-        if self.product_id:
-            context['product_knowledge'] = await self._get_product_knowledge()
+        # 3. Load product knowledge (tenant-scoped)
+        context['product_knowledge'] = await self._get_product_knowledge()
 
         # 4. Load memory summary (not full detail to save tokens)
         context['memory_summary'] = await self._get_memory_summary()
@@ -220,17 +219,9 @@ class ContextAggregator:
         }
 
     async def _get_product_knowledge(self) -> Dict[str, Any]:
-        """
-        Get product knowledge for the current product.
-        Strategy, segments, metrics, competitive landscape, value prop.
-        """
-        if not self.product_id:
-            return {}
-
-        # Load product knowledge documents
+        """Get team knowledge documents (strategy, segments, metrics, etc.)"""
         result = await self.db.execute(
             select(ProductKnowledge)
-            .where(ProductKnowledge.product_id == self.product_id)
             .where(ProductKnowledge.tenant_id == self.user.tenant_id)
         )
         pk = result.scalar_one_or_none()

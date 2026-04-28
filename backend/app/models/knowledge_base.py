@@ -17,7 +17,6 @@ class KnowledgeSource(TenantScopedModel):
     __tablename__ = "knowledge_sources"
 
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
 
     # Source details
     name = Column(String(255), nullable=False)
@@ -41,7 +40,6 @@ class KnowledgeSource(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="knowledge_sources")
-    product = relationship("Product", back_populates="knowledge_sources")
     capabilities = relationship("Capability", back_populates="source", cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -56,10 +54,6 @@ class Capability(TenantScopedModel):
     __tablename__ = "capabilities"
 
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
-
-    # Product association (nullable for backward compatibility)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
-
     source_id = Column(Integer, ForeignKey("knowledge_sources.id"), nullable=False, index=True)
 
     # Capability details
@@ -81,7 +75,6 @@ class Capability(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="capabilities")
-    product = relationship("Product", back_populates="capabilities")
     source = relationship("KnowledgeSource", back_populates="capabilities")
 
     def __repr__(self):

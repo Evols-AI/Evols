@@ -139,7 +139,7 @@ export default function Login() {
                   Welcome Back!
                 </h2>
                 <p className={`max-w-md text-muted-foreground`}>
-                  Access your AI-powered product decision platform and continue making data-driven decisions.
+                  Access your team's AI brain and pick up right where you left off.
                 </p>
               </div>
             </div>

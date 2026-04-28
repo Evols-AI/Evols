@@ -1,24 +1,21 @@
 import Head from 'next/head'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import {
   Database, Plus, Upload, FileText, MessageSquare, Mail, Slack,
   Github, BookOpen, Cloud, X, Loader2, Search,
-  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network
+  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network, Filter, Pencil, GitMerge
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api, apiClient } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, Loading } from '@/components/PageContainer'
-import { useProducts } from '@/hooks/useProducts'
-import { confirmDemoOperation } from '@/utils/demoWarning'
 import KnowledgeGraphTab from '@/components/context/KnowledgeGraphTab'
 
 type ViewType = 'sources' | 'entities' | 'insights' | 'knowledge_graph'
 
 export default function Context() {
   const router = useRouter()
-  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedView, setSelectedView] = useState<ViewType>('sources')
@@ -31,9 +28,8 @@ export default function Context() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [selectedEntityType, setSelectedEntityType] = useState<string>('all')
+  const [entityTypeFilter, setEntityTypeFilter] = useState<Set<string>>(new Set())
   const [processingSourceIds, setProcessingSourceIds] = useState<Set<number>>(new Set())
-  const productId = selectedProductIds[0]
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -51,12 +47,8 @@ export default function Context() {
       if (tab === 'entities') loadGraphEntities()
     }
 
-    if (selectedProductIds.length > 0) {
-      loadContext()
-    } else {
-      setLoading(false)
-    }
-  }, [router, selectedProductIds])
+    loadContext()
+  }, [router])
 
   // Poll LightRAG processing status for newly uploaded sources
   useEffect(() => {
@@ -104,11 +96,10 @@ export default function Context() {
   const loadContext = async () => {
     try {
       setLoading(true)
-      const productIdsParam = selectedProductIds.join(',')
 
       const [sourcesRes, groupsRes] = await Promise.all([
-        api.context.getSources({ product_ids: productIdsParam }),
-        api.context.getSourceGroups({ product_ids: productIdsParam }),
+        api.context.getSources({}),
+        api.context.getSourceGroups({}),
       ])
 
       const allSources = Array.isArray(sourcesRes.data) ? sourcesRes.data : []
@@ -224,7 +215,8 @@ export default function Context() {
   const filteredEntities = graphEntities.filter(entity => {
     const matchesSearch = entity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (entity.description && entity.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    return matchesSearch
+    const matchesType = entityTypeFilter.size === 0 || entityTypeFilter.has(entity.entity_type)
+    return matchesSearch && matchesType
   })
 
   return (
@@ -253,6 +245,13 @@ export default function Context() {
               </div>
               <div className="flex items-center gap-3">
                 <button
+                  onClick={() => { loadContext(); loadGraphEntities() }}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh
+                </button>
+                <button
                   onClick={handleAddContext}
                   className="btn-primary flex items-center gap-2"
                 >
@@ -263,14 +262,7 @@ export default function Context() {
             </div>
           </div>
 
-          {selectedProductIds.length === 0 ? (
-            <Card className="text-center py-12">
-              <p className="text-body mb-2">No product selected</p>
-              <p className="text-sm text-muted">
-                Please select a product from the dropdown above to view context sources.
-              </p>
-            </Card>
-          ) : loading ? (
+          {loading ? (
             <Card>
               <Loading text="Loading context..." />
             </Card>
@@ -294,7 +286,6 @@ export default function Context() {
                     <button
                       onClick={() => {
                         handleTabChange('entities')
-                        setSelectedEntityType('all')
                       }}
                       className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
                         selectedView === 'entities'
@@ -318,57 +309,27 @@ export default function Context() {
                     </button>
                   </div>
 
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search..."
-                      className="pl-10 pr-4 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none"
-                    />
+                  {/* Search + entity type filter */}
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search..."
+                        className="pl-10 pr-4 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none"
+                      />
+                    </div>
+                    {(selectedView === 'entities' || selectedView === 'knowledge_graph') && (
+                      <EntityTypeFilterDropdown
+                        selected={entityTypeFilter}
+                        onChange={setEntityTypeFilter}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* Secondary Tabs (Entity Type Filter) - Only show for Extracted Intelligence */}
-              {selectedView === 'entities' && (
-                <div className="mb-6 pb-4 border-b border-border">
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { value: 'all',             label: 'All',              Icon: Target    },
-                      { value: 'persona',         label: 'Personas',         Icon: Users     },
-                      { value: 'person',          label: 'People',           Icon: User      },
-                      { value: 'pain_point',      label: 'Pain Points',      Icon: AlertCircle },
-                      { value: 'feature_request', label: 'Feature Requests', Icon: Lightbulb },
-                      { value: 'feature',         label: 'Features',         Icon: Zap       },
-                      { value: 'competitor',      label: 'Competitors',      Icon: Building2 },
-                      { value: 'organization',    label: 'Organizations',    Icon: Building2 },
-                      { value: 'product',         label: 'Products',         Icon: Database  },
-                      { value: 'technology',      label: 'Technology',       Icon: Zap       },
-                      { value: 'project',         label: 'Projects',         Icon: Target    },
-                      { value: 'business_goal',   label: 'Business Goals',   Icon: Target    },
-                      { value: 'metric',          label: 'Metrics',          Icon: Zap       },
-                      { value: 'decision',        label: 'Decisions',        Icon: Lightbulb },
-                      { value: 'market',          label: 'Markets',          Icon: Building2 },
-                    ].map(({ value, label, Icon }) => (
-                      <button
-                        key={value}
-                        onClick={() => setSelectedEntityType(value)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 border ${
-                          selectedEntityType === value
-                            ? 'bg-secondary text-secondary-foreground border-primary/30'
-                            : 'bg-card text-muted-foreground hover:bg-muted border-border'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Content Views */}
               {selectedView === 'sources' ? (
@@ -392,13 +353,11 @@ export default function Context() {
               ) : selectedView === 'entities' ? (
                 <EntitiesView
                   entities={filteredEntities}
-                  selectedEntityType={selectedEntityType}
                   loading={entitiesLoading}
                   onRefresh={loadGraphEntities}
-                  selectedProductIds={selectedProductIds}
                 />
               ) : selectedView === 'knowledge_graph' ? (
-                <KnowledgeGraphTab />
+                <KnowledgeGraphTab typeFilter={entityTypeFilter} onTypeFilterChange={setEntityTypeFilter} />
               ) : (
                 <InsightsView sources={contextSources} entities={graphEntities} />
               )}
@@ -409,7 +368,6 @@ export default function Context() {
         {/* Add Context Modal */}
         {showAddModal && (
           <AddContextModal
-            selectedProductIds={selectedProductIds}
             onClose={() => setShowAddModal(false)}
             onSuccess={(newSourceId?: number) => {
               setShowAddModal(false)
@@ -422,6 +380,118 @@ export default function Context() {
         )}
       </div>
     </>
+  )
+}
+
+const ENTITY_TYPE_COLORS: Record<string, string> = {
+  person:          'hsl(var(--chart-5))',
+  decision:        'hsl(var(--chart-5))',
+  organization:    'hsl(var(--chart-3))',
+  product:         'hsl(var(--chart-3))',
+  feature:         'hsl(var(--chart-3))',
+  persona:         'hsl(var(--chart-1))',
+  business_goal:   'hsl(var(--chart-1))',
+  project:         'hsl(var(--chart-1))',
+  competitor:      'hsl(var(--chart-2))',
+  technology:      'hsl(var(--chart-2))',
+  market:          'hsl(var(--chart-2))',
+  feature_request: 'hsl(var(--chart-4))',
+  metric:          'hsl(var(--chart-4))',
+  pain_point:      'hsl(var(--destructive))',
+}
+
+const ENTITY_TYPES = [
+  { value: 'persona',         label: 'Personas'         },
+  { value: 'person',          label: 'People'           },
+  { value: 'pain_point',      label: 'Pain Points'      },
+  { value: 'feature_request', label: 'Feature Requests' },
+  { value: 'feature',         label: 'Features'         },
+  { value: 'competitor',      label: 'Competitors'      },
+  { value: 'organization',    label: 'Organizations'    },
+  { value: 'product',         label: 'Products'         },
+  { value: 'technology',      label: 'Technology'       },
+  { value: 'project',         label: 'Projects'         },
+  { value: 'business_goal',   label: 'Business Goals'   },
+  { value: 'metric',          label: 'Metrics'          },
+  { value: 'decision',        label: 'Decisions'        },
+  { value: 'market',          label: 'Markets'          },
+]
+
+function EntityTypeFilterDropdown({
+  selected,
+  onChange,
+}: {
+  selected: Set<string>
+  onChange: (next: Set<string>) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as HTMLElement)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const toggle = (type: string) => {
+    const next = new Set(selected)
+    if (next.has(type)) next.delete(type)
+    else next.add(type)
+    onChange(next)
+  }
+
+  const label = selected.size === 0
+    ? 'All types'
+    : selected.size === 1
+      ? ENTITY_TYPES.find(t => t.value === [...selected][0])?.label ?? [...selected][0]
+      : `${selected.size} types`
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-3 py-2 bg-input border border-border rounded-lg hover:bg-muted transition-colors"
+      >
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-52 bg-card border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
+          <div className="p-2">
+            <button
+              onClick={() => onChange(new Set())}
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded transition-colors text-left"
+            >
+              <div className="w-4 h-4 border border-border rounded flex items-center justify-center flex-shrink-0">
+                {selected.size === 0 && <Check className="w-3 h-3 text-primary" />}
+              </div>
+              <span className="text-sm font-medium text-foreground">All types</span>
+            </button>
+            <div className="border-t border-border my-1" />
+            {ENTITY_TYPES.map(({ value, label: lbl }) => (
+              <button
+                key={value}
+                onClick={() => toggle(value)}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded transition-colors"
+              >
+                <div className="w-4 h-4 border border-border rounded flex items-center justify-center flex-shrink-0">
+                  {selected.has(value) && <Check className="w-3 h-3 text-primary" />}
+                </div>
+                <span className="text-sm text-foreground flex-1 text-left">{lbl}</span>
+                <span
+                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                  style={{ background: ENTITY_TYPE_COLORS[value] ?? 'hsl(var(--muted-foreground))' }}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -566,34 +636,62 @@ function SourcesView({
 
 function EntitiesView({
   entities,
-  selectedEntityType,
   loading,
   onRefresh,
-  selectedProductIds
 }: {
   entities: any[]
-  selectedEntityType: string
   loading: boolean
-  onRefresh: () => void
-  selectedProductIds: number[]
+  onRefresh?: () => void
 }) {
-  const filteredByType = selectedEntityType === 'all'
-    ? entities
-    : entities.filter(e => e.entity_type === selectedEntityType)
+  const [editEntity, setEditEntity] = React.useState<any | null>(null)
+  const [mergeEntity, setMergeEntity] = React.useState<any | null>(null)
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
 
-  if (loading) {
-    return <Loading />
+  const toggleSelect = (id: string, ctrlHeld: boolean) => {
+    if (!ctrlHeld) {
+      setSelectedIds(prev => prev.size === 1 && prev.has(id) ? new Set() : new Set([id]))
+      return
+    }
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
+
+  const handleSaved = () => {
+    setEditEntity(null)
+    setMergeEntity(null)
+    setSelectedIds(new Set())
+    onRefresh?.()
+  }
+
+  if (loading) return <Loading />
 
   return (
     <>
-      <div className="flex justify-end mb-3">
-        <button onClick={onRefresh} className="btn-secondary flex items-center gap-2 text-sm">
-          <RefreshCw className="w-3.5 h-3.5" />
-          Refresh
-        </button>
-      </div>
-      {filteredByType.length === 0 ? (
+      {/* Bulk action toolbar */}
+      {selectedIds.size > 1 && (
+        <div className="flex items-center gap-3 mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+          <button
+            onClick={() => setMergeEntity({ id: '__multi__', name: '' })}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
+          >
+            <GitMerge className="w-3.5 h-3.5" />
+            Merge {selectedIds.size} selected
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground transition"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {entities.length === 0 ? (
         <Card>
           <EmptyState
             icon={Brain}
@@ -604,12 +702,252 @@ function EntitiesView({
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredByType.map((entity) => (
-            <EntityCard key={entity.id} entity={entity} selectedProductIds={selectedProductIds} />
+          {entities.map((entity) => (
+            <EntityCard
+              key={entity.id}
+              entity={entity}
+              isSelected={selectedIds.has(entity.id)}
+              onSelect={(ctrlHeld) => toggleSelect(entity.id, ctrlHeld)}
+              onEdit={() => setEditEntity(entity)}
+              onMerge={() => setMergeEntity(entity)}
+            />
           ))}
         </div>
       )}
+
+      {editEntity && (
+        <EditEntityModal
+          entity={editEntity}
+          onClose={() => setEditEntity(null)}
+          onSaved={handleSaved}
+        />
+      )}
+
+      {mergeEntity && (
+        <MergeEntitiesModal
+          sourceNames={
+            mergeEntity.id === '__multi__'
+              ? entities.filter(e => selectedIds.has(e.id)).map((e: any) => e.name)
+              : [mergeEntity.name]
+          }
+          allEntityNames={entities.map((e: any) => e.name)}
+          onClose={() => setMergeEntity(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </>
+  )
+}
+
+function EditEntityModal({
+  entity,
+  onClose,
+  onSaved,
+}: {
+  entity: any
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [name, setName] = React.useState(entity.name)
+  const [entityType, setEntityType] = React.useState(entity.entity_type)
+  const [description, setDescription] = React.useState(entity.description ?? '')
+  const [saving, setSaving] = React.useState(false)
+  const [error, setError] = React.useState('')
+
+  const nameChanged = name.trim() !== entity.name
+
+  const handleSave = async () => {
+    if (!name.trim()) { setError('Name is required'); return }
+    setSaving(true)
+    setError('')
+    try {
+      await api.graph.editEntity({
+        entity_name: entity.name,
+        updated_data: {
+          entity_id: name.trim(),
+          entity_type: entityType,
+          description: description.trim(),
+        },
+        allow_rename: nameChanged,
+        allow_merge: nameChanged,
+      })
+      onSaved()
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to save entity')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Edit Entity</h2>
+          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg transition">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Name</label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm"
+            />
+            {nameChanged && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Renaming will merge with an existing entity if one already has this name.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Entity Type</label>
+            <select
+              value={entityType}
+              onChange={e => setEntityType(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm"
+            >
+              {ENTITY_TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Description</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm resize-none"
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+        <div className="flex gap-3 p-5 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-lg transition">Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 btn-primary text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MergeEntitiesModal({
+  sourceNames,
+  allEntityNames,
+  onClose,
+  onSaved,
+}: {
+  sourceNames: string[]
+  allEntityNames: string[]
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [targetName, setTargetName] = React.useState('')
+  const [customTarget, setCustomTarget] = React.useState(false)
+  const [saving, setSaving] = React.useState(false)
+  const [error, setError] = React.useState('')
+
+  const candidateTargets = allEntityNames.filter(n => !sourceNames.includes(n))
+
+  const handleMerge = async () => {
+    const target = targetName.trim()
+    if (!target) { setError('Please select or enter a target entity name'); return }
+    setSaving(true)
+    setError('')
+    try {
+      await api.graph.mergeEntities({
+        entities_to_change: sourceNames,
+        entity_to_change_into: target,
+      })
+      onSaved()
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to merge entities')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Merge into…</h2>
+          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg transition">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">
+              {sourceNames.length === 1
+                ? <>Merging <span className="font-medium text-foreground">"{sourceNames[0]}"</span> into:</>
+                : <>Merging <span className="font-medium text-foreground">{sourceNames.length} entities</span> into:</>}
+            </p>
+            {sourceNames.length > 1 && (
+              <ul className="text-xs text-muted-foreground list-disc list-inside mb-3 max-h-24 overflow-y-auto">
+                {sourceNames.map(n => <li key={n}>{n}</li>)}
+              </ul>
+            )}
+          </div>
+
+          {!customTarget ? (
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Target entity (existing)</label>
+              <select
+                value={targetName}
+                onChange={e => setTargetName(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm"
+              >
+                <option value="">— select target —</option>
+                {candidateTargets.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <button
+                onClick={() => { setCustomTarget(true); setTargetName('') }}
+                className="mt-2 text-xs text-primary hover:underline"
+              >
+                Or enter a custom name
+              </button>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Target entity name</label>
+              <input
+                value={targetName}
+                onChange={e => setTargetName(e.target.value)}
+                placeholder="e.g. Enterprise Customer"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm"
+              />
+              <button
+                onClick={() => { setCustomTarget(false); setTargetName('') }}
+                className="mt-2 text-xs text-primary hover:underline"
+              >
+                Select from existing instead
+              </button>
+            </div>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+        <div className="flex gap-3 p-5 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-lg transition">Cancel</button>
+          <button
+            onClick={handleMerge}
+            disabled={saving || !targetName.trim()}
+            className="flex-1 btn-primary text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Merging…</> : 'Merge'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -807,7 +1145,19 @@ function ContextSourceCard({ source, onRefresh, isProcessing }: { source: any; o
   )
 }
 
-function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) {
+function EntityCard({
+  entity,
+  isSelected,
+  onSelect,
+  onEdit,
+  onMerge,
+}: {
+  entity: any
+  isSelected?: boolean
+  onSelect?: (ctrlHeld: boolean) => void
+  onEdit?: () => void
+  onMerge?: () => void
+}) {
   const iconMap: Record<string, any> = {
     'persona': Users, 'pain_point': AlertCircle, 'feature_request': Lightbulb,
     'competitor': Building2, 'business_goal': Target, 'metric': Zap,
@@ -858,8 +1208,11 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
   }
 
   return (
-    <Card>
-      <div className="p-4 flex flex-col gap-3">
+    <Card className={`transition-all ${onSelect ? 'cursor-pointer' : ''} ${isSelected ? 'ring-2 ring-primary' : onSelect ? 'hover:ring-1 hover:ring-border' : ''}`}>
+      <div
+        className="p-4 flex flex-col gap-3"
+        onClick={onSelect ? (e: React.MouseEvent) => onSelect(e.ctrlKey || e.metaKey) : undefined}
+      >
         <div className="flex items-start gap-3">
           <div className={`p-2 rounded-lg flex-shrink-0 ${iconColor}`}>
             <Icon className="w-4 h-4" />
@@ -916,17 +1269,37 @@ function EntityCard({ entity }: { entity: any; selectedProductIds?: number[] }) 
             </div>
           </div>
         )}
+
+        {/* Action buttons */}
+        {(onEdit || onMerge) && (
+          <div className="flex gap-2 pt-1 border-t border-border" onClick={e => e.stopPropagation()}>
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition"
+              >
+                <Pencil className="w-3 h-3" /> Edit
+              </button>
+            )}
+            {onMerge && (
+              <button
+                onClick={onMerge}
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition"
+              >
+                <GitMerge className="w-3 h-3" /> Merge into…
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   )
 }
 
 export function AddContextModal({
-  selectedProductIds,
   onClose,
   onSuccess
 }: {
-  selectedProductIds: number[]
   onClose: () => void
   onSuccess: (newSourceId?: number) => void
 }) {
@@ -993,11 +1366,6 @@ export function AddContextModal({
       return
     }
 
-    if (selectedProductIds.length === 0) {
-      setError('Please select a product first')
-      return
-    }
-
     setUploading(true)
     setError('')
 
@@ -1005,7 +1373,6 @@ export function AddContextModal({
     try {
       formData.append('file', file)
       formData.append('name', name)
-      formData.append('product_id', selectedProductIds[0].toString())
       formData.append('source_type', sourceType)
       formData.append('retention_policy', retentionPolicy)
       if (description) {

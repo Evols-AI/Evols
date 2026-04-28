@@ -55,48 +55,6 @@ export const api = {
   register: (data: any) => apiClient.post('/api/v1/auth/register', data),
   login: (data: any) => apiClient.post('/api/v1/auth/login', data),
 
-  // Products
-  products: {
-    list: async () => {
-      const response = await apiClient.get('/api/v1/products/');
-      return response.data;
-    },
-    get: async (id: number) => {
-      const response = await apiClient.get(`/api/v1/products/${id}`);
-      return response.data;
-    },
-    create: async (data: any) => {
-      const response = await apiClient.post('/api/v1/products/', data);
-      return response.data;
-    },
-    update: async (id: number, data: any) => {
-      const response = await apiClient.put(`/api/v1/products/${id}`, data);
-      return response.data;
-    },
-    delete: async (id: number) => {
-      const response = await apiClient.delete(`/api/v1/products/${id}`);
-      return response.data;
-    },
-  },
-
-  // Feedback
-  getFeedback: (params?: any) => apiClient.get('/api/v1/feedback/', { params }),
-  createFeedback: (data: any) => apiClient.post('/api/v1/feedback/', data),
-  uploadFeedbackCSV: (formData: FormData) => apiClient.post('/api/v1/feedback/upload-csv', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  uploadFeedbackCSVAsync: (formData: FormData) => apiClient.post('/api/v1/feedback/upload-csv-async', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  parseFeedbackDocument: (formData: FormData) => apiClient.post('/api/v1/feedback/parse-document', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-
-  // Themes
-  getThemes: (params?: any) => apiClient.get('/api/v1/themes/', { params }),
-  runClustering: () => apiClient.post('/api/v1/themes/cluster'),
-  refreshThemes: () => apiClient.post('/api/v1/themes/refresh'),
-  refreshThemesAsync: () => apiClient.post('/api/v1/themes/refresh-async'),
 
   // Roadmap (Initiatives)
   getInitiatives: (params?: any) => apiClient.get('/api/v1/roadmap/', { params }),
@@ -107,35 +65,15 @@ export const api = {
   getDecisions: (params?: any) => apiClient.get('/api/v1/decisions/', { params }),
   createDecision: (data: any) => apiClient.post('/api/v1/decisions/', data),
 
-  // Personas
-  getPersonas: (productIds?: string, params?: any) => {
-    const queryParams = productIds ? { ...params, product_ids: productIds } : params
-    return apiClient.get('/api/v1/personas/', { params: queryParams })
-  },
-  getSegments: () => apiClient.get('/api/v1/personas/segments/list'),
-  createPersona: (data: any) => apiClient.post('/api/v1/personas/', data),
-  generatePersonas: (data: any) => apiClient.post('/api/v1/personas/generate', data),
-  refreshPersonas: () => apiClient.post('/api/v1/personas/refresh'),
-  refreshPersonasAsync: () => apiClient.post('/api/v1/personas/refresh-async'),
-  simulatePersona: (data: any) => apiClient.post('/api/v1/personas/simulate', data),
-  askPersona: (data: any) => apiClient.post('/api/v1/personas/simulate', data), // Alias for simulate
-  personaVote: (data: any) => apiClient.post('/api/v1/personas/vote', data),
-  updatePersona: (id: number, data: any) => apiClient.patch(`/api/v1/personas/${id}`, data),
-  updatePersonaStatus: (id: number, status: string) => apiClient.patch(`/api/v1/personas/${id}/status`, { status }),
-  mergePersonas: (data: any) => apiClient.post('/api/v1/personas/merge', data),
-
   // Settings
-  getPersonaRefreshSettings: () => apiClient.get('/api/v1/settings/persona-refresh'),
-  updatePersonaRefreshSettings: (data: any) => apiClient.put('/api/v1/settings/persona-refresh', data),
-  getThemeRefreshSettings: () => apiClient.get('/api/v1/settings/theme-refresh'),
-  updateThemeRefreshSettings: (data: any) => apiClient.put('/api/v1/settings/theme-refresh', data),
+  getKnowledgeRefreshSettings: () => apiClient.get('/api/v1/settings/knowledge-refresh'),
+  updateKnowledgeRefreshSettings: (data: any) => apiClient.put('/api/v1/settings/knowledge-refresh', data),
 
   // Workbench
   getWorkbenchContext: (data: any) => apiClient.post('/api/v1/workbench/context', data),
   generateOptions: (data: any) => apiClient.post('/api/v1/workbench/generate-options', data),
   getPersonaVotes: (data: any) => apiClient.post('/api/v1/workbench/persona-votes', data),
   regenerateOptions: (data: any) => apiClient.post('/api/v1/workbench/regenerate-options', data),
-  saveGeneratedPersonas: (data: any) => apiClient.post('/api/v1/workbench/save-personas', data),
   validateIdea: (data: any) => apiClient.post('/api/v1/workbench/validate-idea', data),
   saveDecision: (data: any) => apiClient.post('/api/v1/workbench/decisions', data),
   getDecision: (id: number) => apiClient.get(`/api/v1/workbench/decisions/${id}`),
@@ -151,16 +89,6 @@ export const api = {
   exportBrief: (decisionId: number, format: 'markdown' | 'pdf') =>
     apiClient.get(`/api/v1/decisions/${decisionId}/export`, { params: { format }, responseType: 'blob' }),
 
-  // Synthesis
-  getSynthesisStatus: () => apiClient.get('/api/v1/synthesis/status'),
-  approveSynthesis: (data: any) => apiClient.post('/api/v1/synthesis/approve', data),
-  updateThemeLabel: (themeId: number, data: any) => apiClient.patch(`/api/v1/themes/${themeId}`, data),
-  updateTheme: (themeId: number, data: any) => apiClient.patch(`/api/v1/themes/${themeId}`, data),
-  mergeThemes: (data: any) => apiClient.post('/api/v1/themes/merge', data),
-
-  // Signals (dashboard feed)
-  getSignals: (params?: any) => apiClient.get('/api/v1/signals/', { params }),
-  dismissSignal: (signalId: number) => apiClient.patch(`/api/v1/signals/${signalId}/dismiss`),
 
   // LLM Settings (BYOK - Bring Your Own Keys)
   getLLMSettings: () => apiClient.get('/api/v1/llm-settings/'),
@@ -299,6 +227,18 @@ export const api = {
 
     // Preview customization
     previewCustomization: (skillName: string, data: any) => apiClient.post(`/api/v1/skill-customizations/${skillName}/preview`, data),
+  },
+
+  // Knowledge Graph mutations
+  graph: {
+    editEntity: (data: { entity_name: string; updated_data: Record<string, any>; allow_rename?: boolean; allow_merge?: boolean }) =>
+      apiClient.post('/api/v1/graph/entity/edit', data),
+    mergeEntities: (data: { entities_to_change: string[]; entity_to_change_into: string }) =>
+      apiClient.post('/api/v1/graph/entities/merge', data),
+    createEntity: (data: { entity_name: string; entity_data: Record<string, any> }) =>
+      apiClient.post('/api/v1/graph/entity/create', data),
+    editRelation: (data: { source_id: string; target_id: string; updated_data: Record<string, any> }) =>
+      apiClient.post('/api/v1/graph/relation/edit', data),
   },
 
   // Generic helpers

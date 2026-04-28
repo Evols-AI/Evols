@@ -9,13 +9,10 @@ from typing import List, Dict, Any, Optional
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from app.services.llm_service import LLMService, get_llm_service
 from app.models.project import Project, ProjectEffort, ProjectStatus
 from app.models.initiative import Initiative
-from app.models.theme import Theme
-from app.models.persona import Persona
 from app.models.knowledge_base import Capability
 
 logger = logging.getLogger(__name__)
@@ -35,7 +32,7 @@ For each project, specify:
 - Is_boulder (true for larger projects, false for quick wins/pebbles)
 - Acceptance criteria (3-5 concrete success metrics)
 
-Always ground your recommendations in the provided context: themes, personas, and existing capabilities."""
+Always ground your recommendations in the provided context and existing capabilities."""
 
 
 class ProjectService:
@@ -65,11 +62,10 @@ class ProjectService:
         """
         logger.info(f"[ProjectService] Starting project generation for tenant {tenant_id}")
 
-        # Get initiatives with themes preloaded
+        # Get initiatives
         query = (
             select(Initiative)
             .where(Initiative.tenant_id == tenant_id)
-            .options(selectinload(Initiative.themes))
         )
 
         if initiative_ids:
@@ -86,13 +82,9 @@ class ProjectService:
 
         # Log initiative details
         for init in initiatives:
-            logger.debug(
-                f"[ProjectService] Initiative: '{init.title}' "
-                f"(ID: {init.id}, Themes: {len(init.themes)})"
-            )
+            logger.debug(f"[ProjectService] Initiative: '{init.title}' (ID: {init.id})")
 
         # Load context data once (shared across all initiatives)
-        personas = await self._load_personas(tenant_id, db)
         capabilities = await self._load_capabilities(tenant_id, db)
 
         projects_created = 0
@@ -102,7 +94,6 @@ class ProjectService:
                 # Generate projects for this initiative
                 generated_projects = await self._generate_projects_for_initiative(
                     initiative=initiative,
-                    personas=personas,
                     capabilities=capabilities,
                     db=db,
                 )
@@ -134,15 +125,11 @@ class ProjectService:
     async def _generate_projects_for_initiative(
         self,
         initiative: Initiative,
-        personas: List[Persona],
         capabilities: List[Capability],
         db: AsyncSession,
     ) -> List[Project]:
         """Generate projects for a single initiative using LLM"""
 
-        # Build context for LLM
-        theme_context = self._build_theme_context(initiative.themes)
-        persona_context = self._build_persona_context(personas)
         capability_context = self._build_capability_context(capabilities)
 
         prompt = f"""Break down this initiative into 3-8 concrete projects (mix of boulders and pebbles).
@@ -154,12 +141,6 @@ Effort: {initiative.effort.value if initiative.effort else 'unknown'}
 Target Segments: {', '.join(initiative.target_segments or ['All segments'])}
 
 CONTEXT:
-
-Linked Themes (customer problems):
-{theme_context}
-
-Key Personas (who will use this):
-{persona_context}
 
 Existing Capabilities (avoid duplicating these):
 {capability_context}
@@ -185,8 +166,7 @@ Respond with JSON array:
         try:
             logger.debug(
                 f"[ProjectService] Calling LLM for initiative '{initiative.title}' "
-                f"(themes: {len(initiative.themes)}, personas: {len(personas)}, "
-                f"capabilities: {len(capabilities)})"
+                f"(capabilities: {len(capabilities)})"
             )
 
             response = await self.llm.generate(
@@ -251,53 +231,12 @@ Respond with JSON array:
             logger.error(f"[ProjectService] LLM generation failed: {e}", exc_info=True)
             return []
 
-    async def _load_personas(self, tenant_id: int, db: AsyncSession) -> List[Persona]:
-        """Load personas for context (only active personas)"""
-        result = await db.execute(
-            select(Persona).where(
-                Persona.tenant_id == tenant_id,
-                Persona.status == 'active'  # Only use active personas
-            )
-        )
-        return result.scalars().all()
-
     async def _load_capabilities(self, tenant_id: int, db: AsyncSession) -> List[Capability]:
         """Load capabilities for filtering"""
         result = await db.execute(
             select(Capability).where(Capability.tenant_id == tenant_id)
         )
         return result.scalars().all()
-
-    def _build_theme_context(self, themes: List[Theme]) -> str:
-        """Build theme context for LLM prompt"""
-        if not themes:
-            logger.warning("[ProjectService] No themes linked to this initiative")
-            return "No linked themes (Note: Initiative was created without theme linkage)"
-
-        lines = []
-        for theme in themes[:5]:  # Limit to 5 themes
-            lines.append(
-                f"- {theme.title}: {theme.summary or theme.description or 'No description'}\n"
-                f"  ({theme.feedback_count} feedback items, {theme.account_count} accounts, "
-                f"urgency: {theme.urgency_score:.0%}, impact: {theme.impact_score:.0%})"
-            )
-        return "\n".join(lines)
-
-    def _build_persona_context(self, personas: List[Persona]) -> str:
-        """Build persona context for LLM prompt"""
-        if not personas:
-            return "No personas defined"
-
-        lines = []
-        for persona in personas[:5]:  # Limit to 5 personas
-            pain_points = persona.key_pain_points or []
-            priorities = persona.feature_priorities or []
-            lines.append(
-                f"- {persona.name} ({persona.segment})\n"
-                f"  Pain points: {', '.join(pain_points[:3]) if pain_points else 'None'}\n"
-                f"  Priorities: {', '.join(priorities[:3]) if priorities else 'None'}"
-            )
-        return "\n".join(lines)
 
     def _build_capability_context(self, capabilities: List[Capability]) -> str:
         """Build capability context for LLM prompt"""

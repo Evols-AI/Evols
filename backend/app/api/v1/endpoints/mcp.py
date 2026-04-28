@@ -212,14 +212,85 @@ TOOLS = [
     },
     {
         "name": "get_personas",
-        "description": "Get customer persona profiles with vote counts and key characteristics.",
+        "description": "Get customer persona profiles from the knowledge graph with pain points, feature requests, and extracted attributes (sentiment, urgency, business_impact, confidence).",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "limit": {
                     "type": "integer",
                     "description": "Maximum number of personas to return (default: all)"
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Filter personas by name (partial match)"
                 }
+            }
+        }
+    },
+    {
+        "name": "get_pain_points",
+        "description": "Get PainPoint entities from the knowledge graph with urgency, sentiment, and business impact. Use this to understand what customers struggle with.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "Max items to return"},
+                "search": {"type": "string", "description": "Filter by keyword"}
+            }
+        }
+    },
+    {
+        "name": "get_feature_requests",
+        "description": "Get FeatureRequest entities from the knowledge graph with urgency, business impact, and related personas.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "Max items to return"},
+                "search": {"type": "string", "description": "Filter by keyword"}
+            }
+        }
+    },
+    {
+        "name": "get_competitors",
+        "description": "Get Competitor entities from the knowledge graph.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "Max items to return"},
+                "search": {"type": "string", "description": "Filter by keyword"}
+            }
+        }
+    },
+    {
+        "name": "get_business_goals",
+        "description": "Get BusinessGoal entities from the knowledge graph with confidence and business impact.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "Max items to return"},
+                "search": {"type": "string", "description": "Filter by keyword"}
+            }
+        }
+    },
+    {
+        "name": "get_metrics",
+        "description": "Get Metric entities from the knowledge graph.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "Max items to return"},
+                "search": {"type": "string", "description": "Filter by keyword"}
+            }
+        }
+    },
+    {
+        "name": "engage_persona_twin",
+        "description": "Have a conversation with a persona's AI digital twin grounded in their knowledge graph context (pain points, feature requests, attributes). Ask for their opinion on any topic.",
+        "inputSchema": {
+            "type": "object",
+            "required": ["persona_name", "question"],
+            "properties": {
+                "persona_name": {"type": "string", "description": "Name of the persona as it appears in the knowledge graph"},
+                "question": {"type": "string", "description": "Question or topic to ask the persona"}
             }
         }
     },
@@ -656,6 +727,12 @@ async def _call_tool(
 
     elif tool_name in (
         "get_personas",
+        "get_pain_points",
+        "get_feature_requests",
+        "get_competitors",
+        "get_business_goals",
+        "get_metrics",
+        "engage_persona_twin",
         "get_themes",
         "get_feedback_items",
         "get_product_strategy",

@@ -336,15 +336,11 @@ class TeamKnowledgeService:
         tenant_id: int,
         limit: int = 20,
         offset: int = 0,
-        product_id: Optional[int] = None,
     ) -> List[KnowledgeEntry]:
         """Paginated list of entries for the dashboard — no embeddings returned."""
-        conditions = [KnowledgeEntry.tenant_id == tenant_id]
-        if product_id is not None:
-            conditions.append(KnowledgeEntry.product_id == product_id)
         result = await db.execute(
             select(KnowledgeEntry)
-            .where(and_(*conditions))
+            .where(KnowledgeEntry.tenant_id == tenant_id)
             .order_by(KnowledgeEntry.created_at.desc())
             .limit(limit)
             .offset(offset)

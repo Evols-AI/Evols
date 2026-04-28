@@ -188,7 +188,6 @@ class PMDecision(BaseModel):
     __tablename__ = "pm_decisions"
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=True, index=True)
 
     decision_number = Column(Integer, nullable=False)  # Sequential per user
     title = Column(String(500), nullable=False)
@@ -209,7 +208,6 @@ class PMDecision(BaseModel):
 
     # Relationships
     user = relationship("User", back_populates="pm_decisions")
-    product = relationship("Product")
 
     def __repr__(self):
         return f"<PMDecision(number={self.decision_number}, title='{self.title}')>"
@@ -226,7 +224,6 @@ class Task(BaseModel):
     __tablename__ = "tasks"
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=True, index=True)
 
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
@@ -248,7 +245,6 @@ class Task(BaseModel):
 
     # Relationships
     user = relationship("User", back_populates="tasks")
-    product = relationship("Product")
 
     def __repr__(self):
         return f"<Task(title='{self.title}', priority='{self.priority}', status='{self.status}')>"

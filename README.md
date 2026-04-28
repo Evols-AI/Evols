@@ -1,22 +1,18 @@
 # Evols
 
-**Evolve your product roadmap**
+**Your team's AI brain**
 
-Turn customer feedback into prioritized roadmaps automatically. Help senior PMs at scaling B2B SaaS companies turn all their customer and product data into fast, explainable product decisions they can confidently defend and execute.
+Give your team a shared AI brain — knowledge, context, and coordination in one place. Evols is the AI collaboration layer that makes sure every teammate works from the same shared context instead of rebuilding it from scratch.
 
 ## Overview
 
-Evols is an AI-native Product Decision OS that helps product managers:
-- **Get AI assistance for PM tasks** via interactive Skills (PRD writing, user research, competitive analysis, sprint planning, etc.)
-- **Consolidate fragmented evidence** from 20+ data sources (meetings, docs, tickets, surveys, repos)
-- **Extract intelligence automatically** with entity recognition and semantic search
-- **Auto-cluster feedback** into themes with revenue impact and urgency
-- **Generate prioritized roadmaps** with RICE scoring and data-driven recommendations
-- **Simulate persona digital twins** for product validation and trade-off decisions
-- **Track work context** (projects, tasks, decisions, relationships) to build institutional product memory
-- **Maintain privacy and compliance** with data retention policies, encryption, and audit logs
-- **Share team knowledge** across Claude Code, Zed, and the AI Workbench via a unified knowledge graph
-- **AI Workbench** — LibreChat-based multi-model chat UI with full Evols context, no extra login required
+Evols is your team's AI brain for collaboration and coordination:
+- **AI Workbench** — conversational AI with 80+ skills, knowledge-grounded responses, and real-time internet search
+- **Shared knowledge graph** — upload docs, meeting notes, and transcripts; LightRAG extracts entities and relationships automatically
+- **Work Context** — structured view of roles, projects, tasks, and decisions so the AI always knows your actual situation
+- **MCP endpoint** — connect Claude Desktop, Cursor, or any MCP-compatible client to your team's knowledge graph
+- **BYOK** — bring your own LLM keys (Anthropic, OpenAI, Azure OpenAI, AWS Bedrock); keys are AES-encrypted per tenant
+- **Multi-tenant** — every workspace is fully isolated; invite your team and get started in minutes
 
 ## Features
 
@@ -381,7 +377,7 @@ Theme (Feedback Clusters) → Initiative (Strategic Bets) → Project (Work Item
 ### v1.1 (Completed) - *March 2026*
 - ✅ **AI Skills system** — Interactive AI assistants for PM tasks with A/B testing
 - ✅ **Context management system** — Unified data ingestion with 20+ source types
-- ✅ **Work Context & PM OS** — Personal work context tracking (projects, tasks, relationships, decisions, weekly focus)
+- ✅ **Work Context** — Personal work context tracking (projects, tasks, relationships, decisions, weekly focus)
 - ✅ **Sprint planning skill** — AI-assisted sprint planning with automatic task creation on task board
 - ✅ **Tool calling API** — Skills can invoke tools (add_task, update_project, get_work_context, etc.)
 - ✅ **Data retention & privacy** — User-controlled policies with encryption and audit logs

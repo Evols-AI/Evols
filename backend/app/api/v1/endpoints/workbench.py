@@ -16,14 +16,10 @@ from loguru import logger
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_tenant_id, get_tenant_llm_config
-from app.models.feedback import Feedback
-from app.models.theme import Theme
-from app.models.persona import Persona
 from app.models.decision import Decision, DecisionOption
 from app.models.user import User
 from app.models.context import ContextSource, ExtractedEntity, ContextProcessingStatus
 from app.services.llm_service import get_llm_service, DECISION_OPTIONS_SYSTEM_PROMPT_PM, DECISION_OPTIONS_SYSTEM_PROMPT_FOUNDER
-from app.services.persona_service import PersonaService
 from app.services.web_scraper import get_web_scraper
 from app.core.citations import CitationSourceType, Citation
 
@@ -94,27 +90,15 @@ async def get_workbench_context(
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """
-    Auto-pull themes and top feedback relevant to the PM's stated objective.
-    This is Step 2 of the workbench flow.
+    Pull context sources and extracted entities relevant to the PM's stated objective.
     """
-    # Fetch all themes for this tenant
-    theme_query = select(Theme).where(Theme.tenant_id == tenant_id)
-    if req.segments:
-        # Filter themes that affect requested segments (using JSON overlap)
-        pass  # TODO: add segment filter on affected_segments array column
+    from sqlalchemy import or_
 
-    theme_result = await db.execute(
-        theme_query.order_by(Theme.total_arr.desc()).limit(10)
-    )
-    themes = theme_result.scalars().all()
-
-    # Fetch context sources (uploaded CSVs, documents, etc.)
     context_query = select(ContextSource).where(
         ContextSource.tenant_id == tenant_id,
         ContextSource.status == ContextProcessingStatus.COMPLETED
     )
     if req.segments:
-        from sqlalchemy import or_
         context_query = context_query.where(
             or_(*[ContextSource.customer_segment == s for s in req.segments])
         )
@@ -123,7 +107,6 @@ async def get_workbench_context(
     )
     context_sources = context_result.scalars().all()
 
-    # Fetch extracted entities (insights from uploaded context)
     entities_result = await db.execute(
         select(ExtractedEntity)
         .where(ExtractedEntity.tenant_id == tenant_id)
@@ -132,64 +115,11 @@ async def get_workbench_context(
     )
     extracted_entities = entities_result.scalars().all()
 
-    # Also fetch legacy feedback for backward compatibility
-    feedback_query = select(Feedback).where(Feedback.tenant_id == tenant_id)
-    if req.segments:
-        feedback_query = feedback_query.where(
-            or_(*[Feedback.customer_segment == s for s in req.segments])
-        )
-    feedback_result = await db.execute(
-        feedback_query.order_by(Feedback.urgency_score.desc().nullslast()).limit(10)
-    )
-    feedback_items = feedback_result.scalars().all()
-
-    # Serialize
-    themes_out = [
-        {
-            "id": t.id,
-            "title": t.title,
-            "description": t.description,
-            "summary": t.summary,
-            "feedback_count": t.feedback_count,
-            "account_count": t.account_count,
-            "total_arr": t.total_arr,
-            "urgency_score": t.urgency_score,
-            "impact_score": t.impact_score,
-            "affected_segments": t.affected_segments or [],
-            "key_quotes": t.key_quotes or [],
-            "citations": [
-                {
-                    "source_type": "theme",
-                    "source_id": t.id,
-                    "confidence": t.confidence_score or 0.8,
-                    "metadata": {
-                        "title": t.title,
-                        "feedback_count": t.feedback_count,
-                        "total_arr": t.total_arr,
-                    },
-                }
-            ],
-        }
-        for t in themes
-    ]
-
-    feedback_out = [
-        {
-            "id": f.id,
-            "content": f.content,
-            "customer_name": f.customer_name,
-            "customer_segment": f.customer_segment,
-            "category": f.category.value if f.category else None,
-            "urgency_score": f.urgency_score,
-        }
-        for f in feedback_items
-    ]
-
     context_sources_out = [
         {
             "id": cs.id,
             "name": cs.name,
-            "content": cs.content[:500] if cs.content else "",  # Truncate for preview
+            "content": cs.content[:500] if cs.content else "",
             "source_type": cs.source_type.value if cs.source_type else "unknown",
             "customer_name": cs.customer_name,
             "customer_segment": cs.customer_segment,
@@ -213,12 +143,12 @@ async def get_workbench_context(
     ]
 
     return {
-        "themes": themes_out,
-        "feedback": feedback_out,
+        "themes": [],
+        "feedback": [],
         "context_sources": context_sources_out,
         "extracted_entities": entities_out,
-        "total_themes": len(themes_out),
-        "total_feedback": len(feedback_out),
+        "total_themes": 0,
+        "total_feedback": 0,
         "total_context_sources": len(context_sources_out),
         "total_entities": len(entities_out),
     }
@@ -252,33 +182,25 @@ async def generate_options(
     themes_context = ""
     market_context = ""
 
-    # Internal context: Fetch themes from knowledge base
+    # Internal context: use context_sources from knowledge base
     if req.use_internal_context:
-        if req.theme_ids:
-            theme_result = await db.execute(
-                select(Theme).where(
-                    Theme.id.in_(req.theme_ids),
-                    Theme.tenant_id == tenant_id,
-                )
+        context_result = await db.execute(
+            select(ContextSource)
+            .where(
+                ContextSource.tenant_id == tenant_id,
+                ContextSource.status == ContextProcessingStatus.COMPLETED
             )
-            themes = theme_result.scalars().all()
+            .order_by(ContextSource.impact_score.desc().nullslast())
+            .limit(10)
+        )
+        context_items = context_result.scalars().all()
 
-        if not themes:
-            # Fall back to top themes by ARR
-            theme_result = await db.execute(
-                select(Theme)
-                .where(Theme.tenant_id == tenant_id)
-                .order_by(Theme.total_arr.desc())
-                .limit(5)
-            )
-            themes = theme_result.scalars().all()
-
-        if themes:
+        if context_items:
             themes_context = f"""
 INTERNAL CUSTOMER DATA (from your knowledge base):
 
-Customer Themes:
-{chr(10).join(f"- Theme: {t.title} | ARR: ${t.total_arr:,.0f} | Urgency: {t.urgency_score:.2f} | Segments: {', '.join(t.affected_segments or [])}{chr(10)}  Summary: {t.summary or t.description or ''}" for t in themes)}
+Context Sources:
+{chr(10).join(f"- {cs.name} ({cs.source_type.value if cs.source_type else 'unknown'}): {(cs.content or '')[:150]}..." for cs in context_items[:5])}
 """
 
     # External context: Market data from Reddit
@@ -366,29 +288,10 @@ Respond with JSON:
 
     options = result.get("options", [])
 
-    # Attach citations based on context sources used
-    theme_citation_map = {t.id: t for t in themes} if themes else {}
-
     for opt in options:
-        theme_ids_for_option = opt.pop("theme_ids", [])
+        opt.pop("theme_ids", None)
         opt["citations"] = []
 
-        # Add internal context citations (themes)
-        if req.use_internal_context and theme_citation_map:
-            for tid in theme_ids_for_option:
-                if tid in theme_citation_map:
-                    opt["citations"].append({
-                        "source_type": "theme",
-                        "source_id": tid,
-                        "confidence": 0.85,
-                        "metadata": {
-                            "title": theme_citation_map[tid].title,
-                            "feedback_count": theme_citation_map[tid].feedback_count,
-                            "total_arr": theme_citation_map[tid].total_arr,
-                        },
-                    })
-
-        # Add external context citations (market data)
         if req.use_external_context and req.market_data:
             opt["citations"].append({
                 "source_type": "market_data",
@@ -429,69 +332,48 @@ async def persona_votes(
                 detail="LLM configuration required. Please configure your API keys in Settings > LLM Settings before using persona voting."
             )
 
-    # Use generated personas if provided (from market research), otherwise use library personas
-    personas = []
-    if req.generated_personas:
-        # Convert generated persona dicts to Persona-like objects for voting
-        for p_data in req.generated_personas:
-            # Create a temporary Persona object with the generated data
-            # Only use fields that exist in the Persona model
-            persona = Persona(
-                tenant_id=tenant_id,
-                name=p_data.get("name", "Unknown Persona"),
-                segment=p_data.get("segment", ""),
-                persona_summary=p_data.get("persona_summary", ""),
-                description=p_data.get("description", ""),
-                key_pain_points=p_data.get("key_pain_points", []),
-                buying_triggers=p_data.get("buying_triggers", []),
-                feature_priorities=p_data.get("feature_priorities", []),
-                company_size_range=p_data.get("company_size_range", ""),
-                budget_authority_min=p_data.get("budget_authority_min"),
-                budget_authority_max=p_data.get("budget_authority_max"),
-                typical_decision_time_days=p_data.get("typical_decision_time_days"),
-                status="active",  # Active persona for voting
-                extra_data=p_data,  # Store full generated data in extra_data
-            )
-            personas.append(persona)
-    else:
-        # Fetch only active personas from library
-        persona_result = await db.execute(
-            select(Persona).where(
-                Persona.tenant_id == tenant_id,
-                Persona.status == 'active'
-            ).limit(6)
-        )
-        personas = persona_result.scalars().all()
+    # Use generated personas if provided (from market research)
+    personas = req.generated_personas or []
 
     if not personas:
-        return {"votes": [], "message": "No personas available. Either generate personas from market data or activate personas from the Personas page."}
+        return {"votes": [], "message": "No personas available. Generate personas from market data first."}
 
-    persona_service = PersonaService(tenant_config=tenant_config)
+    llm = get_llm_service(tenant_config=tenant_config)
+    options_text = "\n".join(
+        f"- {o.get('title', o.get('id', ''))}: {o.get('description', '')}"
+        for o in req.options
+    )
 
-    # Parallelize voting: run all persona votes concurrently
-    async def vote_for_persona(persona):
-        """Helper to get vote result for a single persona"""
-        try:
-            vote_result = await persona_service.vote_on_options(
-                persona=persona,
-                options=req.options,
-            )
-            return {
-                "persona_name": vote_result.persona_name,
-                "segment": vote_result.segment,
-                "votes": vote_result.votes,
-                "top_choice": vote_result.top_choice,
-                "confidence": vote_result.confidence,
-            }
-        except Exception as e:
-            logger.warning(f"Persona voting failed for {persona.name}: {e}")
-            return None
-
-    # Execute all votes in parallel using asyncio.gather()
     import asyncio
-    vote_results = await asyncio.gather(*[vote_for_persona(p) for p in personas])
+    import json as _json, re as _re
 
-    # Filter out None results (failed votes)
+    async def vote_for_persona(p_data: Dict[str, Any]):
+        name = p_data.get("name", "Unknown")
+        segment = p_data.get("segment", "")
+        summary = p_data.get("persona_summary") or p_data.get("description", "")
+        pain_points = ", ".join(p_data.get("key_pain_points", [])[:3])
+
+        prompt = f"""You are simulating {name}, a customer persona.
+Segment: {segment}
+Background: {summary}
+Pain points: {pain_points}
+
+Vote on these strategic options:
+{options_text}
+
+Return JSON with one vote per option:
+{{"persona_name": "{name}", "segment": "{segment}", "votes": [{{"option_id": "<id>", "score": <0.0-1.0>, "reasoning": "<short>"}}], "top_choice": "<option id>", "confidence": <0.0-1.0>}}"""
+
+        try:
+            resp = await llm.generate(prompt=prompt, temperature=0.3, max_tokens=400)
+            m = _re.search(r'\{.*\}', resp.content, _re.DOTALL)
+            if m:
+                return _json.loads(m.group())
+        except Exception as e:
+            logger.warning(f"Persona voting failed for {name}: {e}")
+        return None
+
+    vote_results = await asyncio.gather(*[vote_for_persona(p) for p in personas])
     votes = [v for v in vote_results if v is not None]
 
     # Aggregate: which option is most popular
@@ -636,81 +518,6 @@ Create diverse personas representing different segments of the target market."""
         raise HTTPException(status_code=500, detail=f"Failed to generate personas: {str(e)}")
 
 
-@router.post("/save-personas")
-async def save_generated_personas(
-    personas_data: Dict[str, Any],
-    db: AsyncSession = Depends(get_db),
-    tenant_id: int = Depends(get_current_tenant_id),
-):
-    """
-    Save generated personas from Founder Mode to the database.
-    Personas are saved with status='active' and marked as market-research-based.
-    """
-    try:
-        personas_list = personas_data.get("personas", [])
-        product_id = personas_data.get("product_id")  # Optional product association
-
-        if not personas_list:
-            raise HTTPException(status_code=400, detail="No personas provided")
-
-        saved_personas = []
-
-        for persona_dict in personas_list:
-            # Map generated persona fields to database model
-            persona = Persona(
-                tenant_id=tenant_id,
-                product_id=product_id,
-                name=persona_dict.get("name"),
-                description=persona_dict.get("description"),
-                segment=persona_dict.get("segment"),
-                company_size_range=persona_dict.get("company_size_range"),
-                persona_summary=persona_dict.get("persona_summary", ""),
-                key_pain_points=persona_dict.get("key_pain_points", []),
-                buying_triggers=persona_dict.get("buying_triggers", []),
-                feature_priorities=persona_dict.get("feature_priorities", []),
-                budget_authority_min=persona_dict.get("budget_authority_min"),
-                budget_authority_max=persona_dict.get("budget_authority_max"),
-                typical_decision_time_days=persona_dict.get("typical_decision_time_days"),
-                status="active",  # Set as active persona
-                based_on_feedback_count=0,  # Market-research based, not feedback-based
-                confidence_score=0.7,  # Default confidence for market-research personas
-                extra_data={
-                    "source": "founder_workbench",
-                    "generation_method": "market_research",
-                }
-            )
-
-            db.add(persona)
-            saved_personas.append(persona)
-
-        await db.commit()
-
-        # Refresh to get IDs
-        for persona in saved_personas:
-            await db.refresh(persona)
-
-        logger.info(f"Saved {len(saved_personas)} personas from founder workbench for tenant {tenant_id}")
-
-        return {
-            "saved_count": len(saved_personas),
-            "personas": [
-                {
-                    "id": p.id,
-                    "name": p.name,
-                    "segment": p.segment,
-                    "status": p.status,
-                }
-                for p in saved_personas
-            ],
-            "message": f"Successfully saved {len(saved_personas)} personas to your persona library",
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to save personas: {e}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to save personas: {str(e)}")
 
 
 @router.post("/validate-idea")

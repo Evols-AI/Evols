@@ -146,7 +146,6 @@ class PMDecisionBase(BaseModel):
     tradeoffs: Optional[str] = None
     stakeholders: Optional[List[str]] = None
     expected_outcome: Optional[str] = None
-    product_id: Optional[int] = None
 
 
 class PMDecisionCreate(PMDecisionBase):
@@ -198,7 +197,6 @@ class TaskBase(BaseModel):
     stakeholder_reason: Optional[str] = None
     source: Optional[str] = None
     notes: Optional[str] = None
-    product_id: Optional[int] = None
 
 
 class TaskCreate(TaskBase):

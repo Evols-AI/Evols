@@ -4,9 +4,8 @@ Manages skill execution history for retrospective analysis and context building
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func
+from sqlalchemy import select, desc
 from typing import Dict, Any, List, Optional
-from datetime import datetime
 from loguru import logger
 
 from app.models.skill_memory import SkillMemory
@@ -14,7 +13,7 @@ from app.models.skill_memory import SkillMemory
 
 class MemoryManager:
     """
-    Manages skill execution memory.
+    Manages skill execution memory (tenant-scoped).
     Allows AI to reference past work and build context over time.
     """
 
@@ -23,32 +22,16 @@ class MemoryManager:
 
     async def save_skill_output(
         self,
-        product_id: int,
         tenant_id: int,
         skill_name: str,
         skill_category: str,
         input_data: Dict[str, Any],
         output_data: Dict[str, Any],
-        summary: Optional[str] = None
+        summary: Optional[str] = None,
+        product_id: int = None,  # kept for backwards-compat, ignored
     ) -> SkillMemory:
-        """
-        Save a skill execution to memory.
-
-        Args:
-            product_id: Product ID
-            tenant_id: Tenant ID
-            skill_name: Name of skill (e.g., "identify-assumptions")
-            skill_category: Category (e.g., "discovery")
-            input_data: Input to skill (user message, context, etc.)
-            output_data: Output from skill
-            summary: Brief summary of output (optional, auto-generated if not provided)
-
-        Returns:
-            Created SkillMemory object
-        """
-        # Auto-generate summary if not provided
+        """Save a skill execution to memory."""
         if not summary:
-            # Try to extract first 200 chars from output
             if isinstance(output_data, dict) and 'content' in output_data:
                 content = output_data['content']
                 summary = content[:200] if isinstance(content, str) else str(content)[:200]
@@ -56,7 +39,6 @@ class MemoryManager:
                 summary = str(output_data)[:200]
 
         memory = SkillMemory(
-            product_id=product_id,
             tenant_id=tenant_id,
             skill_name=skill_name,
             skill_category=skill_category,
@@ -69,28 +51,19 @@ class MemoryManager:
         await self.db.commit()
         await self.db.refresh(memory)
 
-        logger.info(f"Saved skill memory: {skill_name} for product {product_id}")
+        logger.info(f"Saved skill memory: {skill_name} for tenant {tenant_id}")
 
         return memory
 
     async def get_recent_skill_outputs(
         self,
-        product_id: int,
+        tenant_id: int,
         limit: int = 10,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        product_id: int = None,  # kept for backwards-compat, ignored
     ) -> List[Dict[str, Any]]:
-        """
-        Get recent skill executions for a product.
-
-        Args:
-            product_id: Product ID
-            limit: Maximum number of results
-            category: Filter by skill category (optional)
-
-        Returns:
-            List of skill memory dictionaries
-        """
-        query = select(SkillMemory).where(SkillMemory.product_id == product_id)
+        """Get recent skill executions for a tenant."""
+        query = select(SkillMemory).where(SkillMemory.tenant_id == tenant_id)
 
         if category:
             query = query.where(SkillMemory.skill_category == category)
@@ -113,15 +86,7 @@ class MemoryManager:
         ]
 
     async def get_skill_memory_by_id(self, memory_id: int) -> Optional[Dict[str, Any]]:
-        """
-        Get full details of a specific skill memory.
-
-        Args:
-            memory_id: Memory ID
-
-        Returns:
-            Full skill memory data including input/output
-        """
+        """Get full details of a specific skill memory."""
         result = await self.db.execute(
             select(SkillMemory).where(SkillMemory.id == memory_id)
         )
@@ -132,19 +97,10 @@ class MemoryManager:
 
         return memory.to_dict()
 
-    async def get_memory_stats(self, product_id: int) -> Dict[str, Any]:
-        """
-        Get statistics about skill usage for a product.
-
-        Args:
-            product_id: Product ID
-
-        Returns:
-            Statistics including total executions, category breakdown, most used skills
-        """
-        # Get all memories for this product
+    async def get_memory_stats(self, tenant_id: int) -> Dict[str, Any]:
+        """Get statistics about skill usage for a tenant."""
         result = await self.db.execute(
-            select(SkillMemory).where(SkillMemory.product_id == product_id)
+            select(SkillMemory).where(SkillMemory.tenant_id == tenant_id)
         )
         all_memories = result.scalars().all()
 
@@ -156,18 +112,15 @@ class MemoryManager:
                 'recent_activity': []
             }
 
-        # Calculate category breakdown
         category_counts = {}
         for memory in all_memories:
             cat = memory.skill_category or 'unknown'
             category_counts[cat] = category_counts.get(cat, 0) + 1
 
-        # Calculate most used skills
         skill_counts = {}
         for memory in all_memories:
             skill_counts[memory.skill_name] = skill_counts.get(memory.skill_name, 0) + 1
 
-        # Sort by usage
         most_used = sorted(skill_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
         return {
@@ -189,25 +142,16 @@ class MemoryManager:
 
     async def search_memory(
         self,
-        product_id: int,
+        tenant_id: int,
         search_term: str,
-        limit: int = 20
+        limit: int = 20,
+        product_id: int = None,  # kept for backwards-compat, ignored
     ) -> List[Dict[str, Any]]:
-        """
-        Search skill memory by keyword.
-
-        Args:
-            product_id: Product ID
-            search_term: Search term (searches in summary and skill_name)
-            limit: Maximum results
-
-        Returns:
-            Matching skill memories
-        """
+        """Search skill memory by keyword."""
         from sqlalchemy import or_, func as sqlfunc
 
         query = select(SkillMemory).where(
-            SkillMemory.product_id == product_id,
+            SkillMemory.tenant_id == tenant_id,
             or_(
                 sqlfunc.lower(SkillMemory.summary).contains(search_term.lower()),
                 sqlfunc.lower(SkillMemory.skill_name).contains(search_term.lower())
@@ -237,18 +181,11 @@ class MemoryManager:
             return str(input_data)[:100]
         return str(input_data)[:100]
 
-    async def delete_product_memory(self, product_id: int):
-        """
-        Delete all skill memory for a product.
-
-        Args:
-            product_id: Product ID
-        """
+    async def delete_tenant_memory(self, tenant_id: int):
+        """Delete all skill memory for a tenant."""
         from sqlalchemy import delete
-
         await self.db.execute(
-            delete(SkillMemory).where(SkillMemory.product_id == product_id)
+            delete(SkillMemory).where(SkillMemory.tenant_id == tenant_id)
         )
         await self.db.commit()
-
-        logger.info(f"Deleted all memory for product {product_id}")
+        logger.info(f"Deleted skill memory for tenant {tenant_id}")

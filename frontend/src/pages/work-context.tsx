@@ -13,14 +13,12 @@ import { PageContainer, PageHeader, Card, StatCard, Loading, EmptyState } from '
 import TaskModal from '@/components/work-context/TaskModal'
 import DecisionModal from '@/components/work-context/DecisionModal'
 import WeeklyFocusModal from '@/components/work-context/WeeklyFocusModal'
-import { useProducts } from '@/hooks/useProducts'
 import StrategyTab from '@/components/context/StrategyTab'
 
 type TabType = 'overview' | 'tasks' | 'decisions' | 'meetings' | 'weekly-focus' | 'strategy' | 'ai-sessions'
 
 export default function WorkContext() {
   const router = useRouter()
-  const { selectedProductIds } = useProducts()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedTab, setSelectedTab] = useState<TabType>('overview')
@@ -39,8 +37,6 @@ export default function WorkContext() {
   const [weeklyFocusModalOpen, setWeeklyFocusModalOpen] = useState(false)
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null)
   const [deletingDecisionId, setDeletingDecisionId] = useState<number | null>(null)
-
-  const productId = selectedProductIds[0]
 
   const [aiSummary, setAiSummary] = useState<any>(null)
   const [aiEntries, setAiEntries] = useState<any[]>([])
@@ -457,7 +453,7 @@ export default function WorkContext() {
         )}
 
         {/* ── Strategy Docs Tab ─────────────────────────────────── */}
-        {selectedTab === 'strategy' && <StrategyTab productId={selectedProductIds[0]} />}
+        {selectedTab === 'strategy' && <StrategyTab />}
 
         {/* ── AI Sessions Tab ───────────────────────────────────── */}
         {selectedTab === 'ai-sessions' && (
@@ -513,8 +509,8 @@ export default function WorkContext() {
 
       {selectedAiEntry && <AiEntryDetailModal entry={selectedAiEntry} onClose={() => setSelectedAiEntry(null)} />}
 
-      <TaskModal isOpen={taskModalOpen} onClose={() => { setTaskModalOpen(false); setSelectedTask(null) }} onSuccess={loadData} task={selectedTask} productId={productId} />
-      <DecisionModal isOpen={decisionModalOpen} onClose={() => { setDecisionModalOpen(false); setSelectedDecision(null) }} onSuccess={loadData} decision={selectedDecision} productId={productId} />
+      <TaskModal isOpen={taskModalOpen} onClose={() => { setTaskModalOpen(false); setSelectedTask(null) }} onSuccess={loadData} task={selectedTask} />
+      <DecisionModal isOpen={decisionModalOpen} onClose={() => { setDecisionModalOpen(false); setSelectedDecision(null) }} onSuccess={loadData} decision={selectedDecision} />
       <WeeklyFocusModal isOpen={weeklyFocusModalOpen} onClose={() => setWeeklyFocusModalOpen(false)} onSuccess={loadData} weeklyFocus={weeklyFocus} />
     </div>
   )

@@ -38,7 +38,6 @@ class ProjectResponse(ProjectBase):
     """Project response schema with RICE scores"""
     id: int
     tenant_id: int
-    product_id: Optional[int] = None
     initiative_id: int
     status: ProjectStatus
 

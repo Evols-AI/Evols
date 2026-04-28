@@ -16,7 +16,6 @@ class SkillMemory(BaseModel):
     __tablename__ = 'skill_memory'
 
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey('products.id', ondelete='CASCADE'), nullable=False, index=True)
     tenant_id = Column(Integer, ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False, index=True)
 
     skill_name = Column(String(255), nullable=False)
@@ -29,7 +28,7 @@ class SkillMemory(BaseModel):
     # created_at inherited from BaseModel
 
     def __repr__(self):
-        return f"<SkillMemory(skill_name='{self.skill_name}', product_id={self.product_id})>"
+        return f"<SkillMemory(skill_name='{self.skill_name}', tenant_id={self.tenant_id})>"
 
     def to_dict(self):
         """Convert to dictionary for API responses"""

@@ -28,7 +28,6 @@ router = APIRouter()
 async def list_projects(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
-    product_ids: Optional[str] = Query(None, description="Comma-separated product IDs to filter by"),
     initiative_id: Optional[int] = Query(None, description="Filter by initiative ID"),
     status: Optional[ProjectStatus] = Query(None, description="Filter by status"),
     effort: Optional[ProjectEffort] = Query(None, description="Filter by effort level"),
@@ -41,12 +40,6 @@ async def list_projects(
     Results are sorted by priority_score descending (highest priority first).
     """
     query = select(Project).where(Project.tenant_id == tenant_id)
-
-    # Filter by product_ids if provided
-    if product_ids:
-        ids = [int(id.strip()) for id in product_ids.split(',') if id.strip()]
-        if ids:
-            query = query.where(Project.product_id.in_(ids))
 
     # Apply filters
     if initiative_id is not None:
@@ -334,80 +327,47 @@ async def debug_generation_context(
     Debug endpoint to check what context is available for project generation
     """
     from app.models.initiative import Initiative
-    from app.models.theme import Theme
-    from app.models.persona import Persona
     from app.models.knowledge_base import Capability
-    from sqlalchemy.orm import selectinload
 
-    # Count initiatives and check theme linkage
-    result = await db.execute(
-        select(Initiative)
-        .where(Initiative.tenant_id == tenant_id)
-        .options(selectinload(Initiative.themes))
-    )
+    result = await db.execute(select(Initiative).where(Initiative.tenant_id == tenant_id))
     initiatives = result.scalars().all()
 
-    # Count themes
-    result = await db.execute(select(Theme).where(Theme.tenant_id == tenant_id))
-    themes = result.scalars().all()
-
-    # Count personas
-    result = await db.execute(
-        select(Persona).where(
-            Persona.tenant_id == tenant_id,
-            Persona.status == 'active'
-        )
-    )
-    personas = result.scalars().all()
-
-    # Count capabilities
     result = await db.execute(select(Capability).where(Capability.tenant_id == tenant_id))
     capabilities = result.scalars().all()
 
-    # Count projects
     result = await db.execute(select(Project).where(Project.tenant_id == tenant_id))
     projects = result.scalars().all()
 
-    # Build initiative details
-    initiative_details = []
-    for init in initiatives[:10]:  # Show first 10
-        initiative_details.append({
+    initiative_details = [
+        {
             "id": init.id,
             "title": init.title,
             "status": init.status.value if init.status else None,
-            "theme_count": len(init.themes),
-            "theme_titles": [t.title for t in init.themes[:3]]
-        })
+        }
+        for init in initiatives[:10]
+    ]
 
-    # Check LLM configuration
     try:
         from app.services.llm_service import get_llm_service
         llm = get_llm_service()
         llm_configured = hasattr(llm, 'client') and llm.client is not None
-    except:
+    except Exception:
         llm_configured = False
 
     return {
         "tenant_id": tenant_id,
         "counts": {
             "initiatives": len(initiatives),
-            "themes": len(themes),
-            "personas": len(personas),
             "capabilities": len(capabilities),
             "projects": len(projects)
         },
         "initiatives_sample": initiative_details,
         "llm_configured": llm_configured,
         "diagnosis": {
-            "can_generate_projects": (
-                len(initiatives) > 0 and
-                llm_configured
-            ),
+            "can_generate_projects": len(initiatives) > 0 and llm_configured,
             "issues": [
                 "No initiatives found" if len(initiatives) == 0 else None,
                 "LLM not configured (check API keys in settings)" if not llm_configured else None,
-                "No themes linked to initiatives" if len(initiatives) > 0 and all(len(i.themes) == 0 for i in initiatives) else None,
-                "No feedback/themes exist yet" if len(themes) == 0 else None
             ]
         }
     }

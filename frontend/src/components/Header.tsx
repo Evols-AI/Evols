@@ -4,14 +4,13 @@ import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, LifeBuoy, Spar
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoWordmark } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
-import { ProductSelector } from '@/components/ProductSelector'
 import { TenantSwitcher } from '@/components/TenantSwitcher'
 import { getCurrentUser } from '@/utils/auth'
 
 const NAV_LINKS = [
+  { label: 'How it works', href: '#how-it-works' },
   { label: 'Features', href: '#features' },
-  { label: 'How it works', href: '#how' },
-  { label: 'Pricing', href: '#pricing' },
+  { label: 'Docs', href: '/docs' },
 ]
 
 interface HeaderProps {
@@ -52,7 +51,6 @@ export default function Header({ user, currentPage, variant = 'app' }: HeaderPro
     { href: '/workbench', label: 'Workbench', key: 'workbench', icon: Sparkles },
     { href: '/work-context', label: 'Work Context', key: 'work-context', icon: Briefcase },
     { href: '/context', label: 'Knowledge', key: 'context', icon: Brain },
-    { href: '/personas', label: 'Personas', key: 'personas', icon: Users },
     { href: '/skills', label: 'Skills', key: 'skills', icon: Zap },
   ]
 
@@ -75,8 +73,12 @@ export default function Header({ user, currentPage, variant = 'app' }: HeaderPro
 
           {variant === 'landing' && (
             <nav className="hidden md:flex items-center gap-8">
-              {NAV_LINKS.map(l => (
+              {NAV_LINKS.filter(l =>
+                (!l.href.startsWith('#') || router.pathname === '/') &&
+                !(l.href === '/docs' && router.pathname.startsWith('/docs'))
+              ).map(l => (
                 <a key={l.label} href={l.href}
+                  {...(l.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors tracking-[-0.01em]">
                   {l.label}
                 </a>
@@ -84,7 +86,6 @@ export default function Header({ user, currentPage, variant = 'app' }: HeaderPro
             </nav>
           )}
 
-          {variant === 'app' && user && fullUser?.role !== 'SUPER_ADMIN' && <ProductSelector />}
           {variant === 'app' && user && fullUser?.role !== 'SUPER_ADMIN' && (
             <nav className="flex items-center space-x-6">
               {navItems.map((item) => {

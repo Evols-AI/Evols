@@ -89,9 +89,8 @@ class ContextSource(TenantScopedModel):
     """
     __tablename__ = "context_sources"
 
-    # Tenant & Product association
+    # Tenant association
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
 
     # Source Information
     source_type = Column(SQLEnum(ContextSourceType), nullable=False, index=True)
@@ -155,19 +154,13 @@ class ContextSource(TenantScopedModel):
     urgency_score = Column(Float, nullable=True)  # 0 to 1
     impact_score = Column(Float, nullable=True)  # 0 to 1
 
-    # Theme Assignment (for feedback sources)
-    theme_id = Column(Integer, ForeignKey("theme.id"), nullable=True, index=True)
-    theme_confidence = Column(Float, nullable=True)
-
     # Metadata
     tags = Column(ARRAY(String), nullable=True)  # Custom tags
     extra_data = Column(JSON, nullable=True)  # Source-specific metadata
 
     # Relationships
     tenant = relationship("Tenant", back_populates="context_sources")
-    product = relationship("Product", back_populates="context_sources")
     account = relationship("Account", back_populates="context_sources")
-    theme = relationship("Theme", back_populates="context_sources")
     extracted_entities = relationship("ExtractedEntity", back_populates="source", cascade="all, delete-orphan")
     access_logs = relationship("ContentAccessLog", back_populates="context_source", cascade="all, delete-orphan")
     source_group = relationship("SourceGroup", foreign_keys=[source_group_id], back_populates="sources")
@@ -185,7 +178,6 @@ class ExtractedEntity(TenantScopedModel):
     __tablename__ = "extracted_entities"
 
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
     source_id = Column(Integer, ForeignKey("context_sources.id"), nullable=False, index=True)
 
     # Entity details
@@ -202,7 +194,6 @@ class ExtractedEntity(TenantScopedModel):
     subcategory = Column(String(100), nullable=True)
 
     # Relationships (for linking entities)
-    related_persona_id = Column(Integer, ForeignKey("persona.id"), nullable=True, index=True)
     related_capability_id = Column(Integer, ForeignKey("capabilities.id"), nullable=True, index=True)
 
     # Rich metadata
@@ -224,9 +215,7 @@ class ExtractedEntity(TenantScopedModel):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="extracted_entities")
-    product = relationship("Product", back_populates="extracted_entities")
     source = relationship("ContextSource", back_populates="extracted_entities")
-    related_persona = relationship("Persona")
     related_capability = relationship("Capability")
     initiative_links = relationship("EntityInitiativeLink", back_populates="entity", cascade="all, delete-orphan")
 

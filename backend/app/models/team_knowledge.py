@@ -75,8 +75,6 @@ class KnowledgeEntry(BaseModel):
     embedding = Column(JSON, nullable=True)         # List[float] — 1024-dim Titan v2
     token_count = Column(Integer, nullable=True)    # Token cost of this entry when injected
 
-    # Product attribution
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
     source = Column(String(50), nullable=False, default="claude-code")  # claude-code, cline, manual, etc.
     parent_entry_id = Column(Integer, ForeignKey("knowledge_entries.id", ondelete="SET NULL"), nullable=True)
 
@@ -86,7 +84,6 @@ class KnowledgeEntry(BaseModel):
 
     # Relationships
     user = relationship("User")
-    product = relationship("Product", foreign_keys=[product_id])
     outgoing_edges = relationship("KnowledgeEdge", foreign_keys="KnowledgeEdge.source_entry_id", cascade="all, delete-orphan")
     incoming_edges = relationship("KnowledgeEdge", foreign_keys="KnowledgeEdge.target_entry_id", cascade="all, delete-orphan")
 

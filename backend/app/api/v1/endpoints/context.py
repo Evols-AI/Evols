@@ -39,7 +39,6 @@ async def _push_raw_to_lightrag(content: str, source_label: str) -> None:
 # ===================================
 
 class ContextSourceCreate(BaseModel):
-    product_id: Optional[int] = None
     source_type: ContextSourceType
     name: str
     description: Optional[str] = None
@@ -56,7 +55,6 @@ class ContextSourceCreate(BaseModel):
 class ContextSourceResponse(BaseModel):
     id: int
     tenant_id: int
-    product_id: Optional[int]
     source_type: str
     name: str
     description: Optional[str]
@@ -93,7 +91,6 @@ class SourceGroupResponse(BaseModel):
 
 @router.get("/sources", response_model=List[ContextSourceResponse])
 async def get_context_sources(
-    product_ids: Optional[str] = None,
     source_type: Optional[str] = None,
     status: Optional[str] = None,
     skip: int = 0,
@@ -103,11 +100,6 @@ async def get_context_sources(
 ):
     """Get context sources for current tenant"""
     query = select(ContextSource).where(ContextSource.tenant_id == current_user.tenant_id)
-
-    # Filter by product IDs
-    if product_ids:
-        product_id_list = [int(pid) for pid in product_ids.split(',')]
-        query = query.where(ContextSource.product_id.in_(product_id_list))
 
     # Filter by source type
     if source_type and source_type != 'all':
@@ -126,7 +118,6 @@ async def get_context_sources(
         ContextSourceResponse(
             id=s.id,
             tenant_id=s.tenant_id,
-            product_id=s.product_id,
             source_type=s.source_type.value,
             name=s.name,
             description=s.description,
@@ -144,14 +135,12 @@ async def get_context_sources(
 
 @router.get("/source-groups", response_model=List[SourceGroupResponse])
 async def get_source_groups(
-    product_ids: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get source groups with aggregated stats"""
     from sqlalchemy import func
 
-    # Query for source groups with aggregated data
     query = select(
         SourceGroup,
         func.count(ContextSource.id).label('sources_count'),
@@ -161,11 +150,6 @@ async def get_source_groups(
     ).where(
         SourceGroup.tenant_id == current_user.tenant_id
     ).group_by(SourceGroup.id).order_by(SourceGroup.created_at.desc())
-
-    # Filter by product if specified (check if any source in group matches product)
-    if product_ids:
-        product_id_list = [int(pid) for pid in product_ids.split(',')]
-        query = query.where(ContextSource.product_id.in_(product_id_list))
 
     result = await db.execute(query)
     groups_with_stats = result.all()
@@ -206,7 +190,6 @@ async def get_source_group_sources(
         ContextSourceResponse(
             id=s.id,
             tenant_id=s.tenant_id,
-            product_id=s.product_id,
             source_type=s.source_type.value,
             name=s.name,
             description=s.description,
@@ -231,7 +214,6 @@ async def create_context_source(
     """Create a new context source"""
     new_source = ContextSource(
         tenant_id=current_user.tenant_id,
-        product_id=source.product_id,
         source_type=source.source_type,
         name=source.name,
         description=source.description,
@@ -257,7 +239,6 @@ async def create_context_source(
     return ContextSourceResponse(
         id=new_source.id,
         tenant_id=new_source.tenant_id,
-        product_id=new_source.product_id,
         source_type=new_source.source_type.value,
         name=new_source.name,
         description=new_source.description,
@@ -354,7 +335,6 @@ def _parse_csv_row_to_source_fields(row: dict, source_type_enum: ContextSourceTy
 async def upload_context_file(
     file: UploadFile = File(...),
     name: str = Form(...),
-    product_id: Optional[int] = Form(None),
     description: Optional[str] = Form(None),
     source_type: str = Form("csv_survey"),
     retention_policy: str = Form("30_days"),
@@ -454,7 +434,6 @@ async def upload_context_file(
                         # Create ContextSource linked to the group
                         new_source = ContextSource(
                             tenant_id=current_user.tenant_id,
-                            product_id=product_id,
                             source_group_id=source_group.id,  # Link to group
                             name=row_name,
                             description=description,
@@ -554,7 +533,6 @@ async def upload_context_file(
         # Create context source
         new_source = ContextSource(
             tenant_id=current_user.tenant_id,
-            product_id=product_id,
             source_type=source_type_enum,
             name=name,
             description=description,
@@ -594,7 +572,6 @@ async def upload_context_file(
         return ContextSourceResponse(
             id=new_source.id,
             tenant_id=new_source.tenant_id,
-            product_id=new_source.product_id,
             source_type=new_source.source_type.value,
             name=new_source.name,
             description=new_source.description,

@@ -8,11 +8,9 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from datetime import datetime, timedelta
+import httpx
 from app.core.security_utils import SecuritySanitizer
 
-from app.models.persona import Persona
-from app.models.feedback import Feedback
-from app.models.theme import Theme
 from app.models.initiative import Initiative
 from app.models.context import ContextSource, ExtractedEntity, EntityType
 from app.models.user import User
@@ -117,10 +115,9 @@ class ToolRegistry:
         arguments: Dict[str, Any],
         tenant_id: int,
         db: AsyncSession,
-        product_id: Optional[int] = None,
         user_id: Optional[int] = None
     ) -> Any:
-        """Execute a tool with automatic tenant isolation and optional product scoping"""
+        """Execute a tool with automatic tenant isolation"""
         from loguru import logger
         import inspect
 
@@ -170,18 +167,6 @@ class ToolRegistry:
         else:
             # Tool doesn't accept tenant_id or user, just inject db
             arguments['db'] = db
-
-        # Inject product_id if provided and tool accepts it
-        if product_id is not None:
-            # Check if tool accepts product_id parameter
-            tool_params = {param.name for param in tool.parameters}
-            if 'product_id' in tool_params:
-                logger.info(f"[ToolRegistry] Injecting product_id={product_id} into {tool_name}")
-                arguments['product_id'] = product_id
-            else:
-                logger.warning(f"[ToolRegistry] Tool {tool_name} does not accept product_id parameter")
-        else:
-            logger.warning(f"[ToolRegistry] product_id is None for {tool_name}")
 
         # Check for common parameter name mistakes before execution
         tool_params = {param.name for param in tool.parameters}
@@ -238,9 +223,6 @@ class ToolRegistry:
         else:
             injected_params.add('db')
 
-        if product_id is not None and 'product_id' in tool_params:
-            injected_params.add('product_id')
-
         unexpected_params = provided_params - tool_params - injected_params
         if unexpected_params:
             logger.error(f"[ToolRegistry] Tool {tool_name} received unexpected parameters: {unexpected_params}")
@@ -265,232 +247,308 @@ tool_registry = ToolRegistry()
 # PERSONA TOOLS
 # ===================================
 
+def _graph_node_summary(node: Dict[str, Any], include_attrs: bool = True) -> Dict[str, Any]:
+    """Convert a LightRAG graph node to a compact summary dict."""
+    props = node.get("properties") or {}
+    summary: Dict[str, Any] = {
+        "name": node.get("id", ""),
+        "description": (props.get("description") or "")[:400],
+        "entity_type": (props.get("entity_type") or "").lower(),
+    }
+    if include_attrs:
+        attrs = props.get("attributes")
+        if attrs:
+            summary["attributes"] = attrs
+    return summary
+
+
+async def _fetch_graph_nodes(tenant_id: int) -> tuple[List[Dict], List[Dict]]:
+    """
+    Fetch nodes and edges from the LightRAG graph via the ingestion service client.
+    Returns (nodes, edges).  On failure returns ([], []).
+    """
+    import os
+    from app.core.config import settings
+    from app.services.lightrag_ingestion_service import lightrag_auth_headers, _lightrag_url, invalidate_lightrag_jwt
+
+    url = _lightrag_url()
+    if not url:
+        return [], []
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                f"{url}/graphs",
+                params={"label": "*", "max_depth": 2, "max_nodes": 1000},
+                headers=await lightrag_auth_headers(),
+            )
+            if resp.status_code == 401:
+                invalidate_lightrag_jwt()
+                resp = await client.get(
+                    f"{url}/graphs",
+                    params={"label": "*", "max_depth": 2, "max_nodes": 1000},
+                    headers=await lightrag_auth_headers(),
+                )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("nodes", []), data.get("edges", [])
+    except Exception as e:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(f"_fetch_graph_nodes failed: {e}")
+    return [], []
+
+
+def _filter_nodes_by_type(nodes: List[Dict], entity_type: str) -> List[Dict]:
+    t = entity_type.lower()
+    return [n for n in nodes if (n.get("properties") or {}).get("entity_type", "").lower() == t]
+
+
+def _get_connected_names(node_id: str, nodes: List[Dict], edges: List[Dict], target_type: Optional[str] = None) -> List[str]:
+    ids: set[str] = set()
+    for e in edges:
+        if e.get("source") == node_id:
+            ids.add(e.get("target", ""))
+        elif e.get("target") == node_id:
+            ids.add(e.get("source", ""))
+    node_map = {n.get("id"): n for n in nodes}
+    result = []
+    for nid in ids:
+        n = node_map.get(nid)
+        if n is None:
+            continue
+        if target_type and (n.get("properties") or {}).get("entity_type", "").lower() != target_type:
+            continue
+        result.append(n.get("id", ""))
+    return result
+
+
 @tool_registry.register(
     name="get_personas",
-    description="Get all personas for the tenant with their vote counts",
+    description="Get customer persona profiles from the knowledge graph with their pain points, feature requests, and attributes like sentiment and urgency.",
     parameters=[
         ToolParameter(name="limit", type="integer", description="Maximum number of personas to return", required=False),
-        ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
+        ToolParameter(name="search", type="string", description="Search personas by name (partial match)", required=False),
     ]
 )
-async def get_personas(tenant_id: int, db: AsyncSession, limit: Optional[int] = None, product_id: Optional[int] = None) -> Dict[str, Any]:
-    """Get personas with vote counts"""
-    query = select(Persona).where(Persona.tenant_id == tenant_id)
+async def get_personas(tenant_id: int, db: AsyncSession, limit: Optional[int] = None, search: Optional[str] = None) -> Dict[str, Any]:
+    """Get personas from the knowledge graph."""
+    import httpx as _httpx
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    persona_nodes = _filter_nodes_by_type(nodes, "persona")
 
-    if product_id:
-        query = query.where(Persona.product_id == product_id)
+    if search:
+        search_lower = search.lower()
+        persona_nodes = [n for n in persona_nodes if search_lower in n.get("id", "").lower()]
 
     if limit:
-        query = query.limit(limit)
+        persona_nodes = persona_nodes[:limit]
 
-    result = await db.execute(query)
-    personas = result.scalars().all()
+    personas = []
+    for node in persona_nodes:
+        summary = _graph_node_summary(node)
+        summary["connected_pain_points"] = _get_connected_names(node.get("id", ""), nodes, edges, "painpoint")
+        summary["connected_feature_requests"] = _get_connected_names(node.get("id", ""), nodes, edges, "featurerequest")
+        personas.append(summary)
 
     return {
-        "personas": [
-            {
-                "id": int(p.id),
-                "name": str(p.name),
-                "description": str(p.description) if p.description else "",
-                "segment": str(p.segment) if p.segment else "",
-                "total_votes": int(p.total_votes) if p.total_votes else 0
-            }
-            for p in personas
-        ]
+        "total": len(personas),
+        "personas": personas,
+        "source": "knowledge_graph",
     }
 
 
 @tool_registry.register(
-    name="get_persona_by_id",
-    description="Get detailed information about a specific persona",
+    name="get_persona_by_name",
+    description="Get detailed information about a specific persona from the knowledge graph, including their attributes, pain points, and connected entities.",
     parameters=[
-        ToolParameter(name="persona_id", type="integer", description="ID of the persona"),
-        ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
+        ToolParameter(name="persona_name", type="string", description="Name of the persona to look up"),
     ]
 )
-async def get_persona_by_id(persona_id: int, tenant_id: int, db: AsyncSession, product_id: Optional[int] = None) -> Dict[str, Any]:
-    """Get single persona details"""
-    query = select(Persona).where(
-        Persona.id == persona_id,
-        Persona.tenant_id == tenant_id
-    )
+async def get_persona_by_name(persona_name: str, tenant_id: int, db: AsyncSession) -> Dict[str, Any]:
+    """Get a single persona's full graph context."""
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    persona_nodes = _filter_nodes_by_type(nodes, "persona")
 
-    if product_id:
-        query = query.where(Persona.product_id == product_id)
+    name_lower = persona_name.lower()
+    node = next((n for n in persona_nodes if n.get("id", "").lower() == name_lower), None)
+    if node is None:
+        node = next((n for n in persona_nodes if name_lower in n.get("id", "").lower()), None)
 
-    result = await db.execute(query)
-    persona = result.scalar_one_or_none()
+    if node is None:
+        return {"error": f"Persona '{persona_name}' not found in knowledge graph"}
 
-    if not persona:
-        return {"error": "Persona not found"}
+    nid = node.get("id", "")
+    props = node.get("properties") or {}
+
+    def _neighbor_summaries(target_type: str) -> List[Dict]:
+        ids = _get_connected_names(nid, nodes, edges, target_type)
+        node_map = {n.get("id"): n for n in nodes}
+        result = []
+        for nname in ids:
+            n = node_map.get(nname)
+            if n:
+                result.append(_graph_node_summary(n))
+        return result
 
     return {
-        "id": int(persona.id),
-        "name": str(persona.name),
-        "description": str(persona.description) if persona.description else "",
-        "segment": str(persona.segment) if persona.segment else "",
-        "pain_points": persona.pain_points if persona.pain_points else [],
-        "goals": persona.goals if persona.goals else [],
-        "behaviors": persona.behaviors if persona.behaviors else [],
-        "total_votes": int(persona.total_votes) if persona.total_votes else 0
+        "name": nid,
+        "description": (props.get("description") or "")[:600],
+        "entity_type": "persona",
+        "attributes": props.get("attributes") or {},
+        "connected_pain_points": _neighbor_summaries("painpoint"),
+        "connected_feature_requests": _neighbor_summaries("featurerequest"),
+        "connected_competitors": _neighbor_summaries("competitor"),
+        "connected_business_goals": _neighbor_summaries("businessgoal"),
+        "connected_decisions": _neighbor_summaries("decision"),
+        "source": "knowledge_graph",
     }
 
 
 # ===================================
-# FEEDBACK TOOLS
+# ENTITY-TYPE TOOLS (LightRAG graph)
 # ===================================
 
 @tool_registry.register(
-    name="get_feedback_items",
-    description="Get recent customer feedback and uploaded context sources (CSVs, documents, etc.)",
+    name="get_pain_points",
+    description="Get all PainPoint entities from the knowledge graph with urgency, sentiment, and business impact attributes. Use this to understand what customers are struggling with.",
     parameters=[
-        ToolParameter(name="limit", type="integer", description="Maximum number of items", required=False),
-        ToolParameter(name="date_range", type="string", description="Date range", required=False, enum=["7d", "30d", "90d", "all"]),
-        ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
+        ToolParameter(name="limit", type="integer", description="Maximum number of pain points to return", required=False),
+        ToolParameter(name="search", type="string", description="Filter by keyword in name or description", required=False),
     ]
 )
-async def get_feedback_items(
-    tenant_id: int,
-    db: AsyncSession,
-    limit: Optional[int] = 50,
-    date_range: Optional[str] = "all",
-    product_id: Optional[int] = None
-) -> Dict[str, Any]:
-    """Get customer feedback from uploaded context sources"""
-    from app.models.context import ContextProcessingStatus
+async def get_pain_points(tenant_id: int, db: AsyncSession, limit: Optional[int] = None, search: Optional[str] = None) -> Dict[str, Any]:
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    result_nodes = _filter_nodes_by_type(nodes, "painpoint")
 
-    query = select(ContextSource).where(
-        ContextSource.tenant_id == tenant_id,
-        ContextSource.status == ContextProcessingStatus.COMPLETED
-    )
-
-    if product_id:
-        query = query.where(ContextSource.product_id == product_id)
-
-    # Apply date filter
-    if date_range and date_range != "all":
-        days_map = {"7d": 7, "30d": 30, "90d": 90}
-        days = days_map.get(date_range, 30)
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        query = query.where(ContextSource.created_at >= cutoff)
-
-    query = query.order_by(ContextSource.created_at.desc())
+    if search:
+        s = search.lower()
+        result_nodes = [n for n in result_nodes if s in n.get("id", "").lower() or s in (n.get("properties") or {}).get("description", "").lower()]
 
     if limit:
-        query = query.limit(limit)
+        result_nodes = result_nodes[:limit]
 
-    result = await db.execute(query)
-    items = result.scalars().all()
+    items = []
+    for node in result_nodes:
+        summary = _graph_node_summary(node)
+        summary["related_personas"] = _get_connected_names(node.get("id", ""), nodes, edges, "persona")
+        items.append(summary)
 
-    return {
-        "feedback_items": [
-            {
-                "id": int(item.id),
-                "content": str(item.content)[:500] if item.content else "",
-                "source": str(item.name) if item.name else str(item.source_type.value) if item.source_type else "unknown",
-                "source_type": str(item.source_type.value) if item.source_type else "unknown",
-                "customer_segment": str(item.customer_segment) if item.customer_segment else None,
-                "sentiment_score": float(item.sentiment_score) if item.sentiment_score is not None else 0.0,
-                "created_at": item.created_at.isoformat() if item.created_at else None
-            }
-            for item in items
-        ],
-        "total_count": len(items)
-    }
+    return {"total": len(items), "pain_points": items, "source": "knowledge_graph"}
 
 
 @tool_registry.register(
-    name="get_feedback_summary",
-    description="Get summary statistics about customer feedback and uploaded context sources",
+    name="get_feature_requests",
+    description="Get FeatureRequest entities from the knowledge graph with urgency, business impact, and related personas. Use this to understand what customers want built.",
     parameters=[
-        ToolParameter(name="date_range", type="string", description="Date range", required=False, enum=["7d", "30d", "90d", "all"]),
-        ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
+        ToolParameter(name="limit", type="integer", description="Maximum number of feature requests to return", required=False),
+        ToolParameter(name="search", type="string", description="Filter by keyword in name or description", required=False),
     ]
 )
-async def get_feedback_summary(
-    tenant_id: int,
-    db: AsyncSession,
-    date_range: Optional[str] = "30d",
-    product_id: Optional[int] = None
-) -> Dict[str, Any]:
-    """Get feedback summary stats from context sources"""
-    from app.models.context import ContextProcessingStatus
+async def get_feature_requests(tenant_id: int, db: AsyncSession, limit: Optional[int] = None, search: Optional[str] = None) -> Dict[str, Any]:
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    result_nodes = _filter_nodes_by_type(nodes, "featurerequest")
 
-    query = select(ContextSource).where(
-        ContextSource.tenant_id == tenant_id,
-        ContextSource.status == ContextProcessingStatus.COMPLETED
-    )
-
-    if product_id:
-        query = query.where(ContextSource.product_id == product_id)
-
-    # Apply date filter
-    if date_range and date_range != "all":
-        days_map = {"7d": 7, "30d": 30, "90d": 90}
-        days = days_map.get(date_range, 30)
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        query = query.where(ContextSource.created_at >= cutoff)
-
-    result = await db.execute(query)
-    items = result.scalars().all()
-
-    # Calculate sentiment distribution based on sentiment_score
-    sentiment_counts = {"positive": 0, "neutral": 0, "negative": 0}
-    for item in items:
-        if item.sentiment_score is not None:
-            if item.sentiment_score > 0.2:
-                sentiment_counts["positive"] += 1
-            elif item.sentiment_score < -0.2:
-                sentiment_counts["negative"] += 1
-            else:
-                sentiment_counts["neutral"] += 1
-
-    return {
-        "total_feedback": int(len(items)),
-        "date_range": str(date_range) if date_range else "all",
-        "sentiment_distribution": sentiment_counts
-    }
-
-
-# ===================================
-# THEME TOOLS
-# ===================================
-
-@tool_registry.register(
-    name="get_themes",
-    description="Get customer feedback themes/clusters",
-    parameters=[
-        ToolParameter(name="limit", type="integer", description="Maximum number of themes", required=False),
-        ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
-    ]
-)
-async def get_themes(tenant_id: int, db: AsyncSession, limit: Optional[int] = None, product_id: Optional[int] = None) -> Dict[str, Any]:
-    """Get themes"""
-    query = select(Theme).where(Theme.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(Theme.product_id == product_id)
-
-    query = query.order_by(Theme.feedback_count.desc())
+    if search:
+        s = search.lower()
+        result_nodes = [n for n in result_nodes if s in n.get("id", "").lower() or s in (n.get("properties") or {}).get("description", "").lower()]
 
     if limit:
-        query = query.limit(limit)
+        result_nodes = result_nodes[:limit]
 
-    result = await db.execute(query)
-    themes = result.scalars().all()
+    items = []
+    for node in result_nodes:
+        summary = _graph_node_summary(node)
+        summary["related_personas"] = _get_connected_names(node.get("id", ""), nodes, edges, "persona")
+        summary["related_features"] = _get_connected_names(node.get("id", ""), nodes, edges, "feature")
+        items.append(summary)
 
-    return {
-        "themes": [
-            {
-                "id": int(theme.id),
-                "label": str(theme.label) if theme.label else "",
-                "description": str(theme.description) if theme.description else "",
-                "feedback_count": int(theme.feedback_count) if theme.feedback_count else 0,
-                "sentiment_avg": float(theme.sentiment_avg) if theme.sentiment_avg is not None else 0.0
-            }
-            for theme in themes
-        ]
-    }
+    return {"total": len(items), "feature_requests": items, "source": "knowledge_graph"}
+
+
+@tool_registry.register(
+    name="get_competitors",
+    description="Get Competitor entities from the knowledge graph. Use this to understand the competitive landscape and how competitors relate to personas and products.",
+    parameters=[
+        ToolParameter(name="limit", type="integer", description="Maximum number of competitors to return", required=False),
+        ToolParameter(name="search", type="string", description="Filter by name or description keyword", required=False),
+    ]
+)
+async def get_competitors(tenant_id: int, db: AsyncSession, limit: Optional[int] = None, search: Optional[str] = None) -> Dict[str, Any]:
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    result_nodes = _filter_nodes_by_type(nodes, "competitor")
+
+    if search:
+        s = search.lower()
+        result_nodes = [n for n in result_nodes if s in n.get("id", "").lower() or s in (n.get("properties") or {}).get("description", "").lower()]
+
+    if limit:
+        result_nodes = result_nodes[:limit]
+
+    items = []
+    for node in result_nodes:
+        summary = _graph_node_summary(node)
+        summary["related_personas"] = _get_connected_names(node.get("id", ""), nodes, edges, "persona")
+        summary["related_products"] = _get_connected_names(node.get("id", ""), nodes, edges, "product")
+        items.append(summary)
+
+    return {"total": len(items), "competitors": items, "source": "knowledge_graph"}
+
+
+@tool_registry.register(
+    name="get_business_goals",
+    description="Get BusinessGoal entities from the knowledge graph with confidence and business impact attributes. Use this to align decisions with organisational goals.",
+    parameters=[
+        ToolParameter(name="limit", type="integer", description="Maximum number of goals to return", required=False),
+        ToolParameter(name="search", type="string", description="Filter by keyword", required=False),
+    ]
+)
+async def get_business_goals(tenant_id: int, db: AsyncSession, limit: Optional[int] = None, search: Optional[str] = None) -> Dict[str, Any]:
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    result_nodes = _filter_nodes_by_type(nodes, "businessgoal")
+
+    if search:
+        s = search.lower()
+        result_nodes = [n for n in result_nodes if s in n.get("id", "").lower() or s in (n.get("properties") or {}).get("description", "").lower()]
+
+    if limit:
+        result_nodes = result_nodes[:limit]
+
+    items = []
+    for node in result_nodes:
+        summary = _graph_node_summary(node)
+        summary["related_projects"] = _get_connected_names(node.get("id", ""), nodes, edges, "project")
+        summary["related_metrics"] = _get_connected_names(node.get("id", ""), nodes, edges, "metric")
+        items.append(summary)
+
+    return {"total": len(items), "business_goals": items, "source": "knowledge_graph"}
+
+
+@tool_registry.register(
+    name="get_metrics",
+    description="Get Metric entities from the knowledge graph. Use this to understand how outcomes are measured and which metrics are connected to goals or decisions.",
+    parameters=[
+        ToolParameter(name="limit", type="integer", description="Maximum number of metrics to return", required=False),
+        ToolParameter(name="search", type="string", description="Filter by keyword", required=False),
+    ]
+)
+async def get_metrics(tenant_id: int, db: AsyncSession, limit: Optional[int] = None, search: Optional[str] = None) -> Dict[str, Any]:
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    result_nodes = _filter_nodes_by_type(nodes, "metric")
+
+    if search:
+        s = search.lower()
+        result_nodes = [n for n in result_nodes if s in n.get("id", "").lower() or s in (n.get("properties") or {}).get("description", "").lower()]
+
+    if limit:
+        result_nodes = result_nodes[:limit]
+
+    items = []
+    for node in result_nodes:
+        summary = _graph_node_summary(node)
+        summary["related_business_goals"] = _get_connected_names(node.get("id", ""), nodes, edges, "businessgoal")
+        items.append(summary)
+
+    return {"total": len(items), "metrics": items, "source": "knowledge_graph"}
 
 
 # ===================================
@@ -503,7 +561,6 @@ async def get_themes(tenant_id: int, db: AsyncSession, limit: Optional[int] = No
     parameters=[
         ToolParameter(name="status", type="string", description="Filter by status", required=False, enum=["idea", "backlog", "planned", "in_progress", "launched"]),
         ToolParameter(name="limit", type="integer", description="Maximum number of features", required=False),
-        ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
     ]
 )
 async def get_features(
@@ -511,13 +568,9 @@ async def get_features(
     db: AsyncSession,
     status: Optional[str] = None,
     limit: Optional[int] = None,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get initiatives/features"""
     query = select(Initiative).where(Initiative.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(Initiative.product_id == product_id)
 
     if status:
         query = query.where(Initiative.status == status)
@@ -615,12 +668,6 @@ async def calculate_rice_score(
             description="Filter personas (e.g., 'CTO', 'VP', 'active status'). Leave empty for all personas.",
             required=False
         ),
-        ToolParameter(
-            name="product_id",
-            type="integer",
-            description="Filter personas by product ID. Leave empty to include all products.",
-            required=False
-        )
     ]
 )
 async def simulate_persona_votes(
@@ -629,116 +676,108 @@ async def simulate_persona_votes(
     tenant_id: int,
     db: AsyncSession,
     persona_filter: Optional[str] = None,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
-    """Ask persona twins to vote on options"""
-    from app.services.persona_twin import PersonaTwinService
-    from app.services.llm_service import get_llm_service_for_tenant
+    """Ask persona digital twins (sourced from the knowledge graph) to vote on options."""
+    from app.services.llm_service import get_llm_service
+    from app.core.security import decrypt_llm_config
+    from app.models.tenant import Tenant as TenantModel
 
-    # Get personas
-    query = select(Persona).where(Persona.tenant_id == tenant_id)
+    # Fetch persona nodes from the knowledge graph
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    persona_nodes = _filter_nodes_by_type(nodes, "persona")
 
-    # Filter by product if specified
-    if product_id:
-        query = query.where(Persona.product_id == product_id)
-
-    # Apply filter
     if persona_filter:
         filter_lower = persona_filter.lower()
-        if 'active' in filter_lower:
-            from app.schemas.persona import PersonaStatus
-            query = query.where(Persona.status == PersonaStatus.ACTIVE)
-        else:
-            # Word-based matching: split filter into words and match if ANY word is in name/segment
-            # This handles plurals/variations: "product managers" matches "Product Manager"
-            filter_words = [w.strip() for w in filter_lower.replace(',', ' ').split() if len(w.strip()) > 2]
+        filter_words = [w.strip() for w in filter_lower.replace(',', ' ').split() if len(w.strip()) > 2]
+        if filter_words:
+            persona_nodes = [
+                n for n in persona_nodes
+                if any(w in n.get("id", "").lower() for w in filter_words)
+            ]
 
-            if filter_words:
-                # Build OR conditions for each word
-                conditions = []
-                for word in filter_words:
-                    conditions.append(func.lower(Persona.name).contains(word))
-                    conditions.append(func.lower(Persona.segment).contains(word))
-
-                query = query.where(or_(*conditions))
-
-    result = await db.execute(query)
-    personas = result.scalars().all()
-
-    if not personas:
+    if not persona_nodes:
         if persona_filter:
             return {
-                "error": f"No personas found matching '{persona_filter}'",
-                "suggestion": f"Try asking 'all personas' or check persona names/segments match your filter"
+                "error": f"No personas found in knowledge graph matching '{persona_filter}'",
+                "suggestion": "Use get_personas to see available personas",
             }
-        else:
-            return {
-                "error": "No personas found. Create persona twins first to get their input on decisions.",
-                "suggestion": "Go to the Personas page to create persona twins from your customer feedback data"
-            }
+        return {
+            "error": "No personas found in knowledge graph. Ingest documents first so LightRAG can extract persona entities.",
+            "suggestion": "Go to Context Sources to upload customer interviews or feedback documents",
+        }
 
-    # Get tenant config for PersonaTwinService
-    from app.core.security import decrypt_llm_config
-    from app.models.tenant import Tenant
-
-    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
-    tenant = result.scalar_one_or_none()
+    # Load tenant LLM config
+    tenant_result = await db.execute(select(TenantModel).where(TenantModel.id == tenant_id))
+    tenant = tenant_result.scalar_one_or_none()
     tenant_config = decrypt_llm_config(tenant.llm_config) if tenant and tenant.llm_config else None
 
-    persona_service = PersonaTwinService(tenant_config)
+    llm = get_llm_service(tenant_config)
 
-    # Collect votes from each persona
+    # Format options for prompt
+    options_text = "\n".join(
+        f"- Option {i+1}: {o.get('name', o.get('id', str(i+1)))}: {o.get('description', '')}"
+        for i, o in enumerate(options)
+    )
+
+    # Collect votes from each persona via direct LLM calls
     votes = []
-    for persona in personas:
+    for node in persona_nodes:
+        props = node.get("properties") or {}
+        persona_name = node.get("id", "Unknown")
+        persona_desc = (props.get("description") or "")[:600]
+        persona_segment = (props.get("attributes") or {}).get("segment") or ""
+
+        prompt = f"""You are simulating a customer persona to vote on a product decision.
+
+Persona: {persona_name}
+Segment: {persona_segment}
+Background: {persona_desc}
+
+Question: {question}
+
+Options:
+{options_text}
+
+Based on this persona's background and needs, which option would they prefer?
+Respond in JSON:
+{{"choice": "<option name>", "reasoning": "<1-2 sentence explanation from persona's perspective>", "confidence": <0.0-1.0>}}"""
+
         try:
-            # Ask persona to vote
-            vote_result = await persona_service.vote_on_options(
-                persona=persona,
-                question=question,
-                options=options,
-                db=db
-            )
-
-            # Ensure citations are serializable (extract only primitive fields)
-            citations = []
-            for cite in vote_result.get("citations", [])[:2]:
-                if isinstance(cite, dict):
-                    citations.append({
-                        "feedback_id": int(cite.get("feedback_id", 0)),
-                        "content": str(cite.get("content", ""))
-                    })
-
-            votes.append({
-                "persona_id": int(vote_result["persona_id"]),
-                "persona_name": str(vote_result["persona_name"]),
-                "segment": str(vote_result["segment"]),
-                "choice": str(vote_result.get("choice", "")) if vote_result.get("choice") else None,
-                "reasoning": str(vote_result.get("reasoning", ""))[:300],
-                "confidence": int(vote_result.get("confidence", 0) * 100),
-                "citations": citations
-            })
+            response = await llm.generate(prompt=prompt, temperature=0.3, max_tokens=300)
+            import json as _json, re as _re
+            m = _re.search(r'\{.*\}', response.content, _re.DOTALL)
+            if m:
+                result = _json.loads(m.group())
+                votes.append({
+                    "persona_name": persona_name,
+                    "segment": persona_segment,
+                    "choice": str(result.get("choice", "")) or None,
+                    "reasoning": str(result.get("reasoning", ""))[:300],
+                    "confidence": int(float(result.get("confidence", 0.5)) * 100),
+                })
+            else:
+                votes.append({"persona_name": persona_name, "segment": persona_segment, "choice": None, "reasoning": response.content[:200], "confidence": 0})
         except Exception as e:
             votes.append({
-                "persona_id": int(persona.id),
-                "persona_name": str(persona.name),
-                "segment": str(persona.segment),
+                "persona_name": persona_name,
+                "segment": persona_segment,
                 "choice": None,
                 "reasoning": f"Error: {str(e)}",
                 "confidence": 0,
-                "citations": []
             })
 
     return {
         "question": question,
-        "total_personas": len(personas),
+        "total_personas": len(persona_nodes),
         "votes": votes,
-        "options": options
+        "options": options,
+        "source": "knowledge_graph",
     }
 
 
 @tool_registry.register(
     name="pull_decision_context",
-    description="Pull relevant feedback themes and customer data for a strategic decision",
+    description="Pull relevant customer context and extracted entities for a strategic decision",
     parameters=[
         ToolParameter(
             name="objective",
@@ -752,12 +791,6 @@ async def simulate_persona_votes(
             required=False,
             items={"type": "string"}
         ),
-        ToolParameter(
-            name="product_id",
-            type="integer",
-            description="Filter by product ID",
-            required=False
-        )
     ]
 )
 async def pull_decision_context(
@@ -765,50 +798,28 @@ async def pull_decision_context(
     tenant_id: int,
     db: AsyncSession,
     segments: Optional[List[str]] = None,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Pull relevant context for decision making"""
-    # Get themes
-    query = select(Theme).where(Theme.tenant_id == tenant_id)
-    if product_id:
-        query = query.where(Theme.product_id == product_id)
-    query = query.order_by(Theme.total_arr.desc())
-    result = await db.execute(query.limit(10))
-    themes = result.scalars().all()
+    from app.models.context import ContextProcessingStatus
 
     # Get recent context sources (uploaded customer feedback)
-    from app.models.context import ContextProcessingStatus
     query = select(ContextSource).where(
         ContextSource.tenant_id == tenant_id,
         ContextSource.status == ContextProcessingStatus.COMPLETED
     )
-    if product_id:
-        query = query.where(ContextSource.product_id == product_id)
     query = query.order_by(ContextSource.impact_score.desc().nullslast())
     result = await db.execute(query.limit(20))
     context_sources = result.scalars().all()
 
-    # Get extracted entities related to objective
+    # Get extracted entities
     query = select(ExtractedEntity).where(
         ExtractedEntity.tenant_id == tenant_id
     )
-    if product_id:
-        query = query.where(ExtractedEntity.product_id == product_id)
     result = await db.execute(query.order_by(ExtractedEntity.confidence_score.desc().nullslast()).limit(50))
     entities = result.scalars().all()
 
     return {
         "objective": objective,
-        "themes": [
-            {
-                "id": int(t.id),
-                "title": str(t.title) if t.title else "",
-                "description": str(t.description) if t.description else "",
-                "total_arr": float(t.total_arr) if t.total_arr else 0.0,
-                "urgency": float(t.urgency_score) if t.urgency_score else 0.0
-            }
-            for t in themes
-        ],
         "context_sources": [
             {
                 "id": int(cs.id),
@@ -871,7 +882,6 @@ async def get_current_date(tenant_id: int, db: AsyncSession) -> Dict[str, Any]:
         ToolParameter(name="source_type", type="string", description="Filter by source type (optional)", required=False),
         ToolParameter(name="status", type="string", description="Filter by processing status (optional)", required=False),
         ToolParameter(name="limit", type="integer", description="Maximum number of sources to return", required=False),
-        ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
     ]
 )
 async def get_context_sources(
@@ -881,15 +891,11 @@ async def get_context_sources(
     source_type: Optional[str] = None,
     status: Optional[str] = None,
     limit: Optional[int] = 50,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get context sources with optional filtering"""
     from sqlalchemy import or_, func as sqlfunc
 
     query = select(ContextSource).where(ContextSource.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(ContextSource.product_id == product_id)
 
     if source_type and source_type != 'all':
         query = query.where(ContextSource.source_type == source_type)
@@ -949,7 +955,6 @@ async def get_context_sources(
         ToolParameter(name="source_name", type="string", description="Filter by source name using partial match (e.g., 'Acme' will match 'Acme Corp Meeting Notes'). NOTE: Source names may vary - check source names first with get_context_sources if unsure.", required=False),
         ToolParameter(name="customer_name", type="string", description="Filter by customer/company name using partial match (e.g., 'Acme' will match 'Acme Corp')", required=False),
         ToolParameter(name="limit", type="integer", description="Maximum number of entities to return", required=False),
-        ToolParameter(name="product_id", type="integer", description="Filter by product ID", required=False)
     ]
 )
 async def get_extracted_entities(
@@ -960,7 +965,6 @@ async def get_extracted_entities(
     source_name: Optional[str] = None,
     customer_name: Optional[str] = None,
     limit: Optional[int] = 100,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get extracted entities with optional type filtering and search"""
     from sqlalchemy import or_, func as sqlfunc
@@ -969,9 +973,6 @@ async def get_extracted_entities(
     # Always join with source to get source name
     query = select(ExtractedEntity).where(ExtractedEntity.tenant_id == tenant_id)
     query = query.join(ContextSource, ExtractedEntity.source_id == ContextSource.id)
-
-    if product_id:
-        query = query.where(ExtractedEntity.product_id == product_id)
 
     if entity_type and entity_type != 'all':
         query = query.where(ExtractedEntity.entity_type == entity_type)
@@ -1089,24 +1090,16 @@ async def get_entity_summary(tenant_id: int, db: AsyncSession) -> Dict[str, Any]
 @tool_registry.register(
     name="get_product_strategy",
     description="Get the product strategy document - includes vision, mission, goals, target market, positioning",
-    parameters=[
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
-    ]
+    parameters=[]
 )
 async def get_product_strategy(
     tenant_id: int,
     db: AsyncSession,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get product strategy document"""
     from app.models.product_knowledge import ProductKnowledge
 
-    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(ProductKnowledge.product_id == product_id)
-
-    result = await db.execute(query)
+    result = await db.execute(select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id))
     knowledge = result.scalar_one_or_none()
 
     if not knowledge or not knowledge.strategy_doc:
@@ -1115,33 +1108,22 @@ async def get_product_strategy(
             "suggestion": "Add strategy documentation in the Knowledge page (Strategy Docs tab)"
         }
 
-    return {
-        "product_id": product_id,
-        "strategy": knowledge.strategy_doc
-    }
+    return {"strategy": knowledge.strategy_doc}
 
 
 @tool_registry.register(
     name="get_customer_segments",
     description="Get customer segment definitions - target personas, ICP, market segments",
-    parameters=[
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
-    ]
+    parameters=[]
 )
 async def get_customer_segments(
     tenant_id: int,
     db: AsyncSession,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get customer segments document"""
     from app.models.product_knowledge import ProductKnowledge
 
-    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(ProductKnowledge.product_id == product_id)
-
-    result = await db.execute(query)
+    result = await db.execute(select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id))
     knowledge = result.scalar_one_or_none()
 
     if not knowledge or not knowledge.customer_segments_doc:
@@ -1150,33 +1132,22 @@ async def get_customer_segments(
             "suggestion": "Add customer segment documentation in the Knowledge page (Strategy Docs tab)"
         }
 
-    return {
-        "product_id": product_id,
-        "customer_segments": knowledge.customer_segments_doc
-    }
+    return {"customer_segments": knowledge.customer_segments_doc}
 
 
 @tool_registry.register(
     name="get_competitive_landscape",
     description="Get competitive analysis - competitors, differentiation, market positioning, SWOT analysis",
-    parameters=[
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
-    ]
+    parameters=[]
 )
 async def get_competitive_landscape(
     tenant_id: int,
     db: AsyncSession,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get competitive landscape document"""
     from app.models.product_knowledge import ProductKnowledge
 
-    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(ProductKnowledge.product_id == product_id)
-
-    result = await db.execute(query)
+    result = await db.execute(select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id))
     knowledge = result.scalar_one_or_none()
 
     if not knowledge or not knowledge.competitive_landscape_doc:
@@ -1185,33 +1156,22 @@ async def get_competitive_landscape(
             "suggestion": "Add competitive analysis in the Knowledge page (Strategy Docs tab)"
         }
 
-    return {
-        "product_id": product_id,
-        "competitive_landscape": knowledge.competitive_landscape_doc
-    }
+    return {"competitive_landscape": knowledge.competitive_landscape_doc}
 
 
 @tool_registry.register(
     name="get_value_proposition",
     description="Get value proposition - unique selling points, benefits, positioning statement",
-    parameters=[
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
-    ]
+    parameters=[]
 )
 async def get_value_proposition(
     tenant_id: int,
     db: AsyncSession,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get value proposition document"""
     from app.models.product_knowledge import ProductKnowledge
 
-    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(ProductKnowledge.product_id == product_id)
-
-    result = await db.execute(query)
+    result = await db.execute(select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id))
     knowledge = result.scalar_one_or_none()
 
     if not knowledge or not knowledge.value_proposition_doc:
@@ -1220,33 +1180,22 @@ async def get_value_proposition(
             "suggestion": "Add value proposition in the Knowledge page (Strategy Docs tab)"
         }
 
-    return {
-        "product_id": product_id,
-        "value_proposition": knowledge.value_proposition_doc
-    }
+    return {"value_proposition": knowledge.value_proposition_doc}
 
 
 @tool_registry.register(
     name="get_metrics_and_targets",
     description="Get key metrics, OKRs, KPIs, and targets - business goals, success metrics, performance indicators",
-    parameters=[
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
-    ]
+    parameters=[]
 )
 async def get_metrics_and_targets(
     tenant_id: int,
     db: AsyncSession,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get metrics and targets document"""
     from app.models.product_knowledge import ProductKnowledge
 
-    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(ProductKnowledge.product_id == product_id)
-
-    result = await db.execute(query)
+    result = await db.execute(select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id))
     knowledge = result.scalar_one_or_none()
 
     if not knowledge or not knowledge.metrics_and_targets_doc:
@@ -1255,43 +1204,31 @@ async def get_metrics_and_targets(
             "suggestion": "Add metrics and targets in the Knowledge page (Strategy Docs tab)"
         }
 
-    return {
-        "product_id": product_id,
-        "metrics_and_targets": knowledge.metrics_and_targets_doc
-    }
+    return {"metrics_and_targets": knowledge.metrics_and_targets_doc}
 
 
 @tool_registry.register(
     name="get_all_product_knowledge",
-    description="Get all product knowledge documents at once - strategy, segments, competitive landscape, value prop, and metrics. Use this when you need comprehensive product context.",
-    parameters=[
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
-    ]
+    description="Get all team knowledge documents at once - strategy, segments, competitive landscape, value prop, and metrics. Use this when you need comprehensive product context.",
+    parameters=[]
 )
 async def get_all_product_knowledge(
     tenant_id: int,
     db: AsyncSession,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
-    """Get all product knowledge documents"""
+    """Get all team knowledge documents"""
     from app.models.product_knowledge import ProductKnowledge
 
-    query = select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id)
-
-    if product_id:
-        query = query.where(ProductKnowledge.product_id == product_id)
-
-    result = await db.execute(query)
+    result = await db.execute(select(ProductKnowledge).where(ProductKnowledge.tenant_id == tenant_id))
     knowledge = result.scalar_one_or_none()
 
     if not knowledge:
         return {
-            "error": "No product knowledge found",
+            "error": "No team knowledge found",
             "suggestion": "Add product documentation in the Knowledge page (Strategy Docs tab)"
         }
 
     return {
-        "product_id": product_id,
         "strategy": knowledge.strategy_doc or "",
         "customer_segments": knowledge.customer_segments_doc or "",
         "competitive_landscape": knowledge.competitive_landscape_doc or "",
@@ -1311,11 +1248,10 @@ async def get_all_product_knowledge(
 
 @tool_registry.register(
     name="get_past_skill_work",
-    description="Get recent skill executions and past work for this product. Use when you need to reference what analysis/frameworks/work was done before. Returns summaries with skill name, date, and brief overview.",
+    description="Get recent skill executions and past work. Use when you need to reference what analysis/frameworks/work was done before. Returns summaries with skill name, date, and brief overview.",
     parameters=[
         ToolParameter(name="limit", type="integer", description="Maximum results to return (default: 10)", required=False),
         ToolParameter(name="category", type="string", description="Filter by skill category: discovery, strategy, execution, market-research, data-analytics, go-to-market, marketing-growth, toolkit, os-infrastructure, daily-discipline", required=False),
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
     ]
 )
 async def get_past_skill_work(
@@ -1323,26 +1259,15 @@ async def get_past_skill_work(
     db: AsyncSession,
     limit: int = 10,
     category: Optional[str] = None,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get recent skill executions to understand what work has been done"""
     from app.services.unified_pm_os import MemoryManager
-    from app.models.product import Product
 
     mm = MemoryManager(db)
 
-    if not product_id:
-        result = await db.execute(
-            select(Product).where(Product.tenant_id == tenant_id).limit(1)
-        )
-        product = result.scalar_one_or_none()
-        if not product:
-            return {"error": "No product found", "suggestion": "Create a product first"}
-        product_id = product.id
-
     try:
         recent_work = await mm.get_recent_skill_outputs(
-            product_id=product_id,
+            tenant_id=tenant_id,
             limit=limit,
             category=category
         )
@@ -1354,7 +1279,6 @@ async def get_past_skill_work(
             }
 
         return {
-            "product_id": product_id,
             "total_results": len(recent_work),
             "past_work": [
                 {
@@ -1418,7 +1342,6 @@ async def get_skill_memory_details(
     parameters=[
         ToolParameter(name="search_term", type="string", description="Keyword to search for"),
         ToolParameter(name="limit", type="integer", description="Maximum results (default: 20)", required=False),
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
     ]
 )
 async def search_past_skill_work(
@@ -1426,22 +1349,15 @@ async def search_past_skill_work(
     tenant_id: int,
     db: AsyncSession,
     limit: int = 20,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Search skill memory by keyword"""
     from app.services.unified_pm_os import MemoryManager
 
     mm = MemoryManager(db)
 
-    if not product_id:
-        return {
-            "error": "No product selected",
-            "suggestion": "Product ID is required to search past work"
-        }
-
     try:
         results = await mm.search_memory(
-            product_id=product_id,
+            tenant_id=tenant_id,
             search_term=search_term,
             limit=limit
         )
@@ -1474,31 +1390,22 @@ async def search_past_skill_work(
 
 @tool_registry.register(
     name="get_skill_usage_stats",
-    description="Get statistics about skill usage for this product - which skills are used most, category breakdown, recent activity. Useful for understanding what work has been prioritized.",
-    parameters=[
-        ToolParameter(name="product_id", type="integer", description="Product ID", required=False)
-    ]
+    description="Get statistics about skill usage - which skills are used most, category breakdown, recent activity. Useful for understanding what work has been prioritized.",
+    parameters=[]
 )
 async def get_skill_usage_stats(
     tenant_id: int,
     db: AsyncSession,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get skill usage statistics"""
     from app.services.unified_pm_os import MemoryManager
 
     mm = MemoryManager(db)
 
-    if not product_id:
-        return {
-            "error": "No product selected"
-        }
-
     try:
-        stats = await mm.get_memory_stats(product_id)
+        stats = await mm.get_memory_stats(tenant_id)
 
         return {
-            "product_id": product_id,
             "total_skill_executions": stats['total_executions'],
             "category_breakdown": stats['category_breakdown'],
             "most_used_skills": stats['most_used_skills'],
@@ -2177,7 +2084,6 @@ async def set_weekly_focus(
         ToolParameter(name="tradeoffs", type="string", description="What we're giving up or risks accepted", required=False),
         ToolParameter(name="stakeholders", type="array", description="Array of stakeholder names involved", required=False),
         ToolParameter(name="expected_outcome", type="string", description="What we expect to happen as a result", required=False),
-        ToolParameter(name="product_id", type="integer", description="Product ID if decision is product-specific", required=False)
     ]
 )
 async def log_pm_decision(
@@ -2192,7 +2098,6 @@ async def log_pm_decision(
     tradeoffs: Optional[str] = None,
     stakeholders: Optional[List[str]] = None,
     expected_outcome: Optional[str] = None,
-    product_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Log a PM decision to the database"""
     from datetime import datetime
@@ -2217,7 +2122,6 @@ async def log_pm_decision(
         # Create decision
         pm_decision = PMDecision(
             user_id=user.id,
-            product_id=product_id,
             decision_number=next_num,
             title=title,
             category=DecisionCategory(category.lower()),
@@ -2667,7 +2571,6 @@ async def invoke_skill(
     tenant_id: int = None,
     db: AsyncSession = None,
     user = None,
-    product_id: int = None
 ) -> Dict[str, Any]:
     """
     Invoke another skill and return its output.
@@ -2719,7 +2622,7 @@ async def invoke_skill(
             user_id=user.id,
             tenant_id=tenant_id,
             session_name=f"Inter-skill call: {skill_name}",
-            context_data={'product_id': product_id} if product_id else None,
+            context_data=None,
             created_at=datetime.utcnow(),
             last_message_at=datetime.utcnow()
         )
@@ -2762,7 +2665,7 @@ async def invoke_skill(
         tools_config = {**skill_config, 'tools': skill_tools}
 
         # Build system prompt for the invoked skill
-        system_prompt = await copilot.build_system_prompt(skill_config, product_id=product_id)
+        system_prompt = await copilot.build_system_prompt(skill_config)
 
         # Get LLM service
         llm_service = await copilot.get_llm_service()
@@ -2776,7 +2679,6 @@ async def invoke_skill(
             llm_service=llm_service,
             tenant_id=tenant_id,
             db=db,
-            product_id=product_id,
             user=user
         )
 

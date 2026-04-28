@@ -1,12 +1,11 @@
 """
 Knowledge API Endpoints
-Manage product knowledge documents (strategy, segments, competitive, etc.)
+Manage team knowledge documents (strategy, segments, competitive, etc.)
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
-from typing import Optional
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
@@ -15,10 +14,6 @@ from app.services.unified_pm_os import KnowledgeManager
 
 router = APIRouter()
 
-
-# ===================================
-# REQUEST/RESPONSE MODELS
-# ===================================
 
 class KnowledgeResponse(BaseModel):
     strategy_doc: str
@@ -29,7 +24,7 @@ class KnowledgeResponse(BaseModel):
 
 
 class KnowledgeUpdateRequest(BaseModel):
-    doc_type: str  # 'strategy', 'customer_segments', 'competitive_landscape', 'value_proposition', 'metrics_and_targets'
+    doc_type: str
     content: str
 
 
@@ -42,27 +37,15 @@ class KnowledgeSummaryResponse(BaseModel):
     completeness_percentage: int
 
 
-# ===================================
-# ENDPOINTS
-# ===================================
-
-@router.get("/products/{product_id}/knowledge", response_model=KnowledgeResponse)
-async def get_product_knowledge(
-    product_id: int,
+@router.get("/knowledge", response_model=KnowledgeResponse)
+async def get_knowledge(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Get all knowledge documents for a product.
-
-    Returns all 5 knowledge documents (strategy, segments, competitive, value prop, metrics).
-    Empty strings are returned for documents that haven't been filled out yet.
-    """
     km = KnowledgeManager(db)
-    knowledge = await km.get_product_knowledge(product_id)
+    knowledge = await km.get_product_knowledge(current_user.tenant_id)
 
     if not knowledge:
-        # Return empty template
         return KnowledgeResponse(
             strategy_doc="",
             customer_segments_doc="",
@@ -74,77 +57,85 @@ async def get_product_knowledge(
     return KnowledgeResponse(**knowledge)
 
 
-@router.put("/products/{product_id}/knowledge")
+@router.put("/knowledge")
 async def update_knowledge_doc(
-    product_id: int,
     request: KnowledgeUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Update a specific knowledge document.
-
-    Args:
-        product_id: Product ID
-        doc_type: One of: 'strategy', 'customer_segments', 'competitive_landscape',
-                  'value_proposition', 'metrics_and_targets'
-        content: Markdown content of the document
-    """
     km = KnowledgeManager(db)
 
     try:
-        result = await km.update_knowledge_doc(
-            product_id=product_id,
+        await km.update_knowledge_doc(
             tenant_id=current_user.tenant_id,
             doc_type=request.doc_type,
             content=request.content
         )
-
-        return {
-            "status": "success",
-            "message": f"Updated {request.doc_type} successfully"
-        }
-
+        return {"status": "success", "message": f"Updated {request.doc_type} successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update knowledge: {str(e)}")
 
 
-@router.get("/products/{product_id}/knowledge/summary", response_model=KnowledgeSummaryResponse)
+@router.get("/knowledge/summary", response_model=KnowledgeSummaryResponse)
 async def get_knowledge_summary(
-    product_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Get a summary of what knowledge is available for a product.
-
-    Returns which documents have been filled out and overall completeness percentage.
-    Useful for showing onboarding progress.
-    """
     km = KnowledgeManager(db)
-    summary = await km.get_knowledge_summary(product_id)
-
+    summary = await km.get_knowledge_summary(current_user.tenant_id)
     return KnowledgeSummaryResponse(**summary)
 
 
-@router.delete("/products/{product_id}/knowledge")
-async def delete_product_knowledge(
+@router.delete("/knowledge")
+async def delete_knowledge(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    km = KnowledgeManager(db)
+    await km.delete_product_knowledge(current_user.tenant_id)
+    return {"status": "success", "message": "Knowledge deleted successfully"}
+
+
+# ── Legacy product-scoped endpoints (redirect to tenant-scoped) ─────────────
+
+@router.get("/products/{product_id}/knowledge", response_model=KnowledgeResponse)
+async def get_product_knowledge_legacy(
     product_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Delete all knowledge for a product.
+    """Legacy endpoint — product_id ignored, uses tenant scope."""
+    return await get_knowledge(current_user=current_user, db=db)
 
-    Use with caution - this removes all knowledge documents for the product.
-    """
-    # TODO: Add admin-only check if needed
-    km = KnowledgeManager(db)
-    await km.delete_product_knowledge(product_id)
 
-    return {
-        "status": "success",
-        "message": "Product knowledge deleted successfully"
-    }
+@router.put("/products/{product_id}/knowledge")
+async def update_knowledge_doc_legacy(
+    product_id: int,
+    request: KnowledgeUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Legacy endpoint — product_id ignored, uses tenant scope."""
+    return await update_knowledge_doc(request=request, current_user=current_user, db=db)
+
+
+@router.get("/products/{product_id}/knowledge/summary", response_model=KnowledgeSummaryResponse)
+async def get_knowledge_summary_legacy(
+    product_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Legacy endpoint — product_id ignored, uses tenant scope."""
+    return await get_knowledge_summary(current_user=current_user, db=db)
+
+
+@router.delete("/products/{product_id}/knowledge")
+async def delete_product_knowledge_legacy(
+    product_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Legacy endpoint — product_id ignored, uses tenant scope."""
+    return await delete_knowledge(current_user=current_user, db=db)

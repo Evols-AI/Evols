@@ -21,22 +21,15 @@ router = APIRouter()
 async def list_initiatives(
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
-    product_ids: Optional[str] = Query(None, description="Comma-separated product IDs to filter by"),
     status: Optional[InitiativeStatus] = Query(None, description="Filter by status"),
     skip: int = Query(0, ge=0, description="Skip N results"),
     limit: int = Query(100, ge=1, le=1000, description="Limit results"),
 ):
     """
-    List initiatives with linked themes and projects.
-    Results include theme count and project count for each initiative.
+    List initiatives with projects.
+    Results include project count for each initiative.
     """
     query = select(Initiative).where(Initiative.tenant_id == tenant_id)
-
-    # Filter by product_ids if provided
-    if product_ids:
-        ids = [int(id.strip()) for id in product_ids.split(',') if id.strip()]
-        if ids:
-            query = query.where(Initiative.product_id.in_(ids))
 
     # Apply filters
     if status is not None:
