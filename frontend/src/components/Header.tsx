@@ -10,6 +10,7 @@ import { getCurrentUser } from '@/utils/auth'
 const NAV_LINKS = [
   { label: 'How it works', href: '#how-it-works' },
   { label: 'Features', href: '#features' },
+  { label: 'Blog', href: '/blog' },
   { label: 'Docs', href: '/docs' },
 ]
 
@@ -75,7 +76,8 @@ export default function Header({ user, currentPage, variant = 'app' }: HeaderPro
             <nav className="hidden md:flex items-center gap-8">
               {NAV_LINKS.filter(l =>
                 (!l.href.startsWith('#') || router.pathname === '/') &&
-                !(l.href === '/docs' && router.pathname.startsWith('/docs'))
+                !(l.href === '/docs' && router.pathname.startsWith('/docs')) &&
+                !(l.href === '/blog' && router.pathname.startsWith('/blog'))
               ).map(l => (
                 <a key={l.label} href={l.href}
                   {...(l.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}

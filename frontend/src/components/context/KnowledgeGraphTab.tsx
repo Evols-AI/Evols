@@ -7,7 +7,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { apiClient } from '@/services/api'
 import api from '@/services/api'
-import { Loading } from '@/components/PageContainer'
+import { Loading, Card, EmptyState } from '@/components/PageContainer'
 import { Loader2, Search, AlertCircle, Network, Upload, Pencil, GitMerge, X } from 'lucide-react'
 
 // ── Entity type colours ───────────────────────────────────────────────────────
@@ -415,18 +415,36 @@ function NodeDetail({
       {attrs && Object.keys(attrs).filter(k => k !== 'confidence' && attrs[k] !== null && attrs[k] !== 'null').length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {attrs.sentiment && attrs.sentiment !== 'null' && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${attrs.sentiment === 'negative' ? 'bg-destructive/10 text-destructive' : attrs.sentiment === 'positive' ? 'bg-chart-3/15 text-chart-3' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+              /^positive$/i.test(attrs.sentiment) ? 'bg-chart-3/20 text-chart-3' :
+              /mostly_positive/i.test(attrs.sentiment) ? 'bg-chart-3/10 text-chart-3' :
+              /^negative$/i.test(attrs.sentiment) ? 'bg-destructive/15 text-destructive' :
+              /mostly_negative/i.test(attrs.sentiment) ? 'bg-destructive/10 text-destructive' :
+              'bg-muted text-muted-foreground'
+            }`}>
               {attrs.sentiment}
             </span>
           )}
           {attrs.urgency && attrs.urgency !== 'null' && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${attrs.urgency === 'high' ? 'bg-destructive/10 text-destructive' : attrs.urgency === 'medium' ? 'bg-chart-4/20 text-chart-4' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+              /^critical$/i.test(attrs.urgency) ? 'bg-destructive/20 text-destructive' :
+              /^high$/i.test(attrs.urgency) ? 'bg-destructive/10 text-destructive' :
+              /^medium$/i.test(attrs.urgency) ? 'bg-chart-4/20 text-chart-4' :
+              /^low$/i.test(attrs.urgency) ? 'bg-muted text-muted-foreground' :
+              'bg-muted/50 text-muted-foreground/60'
+            }`}>
               {attrs.urgency} urgency
             </span>
           )}
           {attrs.business_impact && attrs.business_impact !== 'null' && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium" title={attrs.business_impact}>
-              impact: {String(attrs.business_impact).slice(0, 30)}{String(attrs.business_impact).length > 30 ? '…' : ''}
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+              /^transformative$/i.test(attrs.business_impact) ? 'bg-chart-1/20 text-chart-1' :
+              /^high$/i.test(attrs.business_impact) ? 'bg-chart-1/10 text-chart-1' :
+              /^medium$/i.test(attrs.business_impact) ? 'bg-primary/10 text-primary' :
+              /^low$/i.test(attrs.business_impact) ? 'bg-muted text-muted-foreground' :
+              'bg-muted/50 text-muted-foreground/60'
+            }`}>
+              impact: {attrs.business_impact}
             </span>
           )}
         </div>
@@ -630,23 +648,32 @@ export default function KnowledgeGraphTab({ typeFilter, onTypeFilterChange }: Kn
 
   if (loading) return <Loading text="Loading knowledge graph…" />
   if (error) return (
-    <div className="flex flex-col items-center justify-center h-96 gap-3 text-muted-foreground">
-      <AlertCircle className="w-8 h-8 text-destructive" />
-      <p className="text-sm">{error}</p>
-      <button onClick={loadGraph} className="text-sm text-primary hover:underline">Retry</button>
-    </div>
+    <Card>
+      <EmptyState
+        icon={AlertCircle}
+        title="Failed to load knowledge graph"
+        description={error}
+        action={<button onClick={loadGraph} className="text-sm text-primary hover:underline">Retry</button>}
+      />
+    </Card>
   )
   if (nodes.length === 0) return (
-    <div className="flex flex-col items-center justify-center h-96 gap-4 text-muted-foreground">
-      <Network className="w-10 h-10 opacity-30" />
-      <p className="text-sm font-medium">No knowledge graph data yet</p>
-      <p className="text-xs text-center max-w-sm">Sync your existing context sources, extracted entities, personas, and work context into the graph.</p>
-      <button onClick={syncAll} disabled={syncing} className="flex items-center gap-2 px-4 py-2 bg-primary/85 text-primary-foreground text-sm rounded-lg hover:bg-primary/85 disabled:opacity-50">
-        {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-        {syncing ? 'Syncing…' : 'Sync All Data to Graph'}
-      </button>
-      {syncResult && <p className="text-xs text-center max-w-md text-chart-3">{syncResult}</p>}
-    </div>
+    <Card>
+      <EmptyState
+        icon={Network}
+        title="No knowledge graph data yet"
+        description="Sync your existing context sources, extracted entities, personas, and work context into the graph."
+        action={
+          <div className="flex flex-col items-center gap-2">
+            <button onClick={syncAll} disabled={syncing} className="flex items-center gap-2 px-4 py-2 bg-primary/85 text-primary-foreground text-sm rounded-lg hover:bg-primary/85 disabled:opacity-50">
+              {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {syncing ? 'Syncing…' : 'Sync All Data to Graph'}
+            </button>
+            {syncResult && <p className="text-xs text-center max-w-md text-chart-3">{syncResult}</p>}
+          </div>
+        }
+      />
+    </Card>
   )
 
   const multiSelectNames = [...selectedIds]

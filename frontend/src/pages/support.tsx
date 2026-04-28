@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Send, User, Mail, MessageSquare, AlertCircle, CheckCircle, Moon, Sun, ChevronDown, Check } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoWordmark } from '@/components/Logo'
+import Footer from '@/components/Footer'
 
 export default function Support() {
   const { theme, toggleTheme } = useTheme()
@@ -199,17 +200,7 @@ export default function Support() {
           </div>
         </main>
 
-        <footer className={`border-t border-border py-12 transition-colors duration-300`}>
-          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground`}>
-            <LogoWordmark iconSize={32} />
-            <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-primary">Docs</Link>
-              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-primary">Support</Link>
-              <Link href="/login" className="text-sm transition-colors duration-150 hover:text-primary">Login</Link>
-            </div>
-            <p className="text-xs">© 2026 Evols AI</p>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   )

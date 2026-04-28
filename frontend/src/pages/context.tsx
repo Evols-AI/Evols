@@ -1192,19 +1192,25 @@ function EntityCard({
   const snippet: string | null = attrs.context_snippet && attrs.context_snippet !== 'null' ? attrs.context_snippet : null
 
   const sentimentColor = (s: string) => {
-    if (/positive|good|great/i.test(s)) return 'bg-chart-3/15 text-chart-3'
-    if (/negative|bad|poor/i.test(s)) return 'bg-destructive/10 text-destructive'
+    if (/^positive$/i.test(s)) return 'bg-chart-3/20 text-chart-3'
+    if (/mostly_positive/i.test(s)) return 'bg-chart-3/10 text-chart-3'
+    if (/^negative$/i.test(s)) return 'bg-destructive/15 text-destructive'
+    if (/mostly_negative/i.test(s)) return 'bg-destructive/10 text-destructive'
     return 'bg-muted text-muted-foreground'
   }
   const urgencyColor = (u: string) => {
-    if (/high|critical|urgent/i.test(u)) return 'bg-destructive/10 text-destructive'
-    if (/medium|moderate/i.test(u)) return 'bg-chart-4/20 text-chart-4'
-    return 'bg-muted text-muted-foreground'
+    if (/^critical$/i.test(u)) return 'bg-destructive/20 text-destructive'
+    if (/^high$/i.test(u)) return 'bg-destructive/10 text-destructive'
+    if (/^medium$/i.test(u)) return 'bg-chart-4/20 text-chart-4'
+    if (/^low$/i.test(u)) return 'bg-muted text-muted-foreground'
+    return 'bg-muted/50 text-muted-foreground/60'
   }
   const impactColor = (i: string) => {
-    if (/high/i.test(i)) return 'bg-chart-1/15 text-chart-1'
-    if (/medium/i.test(i)) return 'bg-primary/10 text-primary'
-    return 'bg-muted text-muted-foreground'
+    if (/^transformative$/i.test(i)) return 'bg-chart-1/20 text-chart-1'
+    if (/^high$/i.test(i)) return 'bg-chart-1/10 text-chart-1'
+    if (/^medium$/i.test(i)) return 'bg-primary/10 text-primary'
+    if (/^low$/i.test(i)) return 'bg-muted text-muted-foreground'
+    return 'bg-muted/50 text-muted-foreground/60'
   }
 
   return (

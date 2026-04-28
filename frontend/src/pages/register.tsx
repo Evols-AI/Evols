@@ -2,14 +2,15 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Mail, Lock, User, AlertCircle, CheckCircle, Moon, Sun } from 'lucide-react'
-import { LogoWordmark } from '@/components/Logo'
+import { Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 import { isAuthenticated } from '@/utils/auth'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Register() {
   const router = useRouter()
-  const { theme, toggleTheme } = useTheme()
+  const { theme } = useTheme()
   const dark = theme === 'dark'
   const [formData, setFormData] = useState({
     email: '',
@@ -118,20 +119,7 @@ export default function Register() {
       </Head>
 
       <div className={`min-h-screen flex flex-col transition-colors bg-background`}>
-        <nav className={`fixed top-0 left-0 right-0 z-50 border-b border-border backdrop-blur-xl bg-background/80 transition-colors duration-300`}>
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <Link href="/">
-              <LogoWordmark iconSize={36} />
-            </Link>
-            <div className="flex items-center space-x-4">
-              <button onClick={toggleTheme} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5" aria-label="Toggle theme">
-                {theme === 'light' ? <Moon className="w-5 h-5 text-muted-foreground" /> : <Sun className="w-5 h-5 text-muted-foreground" />}
-              </button>
-              <Link href="/login" className={`hidden md:block text-sm transition-colors text-muted-foreground hover:text-primary`}>Login</Link>
-            </div>
-          </div>
-        </nav>
-        <div className="h-16" />
+        <Header variant="landing" />
         <div className="flex-grow flex items-center justify-center px-6 py-12">
           <div className="grid lg:grid-cols-2 gap-12 items-center w-full max-w-6xl">
             {/* Left Column */}
@@ -276,17 +264,7 @@ export default function Register() {
           </div>
         </div>
 
-        <footer className={`border-t border-border py-12 w-full transition-colors duration-300`}>
-          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground`}>
-            <LogoWordmark iconSize={32} />
-            <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-primary">Docs</Link>
-              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-primary">Support</Link>
-              <Link href="/login" className="text-sm transition-colors duration-150 hover:text-primary">Login</Link>
-            </div>
-            <p className="text-xs">© 2026 Evols AI</p>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   )

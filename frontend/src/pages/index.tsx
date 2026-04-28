@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect } from 'react'
 import {
   ArrowRight,
   Zap, Users, Brain, Shield,
@@ -10,61 +10,8 @@ import {
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import Header from '@/components/Header'
-import { LogoWordmark } from '@/components/Logo'
-
-// ─── Cruip-style mouse-tracking spotlight card with lavender glow ─────────────
-function SpotlightCard({
-  children,
-  dark,
-  className = '',
-}: {
-  children: React.ReactNode
-  dark: boolean
-  className?: string
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    const el = ref.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    el.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
-    el.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
-  }, [])
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.addEventListener('mousemove', handleMouseMove)
-    return () => el.removeEventListener('mousemove', handleMouseMove)
-  }, [handleMouseMove])
-
-  return (
-    <div
-      ref={ref}
-      className={`
-        group/card relative h-full overflow-hidden rounded-2xl p-px
-        ${dark ? 'bg-white/[0.07]' : 'bg-black/[0.08]'}
-        before:pointer-events-none before:absolute before:-left-40 before:-top-40 before:z-10
-        before:h-80 before:w-80
-        before:translate-x-[var(--mouse-x,0px)] before:translate-y-[var(--mouse-y,0px)]
-        before:rounded-full before:bg-primary/70 before:opacity-0 before:blur-3xl
-        before:transition-opacity before:duration-500
-        after:pointer-events-none after:absolute after:-left-48 after:-top-48 after:z-30
-        after:h-64 after:w-64
-        after:translate-x-[var(--mouse-x,0px)] after:translate-y-[var(--mouse-y,0px)]
-        after:rounded-full after:bg-primary after:opacity-0 after:blur-3xl
-        after:transition-opacity after:duration-500
-        hover:after:opacity-15 hover:before:opacity-100
-        ${className}
-      `}
-    >
-      <div className={`relative z-20 h-full overflow-hidden rounded-[inherit] bg-card`}>
-        {children}
-      </div>
-    </div>
-  )
-}
+import Footer from '@/components/Footer'
+import SpotlightCard from '@/components/SpotlightCard'
 
 
 const PROBLEMS = [
@@ -206,9 +153,7 @@ export default function Home() {
   const lavIconBg = dark
     ? 'bg-primary/10 border border-primary/20 text-primary'
     : 'bg-primary/15 border border-primary/30 text-primary'
-  const lavPill = dark
-    ? 'border-primary/30 bg-primary/10 text-primary/80'
-    : 'border-primary/40 bg-primary/15 text-primary'
+
 
   return (
     <>
@@ -253,9 +198,11 @@ export default function Home() {
             className="relative max-w-4xl mx-auto px-6 text-center">
 
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-8 ${lavPill} text-xs font-medium tracking-wide`}>
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: lav }} />
-              Now in early access — limited design partner spots
+              className="inline-flex items-center gap-3 mb-8 before:h-px before:w-8 before:bg-gradient-to-r before:from-transparent before:to-primary/50 after:h-px after:w-8 after:bg-gradient-to-l after:from-transparent after:to-primary/50">
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0" style={{ backgroundColor: lav }} />
+              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent text-xs font-medium tracking-wide">
+                Now in early access — limited design partner spots
+              </span>
             </motion.div>
 
             <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}
@@ -292,7 +239,7 @@ export default function Home() {
 
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
               className={`mt-6 text-xs ${textFaint}`}>
-              No credit card required · Try and Cancel anytime
+              No credit card required • Try and Cancel anytime
             </motion.p>
           </motion.div>
 
@@ -304,7 +251,7 @@ export default function Home() {
                 <div className="w-3 h-3 rounded-full bg-[#FF5F57]" />
                 <div className="w-3 h-3 rounded-full bg-[#FEBC2E]" />
                 <div className="w-3 h-3 rounded-full bg-[#28C840]" />
-                <span className={`ml-3 text-xs ${textFaint} font-mono`}>evols · session end</span>
+                <span className={`ml-3 text-xs ${textFaint} font-mono`}>evols • session end</span>
               </div>
               <div className="p-5 font-mono text-xs leading-relaxed">
                 <p className="text-[#22C55E]">✅ Session complete: retention pain points mapped</p>
@@ -318,7 +265,7 @@ export default function Home() {
                   <p className={`${textMuted} ml-3`}>→ Jordan's onboarding drop-off analysis <span className={textFaint}>(623 tokens — saved ~5,200)</span></p>
                 </div>
                 <div className={`mt-3 pt-3 border-t ${border}`}>
-                  <p className={textFaint}>Quota: <span style={{ color: lav }}>████████░░ 68% used</span> · resets in 4h 12m</p>
+                  <p className={textFaint}>Quota: <span style={{ color: lav }}>████████░░ 68% used</span> • resets in 4h 12m</p>
                   <p className={textFaint}>Background task: <span className={textMuted}>PRD-47 gap analysis queued ↗</span></p>
                 </div>
               </div>
@@ -360,7 +307,7 @@ export default function Home() {
               <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                 className="h-full">
-                <SpotlightCard dark={dark}>
+                <SpotlightCard>
                   <div className="p-6">
                     <div className="flex items-center gap-2.5 mb-4">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${lavIconBg}`}>
@@ -402,7 +349,7 @@ export default function Home() {
                   <p><span className={textFaint}>$ </span><span className={text}>claude plugin install evols</span></p>
                   <p className={`${textMuted} mt-2`}>→ Enter your team workspace URL: <span style={{ color: lav }}>app.evols.ai/acme</span></p>
                   <p className={textMuted}>→ Enter your API key: <span style={{ color: lav }}>••••••••••••</span></p>
-                  <p className="text-[#22C55E] mt-2">✓ Hooks registered · MCP server active · Team context loaded</p>
+                  <p className="text-[#22C55E] mt-2">✓ Hooks registered • MCP server active • Team context loaded</p>
                   <p className="text-[#22C55E]">✓ Done. Your team's knowledge base is ready.</p>
                 </div>
               </div>
@@ -417,9 +364,9 @@ export default function Home() {
                 <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                   className="h-full">
-                  <SpotlightCard dark={dark}>
+                  <SpotlightCard>
                     <div className="p-6">
-                      <div className={`text-4xl font-medium tracking-[-0.04em] mb-4 ${dark ? 'text-primary-foreground/10' : 'text-black/10'}`}>{s.step}</div>
+                      <div className={`text-4xl font-medium tracking-[-0.04em] mb-4 ${dark ? 'text-white/20' : 'text-black/10'}`}>{s.step}</div>
                       <h3 className={`text-base font-medium tracking-[-0.02em] mb-2 ${text}`}>{s.title}</h3>
                       <p className={`text-sm ${textFaint} leading-relaxed`}>{s.body}</p>
                     </div>
@@ -445,7 +392,7 @@ export default function Home() {
               <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                 className="h-full">
-                <SpotlightCard dark={dark}>
+                <SpotlightCard>
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-5">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${lavIconBg}`}>
@@ -481,7 +428,7 @@ export default function Home() {
                 <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                   className="h-full">
-                  <SpotlightCard dark={dark}>
+                  <SpotlightCard>
                     <div className="p-8">
                       <p className={`${text} text-lg leading-relaxed tracking-[-0.01em] mb-6`}>
                         "{t.quote}"
@@ -493,7 +440,7 @@ export default function Home() {
                         </div>
                         <div>
                           <div className={`text-sm font-medium ${text}`}>{t.author}</div>
-                          <div className={`text-xs ${textFaint}`}>{t.role} · {t.date}</div>
+                          <div className={`text-xs ${textFaint}`}>{t.role} • {t.date}</div>
                         </div>
                       </div>
                     </div>
@@ -511,7 +458,7 @@ export default function Home() {
                 <motion.div key={i} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }} transition={{ delay: i * 0.08 }}
                   className="h-full">
-                  <SpotlightCard dark={dark}>
+                  <SpotlightCard>
                     <div className="flex items-start gap-3 p-4">
                       <span className="text-lg">{s.icon}</span>
                       <p className={`text-xs ${textFaint} leading-relaxed`}>{s.text}</p>
@@ -563,26 +510,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── FOOTER ── */}
-        <footer className={`border-t ${border} py-12 transition-colors duration-300`}>
-          <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-            <LogoWordmark iconSize={32} />
-            <div className="flex items-center gap-6 flex-wrap justify-center">
-              {[
-                { label: 'Docs', href: '/docs' },
-                { label: 'Support', href: '/support' },
-                { label: 'Login', href: '/login' },
-              ].map(l => (
-                <Link key={l.label} href={l.href}
-                  {...(l.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                  className={`text-sm ${textFaint} transition-colors duration-150`}>
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-            <p className={`text-xs ${textFaint}`}>© 2026 Evols AI</p>
-          </div>
-        </footer>
+        <Footer />
 
       </div>
     </>

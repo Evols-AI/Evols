@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { Sparkles, Book, Code, Zap, Server, Briefcase, Brain, Network, Key, Building2, Lock } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import SpotlightCard from '@/components/SpotlightCard'
 
 export default function Docs() {
   const { theme } = useTheme()
@@ -47,13 +49,15 @@ export default function Docs() {
               { icon: Key,       title: 'Developer Tools', description: 'MCP endpoint, API keys, Claude Code plugin', href: '#developer-tools' },
               { icon: Building2, title: 'Tenancy & BYOK',  description: 'Workspace isolation, user roles, and bring-your-own LLM keys', href: '#tenancy' },
             ].map(({ icon: Icon, title, description, href }) => (
-              <Link key={title} href={href} className="block p-6 rounded-xl border transition-all hover:border-primary/30 bg-card border-border">
-                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground mb-4">
-                  <Icon className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-medium mb-1.5 text-foreground">{title}</h3>
-                <p className="text-sm text-muted-foreground">{description}</p>
-              </Link>
+              <SpotlightCard key={title}>
+                <Link href={href} className="block p-6 h-full">
+                  <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground mb-4">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-base font-medium mb-1.5 text-foreground">{title}</h3>
+                  <p className="text-sm text-muted-foreground">{description}</p>
+                </Link>
+              </SpotlightCard>
             ))}
           </div>
 
@@ -130,6 +134,52 @@ export default function Docs() {
                     'Personas appear as persona-type entities — automatically extracted, no manual management needed',
                   ]}
                 />
+                <div className="p-5 rounded-xl border bg-card border-border">
+                  <h3 className="text-base font-medium mb-1.5 text-foreground">Entity Attributes</h3>
+                  <p className="text-sm mb-3 text-muted-foreground">
+                    Each extracted entity is tagged with three signal attributes — <strong>sentiment</strong>, <strong>urgency</strong>, and <strong>business impact</strong> — inferred from the source text. Their meaning varies by entity type.
+                  </p>
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 mb-4 text-xs text-muted-foreground">
+                    <span><strong className="text-foreground">Sentiment:</strong> positive · mostly_positive · neutral · mostly_negative · negative</span>
+                    <span><strong className="text-foreground">Urgency:</strong> critical · high · medium · low · minimal</span>
+                    <span><strong className="text-foreground">Business impact:</strong> transformative · high · medium · low · negligible</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 pr-4 font-medium text-foreground w-32">Entity type</th>
+                          <th className="text-left py-2 pr-4 font-medium text-foreground">Sentiment</th>
+                          <th className="text-left py-2 pr-4 font-medium text-foreground">Urgency</th>
+                          <th className="text-left py-2 font-medium text-foreground">Business impact</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {[
+                          ['PainPoint / FeatureRequest', 'User/customer sentiment toward the problem or request', 'How soon this needs to be addressed', 'Consequence to retention or revenue if left unresolved'],
+                          ['Decision', 'Team confidence or controversy around the decision', 'Time pressure that drove the decision', 'Strategic weight of the outcome'],
+                          ['Person', 'Tone used to describe this person in the source', 'How soon they need follow-up or attention', 'Organisational influence or seniority'],
+                          ['Persona', 'Emotional state or frustration level of the segment', 'How urgently the segment needs a solution', 'Revenue or growth potential of the segment'],
+                          ['Product / Feature', 'Market or user perception', 'Urgency to ship, fix, or deprecate', 'Revenue or adoption impact'],
+                          ['Technology', 'Team attitude toward the technology', 'Urgency to adopt, replace, or upgrade', 'How critical it is to current operations'],
+                          ['Competitor', 'Sentiment toward this competitor in the source', 'How imminently they threaten a deal or roadmap item', 'Competitive threat level to the business'],
+                          ['Organization', 'Relationship tone (partner, customer, risk)', 'Urgency of any pending action with this org', 'Commercial or strategic importance'],
+                          ['Meeting', 'Overall tone of the discussion', 'How time-sensitive the outcomes are', 'Significance of the decisions made'],
+                        ].map(([type, sentiment, urgency, impact]) => (
+                          <tr key={type}>
+                            <td className="py-2 pr-4 font-medium text-foreground align-top">{type}</td>
+                            <td className="py-2 pr-4 text-muted-foreground align-top">{sentiment}</td>
+                            <td className="py-2 pr-4 text-muted-foreground align-top">{urgency}</td>
+                            <td className="py-2 text-muted-foreground align-top">{impact}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Values are inferred by the LLM from source text and should be treated as directional signals, not precise measurements. Attributes are most reliable for PainPoint, FeatureRequest, and Decision entity types.
+                  </p>
+                </div>
               </div>
             </Section>
 
@@ -264,16 +314,7 @@ export default function Docs() {
           </div>
         </main>
 
-        <footer className="border-t border-border py-12">
-          <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground">
-            <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link href="/docs" className="text-sm transition-colors hover:text-primary">Docs</Link>
-              <Link href="/support" className="text-sm transition-colors hover:text-primary">Support</Link>
-              <Link href="/login" className="text-sm transition-colors hover:text-primary">Login</Link>
-            </div>
-            <p className="text-xs">© 2026 Evols AI</p>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   )

@@ -1,9 +1,9 @@
 import Head from 'next/head'
-import Link from 'next/link'
 import { useEffect } from 'react'
 import { Sparkles, MessageSquare, CheckCircle } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
-import { LogoWordmark } from '@/components/Logo'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 
 declare global {
   interface Window {
@@ -55,7 +55,7 @@ export default function BookDemo() {
         window.Cal.ns.demo("inline", {
           elementOrSelector: "#my-cal-inline",
           config: { layout: "month_view", useSlotsViewOnSmallScreen: "true" },
-          calLink: "akshaysaraswat/demo",
+          calLink: "evols/demo",
         });
         window.Cal.ns.demo("ui", { hideEventTypeDetails: false, layout: "month_view" });
       }
@@ -73,19 +73,7 @@ export default function BookDemo() {
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
       <div className={`min-h-screen transition-colors bg-background`}>
-        <header className="container mx-auto px-6 py-8">
-          <nav className="flex items-center justify-between">
-            <Link href="/">
-              <LogoWordmark iconSize={44} />
-            </Link>
-            <div className="flex items-center space-x-6">
-              <Link href="/login" className={`text-sm transition-colors ${textMuted} hover:text-primary`}>Login</Link>
-              <Link href="/register" className="bg-primary hover:bg-primary/85 text-primary-foreground py-2 px-5 rounded-lg text-sm font-medium transition-colors">
-                Get Early Access
-              </Link>
-            </div>
-          </nav>
-        </header>
+        <Header variant="landing" />
 
         <div className="container mx-auto px-6 py-12">
           <div className="w-full max-w-6xl mx-auto">
@@ -132,17 +120,7 @@ export default function BookDemo() {
           </div>
         </div>
 
-        <footer className={`border-t border-border py-12 transition-colors duration-300`}>
-          <div className={`max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground`}>
-            <LogoWordmark iconSize={32} />
-            <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link href="/docs" className="text-sm transition-colors duration-150 hover:text-primary">Docs</Link>
-              <Link href="/support" className="text-sm transition-colors duration-150 hover:text-primary">Support</Link>
-              <Link href="/register" className="text-sm transition-colors duration-150 hover:text-primary">Sign Up</Link>
-            </div>
-            <p className="text-xs">© 2026 Evols AI</p>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   )
