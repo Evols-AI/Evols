@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install the exact upstream release first so all transitive deps are resolved
-RUN pip install --no-cache-dir "lightrag-hku==${LIGHTRAG_VERSION}"
+RUN pip install --no-cache-dir "lightrag-hku[api]==${LIGHTRAG_VERSION}"
 
 # Apply the entity-attributes patch on top of the installed package.
 # The patch modifies only Python source files so we can apply it directly to
@@ -36,6 +36,10 @@ COPY lightrag-entity-attributes.patch /tmp/lightrag-entity-attributes.patch
 RUN SITE=$(python -c "import site; print(site.getsitepackages()[0])") && \
     patch -d "${SITE}" -p1 < /tmp/lightrag-entity-attributes.patch && \
     rm /tmp/lightrag-entity-attributes.patch
+
+# Smoke-test: fail the build if any module required at runtime is missing.
+# This catches extras omissions (e.g. missing [api]) before the image is pushed.
+RUN python -c "import fastapi, uvicorn, lightrag.api.lightrag_server, lightrag.operate, lightrag.prompt, lightrag.constants"
 
 # Default working directory for graph storage
 RUN mkdir -p /app/data/rag_storage /app/inputs

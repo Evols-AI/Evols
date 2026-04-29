@@ -3,6 +3,7 @@ FastAPI Application Entry Point
 Main application with all routers and middleware configuration
 """
 
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,52 @@ from app.middleware import SecurityHeadersMiddleware, SecurityValidationMiddlewa
 
 # Import all models so they are registered with Base.metadata before create_all
 import app.models  # noqa: F401
+
+
+async def _sync_aws_credentials_to_tenant() -> None:
+    """
+    If AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars are present, write them
+    into every active tenant's llm_config that is configured for aws_bedrock.
+    This lets credential rotation happen via Secret Manager + redeploy without
+    requiring a manual UI update in LLM Settings.
+    Runs once at startup; errors are logged but never fatal.
+    """
+    access_key_id = os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
+    secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
+    if not access_key_id or not secret_access_key:
+        return
+
+    try:
+        from sqlalchemy import select
+        from sqlalchemy.ext.asyncio import AsyncSession
+        from app.core.database import AsyncSessionLocal
+        from app.models.tenant import Tenant
+        from app.core.security import encrypt_llm_config, decrypt_llm_config
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(Tenant).where(Tenant.is_active == True))  # noqa: E712
+            tenants = result.scalars().all()
+            updated = 0
+            for tenant in tenants:
+                if not tenant.llm_config:
+                    continue
+                try:
+                    cfg = decrypt_llm_config(tenant.llm_config)
+                except Exception:
+                    continue
+                if cfg.get("provider") != "aws_bedrock":
+                    continue
+                if cfg.get("access_key_id") == access_key_id and cfg.get("secret_access_key") == secret_access_key:
+                    continue
+                cfg["access_key_id"] = access_key_id
+                cfg["secret_access_key"] = secret_access_key
+                tenant.llm_config = encrypt_llm_config(cfg)
+                updated += 1
+            if updated:
+                await db.commit()
+                logger.info(f"Synced AWS credentials from env into {updated} tenant(s)")
+    except Exception as e:
+        logger.error(f"Failed to sync AWS credentials to tenant config: {e}")
 
 
 @asynccontextmanager
@@ -43,6 +90,9 @@ async def lifespan(app: FastAPI):
         logger.error(f"Database initialization error: {db_err}")
         raise
     logger.info(f"API Documentation available at: {settings.API_V1_PREFIX}/docs")
+
+    # Sync AWS credentials from env into tenant config (no-op when env vars absent)
+    await _sync_aws_credentials_to_tenant()
 
     # Start background scheduler for periodic tasks
     try:

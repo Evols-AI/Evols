@@ -106,6 +106,18 @@ export default function Context() {
       const groups = Array.isArray(groupsRes.data) ? groupsRes.data : []
       setContextSources(allSources.filter((s: any) => !s.source_group_id))
       setSourceGroups(groups)
+
+      // Re-derive processing set from server state so the spinner survives navigation.
+      const inProgress = allSources
+        .filter((s: any) => s.status === 'processing' || s.status === 'pending')
+        .map((s: any) => s.id)
+      if (inProgress.length > 0) {
+        setProcessingSourceIds(prev => {
+          const next = new Set(prev)
+          inProgress.forEach((id: number) => next.add(id))
+          return next
+        })
+      }
     } catch (error) {
       console.error('Error loading context:', error)
       setContextSources([])
@@ -294,7 +306,7 @@ export default function Context() {
                       }`}
                     >
                       <Lightbulb className="w-4 h-4 inline mr-2" />
-                      Entity List ({graphEntities.length})
+                      Entity List
                     </button>
                     <button
                       onClick={() => handleTabChange('knowledge_graph')}
@@ -325,6 +337,10 @@ export default function Context() {
                       <EntityTypeFilterDropdown
                         selected={entityTypeFilter}
                         onChange={setEntityTypeFilter}
+                        counts={graphEntities.reduce<Record<string, number>>((acc, e) => {
+                          acc[e.entity_type] = (acc[e.entity_type] ?? 0) + 1
+                          return acc
+                        }, {})}
                       />
                     )}
                   </div>
@@ -420,9 +436,11 @@ const ENTITY_TYPES = [
 function EntityTypeFilterDropdown({
   selected,
   onChange,
+  counts = {},
 }: {
   selected: Set<string>
   onChange: (next: Set<string>) => void
+  counts?: Record<string, number>
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -481,7 +499,12 @@ function EntityTypeFilterDropdown({
                 <div className="w-4 h-4 border border-border rounded flex items-center justify-center flex-shrink-0">
                   {selected.has(value) && <Check className="w-3 h-3 text-primary" />}
                 </div>
-                <span className="text-sm text-foreground flex-1 text-left">{lbl}</span>
+                <span className="text-sm text-foreground flex-1 text-left">
+                  {lbl}
+                  {counts[value] != null && (
+                    <span className="ml-1 text-muted-foreground">({counts[value]})</span>
+                  )}
+                </span>
                 <span
                   className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                   style={{ background: ENTITY_TYPE_COLORS[value] ?? 'hsl(var(--muted-foreground))' }}

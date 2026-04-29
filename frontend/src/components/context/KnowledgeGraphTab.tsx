@@ -646,7 +646,7 @@ export default function KnowledgeGraphTab({ typeFilter, onTypeFilterChange }: Kn
     setMergeNode(fakeNode)
   }
 
-  if (loading) return <Loading text="Loading knowledge graph…" />
+  if (loading) return <Card><Loading text="Loading knowledge graph…" /></Card>
   if (error) return (
     <Card>
       <EmptyState

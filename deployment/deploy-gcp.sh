@@ -94,6 +94,8 @@ gcloud run deploy evols-backend \
   --set-env-vars "LIGHTRAG_URL=https://evols-lightrag-446160743186.us-central1.run.app" \
   --set-env-vars "LIGHTRAG_API_KEY=${LIGHTRAG_API_KEY:?Set LIGHTRAG_API_KEY}" \
   --set-env-vars "FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY}" \
+  --set-secrets "AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest" \
+  --set-secrets "AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest" \
   --add-cloudsql-instances "${SQL_CONNECTION_NAME}" \
   --network default --subnet default \
   --vpc-egress private-ranges-only \
@@ -125,9 +127,10 @@ gcloud builds submit --config=deployment/cloudbuild-lightrag.yaml \
 
 echo "==> Deploying evols-lightrag..."
 # PM-domain entity types and attributes — must be kept in sync with
-# docker/docker-compose.yml ENTITY_TYPES / ENTITY_ATTRIBUTES env vars.
+# docker/docker-compose.yml ENTITY_TYPES / ENTITY_ATTRIBUTES / ENTITY_ATTRIBUTE_VALUES env vars.
 ENTITY_TYPES='["Person","Organization","Product","Feature","PainPoint","FeatureRequest","Persona","Competitor","BusinessGoal","Metric","Decision","Meeting","Project","Technology","Market"]'
 ENTITY_ATTRIBUTES='["sentiment","urgency","business_impact","context_snippet","confidence"]'
+ENTITY_ATTRIBUTE_VALUES='{"sentiment":["positive","mostly_positive","neutral","mostly_negative","negative"],"urgency":["critical","high","medium","low","minimal"],"business_impact":["transformative","high","medium","low","negligible"]}'
 
 gcloud run deploy evols-lightrag \
   --image "${LIGHTRAG_IMAGE}" \
@@ -154,6 +157,7 @@ gcloud run deploy evols-lightrag \
   --set-env-vars "MAX_TOKENS=32768" \
   --set-env-vars "ENTITY_TYPES=${ENTITY_TYPES}" \
   --set-env-vars "ENTITY_ATTRIBUTES=${ENTITY_ATTRIBUTES}" \
+  --set-env-vars "ENTITY_ATTRIBUTE_VALUES=${ENTITY_ATTRIBUTE_VALUES}" \
   --set-env-vars "AUTH_ACCOUNTS=evols:${LIGHTRAG_API_KEY}" \
   --set-env-vars "TOKEN_SECRET=81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02" \
   --set-secrets "POSTGRES_PASSWORD=lightrag-pg-password:latest" \
