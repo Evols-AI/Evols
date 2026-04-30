@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import { useEffect } from 'react'
-import { Sparkles, MessageSquare, CheckCircle } from 'lucide-react'
+import { Brain, GitMerge, Activity } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
@@ -69,7 +69,7 @@ export default function BookDemo() {
   return (
     <>
       <Head>
-        <title>Book a Demo - Evols</title>
+        <title>Book a Demo - Evols AI</title>
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
       <div className={`min-h-screen transition-colors bg-background`}>
@@ -81,19 +81,19 @@ export default function BookDemo() {
               {/* Left - Info */}
               <div className="flex flex-col justify-center">
                 <img
-                  src="/Features Overview-amico.svg"
-                  alt="Features overview illustration"
+                  src="/book-demo.svg"
+                  alt="Team collaboration illustration"
                   className="w-full max-w-md mx-auto mb-10 drop-shadow-lg"
                 />
-                <h1 className={`text-4xl md:text-5xl font-medium mb-6 ${textPrimary}`}>See Your AI PM Copilot in Action</h1>
+                <h1 className={`text-4xl md:text-5xl font-medium mb-6 ${textPrimary}`}>See the team AI brain in action</h1>
                 <p className={`text-xl mb-8 ${textMuted}`}>
-                  Book a 30-minute personalized demo to see how an AI copilot can become your PM operating system.
+                  Book a 30-minute demo to see how Evols turns every AI session your team runs into shared, compounding intelligence.
                 </p>
                 <div className="space-y-6">
                   {[
-                    { icon: Sparkles, color: 'text-primary', bg: 'bg-primary/10', title: '80+ PM Skills', desc: 'See conversational AI execute strategy docs, PRDs, meeting prep, and weekly updates' },
-                    { icon: MessageSquare, color: 'text-primary', bg: 'bg-primary/10', title: 'Auto Work Context', desc: 'Watch AI automatically capture your role, projects, and tasks from natural conversation' },
-                    { icon: CheckCircle, color: 'text-primary', bg: 'bg-primary/10', title: 'Bring Your Docs', desc: 'See how Evols extracts intelligence from your actual documents and meeting notes' },
+                    { icon: GitMerge, color: 'text-primary', bg: 'bg-primary/10', title: 'Zero cold start', desc: 'Watch a new teammate inherit the full team knowledge graph on day one — no setup, no accumulation period' },
+                    { icon: Brain, color: 'text-primary', bg: 'bg-primary/10', title: 'Auto-compiled knowledge base', desc: 'See every AI session contribute to a shared knowledge base automatically — queried at 8× fewer tokens than rebuilding' },
+                    { icon: Activity, color: 'text-primary', bg: 'bg-primary/10', title: 'Quota visibility & redundancy prevention', desc: 'See duplicate work caught before tokens are burned, and expiring quota redirected to real backlog tasks' },
                   ].map(({ icon: Icon, color, bg, title, desc }) => (
                     <div key={title} className="flex items-start space-x-4">
                       <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center flex-shrink-0`}>

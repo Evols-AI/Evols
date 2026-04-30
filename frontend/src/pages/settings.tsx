@@ -9,6 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
+import { Loading } from '@/components/PageContainer'
 import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare, Volume2, Database } from 'lucide-react'
 
 type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'api_keys' | 'chat' | 'speech' | 'data_controls'
@@ -1193,7 +1194,7 @@ export default function Settings() {
               )}
 
               {loadingApiKeys ? (
-                <div className="text-center py-12 text-muted-foreground">Loading keys...</div>
+                <Loading text="Loading keys..." />
               ) : apiKeys.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-border rounded-lg">
                   <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
@@ -1299,9 +1300,7 @@ export default function Settings() {
                   </div>
 
                   {loadingTeam ? (
-                    <div className="text-center py-12">
-                      <div className="text-muted-foreground">Loading team members...</div>
-                    </div>
+                    <Loading text="Loading team members..." />
                   ) : teamMembers.length === 0 ? (
                     <div className="text-center py-12 bg-muted/30 rounded-lg border border-border">
                       <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
@@ -1392,9 +1391,7 @@ export default function Settings() {
                   </div>
 
                   {loadingInvites ? (
-                    <div className="text-center py-12">
-                      <div className="text-muted-foreground">Loading invitations...</div>
-                    </div>
+                    <Loading text="Loading invitations..." />
                   ) : invites.length === 0 ? (
                     <div className="text-center py-12 bg-card rounded-lg border border-border">
                       <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-3" />

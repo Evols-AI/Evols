@@ -115,11 +115,7 @@ export default function Login() {
           <div className="grid lg:grid-cols-2 gap-12 items-center w-full max-w-6xl">
             {/* Left Column */}
             <div className="hidden lg:flex flex-col items-center justify-center">
-              <img
-                src="/Authentication-rafiki.svg"
-                alt="Authentication illustration"
-                className="w-full max-w-md mb-10 drop-shadow-lg"
-              />
+              <img src="/login.svg" alt="Login illustration" className="w-full max-w-md mb-10 drop-shadow-lg" />
               <div className="text-center">
                 <h2 className={`text-3xl font-medium mb-4 text-foreground`}>
                   Welcome Back!

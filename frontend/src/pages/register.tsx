@@ -125,7 +125,7 @@ export default function Register() {
             {/* Left Column */}
             <div className="hidden lg:flex flex-col items-center justify-center">
               <img
-                src="/Sign up-amico.svg"
+                src="/register.svg"
                 alt="Sign up illustration"
                 className="w-full max-w-md mb-10 drop-shadow-lg"
               />

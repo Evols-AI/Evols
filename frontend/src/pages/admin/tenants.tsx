@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { Building2, Plus, Edit, Trash2, Users, AlertCircle } from 'lucide-react'
 import { isAuthenticated, getCurrentUser } from '@/utils/auth'
 import Header from '@/components/Header'
+import { Loading } from '@/components/PageContainer'
 
 interface Tenant {
   id: number
@@ -117,7 +118,11 @@ export default function TenantsAdmin() {
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loading text="Loading tenants..." />
+      </div>
+    )
   }
 
   if (error && user?.role !== 'SUPER_ADMIN') {

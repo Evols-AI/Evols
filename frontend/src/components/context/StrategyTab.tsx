@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Save, Loader2, CheckCircle } from 'lucide-react'
 import { api } from '@/services/api'
-import { Card } from '@/components/PageContainer'
+import { Card, Loading } from '@/components/PageContainer'
 
 const KNOWLEDGE_TABS = [
   { id: 'strategy', name: 'Product Strategy', description: 'Vision, mission, and strategic pillars' },
@@ -66,11 +66,7 @@ export default function StrategyTab() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    )
+    return <Loading text="Loading strategy..." />
   }
 
   return (

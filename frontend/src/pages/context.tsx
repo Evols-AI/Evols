@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import {
   Database, Plus, Upload, FileText, MessageSquare, Mail, Slack,
   Github, BookOpen, Cloud, X, Loader2, Search,
-  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network, Filter, Pencil, GitMerge
+  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network, Filter, Pencil, GitMerge, Layers
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api, apiClient } from '@/services/api'
@@ -107,16 +107,29 @@ export default function Context() {
       setContextSources(allSources.filter((s: any) => !s.source_group_id))
       setSourceGroups(groups)
 
-      // Re-derive processing set from server state so the spinner survives navigation.
-      const inProgress = allSources
-        .filter((s: any) => s.status === 'processing' || s.status === 'pending')
-        .map((s: any) => s.id)
-      if (inProgress.length > 0) {
-        setProcessingSourceIds(prev => {
-          const next = new Set(prev)
-          inProgress.forEach((id: number) => next.add(id))
-          return next
-        })
+      // Re-derive which sources are still being processed by LightRAG.
+      // The DB status is set to COMPLETED immediately after submission (before
+      // LightRAG finishes), so we must ask LightRAG directly.
+      if (allSources.length > 0) {
+        const ids = allSources.map((s: any) => s.id).join(',')
+        try {
+          const statusRes = await apiClient.get('/api/v1/graph/processing-status', {
+            params: { source_ids: ids },
+            validateStatus: () => true,
+          })
+          if (statusRes.status === 200) {
+            const statuses: Record<string, string> = statusRes.data?.sources ?? {}
+            const inProgress = allSources
+              .map((s: any) => s.id)
+              .filter((id: number) => {
+                const st = statuses[String(id)]
+                return st === 'pending' || st === 'processing'
+              })
+            setProcessingSourceIds(new Set(inProgress))
+          }
+        } catch {
+          // non-fatal — spinner just won't show until next poll cycle
+        }
       }
     } catch (error) {
       console.error('Error loading context:', error)
@@ -305,7 +318,7 @@ export default function Context() {
                           : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                       }`}
                     >
-                      <Lightbulb className="w-4 h-4 inline mr-2" />
+                      <Layers className="w-4 h-4 inline mr-2" />
                       Entity List
                     </button>
                     <button
@@ -563,7 +576,7 @@ function SourcesView({
     return (
       <Card>
         <EmptyState
-          icon={Brain}
+          icon={Database}
           title="No context sources yet"
           description="Start building your context by adding customer feedback, product docs, meeting transcripts, or any other relevant data"
           action={null}
@@ -632,8 +645,8 @@ function SourcesView({
           {expandedGroups.has(group.id) && (
             <div className="mt-4 ml-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
               {loadingGroupId === group.id ? (
-                <div className="col-span-2 text-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                <div className="col-span-2">
+                  <Loading text="Loading sources..." />
                 </div>
               ) : (
                 groupSources[group.id]?.map((source: any) => (
@@ -717,7 +730,7 @@ function EntitiesView({
       {entities.length === 0 ? (
         <Card>
           <EmptyState
-            icon={Brain}
+            icon={Layers}
             title="No entities in knowledge graph yet"
             description="Add context sources — LightRAG will extract entities automatically"
             action={null}

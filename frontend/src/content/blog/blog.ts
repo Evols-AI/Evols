@@ -21,6 +21,12 @@ export interface BlogPost {
   tags: string[]
   content: string     // raw markdown body (no frontmatter)
   canonicalUrl: string | null
+  firstImage: string | null  // URL of first image in content, if any
+}
+
+function extractFirstImage(content: string): string | null {
+  const match = content.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/)
+  return match ? match[1] : null
 }
 
 const CONTENT_DIR = path.join(process.cwd(), 'src/content/blog')
@@ -50,6 +56,7 @@ export function getAllPosts(): BlogPost[] {
         tags: (data.tags as string[]) ?? [],
         canonicalUrl: (data.canonicalUrl as string) ?? null,
         content: content.trim(),
+        firstImage: extractFirstImage(content),
       })
     } catch (err) {
       console.error(`[blog] failed to parse ${filename}:`, err)
@@ -77,5 +84,6 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
     tags: (data.tags as string[]) ?? [],
     canonicalUrl: (data.canonicalUrl as string) ?? null,
     content: content.trim(),
+    firstImage: extractFirstImage(content),
   }
 }

@@ -85,7 +85,7 @@ export default function Support() {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               {/* Left */}
               <div className="hidden lg:flex flex-col justify-center h-full">
-                <img src="/Collab-rafiki.svg" alt="Collaboration illustration" className="w-full max-w-md mx-auto mb-10 drop-shadow-lg" />
+                <img src="/support.svg" alt="Collaboration illustration" className="w-full max-w-md mx-auto mb-10 drop-shadow-lg" />
                 <div className="text-center px-8">
                   <h2 className={`text-3xl font-medium mb-4 ${textPrimary}`}>We're here to help!</h2>
                   <p className={textMuted}>

@@ -44,7 +44,7 @@ export default function BlogIndex({ posts }: Props) {
             </p>
           </div>
 
-          <div className="max-w-3xl mx-auto space-y-6">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {posts.map(post => (
               <PostCard key={post.slug} post={post} dark={dark} border={border} textFaint={textFaint} />
             ))}
@@ -73,29 +73,47 @@ function PostCard({ post, dark, border, textFaint }: {
   })
 
   return (
-    <SpotlightCard>
-      <Link href={`/blog/${post.slug}`} className="group block p-6">
-        <div className="flex items-center gap-3 mb-3">
-          <span className={`text-xs ${textFaint}`}>{formattedDate}</span>
-          <span className={`text-xs ${textFaint}`}>•</span>
-          <span className={`text-xs ${textFaint}`}>{post.readingTime}</span>
+    <SpotlightCard className="h-full">
+      <Link href={`/blog/${post.slug}`} className="group flex flex-col h-full">
+        {/* Thumbnail */}
+        <div className={`w-full h-44 overflow-hidden rounded-t-xl flex-shrink-0 ${dark ? 'bg-white/5' : 'bg-black/5'}`}>
+          {post.firstImage ? (
+            <img
+              src={post.firstImage}
+              alt={post.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <BookOpen className="w-10 h-10 text-primary/30" />
+            </div>
+          )}
         </div>
-        <h2 className="text-xl font-medium text-foreground mb-2 group-hover:text-primary transition-colors">
-          {post.title}
-        </h2>
-        <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{post.description}</p>
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2 flex-wrap">
-            {post.tags.map(tag => (
-              <span key={tag}
-                className={`text-xs px-2.5 py-1 rounded-full border ${border} ${dark ? 'bg-white/[0.04]' : 'bg-black/[0.03]'} text-muted-foreground`}>
-                {tag}
-              </span>
-            ))}
+
+        {/* Content */}
+        <div className="flex flex-col flex-1 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className={`text-xs ${textFaint}`}>{formattedDate}</span>
+            <span className={`text-xs ${textFaint}`}>•</span>
+            <span className={`text-xs ${textFaint}`}>{post.readingTime}</span>
           </div>
-          <span className="text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">
-            Read →
-          </span>
+          <h2 className="text-base font-medium text-foreground mb-2 group-hover:text-primary transition-colors leading-snug">
+            {post.title}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-3 flex-1">{post.description}</p>
+          <div className="flex items-center justify-between mt-auto">
+            <div className="flex gap-1.5 flex-wrap">
+              {post.tags.slice(0, 2).map(tag => (
+                <span key={tag}
+                  className={`text-xs px-2 py-0.5 rounded-full border ${border} ${dark ? 'bg-white/[0.04]' : 'bg-black/[0.03]'} text-muted-foreground`}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <span className="text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium flex-shrink-0">
+              Read →
+            </span>
+          </div>
         </div>
       </Link>
     </SpotlightCard>
