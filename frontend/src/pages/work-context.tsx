@@ -477,13 +477,90 @@ export default function WorkContext() {
             </div>
 
             {aiLoading ? <Loading text="Loading session data..." /> : aiSummary ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <StatCard title="Sessions"          value={aiSummary.sessions}                                         subtitle="tracked"                       icon={<Clock className="w-5 h-5" />}      color="blue" />
-                <StatCard title="Tokens Saved"       value={formatAiTokens(aiSummary.tokens_saved_estimate)}            subtitle="vs. compiling fresh"            icon={<TrendingUp className="w-5 h-5" />}  color="green" />
-                <StatCard title="Cost Avoided"       value={formatAiCost(aiSummary.tokens_saved_estimate)}              subtitle="est. at $3/1M tok"              icon={<Coins className="w-5 h-5" />}       color="green" />
-                <StatCard title="Quota Extended"     value={`${aiSummary.quota_extended_pct}%`}                         subtitle="effective capacity gain"        icon={<TrendingUp className="w-5 h-5" />}  color="purple" />
-                <StatCard title="Knowledge Entries"  value={aiSummary.knowledge_entries_total}                          subtitle={`+${aiSummary.knowledge_entries_new} this period`} icon={<BookOpen className="w-5 h-5" />}   color="orange" />
-                <StatCard title="Rate Limit Hits"    value={aiSummary.rate_limit_hits}                                  subtitle="avoided via reuse"             icon={<Users className="w-5 h-5" />}       color={aiSummary.rate_limit_hits > 0 ? 'red' : 'blue'} />
+              <div className="space-y-4">
+                {/* Top row: sessions + knowledge graph */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <StatCard title="Sessions"         value={aiSummary.sessions}                subtitle="tracked"                        icon={<Clock className="w-5 h-5" />}     color="blue" />
+                  <StatCard title="Knowledge Entries" value={aiSummary.knowledge_entries_total} subtitle={`+${aiSummary.knowledge_entries_new} this period`} icon={<BookOpen className="w-5 h-5" />}  color="orange" />
+                  <StatCard title="Quota Extended"    value={`${aiSummary.quota_extended_pct}%`} subtitle="effective capacity gain"       icon={<TrendingUp className="w-5 h-5" />} color="purple" />
+                  <StatCard title="Rate Limit Hits"   value={aiSummary.rate_limit_hits}          subtitle="this period"                   icon={<Users className="w-5 h-5" />}     color={aiSummary.rate_limit_hits > 0 ? 'red' : 'blue'} />
+                </div>
+
+                {/* Investment vs Reuse split */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Investment */}
+                  <Card padding="md">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Knowledge Investment</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tokens invested</span>
+                        <span className="font-mono font-medium text-foreground">{formatAiTokens(aiSummary.tokens_invested ?? 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Creation sessions</span>
+                        <span className="font-mono font-medium text-foreground">{aiSummary.creation_sessions ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-border pt-2 mt-1">
+                        <span className="text-muted-foreground">Potential future value</span>
+                        <span className="font-mono font-medium text-chart-4">~{formatAiTokens(aiSummary.potential_future_value ?? 0)}</span>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Reuse */}
+                  <Card padding="md">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Knowledge Reuse</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tokens retrieved</span>
+                        <span className="font-mono font-medium text-foreground">{formatAiTokens(aiSummary.tokens_retrieved)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Retrieval sessions</span>
+                        <span className="font-mono font-medium text-foreground">{aiSummary.retrieval_sessions ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-border pt-2 mt-1">
+                        <span className="text-muted-foreground">Actual savings</span>
+                        <span className="font-mono font-medium text-chart-3">{formatAiTokens(aiSummary.actual_savings ?? 0)}</span>
+                      </div>
+                    </div>
+                    {(aiSummary.retrieval_sessions ?? 0) === 0 && (
+                      <p className="text-xs text-muted-foreground/60 mt-3">No reuse yet — savings realized when context is retrieved</p>
+                    )}
+                  </Card>
+
+                  {/* Net Impact */}
+                  <Card padding="md">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Net Impact</h3>
+                    {(() => {
+                      const net = aiSummary.net_impact ?? ((aiSummary.actual_savings ?? 0) - (aiSummary.tokens_invested ?? 0))
+                      const roi = aiSummary.roi_pct ?? 0
+                      const isPositive = net >= 0
+                      return (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Net tokens</span>
+                            <span className={`font-mono font-semibold ${isPositive ? 'text-chart-3' : 'text-muted-foreground'}`}>
+                              {isPositive ? '+' : ''}{formatAiTokens(net)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Cost impact</span>
+                            <span className={`font-mono font-medium ${isPositive ? 'text-chart-3' : 'text-muted-foreground'}`}>
+                              {isPositive ? '-' : '+'}{formatAiCost(Math.abs(net))}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-t border-border pt-2 mt-1">
+                            <span className="text-muted-foreground">ROI</span>
+                            <span className={`font-mono font-semibold ${isPositive ? 'text-chart-3' : 'text-muted-foreground'}`}>
+                              {(aiSummary.tokens_invested ?? 0) > 0 ? `${roi > 0 ? '+' : ''}${roi.toFixed(0)}%` : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </Card>
+                </div>
               </div>
             ) : (
               <Card><p className="text-sm text-muted-foreground p-4">No session data yet. Start a Claude Code session with the Evols plugin to begin tracking.</p></Card>

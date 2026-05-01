@@ -30,7 +30,11 @@ class AddEntryRequest(BaseModel):
     tags: Optional[List[str]] = None
     product_area: Optional[str] = None
     source_session_id: Optional[str] = None
-    session_tokens_used: Optional[int] = Field(None, ge=0, description="Exact token count from the session that produced this knowledge")
+    session_tokens_used: Optional[int] = Field(None, ge=0, description="Compressed entry size — the token cost of loading this entry")
+    discovery_tokens: Optional[int] = Field(None, ge=0, description="Raw tool output token cost before Haiku compression — honest savings basis")
+    files_read: Optional[List[str]] = Field(None, description="File paths read during the session")
+    files_modified: Optional[List[str]] = Field(None, description="File paths written or edited during the session")
+    model: Optional[str] = Field(None, description="Claude model ID that produced this entry")
 
 
 class EntryResponse(BaseModel):
@@ -62,9 +66,13 @@ class RecordQuotaEventRequest(BaseModel):
     session_id: str
     tokens_used: int = Field(..., ge=0)
     tokens_retrieved: int = Field(default=0, ge=0)
+    tokens_created: int = Field(default=0, ge=0, description="Tokens spent creating new knowledge entries this session")
+    actual_savings_override: Optional[int] = Field(None, ge=0, description="Similarity-weighted actual savings computed by the plugin at retrieval time")
     event_type: str = Field(default="session_end")
     tool_name: str = Field(default="claude-code")
     plan_type: Optional[str] = None
+    model: Optional[str] = None
+    cost_usd: Optional[float] = Field(None, ge=0)
     cwd: Optional[str] = None
 
 
@@ -73,11 +81,19 @@ class QuotaSummaryResponse(BaseModel):
     sessions: int
     tokens_used: int
     tokens_retrieved: int
-    tokens_saved_estimate: int
+    tokens_saved_estimate: int  # legacy
     quota_extended_pct: float
     rate_limit_hits: int
     knowledge_entries_total: int
     knowledge_entries_new: int
+    # Investment vs realized savings
+    tokens_invested: int = 0
+    creation_sessions: int = 0
+    potential_future_value: int = 0
+    actual_savings: int = 0
+    retrieval_sessions: int = 0
+    net_impact: int = 0
+    roi_pct: float = 0.0
 
 
 # ===================================
@@ -109,6 +125,10 @@ async def add_knowledge_entry(
         product_area=request.product_area,
         source_session_id=request.source_session_id,
         session_tokens_used=request.session_tokens_used,
+        discovery_tokens=request.discovery_tokens,
+        files_read=request.files_read,
+        files_modified=request.files_modified,
+        model=request.model,
         llm_config=llm_config,
     )
     return EntryResponse(
@@ -170,12 +190,22 @@ async def record_quota_event(
         session_id=request.session_id,
         tokens_used=request.tokens_used,
         tokens_retrieved=request.tokens_retrieved,
+        tokens_created=request.tokens_created,
+        actual_savings_override=request.actual_savings_override,
         event_type=request.event_type,
         tool_name=request.tool_name,
         plan_type=request.plan_type,
+        model=request.model,
+        cost_usd=request.cost_usd,
         cwd=request.cwd,
     )
-    return {"id": event.id, "tokens_saved_estimate": event.tokens_saved_estimate}
+    return {
+        "id": event.id,
+        "tokens_saved_estimate": event.tokens_saved_estimate,  # legacy
+        "actual_savings": event.actual_savings,
+        "tokens_invested": event.tokens_invested,
+        "event_category": event.event_category.value,
+    }
 
 
 @router.get("/redundancy-check")
@@ -263,6 +293,51 @@ async def get_knowledge_entry(
         "created_at": entry.created_at.isoformat(),
         "last_retrieved_at": entry.last_retrieved_at.isoformat() if entry.last_retrieved_at else None,
     }
+
+
+@router.get("/search/layer1")
+async def search_layer1(
+    query: str = Query(...),
+    top_k: int = Query(default=10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    tenant_id: int = Depends(get_current_tenant_id),
+    llm_config: Optional[dict] = Depends(get_tenant_llm_config),
+):
+    """Layer 1: compact index (~50 tokens/result). Returns title, tags, date, similarity only."""
+    return await team_knowledge_service.search_layer1(
+        db=db, tenant_id=tenant_id, query=query, top_k=top_k, llm_config=llm_config
+    )
+
+
+@router.get("/search/layer2")
+async def search_layer2(
+    ids: str = Query(..., description="Comma-separated entry IDs from layer1"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    tenant_id: int = Depends(get_current_tenant_id),
+):
+    """Layer 2: timeline + file context. Returns preview, files_read, files_modified, compression ratio."""
+    try:
+        entry_ids = [int(i.strip()) for i in ids.split(",") if i.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ids must be comma-separated integers")
+    return await team_knowledge_service.search_layer2(db=db, tenant_id=tenant_id, entry_ids=entry_ids)
+
+
+@router.get("/search/layer3")
+async def search_layer3(
+    ids: str = Query(..., description="Comma-separated entry IDs from layer2"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    tenant_id: int = Depends(get_current_tenant_id),
+):
+    """Layer 3: full content. Only fetch after layer1/2 confirmed relevance. Increments retrieval counts."""
+    try:
+        entry_ids = [int(i.strip()) for i in ids.split(",") if i.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ids must be comma-separated integers")
+    return await team_knowledge_service.search_layer3(db=db, tenant_id=tenant_id, entry_ids=entry_ids)
 
 
 @router.get("/quota/summary", response_model=QuotaSummaryResponse)

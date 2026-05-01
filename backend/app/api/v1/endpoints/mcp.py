@@ -31,25 +31,24 @@ Tool sets:
     - get_past_skill_work       — recent AI skill execution history
 """
 
-import uuid
-import json
 import asyncio
+import json
+import uuid
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Request, Response, Header, Depends
+from fastapi import APIRouter, Depends, Header, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from sqlalchemy import select as _select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import decode_access_token, decrypt_llm_config
-from app.models.user import User
 from app.models.tenant import Tenant
-from app.services.team_knowledge_service import team_knowledge_service
-from app.services.skill_tools import tool_registry
+from app.models.user import User
 from app.services.skill_loader_service import get_skill_loader
+from app.services.skill_tools import tool_registry
+from app.services.team_knowledge_service import team_knowledge_service
 
 router = APIRouter()
 
@@ -90,20 +89,20 @@ TOOLS = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The current task, working directory, or topic to search for"
+                    "description": "The current task, working directory, or topic to search for",
                 },
                 "top_k": {
                     "type": "integer",
                     "description": "Number of entries to retrieve (1-20, default 5)",
-                    "default": 5
+                    "default": 5,
                 },
                 "role": {
                     "type": "string",
-                    "description": "Filter by contributor role: pm, engineer, designer, qa, other"
-                }
+                    "description": "Filter by contributor role: pm, engineer, designer, qa, other",
+                },
             },
-            "required": ["query"]
-        }
+            "required": ["query"],
+        },
     },
     {
         "name": "check_redundancy",
@@ -117,21 +116,21 @@ TOOLS = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "What you're about to work on"
+                    "description": "What you're about to work on",
                 },
                 "hours": {
                     "type": "integer",
                     "description": "How many hours to look back (default 48)",
-                    "default": 48
+                    "default": 48,
                 },
                 "similarity_threshold": {
                     "type": "number",
                     "description": "Minimum similarity score to flag (0.4–1.0, default 0.75)",
-                    "default": 0.75
-                }
+                    "default": 0.75,
+                },
             },
-            "required": ["query"]
-        }
+            "required": ["query"],
+        },
     },
     {
         "name": "sync_session_context",
@@ -145,40 +144,39 @@ TOOLS = [
             "properties": {
                 "title": {
                     "type": "string",
-                    "description": "Short title for this knowledge entry (max 500 chars)"
+                    "description": "Short title for this knowledge entry (max 500 chars)",
                 },
                 "content": {
                     "type": "string",
-                    "description": "The knowledge content to store (decisions, insights, patterns, research findings, etc.)"
+                    "description": "The knowledge content to store (decisions, insights, patterns, research findings, etc.)",
                 },
                 "role": {
                     "type": "string",
                     "description": "Contributor role: pm, engineer, designer, qa, other",
-                    "default": "other"
+                    "default": "other",
                 },
                 "entry_type": {
                     "type": "string",
                     "description": "Type: insight, decision, artifact, research_finding, pattern, context",
-                    "default": "insight"
+                    "default": "insight",
                 },
                 "tags": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Optional tags for categorisation"
+                    "description": "Optional tags for categorisation",
                 },
                 "product_area": {
                     "type": "string",
-                    "description": "Optional product area this knowledge relates to"
+                    "description": "Optional product area this knowledge relates to",
                 },
                 "session_tokens_used": {
                     "type": "integer",
-                    "description": "Exact token count from the session (for accurate ROI tracking)"
-                }
+                    "description": "Exact token count from the session (for accurate ROI tracking)",
+                },
             },
-            "required": ["title", "content"]
-        }
+            "required": ["title", "content"],
+        },
     },
-
     # ── Evols AI: skills ──────────────────────────────────────────────────────
     {
         "name": "get_skill_details",
@@ -193,13 +191,12 @@ TOOLS = [
             "properties": {
                 "skill_name": {
                     "type": "string",
-                    "description": "Exact skill name (e.g. 'swot-analysis', 'prd-writer', 'competitive-analysis')"
+                    "description": "Exact skill name (e.g. 'swot-analysis', 'prd-writer', 'competitive-analysis')",
                 }
             },
-            "required": ["skill_name"]
-        }
+            "required": ["skill_name"],
+        },
     },
-
     # ── Evols AI: product data tools ──────────────────────────────────────────
     {
         "name": "get_work_context_summary",
@@ -208,7 +205,7 @@ TOOLS = [
             "their role, active projects, key relationships, tasks, and weekly focus. "
             "Call this to personalise responses or understand the user's current priorities."
         ),
-        "inputSchema": {"type": "object", "properties": {}}
+        "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "get_personas",
@@ -218,14 +215,14 @@ TOOLS = [
             "properties": {
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of personas to return (default: all)"
+                    "description": "Maximum number of personas to return (default: all)",
                 },
                 "search": {
                     "type": "string",
-                    "description": "Filter personas by name (partial match)"
-                }
-            }
-        }
+                    "description": "Filter personas by name (partial match)",
+                },
+            },
+        },
     },
     {
         "name": "get_pain_points",
@@ -234,9 +231,9 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "limit": {"type": "integer", "description": "Max items to return"},
-                "search": {"type": "string", "description": "Filter by keyword"}
-            }
-        }
+                "search": {"type": "string", "description": "Filter by keyword"},
+            },
+        },
     },
     {
         "name": "get_feature_requests",
@@ -245,9 +242,9 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "limit": {"type": "integer", "description": "Max items to return"},
-                "search": {"type": "string", "description": "Filter by keyword"}
-            }
-        }
+                "search": {"type": "string", "description": "Filter by keyword"},
+            },
+        },
     },
     {
         "name": "get_competitors",
@@ -256,9 +253,9 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "limit": {"type": "integer", "description": "Max items to return"},
-                "search": {"type": "string", "description": "Filter by keyword"}
-            }
-        }
+                "search": {"type": "string", "description": "Filter by keyword"},
+            },
+        },
     },
     {
         "name": "get_business_goals",
@@ -267,9 +264,9 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "limit": {"type": "integer", "description": "Max items to return"},
-                "search": {"type": "string", "description": "Filter by keyword"}
-            }
-        }
+                "search": {"type": "string", "description": "Filter by keyword"},
+            },
+        },
     },
     {
         "name": "get_metrics",
@@ -278,9 +275,9 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "limit": {"type": "integer", "description": "Max items to return"},
-                "search": {"type": "string", "description": "Filter by keyword"}
-            }
-        }
+                "search": {"type": "string", "description": "Filter by keyword"},
+            },
+        },
     },
     {
         "name": "engage_persona_twin",
@@ -289,10 +286,16 @@ TOOLS = [
             "type": "object",
             "required": ["persona_name", "question"],
             "properties": {
-                "persona_name": {"type": "string", "description": "Name of the persona as it appears in the knowledge graph"},
-                "question": {"type": "string", "description": "Question or topic to ask the persona"}
-            }
-        }
+                "persona_name": {
+                    "type": "string",
+                    "description": "Name of the persona as it appears in the knowledge graph",
+                },
+                "question": {
+                    "type": "string",
+                    "description": "Question or topic to ask the persona",
+                },
+            },
+        },
     },
     {
         "name": "get_themes",
@@ -302,10 +305,10 @@ TOOLS = [
             "properties": {
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of themes to return (default: all)"
+                    "description": "Maximum number of themes to return (default: all)",
                 }
-            }
-        }
+            },
+        },
     },
     {
         "name": "get_feedback_items",
@@ -315,29 +318,29 @@ TOOLS = [
             "properties": {
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum items to return (default: 50)"
+                    "description": "Maximum items to return (default: 50)",
                 },
                 "date_range": {
                     "type": "string",
-                    "description": "Time range filter: 'all', '7d', '30d', '90d' (default: 'all')"
-                }
-            }
-        }
+                    "description": "Time range filter: 'all', '7d', '30d', '90d' (default: 'all')",
+                },
+            },
+        },
     },
     {
         "name": "get_product_strategy",
         "description": "Get the product strategy document including vision, goals, and strategic bets.",
-        "inputSchema": {"type": "object", "properties": {}}
+        "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "get_customer_segments",
         "description": "Get customer segment definitions with size, value, and characteristics.",
-        "inputSchema": {"type": "object", "properties": {}}
+        "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "get_competitive_landscape",
         "description": "Get competitive analysis including key competitors, positioning, and differentiation.",
-        "inputSchema": {"type": "object", "properties": {}}
+        "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "get_features",
@@ -347,14 +350,14 @@ TOOLS = [
             "properties": {
                 "status": {
                     "type": "string",
-                    "description": "Filter by status (e.g. 'planned', 'in_progress', 'completed')"
+                    "description": "Filter by status (e.g. 'planned', 'in_progress', 'completed')",
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of features to return"
-                }
-            }
-        }
+                    "description": "Maximum number of features to return",
+                },
+            },
+        },
     },
     {
         "name": "get_past_skill_work",
@@ -368,19 +371,20 @@ TOOLS = [
             "properties": {
                 "limit": {
                     "type": "integer",
-                    "description": "Number of past executions to return (default: 10)"
+                    "description": "Number of past executions to return (default: 10)",
                 },
                 "category": {
                     "type": "string",
-                    "description": "Filter by skill category (e.g. 'strategy', 'research')"
-                }
-            }
-        }
+                    "description": "Filter by skill category (e.g. 'strategy', 'research')",
+                },
+            },
+        },
     },
 ]
 
 
 # ── Auth helper (used only for tools/call) ───────────────────────────────────
+
 
 async def _resolve_auth(
     token: str,
@@ -438,6 +442,7 @@ async def _resolve_auth(
 
 # ── POST /mcp ───────────────────────────────────────────────────────────────
 
+
 @router.post("")
 async def mcp_post(
     request: Request,
@@ -456,7 +461,9 @@ async def mcp_post(
     try:
         body = await request.json()
     except Exception:
-        return JSONResponse(status_code=400, content=_rpc_error(None, -32700, "Parse error"))
+        return JSONResponse(
+            status_code=400, content=_rpc_error(None, -32700, "Parse error")
+        )
 
     method = body.get("method", "")
     params = body.get("params") or {}
@@ -493,12 +500,16 @@ async def mcp_post(
     if method == "tools/call":
         user_id_header = request.headers.get("X-Evols-User-Id", "").strip()
         auth_header = request.headers.get("Authorization", "")
-        token = auth_header.split(" ", 1)[1] if auth_header.startswith("Bearer ") else ""
+        token = (
+            auth_header.split(" ", 1)[1] if auth_header.startswith("Bearer ") else ""
+        )
 
         if not user_id_header and not token:
             return JSONResponse(
                 status_code=401,
-                content=_rpc_error(req_id, -32001, "Authentication required for tool calls"),
+                content=_rpc_error(
+                    req_id, -32001, "Authentication required for tool calls"
+                ),
             )
         try:
             current_user, tenant_id, llm_config = await _resolve_auth(
@@ -518,21 +529,40 @@ async def mcp_post(
         tool_name = params.get("name", "")
         tool_args = params.get("arguments") or {}
         try:
-            text = await _call_tool(tool_name, tool_args, db, tenant_id, current_user, llm_config)
-            return JSONResponse(content=_ok(req_id, {
-                "content": [{"type": "text", "text": text}],
-                "isError": False,
-            }))
+            text = await _call_tool(
+                tool_name, tool_args, db, tenant_id, current_user, llm_config
+            )
+            return JSONResponse(
+                content=_ok(
+                    req_id,
+                    {
+                        "content": [{"type": "text", "text": text}],
+                        "isError": False,
+                    },
+                )
+            )
         except ValueError as exc:
-            return JSONResponse(content=_ok(req_id, {
-                "content": [{"type": "text", "text": str(exc)}],
-                "isError": True,
-            }))
+            return JSONResponse(
+                content=_ok(
+                    req_id,
+                    {
+                        "content": [{"type": "text", "text": str(exc)}],
+                        "isError": True,
+                    },
+                )
+            )
         except Exception as exc:
-            return JSONResponse(content=_ok(req_id, {
-                "content": [{"type": "text", "text": f"Tool execution failed: {exc}"}],
-                "isError": True,
-            }))
+            return JSONResponse(
+                content=_ok(
+                    req_id,
+                    {
+                        "content": [
+                            {"type": "text", "text": f"Tool execution failed: {exc}"}
+                        ],
+                        "isError": True,
+                    },
+                )
+            )
 
     # ── Unknown method ────────────────────────────────────────────────────────
     return JSONResponse(
@@ -542,6 +572,7 @@ async def mcp_post(
 
 
 # ── DELETE /mcp ─────────────────────────────────────────────────────────────
+
 
 @router.delete("")
 async def mcp_delete(
@@ -555,6 +586,7 @@ async def mcp_delete(
 
 # ── GET /mcp (SSE keep-alive) ────────────────────────────────────────────────
 
+
 @router.get("")
 async def mcp_get(
     mcp_session_id: Optional[str] = Header(None, alias="Mcp-Session-Id"),
@@ -564,6 +596,7 @@ async def mcp_get(
     Minimal implementation — most clients (including LibreChat) use POST-only mode.
     Sends a ping every 30 seconds to keep the connection alive.
     """
+
     async def event_stream():
         yield f"event: endpoint\ndata: {json.dumps({'type': 'endpoint'})}\n\n"
         while True:
@@ -576,11 +609,12 @@ async def mcp_get(
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-        }
+        },
     )
 
 
 # ── Tool implementations ───────────────────────────────────────────────────
+
 
 async def _call_tool(
     tool_name: str,
@@ -646,7 +680,7 @@ async def _call_tool(
         return (
             f"Prior team work found ({best['similarity']:.0%} match)\n"
             f"{sep}\n"
-            f"  \"{best['title']}\"\n"
+            f'  "{best["title"]}"\n'
             f"  {best['hours_ago']:.0f}h ago · ~{best['token_count']:,} tokens\n"
             f"  ~{result['estimated_saving']:,} tokens saved if reused\n"
             f"{sep}\n"
@@ -681,12 +715,38 @@ async def _call_tool(
             llm_config=llm_config,
         )
 
-        return (
-            f"Knowledge entry #{entry.id} added to team graph.\n"
-            f"  Title: \"{entry.title}\"\n"
-            f"  Tokens stored: {entry.token_count:,}\n"
-            f"  This entry is now searchable by all teammates."
+        # Auto-create quota event if session_tokens_used was provided
+        session_tokens_used = args.get("session_tokens_used")
+        tokens_saved_estimate = 0
+        if session_tokens_used and session_tokens_used > 0:
+            session_id = f"mcp-sync-{entry.id}"
+            quota_event = await team_knowledge_service.record_quota_event(
+                db=db,
+                tenant_id=tenant_id,
+                user_id=current_user.id,
+                session_id=session_id,
+                tokens_used=session_tokens_used,
+                tokens_retrieved=entry.token_count,
+                event_type="session_end",
+                tool_name="mcp-sync",
+                plan_type=None,
+                cwd=None,
+            )
+            tokens_saved_estimate = quota_event.tokens_saved_estimate
+
+        result = (
+            f"✓ Added to team knowledge graph (entry #{entry.id})\n"
+            f"  Title: {entry.title}\n"
+            f"  Role: {args.get('role', 'other')} · Type: {args.get('entry_type', 'insight')}\n"
+            f"  Session cost stored: {entry.token_count:,} tokens\n"
         )
+        if tokens_saved_estimate > 0:
+            result += f"  Your team inherits this context from their next session.\n"
+            result += f"  ~{tokens_saved_estimate:,} tokens saved when teammates reuse this vs. compiling fresh."
+        else:
+            result += f"  Your team inherits this context from their next session."
+
+        return result
 
     # ── Evols AI: skill details ───────────────────────────────────────────────
 
