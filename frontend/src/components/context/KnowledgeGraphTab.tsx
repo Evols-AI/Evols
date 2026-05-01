@@ -1,10 +1,37 @@
 import React, { useEffect, useState, useCallback } from 'react'
+import * as d3 from 'd3'
 import ReactFlow, {
   Node, Edge, Background, Controls, MiniMap,
   useNodesState, useEdgesState,
   MarkerType, NodeProps, Handle, Position, BackgroundVariant,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
+
+const GRAPH_STYLES = `
+@keyframes kg-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes kg-pulse-ring {
+  0% { box-shadow: 0 0 0 0 var(--kg-glow); opacity: 0.9; }
+  70% { box-shadow: 0 0 0 8px transparent; opacity: 0; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes kg-dash {
+  to { stroke-dashoffset: -20; }
+}
+.kg-node { animation: kg-float 4s ease-in-out infinite; }
+.kg-node:hover { animation: none; transform: translateY(-2px) scale(1.05); transition: transform 0.15s ease; }
+.kg-pulse::after {
+  content: '';
+  position: absolute;
+  top: -3px; right: -3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--kg-glow-solid);
+  animation: kg-pulse-ring 2s ease-out infinite;
+}
+`
 import { apiClient } from '@/services/api'
 import api from '@/services/api'
 import { Loading, Card, EmptyState } from '@/components/PageContainer'
@@ -72,17 +99,26 @@ function confidenceColor(score: number) {
 function EntityNode({ data }: NodeProps) {
   const c = colorFor(data.entityType)
   const conf: number = data.confidence ?? 0
+  const isHighConf = conf >= 0.75
+  const glowColor = c.border
   return (
     <div
-      style={{ background: c.bg, borderColor: c.border, color: c.text }}
-      className="rounded-lg border-2 px-3 py-2 shadow-sm text-xs font-medium max-w-[140px] text-center cursor-pointer"
+      style={{
+        background: c.bg,
+        borderColor: c.border,
+        color: c.text,
+        boxShadow: `0 0 0 1px ${glowColor}40, 0 4px 20px ${glowColor}30, inset 0 1px 0 ${glowColor}20`,
+        '--kg-glow': `${glowColor}60`,
+        '--kg-glow-solid': glowColor,
+      } as React.CSSProperties}
+      className={`kg-node relative rounded-xl border-2 px-3 py-2 text-xs font-medium max-w-[140px] text-center cursor-pointer backdrop-blur-sm${isHighConf ? ' kg-pulse' : ''}`}
       title={data.description}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <div className="truncate font-semibold">{data.label}</div>
-      {data.entityType && <div className="opacity-60 capitalize mt-0.5">{data.entityType}</div>}
-      <div className="mt-1.5 rounded-full overflow-hidden h-0.5 bg-black/10">
-        <div style={{ width: `${Math.round(conf * 100)}%`, background: confidenceColor(conf) }} className="h-full rounded-full" />
+      <div className="truncate font-semibold leading-tight">{data.label}</div>
+      {data.entityType && <div className="opacity-50 capitalize mt-0.5 text-[10px] tracking-wide">{data.entityType}</div>}
+      <div className="mt-1.5 rounded-full overflow-hidden h-0.5" style={{ background: `${glowColor}20` }}>
+        <div style={{ width: `${Math.round(conf * 100)}%`, background: glowColor, boxShadow: `0 0 4px ${glowColor}` }} className="h-full rounded-full transition-all duration-700" />
       </div>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </div>
@@ -102,14 +138,33 @@ function buildDegreeMap(rawEdges: any[]): Record<string, number> {
   return map
 }
 
-function layoutNodes(rawNodes: any[], degreeMap: Record<string, number>): Node[] {
-  const cols = Math.ceil(Math.sqrt(rawNodes.length)) || 1
-  return rawNodes.map((n, i) => {
+function layoutNodes(rawNodes: any[], rawEdges: any[], degreeMap: Record<string, number>): Node[] {
+  const nodeData = rawNodes.map((n) => ({
+    id: n.id,
+    x: Math.random() * 800,
+    y: Math.random() * 600,
+  }))
+  const linkData = rawEdges.map((e) => ({ source: e.source, target: e.target }))
+
+  const sim = d3.forceSimulation(nodeData as any)
+    .force('link', d3.forceLink(linkData).id((d: any) => d.id).distance(160).strength(0.4))
+    .force('charge', d3.forceManyBody().strength(-300))
+    .force('center', d3.forceCenter(500, 400))
+    .force('collision', d3.forceCollide(70))
+    .stop()
+
+  for (let i = 0; i < 300; i++) sim.tick()
+
+  const posMap: Record<string, { x: number; y: number }> = {}
+  for (const n of nodeData as any[]) posMap[n.id] = { x: n.x, y: n.y }
+
+  return rawNodes.map((n) => {
     const confidence = computeConfidence(n, degreeMap)
+    const pos = posMap[n.id] ?? { x: Math.random() * 800, y: Math.random() * 600 }
     return {
       id: n.id,
       type: 'entity',
-      position: { x: (i % cols) * 210 + Math.random() * 30, y: Math.floor(i / cols) * 130 + Math.random() * 20 },
+      position: pos,
       data: {
         label: n.properties?.entity_id ?? n.id,
         entityType: n.properties?.entity_type ?? 'default',
@@ -125,17 +180,21 @@ function layoutNodes(rawNodes: any[], degreeMap: Record<string, number>): Node[]
 }
 
 function buildEdges(rawEdges: any[]): Edge[] {
-  return rawEdges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: e.properties?.keywords?.split(',')[0]?.trim() ?? '',
-    labelStyle: { fontSize: 10, fill: 'hsl(var(--muted-foreground))' },
-    labelBgStyle: { fill: 'transparent' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--border))' },
-    style: { stroke: 'hsl(var(--border))', strokeWidth: 1.5 },
-    animated: false,
-  }))
+  return rawEdges.map((e) => {
+    const stroke = 'hsl(var(--primary) / 0.35)'
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      label: e.properties?.keywords?.split(',')[0]?.trim() ?? '',
+      labelStyle: { fontSize: 9, fill: 'hsl(var(--muted-foreground))', fontWeight: 500 },
+      labelBgStyle: { fill: 'hsl(var(--background) / 0.7)', borderRadius: 4 },
+      labelBgPadding: [3, 5] as [number, number],
+      markerEnd: { type: MarkerType.ArrowClosed, color: stroke, width: 12, height: 12 },
+      style: { stroke, strokeWidth: 1.5 },
+      animated: true,
+    }
+  })
 }
 
 // ── Edit entity modal ─────────────────────────────────────────────────────────
@@ -596,7 +655,7 @@ export default function KnowledgeGraphTab({ typeFilter, onTypeFilterChange }: Kn
       const rawNodes: any[] = data?.nodes ?? []
       const rawEdges: any[] = data?.edges ?? []
       const degreeMap = buildDegreeMap(rawEdges)
-      const builtNodes = layoutNodes(rawNodes, degreeMap)
+      const builtNodes = layoutNodes(rawNodes, rawEdges, degreeMap)
       const builtEdges = buildEdges(rawEdges)
       setAllNodes(builtNodes); setAllEdges(builtEdges)
       setNodeCount(rawNodes.length); setEdgeCount(rawEdges.length)
@@ -680,6 +739,7 @@ export default function KnowledgeGraphTab({ typeFilter, onTypeFilterChange }: Kn
 
   return (
     <>
+      <style>{GRAPH_STYLES}</style>
       <div className="flex flex-col border border-border rounded-xl overflow-hidden bg-card">
         {/* Toolbar */}
         <div className="relative flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
@@ -749,7 +809,7 @@ export default function KnowledgeGraphTab({ typeFilter, onTypeFilterChange }: Kn
             maxZoom={2}
             proOptions={{ hideAttribution: true }}
           >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--border))" />
+            <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} color="hsl(var(--primary) / 0.12)" />
             <Controls showInteractive={false} />
             <MiniMap nodeColor={(n) => colorFor(n.data?.entityType).border} maskColor="rgba(0,0,0,0.05)" style={{ background: 'hsl(var(--card))' }} />
           </ReactFlow>
