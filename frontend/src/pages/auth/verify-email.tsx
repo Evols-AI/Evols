@@ -67,8 +67,7 @@ export default function VerifyEmail() {
   return (
     <>
       <Head>
-        <title>Verify Email - Evols</title>
-        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
+        <title>Verify email · Evols</title>
       </Head>
 
       <div className={`min-h-screen flex items-center justify-center p-6 transition-colors bg-background`}>

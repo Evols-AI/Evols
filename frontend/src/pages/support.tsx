@@ -57,8 +57,7 @@ export default function Support() {
   return (
     <>
       <Head>
-        <title>Contact Support | Evols</title>
-        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
+        <title>Support · Evols</title>
       </Head>
 
       <div className={`min-h-screen flex flex-col transition-colors bg-background`}>

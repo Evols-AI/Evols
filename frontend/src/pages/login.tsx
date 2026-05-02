@@ -2,30 +2,23 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Mail, Lock, AlertCircle } from 'lucide-react'
+import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { LogoIcon } from '@/components/Logo'
 import { isAuthenticated } from '@/utils/auth'
-import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Login() {
   const router = useRouter()
-  const { theme } = useTheme()
-  const dark = theme === 'dark'
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail]               = useState('')
+  const [password, setPassword]         = useState('')
+  const [error, setError]               = useState('')
+  const [loading, setLoading]           = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
-  const isOidcCallback = router.query.oidc_callback === '1'
-  const oidcRedirectUri = (router.query.redirect_uri as string) || ''
-  const oidcState = (router.query.state as string) || ''
-
-  useEffect(() => {
-    document.body.style.background = ''
-    document.body.style.backgroundImage = 'none'
-  }, [dark])
+  const isOidcCallback   = router.query.oidc_callback === '1'
+  const oidcRedirectUri  = (router.query.redirect_uri as string) || ''
+  const oidcState        = (router.query.state as string) || ''
 
   useEffect(() => {
     const checkAuth = () => {
@@ -33,11 +26,8 @@ export default function Login() {
         const user = localStorage.getItem('user')
         if (user) {
           const userData = JSON.parse(user)
-          if (userData.role === 'SUPER_ADMIN') {
-            router.replace('/admin/tenants')
-          } else {
-            router.replace('/workbench')
-          }
+          if (userData.role === 'SUPER_ADMIN') router.replace('/admin/tenants')
+          else                                  router.replace('/workbench')
         } else {
           router.replace('/workbench')
         }
@@ -53,7 +43,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const apiUrl  = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,15 +67,12 @@ export default function Login() {
           return
         }
         const nextUrl = new URLSearchParams(window.location.search).get('next')
-        if (data.role === 'SUPER_ADMIN') {
-          window.location.href = '/admin/tenants'
-        } else {
-          window.location.href = nextUrl || '/workbench'
-        }
+        if (data.role === 'SUPER_ADMIN') window.location.href = '/admin/tenants'
+        else                              window.location.href = nextUrl || '/workbench'
       } else {
         setError(data.detail || 'Login failed. Please check your credentials.')
       }
-    } catch (err) {
+    } catch {
       setError('Unable to connect to the server. Please try again later.')
     } finally {
       setLoading(false)
@@ -94,91 +81,116 @@ export default function Login() {
 
   if (checkingAuth) return null
 
-  const inputClass = `block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none ${
-    dark
-      ? 'border-border bg-input text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30'
-      : 'border-border bg-card text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30'
-  }`
-  const labelClass = `block text-sm font-medium mb-2 text-muted-foreground`
-  const iconClass = `h-5 w-5 text-muted-foreground`
-
   return (
     <>
       <Head>
-        <title>Login - Evols</title>
-        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
+        <title>Sign in · Evols</title>
       </Head>
 
-      <div className={`min-h-screen flex flex-col transition-colors bg-background`}>
+      <div className="aurora-bg min-h-screen flex flex-col">
         <Header variant="landing" />
-        <div className="flex-grow flex items-center justify-center px-6 py-12">
-          <div className="grid lg:grid-cols-2 gap-12 items-center w-full max-w-6xl">
-            {/* Left Column */}
-            <div className="hidden lg:flex flex-col items-center justify-center">
-              <img src="/login.svg" alt="Login illustration" className="w-full max-w-md mb-10 drop-shadow-lg" />
-              <div className="text-center">
-                <h2 className={`text-3xl font-medium mb-4 text-foreground`}>
-                  Welcome Back!
-                </h2>
-                <p className={`max-w-md text-muted-foreground`}>
-                  Access your team's AI brain and pick up right where you left off.
-                </p>
+
+        <main className="flex-grow flex items-center justify-center px-6 pt-32 pb-16">
+          <div className="grid lg:grid-cols-[1.1fr,1fr] gap-16 items-center w-full max-w-5xl">
+            {/* Editorial left column */}
+            <div className="hidden lg:flex flex-col">
+              <div className="grid place-items-center w-14 h-14 rounded-2xl mb-8 halo-ring">
+                <LogoIcon size={32} variant="pulse" strokeWidth={2} />
               </div>
+              <h2
+                className="font-display text-5xl text-foreground mb-5"
+                style={{ fontStyle: 'italic', letterSpacing: '-0.025em', lineHeight: 1.05 }}
+              >
+                Welcome back to your<br />team's brain.
+              </h2>
+              <p className="text-base text-muted-foreground/90 max-w-md leading-relaxed">
+                Pick up exactly where your team left off. Every session continues
+                the same shared context.
+              </p>
             </div>
 
-            {/* Right Column - Form */}
+            {/* Form column */}
             <div className="w-full">
-              <div className={`rounded-2xl p-8 border bg-card border-border`}>
+              <div className="rounded-2xl p-7 md:p-8 border border-border bg-card/95 shadow-elev-2 backdrop-blur-sm">
+                <h1 className="text-xl font-medium text-foreground mb-1">Sign in</h1>
+                <p className="text-sm text-muted-foreground mb-7">
+                  Use your work email to access your workspace.
+                </p>
+
                 {error && (
-                  <div className={`mb-6 p-4 border rounded-lg flex items-start space-x-3 ${dark ? 'bg-destructive/10 border-destructive/20' : 'bg-destructive/10 border-destructive/30'}`}>
-                    <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div
+                    role="alert"
+                    className="mb-5 p-3 border border-destructive/30 rounded-lg flex items-start gap-2.5"
+                    style={{ background: 'hsl(var(--destructive) / 0.10)' }}
+                  >
+                    <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" strokeWidth={1.75} />
                     <p className="text-sm text-destructive">{error}</p>
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="email" className={labelClass}>Email</label>
+                    <label htmlFor="email" className="block text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground/80 mb-2">
+                      Email
+                    </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className={iconClass} />
-                      </div>
-                      <input id="email" type="email" required value={email}
+                      <Mail className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" strokeWidth={1.75} />
+                      <input
+                        id="email"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className={inputClass} placeholder="you@company.com" />
+                        className="input pl-10"
+                        placeholder="you@company.com"
+                      />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="password" className={labelClass}>Password</label>
+                    <label htmlFor="password" className="block text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground/80 mb-2">
+                      Password
+                    </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className={iconClass} />
-                      </div>
-                      <input id="password" type="password" required value={password}
+                      <Lock className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" strokeWidth={1.75} />
+                      <input
+                        id="password"
+                        type="password"
+                        required
+                        autoComplete="current-password"
+                        value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={inputClass} placeholder="••••••••" />
+                        className="input pl-10"
+                        placeholder="••••••••"
+                      />
                     </div>
                   </div>
 
-                  <button type="submit" disabled={loading}
-                    className="w-full bg-primary hover:bg-primary/85 text-primary-foreground py-3 px-6 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    {loading ? 'Signing in...' : 'Sign In'}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-pulse w-full mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Signing in…' : (
+                      <>
+                        Sign in
+                        <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                      </>
+                    )}
                   </button>
                 </form>
 
-                <div className="mt-6 text-center text-sm">
-                  <p className={'text-muted-foreground'}>
-                    Don't have an account?{' '}
-                    <Link href="/register" className="text-primary hover:text-primary font-medium transition-colors">
-                      Sign up
-                    </Link>
-                  </p>
+                <div className="mt-6 text-center text-sm text-muted-foreground">
+                  Don't have an account?{' '}
+                  <Link href="/register" className="text-primary hover:opacity-80 font-medium transition-opacity">
+                    Create one
+                  </Link>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </main>
 
         <Footer />
       </div>

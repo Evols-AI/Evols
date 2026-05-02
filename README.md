@@ -1,457 +1,278 @@
-# Evols
+<div align="center">
 
-**Your team's AI brain**
+# evols
 
-Give your team a shared AI brain — knowledge, context, and coordination in one place. Evols is the AI collaboration layer that makes sure every teammate works from the same shared context instead of rebuilding it from scratch.
+**Your team's AI brain, taking shape.**
 
-## Overview
+The calm, AI-native ProductOS. Knowledge, context, and coordination — in one place.
 
-Evols is your team's AI brain for collaboration and coordination:
-- **AI Workbench** — conversational AI with 80+ skills, knowledge-grounded responses, and real-time internet search
-- **Shared knowledge graph** — upload docs, meeting notes, and transcripts; LightRAG extracts entities and relationships automatically
-- **Work Context** — structured view of roles, projects, tasks, and decisions so the AI always knows your actual situation
-- **MCP endpoint** — connect Claude Desktop, Cursor, or any MCP-compatible client to your team's knowledge graph
-- **BYOK** — bring your own LLM keys (Anthropic, OpenAI, Azure OpenAI, AWS Bedrock); keys are AES-encrypted per tenant
-- **Multi-tenant** — every workspace is fully isolated; invite your team and get started in minutes
+[Website](https://evols.ai) · [Docs](https://docs.evols.ai) · [Book a demo](https://evols.ai/book-demo)
 
-## Features
+</div>
 
-### Core Features
-1. **AI Skills System** 🤖 *Interactive PM Assistants*
-   - Pre-built AI skills for common PM tasks
-   - Custom skill creation and versioning
-   - User-level skill customization (custom instructions, context, output format)
-   - A/B testing with adaptive bandit optimization
-   - Session-based conversations with context retention
-   - Multi-turn refinement and iterative improvement
-   - Built-in tools: web research (Tavily/Serper), data analysis, document generation
-   - Sentiment analysis and user feedback tracking
+---
 
-2. **Context Management System** 📚 *Unified Data Intelligence*
-   - Upload any data source: meetings, docs, surveys, support tickets
-   - Supports 20+ source types (CSV, PDF, Slack, GitHub, MCP servers, etc.)
-   - Automatic entity extraction (personas, pain points, use cases, feature requests)
-   - Semantic embedding and vector search with pgvector
-   - **LightRAG knowledge graph** for deep relationship extraction across all ingested data
-   - Link entities to initiatives with relevance scoring
-   - Evidence aggregation with deduplication
-   - **Data Retention & Privacy**:
-     - User-controlled retention policies (delete immediately, 30/90 days, encrypted storage)
-     - AES-256-GCM encryption with PBKDF2 key derivation
-     - Content access audit logs for compliance (SOC2, GDPR)
-     - Automatic content deletion with preserved evidence summaries
-   - **Deduplication System**:
-     - SHA-256 content hash detection at upload
-     - Semantic similarity matching with pgvector
-     - Source grouping for related documents (same meeting/event)
-     - Prevents inflated metrics when multiple PMs upload same content
+## Part I — For users
 
-3. **AI-Assisted Synthesis** ⚡ *Async Processing*
-   - Auto-cluster feedback into themes using embeddings + LLM
-   - Link themes to accounts and ARR
-   - Calculate urgency and severity scores
-   - Generate strategic initiatives from themes
-   - **Background processing** for large datasets (no timeouts)
-   - **Real-time progress tracking** with status updates
-   - **Auto-generate prioritized projects** (boulders & pebbles) with RICE scoring
+### What is Evols?
 
-4. **Team Knowledge Graph** 🧠 *Shared Institutional Memory*
-   - Automatically captures learnings from Claude Code and Zed sessions
-   - Semantic search to surface relevant prior work before starting a new task
-   - Redundancy detection: flags when a teammate already solved something similar
-   - Token savings estimates (shows how much context retrieval saves vs. compiling fresh)
-   - Per-session knowledge entries with role, session type, tags, and product area
-   - Used by the Evols Claude Code plugin, Zed plugin, and AI Workbench MCP tools
+Most teams don't have an AI problem. They have a *coordination* problem on top of AI.
 
-5. **Persona Digital Twins**
-   - Auto-generate personas from customer segments
-   - LLM-powered response simulation
-   - "Ask Persona" chat interface
-   - Trade-off voting with confidence scores
+PMs research the same competitor three times. Engineers solve the same infra issue twice. Decisions live in chat threads no one re-reads. When AI is bolted on top, it makes individual people faster — but the team's collective intelligence still resets to zero on Monday morning.
 
-6. **Multi-Tenancy & Auth**
-   - Three role types: SUPER_ADMIN, TENANT_ADMIN, USER
-   - Session management and multi-device support
-   - **Long-lived API keys** (`evols_...` format) for plugin and service authentication
-   - User preferences and settings
-   - Complete data isolation per tenant
+Evols turns every AI session your team runs into **shared, compounding intelligence**. One plugin install activates everything: zero cold start for new teammates, automatic redundancy detection before tokens are burned, and full visibility into your team's collective AI capacity.
 
-### Developer Tools
+### The four things Evols actually does
 
-7. **Evols Claude Code Plugin** 🔌 *Zero-friction team context in Claude Code*
-   - Installs from the Evols marketplace: `/plugin install evols@evols-ai`
-   - **SessionStart**: loads relevant team knowledge entries automatically at session start
-   - **UserPromptSubmit**: redundancy check before Claude processes your first prompt
-   - **PostToolUse**: captures notable Bash/WebFetch outputs mid-session
-   - **Stop**: auto-syncs a knowledge entry via Haiku summarization, prints token/quota summary
-   - MCP tools: `get_team_context`, `sync_session_context`, `get_quota_status`
-   - Works in both CLI and VSCode extension
+**1 · Auto-compiled team knowledge graph.** Every AI session contributes to a shared graph automatically. The next teammate's session inherits it — at roughly **8× fewer tokens** than rebuilding context from scratch. Sources can be meeting transcripts, design docs, customer interviews, Slack threads, GitHub PRs, support tickets, or anything else you'd otherwise paste into a prompt.
 
-8. **Evols Zed Plugin** 🧩 *Team context in Zed AI*
-   - Injects PM skills + team knowledge into every new Zed AI thread via the Rules Library
-   - MCP tools: `get_pm_skill`, `get_team_context`, `sync_session_context`, `check_redundancy`, `get_quota_status`
-   - Slash commands: `/evols:reload`, `/evols:skill <name>`
+**2 · Three-tier product hierarchy.** Customer feedback flows up into a clean structure that's traceable end-to-end:
 
-9. **AI Workbench** 💬 *Multi-model chat with full Evols context*
-   - LibreChat fork branded as "Evols AI Workbench"
-   - Supports Claude, GPT, Gemini, Ollama, and any OpenAI-compatible endpoint
-   - Single sign-on via OIDC bridge — users log in through Evols, no separate account
-   - LLM calls proxy through Evols backend using tenant BYOK keys (no keys at deploy time)
-   - MCP tools give the AI access to team knowledge, personas, themes, and product data
-   - Deployed as an internal Cloud Run service behind Nginx reverse proxy
+> **Theme** *(what customers are saying)* → **Initiative** *(how we respond)* → **Project** *(what we ship)*
 
-## Architecture
+Themes auto-cluster from feedback. Initiatives synthesize 2–4 themes. Projects are concrete work items, prioritized with **RICE** and split into 🏔️ *Boulders* (large) vs ⚡ *Pebbles* (quick wins). Every project traces back to the customer feedback that justified it.
+
+**3 · Persona digital twins.** Auto-generate personas from your customer feedback. Ask each twin trade-off questions ("If you had to choose between A and B…") and get aggregate, confidence-scored answers grounded in real evidence. Twins refresh as new feedback comes in.
+
+**4 · Works where you already work.** One install, zero glue:
+
+- **Claude Code plugin** — `/plugin install evols@evols-ai`. Hooks fire at session start (load team context), prompt submit (redundancy check), and session end (auto-sync learnings via Haiku). MCP tools expose the team graph to your sessions.
+- **Zed plugin** — auto-injects PM skills + team knowledge into every Zed AI thread via the Rules Library.
+- **AI Workbench** — multi-model chat (Claude, GPT, Gemini, Bedrock, Ollama) with full Evols context, single sign-on, and BYOK proxy so your tenant's keys are used everywhere.
+
+### What you get on day one
+
+| | |
+|---|---|
+| **Zero cold start** | New teammates inherit the team graph from their first session — no setup, no accumulation period. |
+| **Redundancy prevention** | Detect duplicate AI work *before* tokens are burned, not after the work collides at code review. |
+| **Quota visibility** | See collective AI capacity across your team in real time. Redirect expiring quota to backlog tasks before it resets unused. |
+| **Calm density** | A dark-first, AI-native interface that shows a lot without feeling busy. Every motion answers "what changed?" |
+| **Governance** | Project- and role-level context permissions. Built for orgs that handle sensitive material. |
+| **BYOK** | Bring your own keys — Anthropic, OpenAI, Azure, Bedrock. AES-encrypted per tenant. No keys at deploy time. |
+
+### Pricing (early access)
+
+- **Free** — bring your own LLM credentials, up to 5 users per tenant, all core features. No usage limits beyond your provider's costs.
+- **Team** *(coming soon)* — 5+ users with BYOK.
+- **Business** *(coming soon)* — use our optimized model setup, no configuration.
+- **Enterprise** *(coming soon)* — RBAC, SSO, dedicated support.
+
+[Get early access →](https://evols.ai/register) · [Book a demo →](https://evols.ai/book-demo)
+
+---
+
+## Part II — For developers and contributors
+
+### What's in this repo
 
 ```
-Evols/
-├── backend/          # Python FastAPI backend
+evols/
+├── backend/              # FastAPI · Python 3.13 · Postgres + pgvector · Redis · Celery
 │   ├── app/
-│   │   ├── api/      # API endpoints
-│   │   ├── core/     # Business logic, auth, config
-│   │   ├── models/   # Database models
-│   │   ├── schemas/  # Pydantic schemas
-│   │   ├── services/ # AI, clustering, persona, knowledge services
-│   │   └── workers/  # Celery background task workers
-│   ├── tests/
-│   └── requirements.txt
-├── frontend/         # React/Next.js frontend
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── styles/
-│   │   └── utils/
-│   └── package.json
-├── librechat.yaml    # AI Workbench server config (LLM endpoints, MCP, auth)
-└── docker/          # Docker configurations
-    ├── backend.Dockerfile
-    ├── frontend.Dockerfile
-    └── docker-compose.yml
+│   │   ├── api/         # versioned routes under /api/v1
+│   │   ├── core/        # config, auth, db, encryption
+│   │   ├── models/      # SQLAlchemy models
+│   │   ├── schemas/     # Pydantic schemas
+│   │   ├── services/    # AI, clustering, persona, knowledge graph
+│   │   └── workers/     # Celery background tasks
+│   └── alembic/         # migrations
+├── frontend/             # Next.js 14 (Pages Router) · TypeScript · Tailwind · shadcn/ui · Framer Motion
+│   └── src/
+│       ├── pages/       # routes
+│       ├── components/  # shell + ui primitives + AI primitives
+│       ├── styles/      # tokens.css + globals.css
+│       └── contexts/    # ThemeContext, etc.
+├── docker/              # Dockerfiles + docker-compose configs
+├── docs/                # design system, architecture, setup guides
+└── librechat.yaml       # AI Workbench (LibreChat fork) config
 
-evols-claude-plugin/  # Claude Code plugin (separate repo)
-evols-zed-plugin/     # Zed extension (separate repo)
-evols-workbench/      # LibreChat fork as AI Workbench (separate repo)
+evols-claude-plugin/      # Sibling repo — Claude Code marketplace plugin
+evols-zed-plugin/         # Sibling repo — Zed extension
+evols-workbench/          # Sibling repo — LibreChat fork branded as Evols AI Workbench
 ```
 
-### System Overview
+### Architecture at a glance
 
 ```
 Developer tools (Claude Code, Zed)
          │ MCP tools / hooks
          ▼
-Evols Backend API (FastAPI)
-  ├── /api/v1/team-knowledge   — knowledge graph CRUD + semantic search
-  ├── /api/v1/mcp              — MCP Streamable-HTTP endpoint for tools
-  ├── /api/v1/oidc             — OIDC provider bridge for AI Workbench SSO
-  ├── /api/v1/llm-proxy        — BYOK LLM proxy for AI Workbench
-  └── ... (skills, context, personas, themes, projects)
+Evols Backend API  (FastAPI · localhost:8000)
+  ├── /api/v1/team-knowledge   knowledge graph CRUD + semantic search
+  ├── /api/v1/mcp              MCP Streamable-HTTP endpoint for tools
+  ├── /api/v1/oidc             OIDC provider bridge for AI Workbench SSO
+  ├── /api/v1/llm-proxy        BYOK proxy for AI Workbench
+  └── /api/v1/{skills,context,personas,themes,projects,...}
          │
-         ├── PostgreSQL + pgvector   — primary store
-         ├── LightRAG                — knowledge graph (relationship extraction)
-         └── Redis + Celery          — background jobs
+         ├── PostgreSQL + pgvector   structured data + 1024-dim embeddings
+         ├── LightRAG                graph-based RAG, entity + relationship extraction
+         └── Redis + Celery          caching + durable background jobs
 
 AI Workbench (LibreChat fork)
   └── Nginx reverse proxy → /workbench/*
+
+Frontend (Next.js · localhost:3000)
+  └── consumes the backend, embeds the AI Workbench iframe
 ```
 
-## Tech Stack
+### Memory layers
 
-### Backend
-- **Framework**: FastAPI (Python 3.13+)
-- **Database**: PostgreSQL with pgvector
-- **Knowledge Graph**: LightRAG (self-hosted, graph-based RAG)
-- **AI/ML**: AWS Bedrock, OpenAI API, Azure OpenAI, Anthropic, or bring-your-own-LLM
-- **Embeddings**: sentence-transformers, OpenAI embeddings
-- **Clustering**: scikit-learn, HDBSCAN
-- **Task Queue**: Celery + Redis
-- **Web Search**: Tavily AI, Serper (fallback)
-- **Auth**: JWT, OAuth2, OIDC provider bridge
+Evols runs a four-tier memory stack — different layers for different durability and access patterns:
 
-### Frontend
-- **Framework**: React 18 with Next.js 14
-- **UI Library**: Tailwind CSS, shadcn/ui, Radix UI
-- **State Management**: Zustand, React Query
-- **Visualization**: D3.js, Recharts
-- **Editor**: Lexical or Tiptap
+| Layer | Tech | Role |
+|---|---|---|
+| **Cache / hot session** | Redis | LLM-response cache, Celery broker, short-lived session state |
+| **Semantic memory** | PostgreSQL + pgvector | All structured data plus 1024-dim embeddings for similarity + dedup |
+| **Graph / institutional memory** | LightRAG (self-hosted) | The team brain — entity + relationship extraction across all ingested feedback / docs / meetings |
+| **Working / chat memory** | MongoDB Atlas | Used by the AI Workbench (LibreChat fork) for active chat threads — talks to Evols via OIDC + LLM proxy |
 
-### AI Workbench
-- **Base**: LibreChat (MIT-licensed fork)
-- **Database**: MongoDB Atlas M0 (free managed cloud)
-- **Deployment**: Cloud Run (internal) + Nginx reverse proxy
+When marketing copy says "team's AI brain," **LightRAG + pgvector working together** is what backs it. Redis is the caching glue. MongoDB only matters when the chat surface is up.
 
-### DevOps
-- **Containerization**: Docker, Docker Compose
-- **Cloud**: Google Cloud Run
-- **Proxy**: Nginx (single public entry point)
+### Tech stack
 
-## Getting Started
+**Backend** — FastAPI · Python 3.13 · PostgreSQL with pgvector · LightRAG · Celery · Redis · sentence-transformers · scikit-learn · HDBSCAN · Tavily/Serper · Anthropic / OpenAI / Azure / Bedrock SDKs · JWT, OAuth2, OIDC
 
-### Prerequisites
-- Python 3.13+
+**Frontend** — Next.js 14 (Pages Router) · React 18 · TypeScript · Tailwind CSS · shadcn/ui · Radix UI · Framer Motion · Recharts · D3 · React Query · Zustand · Geist Sans + Geist Mono + Instrument Serif
+
+**AI Workbench** — LibreChat (MIT-licensed fork) · MongoDB Atlas · deployed as a Cloud Run sidecar behind nginx
+
+**DevOps** — Docker · Docker Compose · Google Cloud Run · GitHub Actions
+
+### Local development
+
+#### Prerequisites
+
+- Docker Desktop (Windows/macOS) or Docker Engine + Compose plugin (Linux)
 - Node.js 18+
-- PostgreSQL 15+
-- Docker & Docker Compose
+- Python 3.13+ *(only if you want to run the backend outside Docker)*
+- Git
 
-### Quick Start
+#### Quick start (5 minutes — design review path)
 
-1. **Clone the repository**
+This brings up Postgres + Redis + the FastAPI backend in containers, and runs the Next.js frontend on the host. **LightRAG and the AI Workbench are skipped** — they're optional and require additional setup.
+
 ```bash
-git clone <repo-url>
+git clone <repo-url> evols
 cd evols
-```
 
-2. **Set up environment variables**
-```bash
-# Backend
+# Backend env — copy and let the script generate secrets, OR fill in by hand
 cp backend/.env.example backend/.env
-# Edit backend/.env with your settings
+# Edit backend/.env: SECRET_KEY, FIELD_ENCRYPTION_KEY, ENCRYPTION_MASTER_SECRET,
+# SUPER_ADMIN_CREATION_TOKEN. Generate each with:
+#   python -c 'import secrets; print(secrets.token_urlsafe(32))'
+# FIELD_ENCRYPTION_KEY needs a Fernet key:
+#   python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
 
-# Frontend
-cp frontend/.env.example frontend/.env
-# Edit frontend/.env with your settings
-```
+# Frontend env — point at the backend
+echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > frontend/.env.local
 
-3. **Run with Docker Compose**
-```bash
-docker-compose up -d
-```
+# Bring up the dev stack (postgres + redis + backend)
+docker compose -f docker/docker-compose.dev.yml up -d --build
 
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
+# Stamp alembic to current head (tables are created by the backend's startup hook)
+docker compose -f docker/docker-compose.dev.yml exec backend alembic stamp head
 
-4. **Configure LLM API Keys** (Required for AI features)
-```bash
-# After logging in, go to Settings → LLM Settings
-# Add your OpenAI, Anthropic, Azure, or AWS Bedrock API key
-# See SETUP_GUIDE.md for detailed instructions
-```
-
-**Important:** Without LLM keys configured, AI features (copilot, personas, themes) won't work.
-
-### Development Setup
-
-#### Backend
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-#### Frontend
-```bash
+# Start the frontend
 cd frontend
 npm install
 npm run dev
 ```
 
-## Key Features Spotlight
+Then:
 
-### ⚡ Automatic End-to-End Generation
-Evols automatically generates your entire product roadmap from customer feedback with a single button:
+1. Open **<http://localhost:3000/admin-setup>** and create the first SUPER_ADMIN using the `SUPER_ADMIN_CREATION_TOKEN` from `backend/.env`.
+2. Sign in → land on `/admin/tenants` → create a tenant.
+3. Create a regular user inside that tenant. Sign in as that user → land on `/workbench` and explore the product.
 
-- **One-Click Workflow**: Upload feedback → Click "Refresh All" → Get prioritized projects
-- **Fully Automated Pipeline**: Themes → Initiatives → Projects all generated automatically
-- **No Timeouts**: Background processing handles large datasets (thousands of feedback items)
-- **Persona Refresh**: Update personas from feedback data independently
+**Notes on the dev path:**
 
-**Complete Workflow:**
-1. Upload customer feedback (CSV or API)
-2. Click "Refresh All" on Initiatives page
-3. System automatically:
-   - Generates themes from feedback (semantic clustering)
-   - Generates initiatives from themes (strategic grouping)
-   - Generates projects from initiatives (concrete work items)
-   - Calculates RICE priority scores
-4. See real-time progress updates (0-100%)
-5. View results: themes, initiatives, and prioritized projects
+- `docker-compose.dev.yml` excludes LightRAG (knowledge-graph features will surface "no data" empty states — the rest of the product is fully usable).
+- The Workbench page renders a "still warming up" empty state when the LibreChat fork isn't deployed; everything else works.
+- `USE_CELERY=False` runs background jobs synchronously — fine for development.
 
-**Example:**
-```typescript
-// Start automatic generation of everything
-const { job_id } = await api.refreshThemesAsync()
+#### Full stack
 
-// Poll for progress (handled automatically by UI)
-useJobPolling({
-  jobId: job_id,
-  onComplete: (result) => {
-    console.log(`Created ${result.themes_created} themes, ` +
-                `${result.projects_created} projects!`)
-  }
-})
+For the full feature set including LightRAG and the AI Workbench:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-### 🎯 RICE-Based Project Prioritization
-Automatically generate and prioritize projects using the industry-standard RICE framework:
+This pulls/builds **5 services** (postgres, redis, backend, lightrag, frontend). First-time build is ~10–15 min because LightRAG is heavy.
 
-**Formula:** `Priority = (Reach × PersonaWeight × Confidence) / Effort`
+For LibreChat, follow the AI Workbench fork's setup in `evols-workbench/CLAUDE.md`.
 
-- **Reach**: Number of accounts affected by the theme
-- **PersonaWeight**: Revenue-weighted persona relevance (via embedding similarity)
-- **Confidence**: Theme confidence score from feedback clustering
-- **Effort**: Small (1), Medium (2), Large (4), or XLarge (8)
+### Frontend design system
 
-Projects are automatically classified as:
-- 🏔️ **Boulders**: Large/XLarge effort (2-4+ weeks)
-- ⚡ **Pebbles**: Small/Medium effort (1-14 days)
+The design language lives in two layers:
 
-### 🔐 Smart Authentication
-JWT token validation with automatic expiration detection:
-- Validates token expiration on every auth check
-- Auto-clears expired tokens from localStorage
-- Prevents redirect loops and flickering
-- Seamless user experience with no timeouts
+- **Tokens** — `frontend/src/styles/globals.css` defines the dark-first iris→mint duotone, aurora atmosphere, glass surfaces, and the `.thinking-surface` / `.stream-shimmer` / `.halo-ring` AI primitives.
+- **Components** — `frontend/src/components/ui/` has the AI primitives (`AIShimmer`, `AIThinking`, `ToolUseChip`, `CitationPill`, `ConfidenceBar`, `ThinkingSurface`, `Halo`) and the global `AskEvolsDock`. Page chrome lives in `frontend/src/components/` (`Header`, `Footer`, `Logo`, `PageContainer`).
 
-### 🏗️ Three-Tier Product Hierarchy
+The full design philosophy, motion language, and component spec is in **[`docs/design/EVOLS_DESIGN_HANDOFF.md`](docs/design/EVOLS_DESIGN_HANDOFF.md)**. The smoke-test checklist for any design change is in **[`docs/design/SMOKE_TESTS.md`](docs/design/SMOKE_TESTS.md)**.
 
-Evols implements a clear three-tier hierarchy that connects customer feedback to concrete execution:
+Three rules to design by:
 
-```
-Theme (Feedback Clusters) → Initiative (Strategic Bets) → Project (Work Items)
-```
+> 1. AI is chrome, not a feature.
+> 2. Calm density. Show a lot, but layer it with hierarchy and air.
+> 3. Motion = meaning. Every animation answers "what changed?"
 
-**1. Themes** - The "What customers are saying" layer
-- Auto-generated from feedback clustering
-- Metrics: urgency_score, impact_score, confidence_score
-- Linked to accounts and revenue data
-- Example: "Need for flexible data export formats"
+### Backend conventions
 
-**2. Initiatives** - The "How we respond strategically" layer
-- Strategic responses addressing 2-4 related themes
-- Shows aggregate metrics from linked themes
-- Clear context on which customer problems are being solved
-- Example: "Improve Data Export Capabilities"
+- Routes are versioned under `/api/v1/<resource>` and follow REST + JSON.
+- All long-running work goes through Celery tasks (`backend/app/workers/`). Endpoints return job IDs; the frontend polls via `useJobPolling`.
+- LLM calls are routed through the LLM proxy (`/api/v1/llm-proxy`) which uses tenant-scoped BYOK keys. **Do not** read LLM keys from environment variables in application code.
+- All tenant API keys are encrypted with the tenant's `FIELD_ENCRYPTION_KEY` (Fernet). Never log decrypted keys.
+- Migrations live in `backend/alembic/versions/`. Generate with `alembic revision --autogenerate -m "<message>"` and review the diff carefully — `Base.metadata.create_all()` runs at startup so the schema can drift without you noticing.
 
-**3. Projects** - The "What we actually build" layer
-- Concrete work items with acceptance criteria
-- 🏔️ Boulders (large) vs ⚡ Pebbles (quick wins)
-- RICE priority scoring for data-driven decisions
-- Example: "Build advanced export engine (Priority: 156.3)"
+### Testing
 
-**Why this matters:**
-- **Traceability**: Every project traces back to customer feedback via themes
-- **Strategic clarity**: Initiatives explain why we're building something
-- **Data-driven**: Priority scores consider customer reach, revenue, and effort
-- **Transparency**: PMs can clearly see and explain the reasoning chain
+```bash
+# Frontend
+cd frontend
+npm run type-check   # tsc --noEmit
+npm run lint         # next lint
+npm run build        # prod build smoke test
 
-**UI Visualization:**
-```
-📊 Initiative Card: "Improve Data Export Capabilities"
-├── 📋 Addressing 3 Themes:
-│   • "Need for flexible data export formats"
-│   • "CSV export limitations"
-│   • "API access for data extraction"
-├── 📈 Aggregate Metrics (from themes):
-│   • 127 feedback items from 43 accounts
-│   • 78% urgency, 82% impact
-└── 🎯 5 Projects (3 boulders, 2 pebbles)
-    ├── 🏔️ Build advanced export engine (Priority: 156.3)
-    ├── ⚡ Add JSON export option (Priority: 89.1)
-    └── ...
+# Backend (from inside the container or with the venv active)
+cd backend
+pytest               # full suite
+pytest tests/api     # just API tests
 ```
 
-## Pricing Model
+### Deploying
 
-### Free Tier
-- Bring your own LLM credentials (Azure, GCP, AWS)
-- Up to 5 users per tenant
-- All core features included
-- No usage limits beyond your LLM provider costs
+Production runs on Google Cloud Run with an nginx reverse proxy as the single public entry point. See `deployment/` for the Terraform / IaC and runbooks.
 
-### Paid Tiers (Coming Soon)
-- **Team Plan**: 5+ users with BYOK (bring your own keys)
-- **Business Plan**: Use our optimized models (no setup required)
-- **Enterprise Plan**: Advanced RBAC, SSO, dedicated support
+### Contributing
 
-## Roadmap
+Issues and PRs welcome. A few ground rules:
 
-### v1.0 (Completed)
-- ✅ Data ingestion and knowledge graph
-- ✅ Feedback clustering and theme generation
-- ✅ Persona digital twins and simulation
-- ✅ Multi-tenant architecture
+- One coherent change per PR. If your description has two "and"s in it, it's two PRs.
+- New components go through `docs/design/SMOKE_TESTS.md` before merge.
+- New design tokens land in `globals.css` first, then get an entry in `EVOLS_DESIGN_HANDOFF.md`.
+- Backend changes that touch the schema land with an alembic migration in the same PR.
+- Run `npm run type-check` and `pytest` locally before pushing.
 
-### v1.1 (Completed) - *March 2026*
-- ✅ **AI Skills system** — Interactive AI assistants for PM tasks with A/B testing
-- ✅ **Context management system** — Unified data ingestion with 20+ source types
-- ✅ **Work Context** — Personal work context tracking (projects, tasks, relationships, decisions, weekly focus)
-- ✅ **Sprint planning skill** — AI-assisted sprint planning with automatic task creation on task board
-- ✅ **Tool calling API** — Skills can invoke tools (add_task, update_project, get_work_context, etc.)
-- ✅ **Data retention & privacy** — User-controlled policies with encryption and audit logs
-- ✅ **Deduplication system** — Three-phase deduplication (content hash, semantic similarity, source grouping)
-- ✅ **Support ticket system** — Built-in customer support with admin dashboard
-- ✅ **Async background processing** with Celery + Redis for themes, personas, and projects
-- ✅ **Three-tier hierarchy** (Theme → Initiative → Project) in UI
-- ✅ **Auto-generate prioritized projects** with RICE scoring and boulder/pebble classification
-- ✅ **Native async OpenAI/Anthropic clients** — 5x throughput, 3x faster responses
-- ✅ **Centralized prompt management** — Version control, A/B testing, hot-reload
-- ✅ **Outcome learning loop** — Bayesian learning adjusts priorities based on historical accuracy
-- ✅ **Instructor structured parsing** — Type-safe LLM outputs with Pydantic schemas
-
-### v1.2 (Current) - *April 2026*
-- ✅ **Team Knowledge Graph** — shared institutional memory across all tools
-- ✅ **LightRAG integration** — graph-based knowledge extraction from all ingested data
-- ✅ **Evols Claude Code plugin** — team knowledge + redundancy detection in Claude Code
-- ✅ **Evols Zed plugin** — PM skills + team knowledge auto-injected into Zed AI threads
-- ✅ **Long-lived API keys** — `evols_...` format keys for plugin and service auth
-- ✅ **MCP Streamable-HTTP endpoint** — tools: get_team_context, check_redundancy, sync_session_context, plus 10 product-data tools
-- ✅ **OIDC provider bridge** — Evols acts as OIDC provider for AI Workbench SSO
-- ✅ **LLM proxy** — BYOK proxy for AI Workbench (OpenAI-compatible, all providers)
-- ✅ **AI Workbench config** — librechat.yaml wiring LibreChat to Evols auth + LLM proxy
-- ✅ **Internet search tools** — Tavily AI (primary) + Serper (fallback) in skills
-- ✅ **Skill customizations** — user-level instruction/context/format overrides per skill
-- [ ] AI Workbench fork changes (auto-auth hook, theme sync, deploy script)
-- [ ] Direct integrations (Intercom, Productboard, Amplitude)
-- [ ] Advanced RBAC and permissions
-
-### v1.3 (Next)
-- [ ] Experiment tracking and outcome measurement
-- [ ] Decision memory and meta-pattern analysis
-- [ ] Email notifications for job completion
-- [ ] Job history and retry capabilities
-
-### v2.0 (Future)
-- [ ] Multi-question sessions and scenario simulations
-- [ ] Advanced causal modeling
-- [ ] Collaborative decision workflows
-- [ ] Mobile app
-
-## Documentation
-
-### Setup & Usage
-- **[Setup Guide](SETUP_GUIDE.md)** — Complete setup from fresh database to multi-tenant platform
-- **[CSV Upload Guide](docs/CSV_UPLOAD_GUIDE.md)** — How to upload customer feedback
-- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** — Common issues and solutions
-
-### Developer Tools
-- **[Claude Code Plugin README](../evols-claude-plugin/README.md)** — Installation, hooks, MCP tools
-- **[Zed Plugin Architecture](../evols-zed-plugin/ARCHITECTURE.md)** — LMDB injection, MCP tools, Option C upstream path
-- **[AI Workbench CLAUDE.md](../evols-workbench/CLAUDE.md)** — LibreChat fork structure and code style
-
-### Architecture & Implementation
-- **[Three-Tier Architecture](docs/THREE_TIER_ARCHITECTURE.md)** — Theme → Initiative → Project architecture
-- **[Data Retention Implementation](DATA_RETENTION_IMPLEMENTATION.md)** — Privacy controls, encryption, and audit logs
-- **[Deduplication Implementation](DEDUPLICATION_IMPLEMENTATION.md)** — Three-phase deduplication system
-- **[Async API Documentation](docs/ASYNC_API.md)** — Background job processing API
-- **[LLM Cost Analysis](docs/LLM_COST_ANALYSIS.md)** — Detailed breakdown of AI costs per VoC ($0.05/VoC)
-
-### Technical References
-- **[Technical Debt Fixes](docs/TECHNICAL_DEBT_FIXES.md)** — Native async clients, prompt management, outcome learning
-- **[Changelog](CHANGELOG.md)** — Version history and recent changes
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## License
+### License
 
 Copyright © 2026 Evols. All rights reserved.
 
-## Support
+### Where to go next
 
-- Documentation: [docs.evols.ai](https://docs.evols.ai)
-- Issues: [GitHub Issues](https://github.com/evols/issues)
-- Email: support@evols.ai
+| | |
+|---|---|
+| Setup walkthrough | [`SETUP_GUIDE.md`](SETUP_GUIDE.md) |
+| Three-tier architecture deep dive | [`docs/THREE_TIER_ARCHITECTURE.md`](docs/THREE_TIER_ARCHITECTURE.md) |
+| Async API contract | [`docs/ASYNC_API.md`](docs/ASYNC_API.md) |
+| Data retention & encryption | [`DATA_RETENTION_IMPLEMENTATION.md`](DATA_RETENTION_IMPLEMENTATION.md) |
+| Deduplication system | [`DEDUPLICATION_IMPLEMENTATION.md`](DEDUPLICATION_IMPLEMENTATION.md) |
+| Design system | [`docs/design/EVOLS_DESIGN_HANDOFF.md`](docs/design/EVOLS_DESIGN_HANDOFF.md) |
+| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
+
+---
+
+<div align="center">
+<sub>Build calmly. Ship the brain.</sub>
+</div>

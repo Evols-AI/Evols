@@ -23,7 +23,9 @@ MANIFEST
 venv/
 ENV/
 env/
-docs/
+# Ignore everything under docs/ EXCEPT the design system folder.
+docs/*
+!docs/design/
 .venv
 
 # Node

@@ -1,0 +1,71 @@
+# Minimal stack for design review — postgres + redis + backend only.
+# Skip LightRAG (10+ min build, only needed for the knowledge-graph features)
+# and skip the frontend container (you're already running `npm run dev` locally).
+#
+# Usage from repo root:
+#   docker compose -f docker/docker-compose.dev.yml up -d
+#
+# After it's up:
+#   docker compose -f docker/docker-compose.dev.yml exec backend alembic upgrade head
+#
+# Then visit http://localhost:3000/admin-setup to create the first SUPER_ADMIN
+# using the SUPER_ADMIN_CREATION_TOKEN from backend/.env.
+
+services:
+  postgres:
+    image: ankane/pgvector:v0.5.1
+    container_name: evols-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: evols
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: evols-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: evols-backend
+    env_file:
+      - ../backend/.env
+    environment:
+      # Override DB/Redis URLs to use Docker network names (not localhost)
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/evols
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: "True"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
+  redis_data:

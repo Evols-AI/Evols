@@ -69,8 +69,7 @@ export default function BookDemo() {
   return (
     <>
       <Head>
-        <title>Book a Demo - Evols AI</title>
-        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
+        <title>Book a demo · Evols</title>
       </Head>
       <div className={`min-h-screen transition-colors bg-background`}>
         <Header variant="landing" />
