@@ -26,7 +26,6 @@ export default function BlogIndex({ posts }: Props) {
         <title>Blog - Evols</title>
         <meta name="description" content="Insights on AI for product teams, knowledge management, and the future of product management." />
         <link rel="canonical" href="https://evols.ai/blog" />
-        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
       <div className="min-h-screen bg-background">

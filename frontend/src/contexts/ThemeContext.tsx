@@ -10,19 +10,18 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
+  // Default to dark — Evols is dark-first per design language.
+  const [theme, setTheme] = useState<Theme>('dark')
 
   useEffect(() => {
-    // Get theme from localStorage or system preference
     const savedTheme = localStorage.getItem('theme') as Theme | null
-    if (savedTheme) {
+    if (savedTheme === 'light' || savedTheme === 'dark') {
       setTheme(savedTheme)
       document.documentElement.classList.toggle('dark', savedTheme === 'dark')
     } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      const initialTheme = prefersDark ? 'dark' : 'light'
-      setTheme(initialTheme)
-      document.documentElement.classList.toggle('dark', initialTheme === 'dark')
+      // No explicit pref — default dark, ignore system preference.
+      setTheme('dark')
+      document.documentElement.classList.add('dark')
     }
   }, [])
 

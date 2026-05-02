@@ -19,8 +19,7 @@ export default function Docs() {
   return (
     <>
       <Head>
-        <title>Documentation - Evols</title>
-        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
+        <title>Documentation · Evols</title>
       </Head>
 
       <div className="min-h-screen bg-background">

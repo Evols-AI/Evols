@@ -62,7 +62,6 @@ export default function BlogPostPage({ post }: Props) {
         {post.tags.map(tag => (
           <meta key={tag} property="article:tag" content={tag} />
         ))}
-        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
       <div className="min-h-screen bg-background">

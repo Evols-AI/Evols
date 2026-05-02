@@ -3,31 +3,24 @@ import type { AppProps } from 'next/app'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import { Expletus_Sans } from 'next/font/google'
-
-const exletusSans = Expletus_Sans({
-  weight: '500',
-  subsets: ['latin'],
-  variable: '--font-expletus-sans',
-  display: 'swap',
-})
+import { AskEvolsDock } from '@/components/ui/AskEvolsDock'
 
 export default function App({ Component, pageProps }: AppProps) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000, // 1 minute, refetchOnWindowFocus: false,
+        staleTime: 60 * 1000,
       },
     },
   }))
 
   return (
-    <div className={`${exletusSans.variable}`}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <Component {...pageProps} />
-        </ThemeProvider>
-      </QueryClientProvider>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <Component {...pageProps} />
+        {/* Global AI affordance — self-hides on landing/auth/workbench routes. */}
+        <AskEvolsDock />
+      </ThemeProvider>
+    </QueryClientProvider>
   )
 }

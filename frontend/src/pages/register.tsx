@@ -2,41 +2,31 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
+import { Mail, Lock, User, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { LogoIcon } from '@/components/Logo'
 import { isAuthenticated } from '@/utils/auth'
-import { useTheme } from '@/contexts/ThemeContext'
 
 export default function Register() {
   const router = useRouter()
-  const { theme } = useTheme()
-  const dark = theme === 'dark'
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     full_name: '',
   })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [checkingAuth, setCheckingAuth] = useState(true)
-  const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [error, setError]                         = useState('')
+  const [loading, setLoading]                     = useState(false)
+  const [checkingAuth, setCheckingAuth]           = useState(true)
+  const [inviteToken, setInviteToken]             = useState<string | null>(null)
   const [verificationPending, setVerificationPending] = useState(false)
-  const [verificationEmail, setVerificationEmail] = useState('')
-
-  useEffect(() => {
-    document.body.style.background = ''
-    document.body.style.backgroundImage = 'none'
-  }, [dark])
+  const [verificationEmail, setVerificationEmail]     = useState('')
 
   useEffect(() => {
     const checkAuth = () => {
-      if (isAuthenticated()) {
-        router.replace('/workbench')
-      } else {
-        setCheckingAuth(false)
-      }
+      if (isAuthenticated()) router.replace('/workbench')
+      else                    setCheckingAuth(false)
     }
     checkAuth()
   }, [router])
@@ -56,11 +46,11 @@ export default function Register() {
     e.preventDefault()
     setError('')
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      setError('Passwords do not match.')
       return
     }
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long')
+      setError('Password must be at least 8 characters long.')
       return
     }
     setLoading(true)
@@ -71,7 +61,7 @@ export default function Register() {
         full_name: formData.full_name,
       }
       if (inviteToken) requestBody.invite_token = inviteToken
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const apiUrl   = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +84,7 @@ export default function Register() {
       } else {
         setError(data.detail || 'Registration failed. Please try again.')
       }
-    } catch (err) {
+    } catch {
       setError('Unable to connect to the server. Please try again later.')
     } finally {
       setLoading(false)
@@ -103,169 +93,185 @@ export default function Register() {
 
   if (checkingAuth) return null
 
-  const inputClass = `block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none ${
-    dark
-      ? 'border-border bg-input text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30'
-      : 'border-border bg-card text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30'
-  }`
-  const labelClass = `block text-sm font-medium mb-2 text-muted-foreground`
-  const iconClass = `h-5 w-5 text-muted-foreground`
-
   return (
     <>
       <Head>
-        <title>Sign Up - Evols</title>
-        <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
+        <title>Get early access · Evols</title>
       </Head>
 
-      <div className={`min-h-screen flex flex-col transition-colors bg-background`}>
+      <div className="aurora-bg min-h-screen flex flex-col">
         <Header variant="landing" />
-        <div className="flex-grow flex items-center justify-center px-6 py-12">
-          <div className="grid lg:grid-cols-2 gap-12 items-center w-full max-w-6xl">
-            {/* Left Column */}
-            <div className="hidden lg:flex flex-col items-center justify-center">
-              <img
-                src="/register.svg"
-                alt="Sign up illustration"
-                className="w-full max-w-md mb-10 drop-shadow-lg"
-              />
-              <div className="text-center">
-                <h2 className={`text-3xl font-medium mb-4 text-foreground`}>
-                  Join Evols Today
-                </h2>
-                <p className={`max-w-md text-muted-foreground`}>
-                  Give your team a shared AI brain — knowledge, context, and coordination in one place.
-                </p>
+
+        <main className="flex-grow flex items-center justify-center px-6 pt-32 pb-16">
+          <div className="grid lg:grid-cols-[1.1fr,1fr] gap-16 items-center w-full max-w-5xl">
+            {/* Editorial left column */}
+            <div className="hidden lg:flex flex-col">
+              <div className="grid place-items-center w-14 h-14 rounded-2xl mb-8 halo-ring">
+                <LogoIcon size={32} variant="pulse" strokeWidth={2} />
               </div>
+              <h2
+                className="font-display text-5xl text-foreground mb-5"
+                style={{ fontStyle: 'italic', letterSpacing: '-0.025em', lineHeight: 1.05 }}
+              >
+                Give your team{' '}
+                <br />a shared brain.
+              </h2>
+              <p className="text-base text-muted-foreground/90 max-w-md leading-relaxed mb-10">
+                Knowledge, context, and coordination — in one calm, AI-native place.
+              </p>
+              <ul className="space-y-2.5 text-sm text-muted-foreground/85">
+                {[
+                  'Zero cold start for new teammates',
+                  'Auto-compiled team knowledge graph',
+                  'Quota visibility across your whole team',
+                ].map((line) => (
+                  <li key={line} className="flex items-start gap-2.5">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--brand-pulse)' }} />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            {/* Right Column - Form */}
+            {/* Form column */}
             <div className="w-full">
-              <div className={`rounded-2xl p-8 border bg-card border-border`}>
+              <div className="rounded-2xl p-7 md:p-8 border border-border bg-card/95 shadow-elev-2 backdrop-blur-sm">
                 {verificationPending ? (
-                  <div className="text-center py-8">
-                    <div className="flex justify-center mb-6">
-                      <div className="rounded-full p-3 bg-primary/10">
-                        <Mail className="w-12 h-12 text-primary" />
-                      </div>
+                  <div className="text-center py-6">
+                    <div className="grid place-items-center w-14 h-14 rounded-2xl mx-auto mb-6 halo-ring">
+                      <Mail className="w-6 h-6 text-primary" strokeWidth={1.75} />
                     </div>
-                    <h3 className={`text-2xl font-medium mb-3 text-foreground`}>
-                      Check Your Email
+                    <h3
+                      className="font-display text-3xl text-foreground mb-3"
+                      style={{ fontStyle: 'italic', letterSpacing: '-0.022em' }}
+                    >
+                      Check your email.
                     </h3>
-                    <p className={`mb-6 text-muted-foreground`}>
-                      We've sent a verification link to <strong>{verificationEmail}</strong>
+                    <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+                      We've sent a verification link to <strong className="text-foreground">{verificationEmail}</strong>.
+                      Click it to complete your registration. The link expires in 24 hours.
                     </p>
-                    <div className="border rounded-lg p-4 mb-6 bg-primary/5 border-primary/20">
-                      <p className={`text-sm text-muted-foreground`}>
-                        Click the link in the email to complete your registration and create your workspace.
-                        The link will expire in 24 hours.
-                      </p>
-                    </div>
-                    <p className={`text-sm text-muted-foreground`}>
-                      Didn't receive the email? Check your spam folder or{' '}
+                    <p className="text-xs text-muted-foreground/80">
+                      Didn't get it? Check your spam folder or{' '}
                       <button
                         onClick={() => { setVerificationPending(false); setVerificationEmail('') }}
-                        className="text-primary hover:text-primary transition-colors"
+                        className="text-primary hover:opacity-80 transition-opacity"
                       >
                         try again
-                      </button>
+                      </button>.
                     </p>
                   </div>
                 ) : (
                   <>
+                    <h1 className="text-xl font-medium text-foreground mb-1">
+                      {inviteToken ? 'Accept invitation' : 'Get early access'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      {inviteToken
+                        ? 'Complete your profile to join the team.'
+                        : 'Set up your workspace in under a minute.'}
+                    </p>
+
                     {inviteToken && (
-                      <div className="mb-6 p-4 border rounded-lg flex items-start space-x-3 bg-primary/5 border-primary/20">
-                        <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                      <div
+                        className="mb-5 p-3 border border-primary/30 rounded-lg flex items-start gap-2.5"
+                        style={{ background: 'hsl(var(--primary) / 0.08)' }}
+                      >
+                        <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" strokeWidth={1.75} />
                         <div>
-                          <p className={`text-sm font-medium mb-1 text-foreground`}>
-                            You've been invited!
-                          </p>
-                          <p className={`text-xs text-muted-foreground`}>
-                            Complete the form below to accept the invitation and join the team.
+                          <p className="text-sm font-medium text-foreground mb-0.5">You've been invited.</p>
+                          <p className="text-xs text-muted-foreground">
+                            Complete the form below to accept and join.
                           </p>
                         </div>
                       </div>
                     )}
 
                     {error && (
-                      <div className={`mb-6 p-4 border rounded-lg flex items-start space-x-3 ${dark ? 'bg-destructive/10 border-destructive/20' : 'bg-destructive/10 border-destructive/30'}`}>
-                        <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                      <div
+                        role="alert"
+                        className="mb-5 p-3 border border-destructive/30 rounded-lg flex items-start gap-2.5"
+                        style={{ background: 'hsl(var(--destructive) / 0.10)' }}
+                      >
+                        <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" strokeWidth={1.75} />
                         <p className="text-sm text-destructive">{error}</p>
                       </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                      <div>
-                        <label htmlFor="full_name" className={labelClass}>Full Name</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <User className={iconClass} />
-                          </div>
-                          <input id="full_name" name="full_name" type="text" required
-                            value={formData.full_name} onChange={handleChange}
-                            className={inputClass} placeholder="Alex Johnson" />
-                        </div>
-                      </div>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <Field id="full_name" label="Full name" icon={User} value={formData.full_name} onChange={handleChange} placeholder="Alex Johnson" />
+                      <Field id="email"     label="Email"     icon={Mail} value={formData.email}     onChange={handleChange} placeholder="you@company.com" type="email" autoComplete="email" />
+                      <Field id="password"  label="Password"  icon={Lock} value={formData.password}  onChange={handleChange} placeholder="••••••••"        type="password" autoComplete="new-password" minLength={8} />
+                      <Field id="confirmPassword" label="Confirm password" icon={Lock} value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" type="password" autoComplete="new-password" />
 
-                      <div>
-                        <label htmlFor="email" className={labelClass}>Email</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Mail className={iconClass} />
-                          </div>
-                          <input id="email" name="email" type="email" required
-                            value={formData.email} onChange={handleChange}
-                            className={inputClass} placeholder="you@company.com" />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label htmlFor="password" className={labelClass}>Password</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Lock className={iconClass} />
-                          </div>
-                          <input id="password" name="password" type="password" required
-                            value={formData.password} onChange={handleChange}
-                            className={inputClass} placeholder="••••••••" minLength={8} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label htmlFor="confirmPassword" className={labelClass}>Confirm Password</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Lock className={iconClass} />
-                          </div>
-                          <input id="confirmPassword" name="confirmPassword" type="password" required
-                            value={formData.confirmPassword} onChange={handleChange}
-                            className={inputClass} placeholder="••••••••" />
-                        </div>
-                      </div>
-
-                      <button type="submit" disabled={loading}
-                        className="w-full bg-primary hover:bg-primary/85 text-primary-foreground py-3 px-6 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        {loading ? (inviteToken ? 'Joining...' : 'Creating Account...') : (inviteToken ? 'Accept Invitation' : 'Create Account')}
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="btn-pulse w-full mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading
+                          ? (inviteToken ? 'Joining…' : 'Creating account…')
+                          : (
+                            <>
+                              {inviteToken ? 'Accept invitation' : 'Create account'}
+                              <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                            </>
+                          )}
                       </button>
                     </form>
                   </>
                 )}
 
-                <div className="mt-6 text-center text-sm">
-                  <p className={'text-muted-foreground'}>
-                    Already have an account?{' '}
-                    <Link href="/login" className="text-primary hover:text-primary font-medium transition-colors">
-                      Sign in
-                    </Link>
-                  </p>
+                <div className="mt-6 text-center text-sm text-muted-foreground">
+                  Already have an account?{' '}
+                  <Link href="/login" className="text-primary hover:opacity-80 font-medium transition-opacity">
+                    Sign in
+                  </Link>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </main>
 
         <Footer />
       </div>
     </>
+  )
+}
+
+function Field({
+  id, label, icon: Icon, value, onChange, placeholder, type = 'text', autoComplete, minLength,
+}: {
+  id: string
+  label: string
+  icon: any
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder: string
+  type?: string
+  autoComplete?: string
+  minLength?: number
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground/80 mb-2">
+        {label}
+      </label>
+      <div className="relative">
+        <Icon className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 w-4 h-4 text-muted-foreground/70" strokeWidth={1.75} />
+        <input
+          id={id}
+          name={id}
+          type={type}
+          required
+          autoComplete={autoComplete}
+          minLength={minLength}
+          value={value}
+          onChange={onChange}
+          className="input pl-10"
+          placeholder={placeholder}
+        />
+      </div>
+    </div>
   )
 }
