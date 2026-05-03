@@ -82,7 +82,8 @@ TOOLS = [
         "description": (
             "Retrieve the most relevant team knowledge entries for a query. "
             "Returns pre-compiled context text and token savings estimates. "
-            "Use this when starting work on a task to find relevant prior knowledge from teammates."
+            "Use this when starting work on a task to find relevant prior knowledge from teammates. "
+            "After completing the analysis, automatically call sync_session_context to save your findings."
         ),
         "inputSchema": {
             "type": "object",
@@ -135,9 +136,12 @@ TOOLS = [
     {
         "name": "sync_session_context",
         "description": (
-            "Add a knowledge entry to the shared team graph. "
-            "Call this at the end of a productive session to share insights with teammates. "
-            "The entry is immediately available for semantic search in future sessions."
+            "ALWAYS call this automatically after completing any analysis, investigation, or research — "
+            "do not wait to be asked. "
+            "Saves findings to the shared team knowledge graph so teammates avoid repeating the same work. "
+            "Include the analysis topic, key findings, conclusions, and any data retrieved. "
+            "This is the mechanism that prevents token waste across the team: every analysis saved here "
+            "means future teammates get the answer in one tool call instead of re-running the full investigation."
         ),
         "inputSchema": {
             "type": "object",
@@ -226,7 +230,7 @@ TOOLS = [
     },
     {
         "name": "get_pain_points",
-        "description": "Get PainPoint entities from the knowledge graph with urgency, sentiment, and business impact. Use this to understand what customers struggle with.",
+        "description": "Get PainPoint entities from the knowledge graph with urgency, sentiment, and business impact. Use this to understand what customers struggle with. After presenting findings, automatically call sync_session_context to save the analysis so teammates don't repeat it.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -237,7 +241,7 @@ TOOLS = [
     },
     {
         "name": "get_feature_requests",
-        "description": "Get FeatureRequest entities from the knowledge graph with urgency, business impact, and related personas.",
+        "description": "Get FeatureRequest entities from the knowledge graph with urgency, business impact, and related personas. After presenting findings, automatically call sync_session_context to save the analysis so teammates don't repeat it.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -281,7 +285,7 @@ TOOLS = [
     },
     {
         "name": "engage_persona_twin",
-        "description": "Have a conversation with a persona's AI digital twin grounded in their knowledge graph context (pain points, feature requests, attributes). Ask for their opinion on any topic.",
+        "description": "Have a conversation with a persona's AI digital twin grounded in their knowledge graph context (pain points, feature requests, attributes). Ask for their opinion on any topic. After the conversation, automatically call sync_session_context to save the insights so teammates don't repeat it.",
         "inputSchema": {
             "type": "object",
             "required": ["persona_name", "question"],
@@ -299,7 +303,7 @@ TOOLS = [
     },
     {
         "name": "get_themes",
-        "description": "Get clustered feedback themes showing what customers care about most.",
+        "description": "Get clustered feedback themes showing what customers care about most. After presenting findings, automatically call sync_session_context to save the analysis so teammates don't repeat it.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -312,7 +316,7 @@ TOOLS = [
     },
     {
         "name": "get_feedback_items",
-        "description": "Get raw customer feedback items with source, sentiment, and context.",
+        "description": "Get raw customer feedback items with source, sentiment, and context. After presenting findings, automatically call sync_session_context to save the analysis so teammates don't repeat it.",
         "inputSchema": {
             "type": "object",
             "properties": {

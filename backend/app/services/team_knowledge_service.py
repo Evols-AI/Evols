@@ -363,7 +363,45 @@ class TeamKnowledgeService:
             })
 
         if not matches:
-            return {"found": False, "similar_entries": [], "message": ""}
+            # Second pass: soft match at lower threshold to catch related work
+            # with different framing (e.g. "Jitsi competitive analysis" vs "Jitsi research")
+            SOFT_THRESHOLD = 0.55
+            soft_matches = []
+            for idx, score in ranked:
+                if score < SOFT_THRESHOLD:
+                    break
+                entry = recent_entries[idx]
+                hours_ago = (datetime.utcnow() - entry.created_at).total_seconds() / 3600
+                soft_matches.append({
+                    "id": entry.id,
+                    "title": entry.title,
+                    "role": entry.role.value if hasattr(entry.role, "value") else entry.role,
+                    "entry_type": entry.entry_type.value if hasattr(entry.entry_type, "value") else entry.entry_type,
+                    "token_count": entry.token_count or 0,
+                    "content_preview": entry.content[:400] + ("..." if len(entry.content) > 400 else ""),
+                    "similarity": round(score, 3),
+                    "created_at": entry.created_at.isoformat(),
+                    "hours_ago": round(hours_ago, 1),
+                    "user_id": entry.user_id,
+                })
+            if not soft_matches:
+                return {"found": False, "similar_entries": [], "message": ""}
+            best = soft_matches[0]
+            retrieval_cost = 140
+            saving = max(0, best["token_count"] - retrieval_cost)
+            message = (
+                f"Related work found: \"{best['title']}\" "
+                f"({best['hours_ago']:.0f}h ago, ~{best['token_count']:,} tokens, {best['similarity']:.0%} match). "
+                f"Call get_team_context to check if this covers your subtask before researching from scratch."
+            )
+            return {
+                "found": True,
+                "is_soft_match": True,
+                "similar_entries": soft_matches,
+                "message": message,
+                "best_match_token_count": best["token_count"],
+                "estimated_saving": saving,
+            }
 
         best = matches[0]
         retrieval_cost = 140  # approximate tokens to retrieve this entry
@@ -376,6 +414,7 @@ class TeamKnowledgeService:
 
         return {
             "found": True,
+            "is_soft_match": False,
             "similar_entries": matches,
             "message": message,
             "best_match_token_count": best["token_count"],
@@ -603,6 +642,37 @@ class TeamKnowledgeService:
         cost_usd: Optional[float] = None,
         cwd: Optional[str] = None,
     ) -> QuotaEvent:
+        # Upsert by session_id: accumulate tokens_retrieved across multiple calls
+        # (e.g. Zed posts after each get_team_context call within one session)
+        result = await db.execute(
+            select(QuotaEvent).where(
+                QuotaEvent.tenant_id == tenant_id,
+                QuotaEvent.session_id == session_id,
+            )
+        )
+        existing = result.scalar_one_or_none()
+
+        if existing is not None:
+            # Accumulate — don't double-count tokens already recorded
+            existing.tokens_retrieved = max(existing.tokens_retrieved, tokens_retrieved)
+            existing.tokens_used = max(existing.tokens_used, tokens_used)
+            if tokens_created > 0:
+                existing.tokens_invested = (existing.tokens_invested or 0) + tokens_created
+            # Recompute derived fields
+            tr = existing.tokens_retrieved
+            tc = existing.tokens_invested or 0
+            if tr > 0 and tc > 0:
+                existing.event_category = EventCategory.MIXED
+            elif tr > 0:
+                existing.event_category = EventCategory.RETRIEVAL
+            else:
+                existing.event_category = EventCategory.CREATION
+            existing.actual_savings = int(tr * (COMPRESSION_RATIO - 1)) if tr > 0 else 0
+            existing.tokens_saved_estimate = existing.actual_savings
+            await db.commit()
+            await db.refresh(existing)
+            return existing
+
         # Determine category and honest accounting
         if tokens_retrieved > 0 and tokens_created > 0:
             category = EventCategory.MIXED

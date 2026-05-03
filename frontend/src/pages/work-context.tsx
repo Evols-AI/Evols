@@ -640,7 +640,8 @@ function formatAiCost(tokens: number): string {
 }
 
 function timeAgo(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime()
+  const normalized = isoDate.endsWith('Z') || isoDate.includes('+') ? isoDate : isoDate + 'Z'
+  const diff = Date.now() - new Date(normalized).getTime()
   const h = Math.floor(diff / 3_600_000)
   if (h < 1) return 'just now'
   if (h < 24) return `${h}h ago`
