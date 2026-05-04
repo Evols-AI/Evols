@@ -45,7 +45,7 @@ from app.core.dependencies import get_current_user, get_current_tenant_id
 from app.core.security import decrypt_llm_config
 from app.models.user import User
 from app.models.tenant import Tenant
-from app.services.llm_service import LLMService, LLMConfig
+from app.services.llm_service import LLMService, LLMConfig, normalize_bedrock_model
 
 router = APIRouter()
 
@@ -298,28 +298,6 @@ async def _proxy(
 
 # ── Bedrock model ID normalizer ───────────────────────────────────────────────
 
-_BEDROCK_MODEL_MAP = {
-    # Claude 4.x requires cross-region inference profiles (us.anthropic.* prefix)
-    "claude-haiku-4-5-20251001":        "us.anthropic.claude-haiku-4-5-20251001-v1:0",
-    "claude-haiku-4-5":                 "us.anthropic.claude-haiku-4-5-20251001-v1:0",
-    "claude-sonnet-4-6":                "us.anthropic.claude-sonnet-4-20250514-v1:0",
-    "claude-sonnet-4-6-20250514":       "us.anthropic.claude-sonnet-4-20250514-v1:0",
-    "claude-sonnet-4":                  "us.anthropic.claude-sonnet-4-20250514-v1:0",
-    "claude-opus-4-7":                  "us.anthropic.claude-opus-4-1-20250805-v1:0",
-    "claude-opus-4":                    "us.anthropic.claude-opus-4-1-20250805-v1:0",
-}
-
-def _normalize_bedrock_model(model: str) -> str:
-    """Translate short/OpenAI-style model names to valid Bedrock model IDs."""
-    if model in _BEDROCK_MODEL_MAP:
-        return _BEDROCK_MODEL_MAP[model]
-    # Already a valid Bedrock ID (contains a dot or slash)
-    if "." in model or "/" in model:
-        return model
-    # Fallback to Sonnet 4
-    return "us.anthropic.claude-sonnet-4-20250514-v1:0"
-
-
 # ── Route handlers ─────────────────────────────────────────────────────────────
 # Catch-all paths for each provider so LibreChat can call any sub-path
 # (e.g. /v1/messages, /chat/completions, /v1/chat/completions, etc.)
@@ -476,7 +454,7 @@ async def proxy_bedrock(
     body = await request.json()
     messages = body.get("messages", [])
     model = body.get("model", config.get("model_id", "us.anthropic.claude-sonnet-4-6"))
-    model = _normalize_bedrock_model(model)
+    model = normalize_bedrock_model(model)
     temperature = float(body.get("temperature", 0.7))
     max_tokens = int(body.get("max_tokens", 4096))
     tools = body.get("tools")

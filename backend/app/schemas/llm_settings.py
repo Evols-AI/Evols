@@ -13,11 +13,9 @@ from datetime import datetime
 # ============================================================================
 
 class OpenAIConfig(BaseModel):
-    """OpenAI provider configuration"""
-
     provider: Literal["openai"] = "openai"
     api_key: str = Field(..., min_length=1, description="OpenAI API key (sk-...)")
-    model: str = Field(default="gpt-5.4", description="Model to use for generation")  # Latest GPT-5.4 (March 2026)
+    model: str = Field(default="gpt-5.4", description="Model to use for generation")
     embedding_model: str = Field(
         default="text-embedding-3-large",
         description="Embedding model for vector search"
@@ -25,55 +23,36 @@ class OpenAIConfig(BaseModel):
 
 
 class AnthropicConfig(BaseModel):
-    """Anthropic Claude provider configuration"""
-
     provider: Literal["anthropic"] = "anthropic"
     api_key: str = Field(..., min_length=1, description="Anthropic API key")
-    model: str = Field(
-        default="claude-sonnet-4-6",  # Latest Claude 4.6 Sonnet (Feb 2026)
-        description="Claude model version"
-    )
+    model: str = Field(default="claude-sonnet-4-6", description="Claude model version")
 
 
 class AzureOpenAIConfig(BaseModel):
-    """Azure OpenAI provider configuration"""
-
     provider: Literal["azure_openai"] = "azure_openai"
     api_key: str = Field(..., min_length=1, description="Azure OpenAI API key")
     endpoint: str = Field(..., description="Azure OpenAI endpoint URL")
     deployment_name: str = Field(..., description="Deployment name")
-    api_version: str = Field(
-        default="2024-02-01",
-        description="Azure OpenAI API version"
-    )
-    embedding_deployment: Optional[str] = Field(
-        None,
-        description="Embedding deployment name"
-    )
+    api_version: str = Field(default="2024-02-01", description="Azure OpenAI API version")
+    embedding_deployment: Optional[str] = Field(None, description="Embedding deployment name")
 
 
 class AWSBedrockConfig(BaseModel):
-    """AWS Bedrock provider configuration - supports both API key and IAM credentials"""
-
     provider: Literal["aws_bedrock"] = "aws_bedrock"
     aws_auth_method: Literal["api_key", "credentials"] = Field(
         default="api_key",
         description="Authentication method: api_key or credentials (IAM)"
     )
-    # API Key authentication
-    api_key: Optional[str] = Field(None, description="AWS Bedrock API key (if using api_key method)")
-    # IAM credentials authentication
-    access_key_id: Optional[str] = Field(None, description="AWS Access Key ID (if using credentials method)")
-    secret_access_key: Optional[str] = Field(None, description="AWS Secret Access Key (if using credentials method)")
-    # Common fields
+    api_key: Optional[str] = Field(None, description="AWS Bedrock API key (api_key method)")
+    access_key_id: Optional[str] = Field(None, description="AWS Access Key ID (credentials method)")
+    secret_access_key: Optional[str] = Field(None, description="AWS Secret Access Key (credentials method)")
     region: str = Field(default="us-east-1", description="AWS region")
     model_id: str = Field(
-        default="global.anthropic.claude-sonnet-4-6",  # Latest Claude 4.6 Sonnet inference profile (Feb 2026)
-        description="Bedrock model ID or inference profile (e.g., global.anthropic.claude-sonnet-4-6)"
+        default="global.anthropic.claude-sonnet-4-6",
+        description="Bedrock model ID or inference profile"
     )
 
     def model_post_init(self, __context):
-        """Validate that the required fields for the selected auth method are present"""
         if self.aws_auth_method == "api_key":
             if not self.api_key:
                 raise ValueError("api_key is required when aws_auth_method is 'api_key'")
@@ -83,38 +62,87 @@ class AWSBedrockConfig(BaseModel):
 
 
 class GoogleGeminiConfig(BaseModel):
-    """Google Gemini provider configuration"""
-
     provider: Literal["google_gemini"] = "google_gemini"
     api_key: str = Field(..., min_length=1, description="Google AI Studio API key")
-    model: str = Field(
-        default="gemini-2.5-flash",  # Latest production-ready Gemini model (2026)
-        description="Gemini model to use for generation"
+    model: str = Field(default="gemini-2.5-flash", description="Gemini model")
+    temperature: Optional[float] = Field(default=0.7)
+    top_p: Optional[float] = Field(default=0.95)
+    top_k: Optional[int] = Field(default=40)
+
+
+class GroqConfig(BaseModel):
+    provider: Literal["groq"] = "groq"
+    api_key: str = Field(..., min_length=1, description="Groq API key")
+    model: str = Field(default="llama-3.3-70b-versatile", description="Groq model")
+
+
+class MistralConfig(BaseModel):
+    provider: Literal["mistral"] = "mistral"
+    api_key: str = Field(..., min_length=1, description="Mistral API key")
+    model: str = Field(default="mistral-large-latest", description="Mistral model")
+
+
+class CohereConfig(BaseModel):
+    provider: Literal["cohere"] = "cohere"
+    api_key: str = Field(..., min_length=1, description="Cohere API key")
+    model: str = Field(default="command-r-plus", description="Cohere model")
+
+
+class TogetherAIConfig(BaseModel):
+    provider: Literal["together_ai"] = "together_ai"
+    api_key: str = Field(..., min_length=1, description="Together AI API key")
+    model: str = Field(default="meta-llama/Llama-3-70b-chat-hf", description="Together AI model")
+
+
+class OllamaConfig(BaseModel):
+    provider: Literal["ollama"] = "ollama"
+    model: str = Field(default="llama3.2", description="Ollama model name")
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Ollama server URL (must be reachable from Evols backend)"
     )
-    temperature: Optional[float] = Field(
-        default=0.7,
-        description="Sampling temperature (0.0 to 1.0)"
-    )
-    top_p: Optional[float] = Field(
-        default=0.95,
-        description="Top-p sampling parameter"
-    )
-    top_k: Optional[int] = Field(
-        default=40,
-        description="Top-k sampling parameter"
-    )
+
+
+class DeepSeekConfig(BaseModel):
+    provider: Literal["deepseek"] = "deepseek"
+    api_key: str = Field(..., min_length=1, description="DeepSeek API key")
+    model: str = Field(default="deepseek/deepseek-v3.2", description="DeepSeek model")
+
+
+class XAIConfig(BaseModel):
+    provider: Literal["xai"] = "xai"
+    api_key: str = Field(..., min_length=1, description="xAI API key")
+    model: str = Field(default="xai/grok-4", description="xAI Grok model")
+
+
+class OpenRouterConfig(BaseModel):
+    provider: Literal["openrouter"] = "openrouter"
+    api_key: str = Field(..., min_length=1, description="OpenRouter API key")
+    model: str = Field(default="openrouter/deepseek/deepseek-r1", description="OpenRouter model")
 
 
 # ============================================================================
 # API Request/Response Schemas
 # ============================================================================
 
-LLMSettingsUpdate = Union[OpenAIConfig, AnthropicConfig, AzureOpenAIConfig, AWSBedrockConfig, GoogleGeminiConfig]
+LLMSettingsUpdate = Union[
+    OpenAIConfig,
+    AnthropicConfig,
+    AzureOpenAIConfig,
+    AWSBedrockConfig,
+    GoogleGeminiConfig,
+    GroqConfig,
+    MistralConfig,
+    CohereConfig,
+    TogetherAIConfig,
+    OllamaConfig,
+    DeepSeekConfig,
+    XAIConfig,
+    OpenRouterConfig,
+]
 
 
 class LLMSettingsResponse(BaseModel):
-    """Response schema for LLM settings (with masked API keys)"""
-
     provider: str
     model: Optional[str] = None
     api_key_masked: Optional[str] = Field(None, description="Masked API key (e.g., sk-...xyz)")
@@ -127,14 +155,10 @@ class LLMSettingsResponse(BaseModel):
 
 
 class LLMTestConnectionRequest(BaseModel):
-    """Request to test LLM connection before saving"""
-
     config: LLMSettingsUpdate = Field(..., description="LLM configuration to test")
 
 
 class LLMTestConnectionResponse(BaseModel):
-    """Response from LLM connection test"""
-
     success: bool
     message: str
     provider: str
@@ -143,58 +167,48 @@ class LLMTestConnectionResponse(BaseModel):
 
 
 # ============================================================================
-# Model Selection Options (for UI dropdowns)
+# Model lists for UI dropdowns
 # ============================================================================
 
 OPENAI_MODELS = [
-    "gpt-5.4",       # Latest GPT-5.4 (March 2026) - Most advanced model
-    "gpt-5.2",       # GPT-5.2 (December 2025)
-    "gpt-4o",        # Previous generation flagship (Nov 2024)
-    "gpt-4o-mini",   # Fast and cost-effective
-    "gpt-4-turbo",   # Legacy but still good
+    "gpt-5.4",
+    "gpt-5.2",
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
 ]
 
 OPENAI_EMBEDDING_MODELS = [
-    "text-embedding-3-large",   # Best quality embeddings
-    "text-embedding-3-small",   # Cost-effective option
+    "text-embedding-3-large",
+    "text-embedding-3-small",
 ]
 
 ANTHROPIC_MODELS = [
-    # Claude 4.6 (latest - Feb 2026) - Most advanced generation
-    "claude-sonnet-4-6",           # Latest Sonnet - Best balance (DEFAULT)
-    "claude-opus-4-6",             # Latest Opus - Most powerful
-    "claude-haiku-4-5-20251001",   # Latest Haiku - Fast and cost-effective
-    # Claude 4 (previous generation)
-    "claude-opus-4-20250514",      # Previous Claude 4
-    # Claude 3.5 (legacy but stable)
-    "claude-3-5-sonnet-20241022",  # Previous generation Sonnet
-    "claude-3-5-haiku-20241022",   # Previous generation Haiku
-    # Claude 3 (legacy)
-    "claude-3-opus-20240229",      # Older generation
+    "claude-sonnet-4-6",
+    "claude-opus-4-6",
+    "claude-haiku-4-5-20251001",
+    "claude-opus-4-20250514",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-5-haiku-20241022",
+    "claude-3-opus-20240229",
 ]
 
 AWS_BEDROCK_MODELS = [
-    # Claude 4.6 models (latest - Feb 2026) - Use inference profiles for global routing
-    "global.anthropic.claude-sonnet-4-6",          # Global Claude 4.6 Sonnet (DEFAULT)
-    "global.anthropic.claude-opus-4-6-v1",         # Global Claude 4.6 Opus
-    # Regional Claude 4.6 profiles for specific geographic requirements
-    "us.anthropic.claude-sonnet-4-6",              # US Claude 4.6 Sonnet
-    "us.anthropic.claude-opus-4-6-v1",             # US Claude 4.6 Opus
-    "eu.anthropic.claude-sonnet-4-6",              # EU Claude 4.6 Sonnet
-    "eu.anthropic.claude-opus-4-6-v1",             # EU Claude 4.6 Opus
-    "au.anthropic.claude-sonnet-4-6",              # AU Claude 4.6 Sonnet
-    "au.anthropic.claude-opus-4-6-v1",             # AU Claude 4.6 Opus
-    # Claude 4.x models (direct model IDs)
-    "anthropic.claude-sonnet-4-5-20250929-v1:0",  # Claude 4.5 Sonnet
-    "anthropic.claude-sonnet-4-20250514-v1:0",    # Claude 4 Sonnet
-    # Claude 3.5 models (previous generation, still excellent)
-    "anthropic.claude-3-5-sonnet-20241022-v2:0",   # Previous generation Sonnet
-    "anthropic.claude-3-5-haiku-20241022-v1:0",    # Previous generation Haiku - Fast
-    # Claude 3 models (legacy - stable, work with Converse API)
-    "anthropic.claude-3-sonnet-20240229-v1:0",     # Legacy but stable
-    "anthropic.claude-3-opus-20240229-v1:0",       # Legacy most capable
-    "anthropic.claude-3-haiku-20240307-v1:0",      # Legacy cost-effective
-    # Amazon Titan models
+    "global.anthropic.claude-sonnet-4-6",
+    "global.anthropic.claude-opus-4-6-v1",
+    "us.anthropic.claude-sonnet-4-6",
+    "us.anthropic.claude-opus-4-6-v1",
+    "eu.anthropic.claude-sonnet-4-6",
+    "eu.anthropic.claude-opus-4-6-v1",
+    "au.anthropic.claude-sonnet-4-6",
+    "au.anthropic.claude-opus-4-6-v1",
+    "anthropic.claude-sonnet-4-5-20250929-v1:0",
+    "anthropic.claude-sonnet-4-20250514-v1:0",
+    "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "anthropic.claude-3-5-haiku-20241022-v1:0",
+    "anthropic.claude-3-sonnet-20240229-v1:0",
+    "anthropic.claude-3-opus-20240229-v1:0",
+    "anthropic.claude-3-haiku-20240307-v1:0",
     "amazon.titan-text-express-v1",
     "amazon.titan-text-lite-v1",
 ]
@@ -211,30 +225,94 @@ AWS_REGIONS = [
 ]
 
 GOOGLE_GEMINI_MODELS = [
-    # Gemini 2.5 (latest production - 2026) - Most advanced stable generation
-    "gemini-2.5-flash",             # Latest production model - Best overall (DEFAULT)
-    "gemini-2.5-flash-lite",        # Latest Flash-Lite - Ultra-fast
-    # Gemini 3.1 (preview models - not for production, Gemini 3 Pro deprecated March 2026)
-    "gemini-3.1-pro-preview",       # Preview only - use with caution
-    "gemini-3.1-flash-lite-preview", # Preview Flash-Lite
-    "gemini-3.1-flash-live-preview", # Preview Flash Live - Real-time audio
-    # Gemini 1.5 (legacy but stable)
-    "gemini-1.5-pro",              # Previous generation Pro
-    "gemini-1.5-flash",            # Previous generation Flash
-    "gemini-1.5-flash-8b",         # Ultra-fast for simple tasks
-    "gemini-1.5-pro-text-only",    # Text-focused variant
-    "gemini-1.5-flash-text-only",  # Fast text-only variant
-    # Legacy (avoid unless needed)
-    "gemini-1.0-pro",              # Much older generation
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3.1-pro-preview",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-flash-live-preview",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+    "gemini-1.0-pro",
+]
+
+GROQ_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "llama-3.2-90b-vision-preview",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+]
+
+MISTRAL_MODELS = [
+    "mistral-large-latest",
+    "mistral-medium-latest",
+    "mistral-small-latest",
+    "codestral-latest",
+    "open-mixtral-8x22b",
+]
+
+COHERE_MODELS = [
+    "command-r-plus",
+    "command-r",
+    "command",
+    "command-light",
+]
+
+TOGETHER_AI_MODELS = [
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "meta-llama/Llama-3.1-8B-Instruct-Turbo",
+    "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "togethercomputer/CodeLlama-34b-Instruct",
+]
+
+DEEPSEEK_MODELS = [
+    "deepseek/deepseek-v3.2",
+    "deepseek/deepseek-v3",
+    "deepseek/deepseek-r1",
+    "deepseek/deepseek-reasoner",
+    "deepseek/deepseek-chat",
+]
+
+XAI_MODELS = [
+    "xai/grok-4",
+    "xai/grok-4-fast-reasoning",
+    "xai/grok-3",
+    "xai/grok-3-mini",
+    "xai/grok-3-mini-fast",
+    "xai/grok-2-1212",
+]
+
+OPENROUTER_MODELS = [
+    "openrouter/deepseek/deepseek-r1",
+    "openrouter/deepseek/deepseek-r1-0528",
+    "openrouter/deepseek/deepseek-chat-v3.1",
+    "openrouter/deepseek/deepseek-v3.2",
+    "openrouter/meta-llama/llama-3.3-70b-instruct",
+    "openrouter/meta-llama/llama-3.1-405b-instruct",
+    "openrouter/qwen/qwen3-235b-a22b",
+    "openrouter/qwen/qwen3-30b-a3b",
+    "openrouter/microsoft/phi-4",
+    "openrouter/mistralai/mistral-large",
+    "openrouter/google/gemini-2.5-flash",
+    "openrouter/google/gemini-2.5-pro",
+    "openrouter/openai/gpt-5",
+    "openrouter/anthropic/claude-sonnet-4-5",
+    "openrouter/x-ai/grok-4",
 ]
 
 
 class ModelOptionsResponse(BaseModel):
-    """Available model options for each provider"""
-
     openai_models: list[str] = OPENAI_MODELS
     openai_embedding_models: list[str] = OPENAI_EMBEDDING_MODELS
     anthropic_models: list[str] = ANTHROPIC_MODELS
     aws_bedrock_models: list[str] = AWS_BEDROCK_MODELS
     aws_regions: list[str] = AWS_REGIONS
     google_gemini_models: list[str] = GOOGLE_GEMINI_MODELS
+    groq_models: list[str] = GROQ_MODELS
+    mistral_models: list[str] = MISTRAL_MODELS
+    cohere_models: list[str] = COHERE_MODELS
+    together_ai_models: list[str] = TOGETHER_AI_MODELS
+    deepseek_models: list[str] = DEEPSEEK_MODELS
+    xai_models: list[str] = XAI_MODELS
+    openrouter_models: list[str] = OPENROUTER_MODELS

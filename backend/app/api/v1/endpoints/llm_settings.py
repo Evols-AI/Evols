@@ -281,23 +281,30 @@ async def get_model_options():
     """
     from app.services.model_fetcher import ModelFetcherService
     from app.schemas.llm_settings import (
-        OPENAI_MODELS,
-        OPENAI_EMBEDDING_MODELS,
-        AWS_BEDROCK_MODELS,
-        ANTHROPIC_MODELS,
-        AWS_REGIONS,
+        OPENAI_MODELS, OPENAI_EMBEDDING_MODELS,
+        ANTHROPIC_MODELS, AWS_BEDROCK_MODELS, AWS_REGIONS,
+        GOOGLE_GEMINI_MODELS, GROQ_MODELS, MISTRAL_MODELS,
+        COHERE_MODELS, TOGETHER_AI_MODELS,
+        DEEPSEEK_MODELS, XAI_MODELS, OPENROUTER_MODELS,
     )
 
-    # Try to get cached models, fall back to static lists
     openai_cache = ModelFetcherService.get_cached_models("openai")
     bedrock_cache = ModelFetcherService.get_cached_models("aws_bedrock")
 
     return ModelOptionsResponse(
         openai_models=openai_cache.get("models", OPENAI_MODELS) if openai_cache else OPENAI_MODELS,
         openai_embedding_models=openai_cache.get("embedding_models", OPENAI_EMBEDDING_MODELS) if openai_cache else OPENAI_EMBEDDING_MODELS,
-        anthropic_models=ANTHROPIC_MODELS,  # Always static
+        anthropic_models=ANTHROPIC_MODELS,
         aws_bedrock_models=bedrock_cache.get("models", AWS_BEDROCK_MODELS) if bedrock_cache else AWS_BEDROCK_MODELS,
         aws_regions=AWS_REGIONS,
+        google_gemini_models=GOOGLE_GEMINI_MODELS,
+        groq_models=GROQ_MODELS,
+        mistral_models=MISTRAL_MODELS,
+        cohere_models=COHERE_MODELS,
+        together_ai_models=TOGETHER_AI_MODELS,
+        deepseek_models=DEEPSEEK_MODELS,
+        xai_models=XAI_MODELS,
+        openrouter_models=OPENROUTER_MODELS,
     )
 
 

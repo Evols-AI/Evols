@@ -8,9 +8,11 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy requirements and lockfile — install from lockfile with hash verification.
+# requirements.lock is generated via: pip-compile --generate-hashes --allow-unsafe
+# To update: run pip-compile locally, commit the new requirements.lock.
+COPY backend/requirements.txt backend/requirements.lock ./
+RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 
 # Copy application code
 COPY backend/ .

@@ -1,5 +1,21 @@
 steps:
+# Step 1: Audit npm dependencies for known vulnerabilities.
+# Uses package-lock.json (already committed) — fails on HIGH or CRITICAL findings.
+- name: 'node:18-alpine'
+  id: 'audit-dependencies'
+  entrypoint: sh
+  args:
+    - -c
+    - |
+      cd frontend
+      npm audit --audit-level=high --omit=dev
+      echo "Dependency audit passed."
+
+# Step 2: Build the Docker image (only runs if audit passed).
 - name: 'gcr.io/cloud-builders/docker'
+  id: 'build-image'
+  waitFor: ['audit-dependencies']
   args: ['build', '--build-arg', 'NEXT_PUBLIC_API_URL=${_API_URL}', '-t', '${_TAG}', '-f', 'deployment/frontend.Dockerfile', '.']
+
 images:
 - '${_TAG}'

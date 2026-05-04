@@ -47,7 +47,7 @@ export default function Docs() {
               { icon: Brain,     title: 'Knowledge',       description: 'Document intelligence and LightRAG entity extraction', href: '#knowledge' },
               { icon: Network,   title: 'Knowledge Graph', description: 'Visual graph of entities, relationships, and confidence scores', href: '#knowledge' },
               { icon: Key,       title: 'Developer Tools', description: 'MCP endpoint, API keys, Claude Code plugin', href: '#developer-tools' },
-              { icon: Building2, title: 'Tenancy & BYOK',  description: 'Workspace isolation, user roles, and bring-your-own LLM keys', href: '#tenancy' },
+              { icon: Building2, title: 'Tenancy & BYOK',  description: 'Workspace isolation, user roles, and 13-provider BYOK LLM support', href: '#byok' },
             ].map(({ icon: Icon, title, description, href }) => (
               <SpotlightCard key={title}>
                 <Link href={href} className="block p-6 h-full">
@@ -240,49 +240,175 @@ export default function Docs() {
             </Section>
 
             <Section id="byok" title="BYOK — Bring Your Own Keys">
-              <div className="space-y-4 text-sm text-muted-foreground">
+              <div className="space-y-6 text-sm text-muted-foreground">
                 <p>
                   Evols does not bundle an LLM API key. Each workspace connects its own LLM provider — keys are stored
-                  AES-encrypted per tenant and are never shared with other workspaces. Only a <strong className="text-foreground">TENANT_ADMIN</strong> can
-                  configure or update the LLM settings (Settings → AI Configuration).
+                  AES-256-GCM encrypted per tenant and are never shared with other workspaces. Only a{' '}
+                  <strong className="text-foreground">TENANT_ADMIN</strong> can configure or update the LLM settings
+                  (Settings → LLM Settings tab). After saving, use <strong className="text-foreground">Test Connection</strong> to
+                  verify the key and model are reachable before the team starts using the Workbench.
                 </p>
-                <div className="space-y-3">
-                  {[
-                    {
-                      provider: 'Anthropic Claude',
-                      fields: ['API key', 'Model (e.g. claude-sonnet-4-6)'],
-                      note: 'Recommended for highest quality PM outputs.',
-                    },
-                    {
-                      provider: 'OpenAI',
-                      fields: ['API key', 'Model (e.g. gpt-4o)'],
-                      note: 'Model list refreshes dynamically from the OpenAI API.',
-                    },
-                    {
-                      provider: 'Azure OpenAI',
-                      fields: ['API key', 'Endpoint URL', 'Deployment name', 'API version'],
-                      note: 'Useful for organisations with Azure enterprise agreements.',
-                    },
-                    {
-                      provider: 'AWS Bedrock',
-                      fields: ['AWS region', 'Access key ID', 'Secret access key', 'Model ID'],
-                      note: 'Model list refreshes dynamically from Bedrock. Supports Claude on Bedrock.',
-                    },
-                  ].map(({ provider, fields, note }) => (
-                    <div key={provider} className="p-4 rounded-xl border bg-card border-border">
-                      <h3 className="text-sm font-medium text-foreground mb-1">{provider}</h3>
-                      <p className="text-xs text-muted-foreground mb-2">{note}</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {fields.map(f => (
-                          <span key={f} className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground border border-border">{f}</span>
+
+                {/* Provider table */}
+                <div>
+                  <h3 className="text-base font-medium text-foreground mb-3">Supported Providers</h3>
+                  <div className="overflow-x-auto rounded-xl border border-border">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/50">
+                          <th className="text-left py-2.5 px-4 font-medium text-foreground">Provider</th>
+                          <th className="text-left py-2.5 px-4 font-medium text-foreground">Required fields</th>
+                          <th className="text-left py-2.5 px-4 font-medium text-foreground">Embeddings</th>
+                          <th className="text-left py-2.5 px-4 font-medium text-foreground">Get key</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {([
+                          { name: 'OpenAI',       fields: 'API key, model, embedding model',                  embed: true,  url: 'https://platform.openai.com/api-keys' },
+                          { name: 'Azure OpenAI', fields: 'API key, endpoint, deployment name',               embed: true,  url: 'https://portal.azure.com' },
+                          { name: 'AWS Bedrock',  fields: 'Region, access key ID + secret (or API key)',      embed: true,  url: 'https://aws.amazon.com/bedrock/' },
+                          { name: 'Anthropic',    fields: 'API key, model',                                   embed: false, url: 'https://console.anthropic.com/settings/keys' },
+                          { name: 'Google Gemini',fields: 'API key, model',                                   embed: false, url: 'https://aistudio.google.com/app/apikey' },
+                          { name: 'Groq',         fields: 'API key, model',                                   embed: false, url: 'https://console.groq.com/keys' },
+                          { name: 'Mistral AI',   fields: 'API key, model',                                   embed: false, url: 'https://console.mistral.ai/api-keys/' },
+                          { name: 'Cohere',       fields: 'API key, model',                                   embed: false, url: 'https://dashboard.cohere.com/api-keys' },
+                          { name: 'Together AI',  fields: 'API key, model',                                   embed: false, url: 'https://api.together.ai/settings/api-keys' },
+                          { name: 'DeepSeek',     fields: 'API key, model',                                   embed: false, url: 'https://platform.deepseek.com/api_keys' },
+                          { name: 'xAI (Grok)',   fields: 'API key, model',                                   embed: false, url: 'https://console.x.ai/' },
+                          { name: 'OpenRouter',   fields: 'API key, model (free-text)',                       embed: false, url: 'https://openrouter.ai/keys' },
+                          { name: 'Ollama',       fields: 'Base URL, model name (no API key)',                embed: false, url: 'https://ollama.ai' },
+                        ] as const).map(({ name, fields, embed, url }) => (
+                          <tr key={name} className="hover:bg-muted/30 transition-colors">
+                            <td className="py-2.5 px-4 font-medium text-foreground">{name}</td>
+                            <td className="py-2.5 px-4 text-muted-foreground">{fields}</td>
+                            <td className="py-2.5 px-4">
+                              {embed
+                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">Native</span>
+                                : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Fallback</span>
+                              }
+                            </td>
+                            <td className="py-2.5 px-4">
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">{new URL(url).hostname}</a>
+                            </td>
+                          </tr>
                         ))}
-                      </div>
-                    </div>
-                  ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <p className="text-xs">
-                  After saving, use <strong className="text-foreground">Test Connection</strong> to verify the key and model are reachable before the team starts using the Workbench.
-                </p>
+
+                {/* Embedding caveat */}
+                <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5">
+                  <h3 className="text-sm font-medium text-foreground mb-2">⚠ Embedding caveat</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Evols uses embeddings to power <strong className="text-foreground">LightRAG semantic search</strong> — the AI&apos;s
+                    ability to find relevant knowledge from your uploaded documents.
+                    Only <strong className="text-foreground">OpenAI, Azure OpenAI, and AWS Bedrock</strong> have native embedding APIs.
+                    All other providers fall back to a local <code className="bg-muted px-1 py-0.5 rounded text-xs">sentence-transformers</code> model
+                    running inside the backend container.
+                  </p>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li className="flex gap-2"><span className="text-amber-500 mt-0.5 shrink-0">•</span>The local model produces 384-dimension vectors vs 1536 for OpenAI — these are incompatible.</li>
+                    <li className="flex gap-2"><span className="text-amber-500 mt-0.5 shrink-0">•</span>If you switch from a provider with native embeddings to one without (or vice versa), all existing semantic search will return wrong results until you re-index your knowledge base.</li>
+                    <li className="flex gap-2"><span className="text-amber-500 mt-0.5 shrink-0">•</span>An amber warning is shown in the LLM settings page when you select a provider without embedding support.</li>
+                    <li className="flex gap-2"><span className="text-amber-500 mt-0.5 shrink-0">•</span>Recommendation: use OpenAI, Azure OpenAI, or AWS Bedrock if LightRAG semantic search is important to your workflow.</li>
+                  </ul>
+                </div>
+
+                {/* Provider notes */}
+                <div className="space-y-3">
+                  <h3 className="text-base font-medium text-foreground">Provider notes</h3>
+
+                  <ByokProviderNote name="OpenAI" keyFormat="sk-proj-... or sk-...">
+                    Recommended default. Model list includes GPT-5.4, GPT-4o and others. Embedding models
+                    (text-embedding-3-large recommended) are configured separately and enable full LightRAG support.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="Azure OpenAI" keyFormat="32-character hex string">
+                    For enterprise customers with Azure agreements or EU data residency requirements.
+                    Requires a deployment name that matches what you created in the Azure Portal.
+                    An embedding deployment can optionally be configured separately.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="AWS Bedrock" keyFormat="Access key ID starts with AKIA">
+                    Embeddings use Amazon Titan automatically — no extra configuration.
+                    Request model access in the AWS Console under Bedrock → Model access before use.
+                    Supports both API key and access key + secret authentication methods.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="Anthropic" keyFormat="sk-ant-...">
+                    No embedding support — falls back to local sentence-transformers. Best for long-context
+                    tasks; Claude Sonnet 4-6 is the recommended model.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="Groq" keyFormat="gsk_...">
+                    Fastest inference for Llama and Mixtral models. Tool calling supported on Llama 3.x models only.
+                    Good choice when speed matters more than maximum quality.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="Mistral AI" keyFormat="from console.mistral.ai">
+                    Tool calling supported on mistral-large and mistral-medium; not on open-mistral-nemo.
+                    European-based infrastructure if data residency matters.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="Cohere" keyFormat="from dashboard.cohere.com">
+                    Tool calling supported on command-r-plus only. No embedding support via the chat provider.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="Together AI" keyFormat="from api.together.ai">
+                    Wide selection of open-source models. Tool calling supported on Llama 3.x; not on older Mixtral models.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="DeepSeek" keyFormat="sk-...">
+                    Very competitive quality-to-cost ratio. Two model families:{' '}
+                    <code className="bg-muted px-1 py-0.5 rounded text-xs">deepseek-v3.2</code> for general use and{' '}
+                    <code className="bg-muted px-1 py-0.5 rounded text-xs">deepseek-r1</code> / <code className="bg-muted px-1 py-0.5 rounded text-xs">deepseek-reasoner</code> for
+                    complex reasoning tasks (slower, but higher quality for analysis).
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="xAI (Grok)" keyFormat="xai-...">
+                    Grok 4 and Grok 3 family. No embedding support.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="OpenRouter" keyFormat="sk-or-...">
+                    A single API key that routes to 200+ models — the best option for open-source models
+                    not available as dedicated providers (Qwen3, Phi-4, Llama variants, Perplexity, etc.).
+                    The model field is free-text: enter any model ID from{' '}
+                    <a href="https://openrouter.ai/models" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">openrouter.ai/models</a>{' '}
+                    in the format <code className="bg-muted px-1 py-0.5 rounded text-xs">openrouter/&lt;provider&gt;/&lt;model-slug&gt;</code>,
+                    for example <code className="bg-muted px-1 py-0.5 rounded text-xs">openrouter/microsoft/phi-4-mini</code> or{' '}
+                    <code className="bg-muted px-1 py-0.5 rounded text-xs">openrouter/qwen/qwen3-235b-a22b</code>.
+                    Tool calling availability varies by the underlying model.
+                  </ByokProviderNote>
+
+                  <ByokProviderNote name="Ollama (Local)" keyFormat="No API key — runs on your infrastructure">
+                    Models run entirely on your own hardware with no per-token cost. The{' '}
+                    <strong className="text-foreground">Base URL must be reachable from the Evols backend container</strong>,
+                    not your browser — if Evols runs in Docker or Cloud Run,{' '}
+                    <code className="bg-muted px-1 py-0.5 rounded text-xs">localhost</code> refers to the container.
+                    Pull models with <code className="bg-muted px-1 py-0.5 rounded text-xs">ollama pull llama3.2</code> before configuring.
+                    Tool calling depends on the specific model pulled.
+                  </ByokProviderNote>
+                </div>
+
+                {/* Using unlisted models */}
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <h3 className="text-sm font-medium text-foreground mb-2">Using a model not in the dropdown</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    For <strong className="text-foreground">OpenRouter</strong>, the model field already accepts any free-text model ID — just type it in.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    For all other providers, the dropdown lists common models. If you need a model not listed (e.g. a
+                    newly released version), you can configure it via the API — the backend passes the model string
+                    directly to the provider, so any valid model ID works:
+                  </p>
+                  <pre className="mt-3 p-3 rounded-lg overflow-x-auto bg-muted text-foreground text-xs">
+                    <code>{`curl -X POST /api/v1/llm-settings \\
+  -H "Authorization: Bearer $TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"provider":"groq","api_key":"gsk_...","model":"llama-3.3-70b-specdec"}'`}</code>
+                  </pre>
+                </div>
               </div>
             </Section>
 
@@ -328,6 +454,18 @@ function Section({ id, title, children }: { id: string; title: string; children:
       </h2>
       {children}
     </section>
+  )
+}
+
+function ByokProviderNote({ name, keyFormat, children }: { name: string; keyFormat: string; children: React.ReactNode }) {
+  return (
+    <div className="p-4 rounded-xl border bg-card border-border">
+      <div className="flex flex-wrap items-baseline gap-3 mb-1.5">
+        <h4 className="text-sm font-medium text-foreground">{name}</h4>
+        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">{keyFormat}</span>
+      </div>
+      <p className="text-sm text-muted-foreground">{children}</p>
+    </div>
   )
 }
 

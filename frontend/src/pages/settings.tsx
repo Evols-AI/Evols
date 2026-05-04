@@ -13,8 +13,14 @@ import { Loading } from '@/components/PageContainer'
 import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare, Volume2, Database } from 'lucide-react'
 
 type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'api_keys' | 'chat' | 'speech' | 'data_controls'
-type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini'
+type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini' | 'groq' | 'mistral' | 'cohere' | 'together_ai' | 'ollama' | 'deepseek' | 'xai' | 'openrouter'
 type AWSAuthMethod = 'api_key' | 'credentials'
+
+// Providers that have native embedding support in embedding_service.py.
+// Anthropic and Google Gemini have no embedding API — the system falls back to
+// local sentence_transformers which uses different vector dimensions and will
+// silently break LightRAG semantic search if an existing tenant switches to them.
+const EMBEDDING_SUPPORTED: LLMProvider[] = ['openai', 'azure_openai', 'aws_bedrock']
 
 interface LLMConfig {
   provider: LLMProvider
@@ -28,6 +34,7 @@ interface LLMConfig {
   aws_access_key_id?: string
   aws_secret_access_key?: string
   aws_region?: string
+  ollama_base_url?: string
   [key: string]: any
 }
 
@@ -38,6 +45,13 @@ interface ModelOptions {
   aws_bedrock_models: string[]
   aws_regions: string[]
   google_gemini_models: string[]
+  groq_models: string[]
+  mistral_models: string[]
+  cohere_models: string[]
+  together_ai_models: string[]
+  deepseek_models: string[]
+  xai_models: string[]
+  openrouter_models: string[]
 }
 
 interface Invite {
@@ -190,36 +204,61 @@ export default function Settings() {
         setLLMConfig({ provider: 'openai', api_key: '', model: 'gpt-5.4', embedding_model: 'text-embedding-3-large' })
         break
       case 'anthropic':
-        setLLMConfig({ provider: 'anthropic', api_key: '', model: 'claude-3-5-sonnet-20241022' })
+        setLLMConfig({ provider: 'anthropic', api_key: '', model: 'claude-sonnet-4-6' })
         break
       case 'azure_openai':
         setLLMConfig({ provider: 'azure_openai', api_key: '', endpoint: '', deployment_name: '', api_version: '2024-02-01' })
         break
       case 'aws_bedrock':
         setAwsAuthMethod('api_key')
-        setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'anthropic.claude-3-5-sonnet-20241022-v2:0' })
+        setLLMConfig({ provider: 'aws_bedrock', aws_auth_method: 'api_key', api_key: '', aws_region: 'us-east-1', model: 'global.anthropic.claude-sonnet-4-6' })
         break
       case 'google_gemini':
-        setLLMConfig({ provider: 'google_gemini', api_key: '', model: 'gemini-3-flash-preview', temperature: 0.7, top_p: 0.95, top_k: 40 })
+        setLLMConfig({ provider: 'google_gemini', api_key: '', model: 'gemini-2.5-flash', temperature: 0.7, top_p: 0.95, top_k: 40 })
+        break
+      case 'groq':
+        setLLMConfig({ provider: 'groq', api_key: '', model: 'llama-3.3-70b-versatile' })
+        break
+      case 'mistral':
+        setLLMConfig({ provider: 'mistral', api_key: '', model: 'mistral-large-latest' })
+        break
+      case 'cohere':
+        setLLMConfig({ provider: 'cohere', api_key: '', model: 'command-r-plus' })
+        break
+      case 'together_ai':
+        setLLMConfig({ provider: 'together_ai', api_key: '', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' })
+        break
+      case 'ollama':
+        setLLMConfig({ provider: 'ollama', model: 'llama3.2', ollama_base_url: 'http://localhost:11434' })
+        break
+      case 'deepseek':
+        setLLMConfig({ provider: 'deepseek', api_key: '', model: 'deepseek/deepseek-v3.2' })
+        break
+      case 'xai':
+        setLLMConfig({ provider: 'xai', api_key: '', model: 'xai/grok-4' })
+        break
+      case 'openrouter':
+        setLLMConfig({ provider: 'openrouter', api_key: '', model: 'openrouter/deepseek/deepseek-r1' })
         break
     }
   }
 
-  // Get the latest model for each provider
-  const getLatestModel = (provider: LLMProvider) => {
+  const getDefaultModel = (provider: LLMProvider) => {
     switch (provider) {
-      case 'openai':
-        return 'GPT-5.4'
-      case 'anthropic':
-        return 'Claude Sonnet 4.5'
-      case 'azure_openai':
-        return 'GPT-5.4 (Azure deployment)'
-      case 'aws_bedrock':
-        return 'Claude Sonnet 4.5 (Bedrock)'
-      case 'google_gemini':
-        return 'Gemini 3 Flash Preview'
-      default:
-        return 'Latest model'
+      case 'openai': return 'gpt-5.4'
+      case 'anthropic': return 'claude-sonnet-4-6'
+      case 'azure_openai': return ''
+      case 'aws_bedrock': return 'global.anthropic.claude-sonnet-4-6'
+      case 'google_gemini': return 'gemini-2.5-flash'
+      case 'groq': return 'llama-3.3-70b-versatile'
+      case 'mistral': return 'mistral-large-latest'
+      case 'cohere': return 'command-r-plus'
+      case 'together_ai': return 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+      case 'ollama': return 'llama3.2'
+      case 'deepseek': return 'deepseek/deepseek-v3.2'
+      case 'xai': return 'xai/grok-4'
+      case 'openrouter': return 'openrouter/deepseek/deepseek-r1'
+      default: return ''
     }
   }
 
@@ -240,6 +279,9 @@ export default function Settings() {
       } else {
         return !!llmConfig.aws_access_key_id && !!llmConfig.aws_secret_access_key
       }
+    }
+    if (llmProvider === 'ollama') {
+      return !!llmConfig.ollama_base_url && !!llmConfig.model
     }
     return !!llmConfig.api_key
   }
@@ -662,7 +704,7 @@ export default function Settings() {
           {activeTab === 'llm' && (
             <div>
               <h3 className="text-lg mb-2 text-foreground">LLM Configuration</h3>
-              <p className="text-muted-foreground mb-6">BYOK - Bring Your Own Keys. API keys are encrypted at rest.</p>
+              <p className="text-muted-foreground mb-6">BYOK — Bring Your Own Keys. API keys are encrypted at rest.</p>
 
               {currentLLMSettings && (
                 <div className="mb-6 p-4 bg-chart-3/10 border border-chart-3/30 rounded-lg">
@@ -673,7 +715,7 @@ export default function Settings() {
                 </div>
               )}
 
-
+              {/* Provider selector */}
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2 text-foreground">Provider</label>
                 <div className="relative">
@@ -687,11 +729,32 @@ export default function Settings() {
                     <option value="azure_openai">Azure OpenAI</option>
                     <option value="aws_bedrock">AWS Bedrock</option>
                     <option value="google_gemini">Google Gemini</option>
+                    <option value="groq">Groq</option>
+                    <option value="mistral">Mistral AI</option>
+                    <option value="cohere">Cohere</option>
+                    <option value="together_ai">Together AI</option>
+                    <option value="ollama">Ollama (Local)</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="xai">xAI (Grok)</option>
+                    <option value="openrouter">OpenRouter</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
 
+              {/* Embedding warning for providers without native embedding support */}
+              {!EMBEDDING_SUPPORTED.includes(llmProvider) && (
+                <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    <strong>⚠ Limited embedding support:</strong> {({'anthropic': 'Anthropic', 'google_gemini': 'Google Gemini', 'groq': 'Groq', 'mistral': 'Mistral', 'cohere': 'Cohere', 'together_ai': 'Together AI', 'deepseek': 'DeepSeek', 'xai': 'xAI', 'openrouter': 'OpenRouter', 'ollama': 'Ollama'} as Record<string, string>)[llmProvider] ?? llmProvider} does not provide an embeddings API compatible with Evols.
+                    Evols will fall back to a local sentence-transformers model for semantic search, which uses a different vector dimension than OpenAI or Bedrock.
+                    If you have existing knowledge data indexed under a different provider, switching here will break semantic search until you re-index.
+                    For full embedding support, use OpenAI, Azure OpenAI, or AWS Bedrock.
+                  </p>
+                </div>
+              )}
+
+              {/* OpenAI */}
               {llmProvider === 'openai' && (
                 <div className="space-y-4">
                   <div>
@@ -699,35 +762,51 @@ export default function Settings() {
                     <div className="relative">
                       <input
                         type={showApiKey ? 'text' : 'password'}
-                        value={llmConfig.api_key}
+                        placeholder="sk-..."
+                        value={llmConfig.api_key || ''}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
                         className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
-                      <button
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
+                      <button onClick={() => setShowApiKey(!showApiKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Model Available</label>
-                    <div className="px-3 py-2 border border-border rounded-md bg-muted/30 text-foreground">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{getLatestModel('openai')}</span>
-                        <span className="text-xs bg-chart-1/15 text-chart-1 px-2 py-1 rounded">
-                          Most Effective
-                        </span>
-                      </div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('openai')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.openai_models ?? ['gpt-5.4', 'gpt-5.2', 'gpt-4o', 'gpt-4o-mini']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Curated model selection optimized for team workflows and cross-functional collaboration.
-                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Embedding Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.embedding_model || 'text-embedding-3-large'}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, embedding_model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.openai_embedding_models ?? ['text-embedding-3-large', 'text-embedding-3-small']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">Used by LightRAG for semantic search over your team knowledge.</p>
                   </div>
                 </div>
               )}
 
+              {/* Anthropic */}
               {llmProvider === 'anthropic' && (
                 <div className="space-y-4">
                   <div>
@@ -735,35 +814,35 @@ export default function Settings() {
                     <div className="relative">
                       <input
                         type={showApiKey ? 'text' : 'password'}
-                        value={llmConfig.api_key}
+                        placeholder="sk-ant-..."
+                        value={llmConfig.api_key || ''}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
                         className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
-                      <button
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
+                      <button onClick={() => setShowApiKey(!showApiKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-foreground">Model Available</label>
-                    <div className="px-3 py-2 border border-border rounded-md bg-muted/30 text-foreground">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{getLatestModel('anthropic')}</span>
-                        <span className="text-xs bg-chart-1/15 text-chart-1 px-2 py-1 rounded">
-                          Most Effective
-                        </span>
-                      </div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('anthropic')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.anthropic_models ?? ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Curated model selection optimized for team workflows and cross-functional collaboration.
-                    </p>
                   </div>
                 </div>
               )}
 
+              {/* Azure OpenAI */}
               {llmProvider === 'azure_openai' && (
                 <div className="space-y-4">
                   <div>
@@ -771,15 +850,12 @@ export default function Settings() {
                     <div className="relative">
                       <input
                         type={showApiKey ? 'text' : 'password'}
-                        placeholder="API Key"
-                        value={llmConfig.api_key}
+                        placeholder="Azure OpenAI key"
+                        value={llmConfig.api_key || ''}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
-                      <button
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
+                      <button onClick={() => setShowApiKey(!showApiKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
@@ -789,78 +865,70 @@ export default function Settings() {
                     <input
                       type="text"
                       placeholder="https://your-resource.openai.azure.com"
-                      value={llmConfig.endpoint}
+                      value={llmConfig.endpoint || ''}
                       onChange={(e) => setLLMConfig({ ...llmConfig, endpoint: e.target.value })}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-foreground">Deployment Name *</label>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Chat Deployment Name *</label>
                     <input
                       type="text"
-                      placeholder="gpt-4"
-                      value={llmConfig.deployment_name}
+                      placeholder="gpt-4o"
+                      value={llmConfig.deployment_name || ''}
                       onChange={(e) => setLLMConfig({ ...llmConfig, deployment_name: e.target.value })}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Embedding Deployment Name</label>
+                    <input
+                      type="text"
+                      placeholder="text-embedding-3-large"
+                      value={llmConfig.embedding_deployment || ''}
+                      onChange={(e) => setLLMConfig({ ...llmConfig, embedding_deployment: e.target.value })}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Used by LightRAG for semantic search. Leave blank to use the same deployment as chat.</p>
                   </div>
                 </div>
               )}
 
+              {/* AWS Bedrock */}
               {llmProvider === 'aws_bedrock' && (
                 <div className="space-y-4">
-                  {/* Authentication Method Selection */}
                   <div>
                     <label className="block text-sm font-medium mb-3 text-foreground">Authentication Method</label>
                     <div className="flex gap-4">
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="aws_auth_method"
-                          value="api_key"
-                          checked={awsAuthMethod === 'api_key'}
-                          onChange={(e) => handleAWSAuthMethodChange(e.target.value as AWSAuthMethod)}
-                          className="w-4 h-4 text-primary focus:ring-ring/50"
-                        />
+                        <input type="radio" name="aws_auth_method" value="api_key" checked={awsAuthMethod === 'api_key'} onChange={(e) => handleAWSAuthMethodChange(e.target.value as AWSAuthMethod)} className="w-4 h-4 text-primary focus:ring-ring/50" />
                         <span className="text-sm text-foreground">API Key</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="aws_auth_method"
-                          value="credentials"
-                          checked={awsAuthMethod === 'credentials'}
-                          onChange={(e) => handleAWSAuthMethodChange(e.target.value as AWSAuthMethod)}
-                          className="w-4 h-4 text-primary focus:ring-ring/50"
-                        />
-                        <span className="text-sm text-foreground">AWS Credentials (IAM)</span>
+                        <input type="radio" name="aws_auth_method" value="credentials" checked={awsAuthMethod === 'credentials'} onChange={(e) => handleAWSAuthMethodChange(e.target.value as AWSAuthMethod)} className="w-4 h-4 text-primary focus:ring-ring/50" />
+                        <span className="text-sm text-foreground">IAM Credentials</span>
                       </label>
                     </div>
                   </div>
 
-                  {/* API Key Method */}
                   {awsAuthMethod === 'api_key' && (
                     <div>
                       <label className="block text-sm font-medium mb-2 text-foreground">API Key *</label>
                       <div className="relative">
                         <input
                           type={showApiKey ? 'text' : 'password'}
-                          placeholder="Enter your AWS Bedrock API key"
-                          value={llmConfig.api_key}
+                          placeholder="AWS Bedrock API key"
+                          value={llmConfig.api_key || ''}
                           onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                          className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
+                          className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                         />
-                        <button
-                          onClick={() => setShowApiKey(!showApiKey)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
+                        <button onClick={() => setShowApiKey(!showApiKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                           {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* AWS Credentials Method */}
                   {awsAuthMethod === 'credentials' && (
                     <>
                       <div>
@@ -868,9 +936,9 @@ export default function Settings() {
                         <input
                           type="text"
                           placeholder="AKIAIOSFODNN7EXAMPLE"
-                          value={llmConfig.aws_access_key_id}
+                          value={llmConfig.aws_access_key_id || ''}
                           onChange={(e) => setLLMConfig({ ...llmConfig, aws_access_key_id: e.target.value })}
-                          className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
+                          className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                         />
                       </div>
                       <div>
@@ -879,14 +947,11 @@ export default function Settings() {
                           <input
                             type={showSecretKey ? 'text' : 'password'}
                             placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-                            value={llmConfig.aws_secret_access_key}
+                            value={llmConfig.aws_secret_access_key || ''}
                             onChange={(e) => setLLMConfig({ ...llmConfig, aws_secret_access_key: e.target.value })}
-                            className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
+                            className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                           />
-                          <button
-                            onClick={() => setShowSecretKey(!showSecretKey)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          >
+                          <button onClick={() => setShowSecretKey(!showSecretKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                             {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
@@ -894,176 +959,425 @@ export default function Settings() {
                     </>
                   )}
 
-                  {/* Common Fields */}
                   <div>
                     <label className="block text-sm font-medium mb-2 text-foreground">Region</label>
                     <div className="relative">
                       <select
-                        value={llmConfig.aws_region}
+                        value={llmConfig.aws_region || 'us-east-1'}
                         onChange={(e) => setLLMConfig({ ...llmConfig, aws_region: e.target.value })}
                         className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       >
-                        {modelOptions?.aws_regions.map((r) => <option key={r} value={r}>{r}</option>)}
+                        {(modelOptions?.aws_regions ?? ['us-east-1', 'us-west-2', 'eu-west-1']).map((r) => <option key={r} value={r}>{r}</option>)}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Model Available</label>
-                    <div className="px-3 py-2 border border-border rounded-md bg-muted/30 text-foreground">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{getLatestModel('aws_bedrock')}</span>
-                        <span className="text-xs bg-chart-1/15 text-chart-1 px-2 py-1 rounded">
-                          Most Effective
-                        </span>
-                      </div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('aws_bedrock')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.aws_bedrock_models ?? ['global.anthropic.claude-sonnet-4-6']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Curated model selection optimized for team workflows and cross-functional collaboration.
-                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">Embeddings use Amazon Titan (amazon.titan-embed-text-v2:0) automatically.</p>
                   </div>
                 </div>
               )}
 
+              {/* Google Gemini */}
               {llmProvider === 'google_gemini' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-2">
-                      Google AI Studio API Key
-                    </label>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Google AI Studio API Key *</label>
                     <div className="relative">
                       <input
                         type={showApiKey ? 'text' : 'password'}
                         value={llmConfig.api_key || ''}
                         onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
-                        placeholder="Enter your Google AI Studio API key"
-                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground placeholder:text-muted-foregroundfocus:ring-2 focus:ring-ring/50 focus:border-ring"
+                        placeholder="AIza..."
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
+                      <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>
+                      Get your key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google AI Studio</a>
                     </p>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-2">
-                      Model Available
-                    </label>
-                    <div className="px-3 py-2 border border-border rounded-md bg-muted/30 text-foreground">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{getLatestModel('google_gemini')}</span>
-                        <span className="text-xs bg-chart-1/15 text-chart-1 px-2 py-1 rounded">
-                          Most Effective
-                        </span>
-                      </div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('google_gemini')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.google_gemini_models ?? ['gemini-2.5-flash', 'gemini-1.5-pro']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Curated model selection optimized for team workflows and cross-functional collaboration.
-                    </p>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">
-                        Temperature
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={llmConfig.temperature || 0.7}
-                        onChange={(e) => setLLMConfig({ ...llmConfig, temperature: parseFloat(e.target.value) })}
-                        className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
-                      />
-                      <p className="mt-1 text-xs text-muted-foreground">0.0 = deterministic, 1.0 = creative</p>
+                      <label className="block text-sm font-medium mb-2 text-muted-foreground">Temperature</label>
+                      <input type="number" min="0" max="1" step="0.1" value={llmConfig.temperature ?? 0.7} onChange={(e) => setLLMConfig({ ...llmConfig, temperature: parseFloat(e.target.value) })} className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring" />
+                      <p className="mt-1 text-xs text-muted-foreground">0.0 = deterministic</p>
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">
-                        Top-P
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={llmConfig.top_p || 0.95}
-                        onChange={(e) => setLLMConfig({ ...llmConfig, top_p: parseFloat(e.target.value) })}
-                        className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
-                      />
-                      <p className="mt-1 text-xs text-muted-foreground">Nucleus sampling parameter</p>
+                      <label className="block text-sm font-medium mb-2 text-muted-foreground">Top-P</label>
+                      <input type="number" min="0" max="1" step="0.05" value={llmConfig.top_p ?? 0.95} onChange={(e) => setLLMConfig({ ...llmConfig, top_p: parseFloat(e.target.value) })} className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring" />
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">
-                        Top-K
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        step="1"
-                        value={llmConfig.top_k || 40}
-                        onChange={(e) => setLLMConfig({ ...llmConfig, top_k: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
-                      />
-                      <p className="mt-1 text-xs text-muted-foreground">Top-k sampling parameter</p>
+                      <label className="block text-sm font-medium mb-2 text-muted-foreground">Top-K</label>
+                      <input type="number" min="1" max="100" step="1" value={llmConfig.top_k ?? 40} onChange={(e) => setLLMConfig({ ...llmConfig, top_k: parseInt(e.target.value) })} className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring" />
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* Groq */}
+              {llmProvider === 'groq' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Groq API Key *</label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={llmConfig.api_key || ''}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
+                        placeholder="gsk_..."
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      />
+                      <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Get your key from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Groq Console</a>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('groq')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.groq_models ?? ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Mistral AI */}
+              {llmProvider === 'mistral' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Mistral API Key *</label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={llmConfig.api_key || ''}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
+                        placeholder="..."
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      />
+                      <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Get your key from <a href="https://console.mistral.ai/api-keys/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Mistral Console</a>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('mistral')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.mistral_models ?? ['mistral-large-latest', 'mistral-small-latest', 'open-mistral-nemo']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Cohere */}
+              {llmProvider === 'cohere' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Cohere API Key *</label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={llmConfig.api_key || ''}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
+                        placeholder="..."
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      />
+                      <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Get your key from <a href="https://dashboard.cohere.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Cohere Dashboard</a>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('cohere')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.cohere_models ?? ['command-r-plus', 'command-r', 'command-light']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Together AI */}
+              {llmProvider === 'together_ai' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Together AI API Key *</label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={llmConfig.api_key || ''}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
+                        placeholder="..."
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      />
+                      <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Get your key from <a href="https://api.together.ai/settings/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Together AI Settings</a>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('together_ai')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.together_ai_models ?? ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'mistralai/Mixtral-8x7B-Instruct-v0.1']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* DeepSeek */}
+              {llmProvider === 'deepseek' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">DeepSeek API Key *</label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={llmConfig.api_key || ''}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
+                        placeholder="sk-..."
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      />
+                      <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Get your key from <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">DeepSeek Platform</a>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('deepseek')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.deepseek_models ?? ['deepseek/deepseek-v3.2', 'deepseek/deepseek-r1', 'deepseek/deepseek-reasoner']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">deepseek-r1 / deepseek-reasoner are reasoning models with longer response times</p>
+                  </div>
+                </div>
+              )}
+
+              {/* xAI (Grok) */}
+              {llmProvider === 'xai' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">xAI API Key *</label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={llmConfig.api_key || ''}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
+                        placeholder="xai-..."
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      />
+                      <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Get your key from <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">xAI Console</a>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('xai')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.xai_models ?? ['xai/grok-4', 'xai/grok-3', 'xai/grok-3-mini']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* OpenRouter */}
+              {llmProvider === 'openrouter' && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                      OpenRouter gives access to 200+ models (DeepSeek, Qwen, Llama, Phi, Mistral, and more) through a single API key.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">OpenRouter API Key *</label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={llmConfig.api_key || ''}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, api_key: e.target.value })}
+                        placeholder="sk-or-..."
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      />
+                      <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Get your key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">OpenRouter Keys</a>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.model || getDefaultModel('openrouter')}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        {(modelOptions?.openrouter_models ?? ['openrouter/deepseek/deepseek-r1', 'openrouter/meta-llama/llama-3.3-70b-instruct']).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">Any model on <a href="https://openrouter.ai/models" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">openrouter.ai/models</a> can be entered manually if not listed</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Ollama (Local) */}
+              {llmProvider === 'ollama' && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                      Ollama runs models locally. Make sure Ollama is installed and running on the configured base URL before saving.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Ollama Base URL *</label>
+                    <input
+                      type="text"
+                      value={llmConfig.ollama_base_url || 'http://localhost:11434'}
+                      onChange={(e) => setLLMConfig({ ...llmConfig, ollama_base_url: e.target.value })}
+                      placeholder="http://localhost:11434"
+                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">URL where Ollama is running (default: http://localhost:11434)</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Model *</label>
+                    <input
+                      type="text"
+                      value={llmConfig.model || 'llama3.2'}
+                      onChange={(e) => setLLMConfig({ ...llmConfig, model: e.target.value })}
+                      placeholder="llama3.2"
+                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Name of a model you have pulled locally (e.g. llama3.2, mistral, phi3)</p>
+                  </div>
+                </div>
+              )}
+
               {testResult && (
-                <div className={`mt-4 p-4 rounded-lg border ${
-                  testResult.success
-                    ? 'bg-chart-3/10 border-chart-3/30'
-                    : 'bg-destructive/10 border-destructive/30'
-                }`}>
-                  <p className={`text-sm ${
-                    testResult.success
-                      ? 'text-chart-3'
-                      : 'text-destructive'
-                  }`}>
+                <div className={`mt-4 p-4 rounded-lg border ${testResult.success ? 'bg-chart-3/10 border-chart-3/30' : 'bg-destructive/10 border-destructive/30'}`}>
+                  <p className={`text-sm ${testResult.success ? 'text-chart-3' : 'text-destructive'}`}>
                     {testResult.success ? '✓' : '✗'} {testResult.message}
                   </p>
                 </div>
               )}
 
               <div className="mt-6 flex gap-3">
-                <button
-                  onClick={handleTestLLMConnection}
-                  disabled={testing || !isConfigValid()}
-                  className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <button onClick={handleTestLLMConnection} disabled={testing || !isConfigValid()} className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">
                   {testing ? 'Testing...' : 'Test Connection'}
                 </button>
-                <button
-                  onClick={handleSaveLLMSettings}
-                  disabled={saving || !isConfigValid()}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/85 disabled:bg-primary/40 dark:disabled:bg-primary/40 disabled:cursor-not-allowed transition-colors"
-                >
+                <button onClick={handleSaveLLMSettings} disabled={saving || !isConfigValid()} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/85 disabled:bg-primary/40 dark:disabled:bg-primary/40 disabled:cursor-not-allowed transition-colors">
                   {saving ? 'Saving...' : 'Save Settings'}
                 </button>
                 {currentLLMSettings && (
-                  <button
-                    onClick={handleDeleteLLMSettings}
-                    className="px-4 py-2 bg-destructive text-primary-foreground rounded-md hover:bg-destructive/85 transition-colors"
-                  >
+                  <button onClick={handleDeleteLLMSettings} className="px-4 py-2 bg-destructive text-primary-foreground rounded-md hover:bg-destructive/85 transition-colors">
                     Remove Configuration
                   </button>
                 )}
-              </div>
-
-              <div className="mt-6 p-4 bg-primary/5 dark:bg-primary/10 border border-primary/30 dark:border-primary/20 rounded-lg">
-                <p className="text-sm text-primary/85 dark:text-primary"><strong>ℹ️ About Authentication Methods:</strong> AWS Bedrock supports two authentication methods: (1) <strong>API Key</strong> - simpler authentication with a single key, or (2) <strong>AWS Credentials (IAM)</strong> - traditional AWS authentication using Access Key ID + Secret Access Key. Other providers (OpenAI, Anthropic, Azure, Google Gemini) use single API keys specific to their platforms.</p>
               </div>
             </div>
           )}

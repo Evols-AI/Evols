@@ -1,5 +1,22 @@
 steps:
+# Step 1: Scan for known vulnerabilities in the locked dependencies before building.
+# Fails the build if any HIGH or CRITICAL CVE is found.
+# OSV database covers PyPI supply chain compromises (e.g. the litellm 1.82.7/1.82.8 backdoor).
+- name: 'python:3.13-slim'
+  id: 'audit-dependencies'
+  entrypoint: bash
+  args:
+    - -c
+    - |
+      pip install --quiet pip-audit
+      pip-audit -r backend/requirements.lock --progress-spinner off
+      echo "Dependency audit passed."
+
+# Step 2: Build the Docker image (only runs if audit passed).
 - name: 'gcr.io/cloud-builders/docker'
+  id: 'build-image'
+  waitFor: ['audit-dependencies']
   args: ['build', '--no-cache', '-t', '${_TAG}', '-f', 'deployment/backend.Dockerfile', '.']
+
 images:
 - '${_TAG}'
