@@ -214,6 +214,7 @@ async def create_context_source(
     """Create a new context source"""
     new_source = ContextSource(
         tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
         source_type=source.source_type,
         name=source.name,
         description=source.description,
@@ -434,6 +435,7 @@ async def upload_context_file(
                         # Create ContextSource linked to the group
                         new_source = ContextSource(
                             tenant_id=current_user.tenant_id,
+                            user_id=current_user.id,
                             source_group_id=source_group.id,  # Link to group
                             name=row_name,
                             description=description,
@@ -533,6 +535,7 @@ async def upload_context_file(
         # Create context source
         new_source = ContextSource(
             tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
             source_type=source_type_enum,
             name=name,
             description=description,

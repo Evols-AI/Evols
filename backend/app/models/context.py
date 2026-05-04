@@ -91,6 +91,8 @@ class ContextSource(TenantScopedModel):
 
     # Tenant association
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    # User who uploaded/created this source — nullable for backwards compatibility with existing rows
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
 
     # Source Information
     source_type = Column(SQLEnum(ContextSourceType), nullable=False, index=True)

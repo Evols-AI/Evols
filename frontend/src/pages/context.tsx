@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
+import dynamic from 'next/dynamic'
 import {
   Database, Plus, Upload, FileText, MessageSquare, Mail, Slack,
   Github, BookOpen, Cloud, X, Loader2, Search,
@@ -10,7 +11,7 @@ import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api, apiClient } from '@/services/api'
 import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, Loading } from '@/components/PageContainer'
-import KnowledgeGraphTab from '@/components/context/KnowledgeGraphTab'
+const KnowledgeGraphTab = dynamic(() => import('@/components/context/KnowledgeGraphTab'), { ssr: false })
 
 type ViewType = 'sources' | 'entities' | 'insights' | 'knowledge_graph'
 
@@ -44,7 +45,7 @@ export default function Context() {
     const { tab } = router.query
     if (tab && ['sources', 'entities', 'insights', 'knowledge_graph'].includes(tab as string)) {
       setSelectedView(tab as ViewType)
-      if (tab === 'entities') loadGraphEntities()
+      if (tab === 'entities' || tab === 'knowledge_graph') loadGraphEntities()
     }
 
     loadContext()
@@ -90,7 +91,7 @@ export default function Context() {
   const handleTabChange = (view: ViewType) => {
     setSelectedView(view)
     router.push(`/context?tab=${view}`, undefined, { shallow: true })
-    if (view === 'entities') loadGraphEntities()
+    if (view === 'entities' || view === 'knowledge_graph') loadGraphEntities()
   }
 
   const loadContext = async () => {
@@ -386,7 +387,7 @@ export default function Context() {
                   onRefresh={loadGraphEntities}
                 />
               ) : selectedView === 'knowledge_graph' ? (
-                <KnowledgeGraphTab typeFilter={entityTypeFilter} onTypeFilterChange={setEntityTypeFilter} />
+                <KnowledgeGraphTab typeFilter={entityTypeFilter} onTypeFilterChange={setEntityTypeFilter} searchTerm={searchTerm} />
               ) : (
                 <InsightsView sources={contextSources} entities={graphEntities} />
               )}

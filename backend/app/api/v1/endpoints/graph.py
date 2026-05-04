@@ -3,11 +3,28 @@ Knowledge Graph Proxy
 Proxies LightRAG API calls so the frontend never talks to LightRAG directly.
 Handles auth and returns graph data (nodes + edges) for visualization.
 Also provides a /sync endpoint to bulk-push existing Evols data into LightRAG.
+
+Loading strategy
+----------------
+The frontend loads the graph in two phases:
+  1. GET /graph/hubs   — top-N nodes by degree + their edges. Fast first paint.
+                         Unloaded neighbor IDs are included so the frontend can
+                         render stub dots for them.
+  2. GET /graph/node/{id} — full node data for one node, fetched on click or
+                            zoom-in. Served from the same cache as /hubs.
+
+Both endpoints share a per-tenant in-process cache (GRAPH_CACHE_TTL seconds).
+The full LightRAG fetch happens at most once per TTL window, making /hubs and
+/node responses near-instant after the first call.
 """
 
 
+import asyncio
+import json as _json
 import logging
 import os
+import time
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
@@ -35,8 +52,43 @@ from app.services.lightrag_ingestion_service import (
 logger = logging.getLogger(__name__)
 
 GRAPH_FIELD_SEP = "<SEP>"
+GRAPH_CACHE_TTL = 300  # seconds — cache full graph per tenant for 5 minutes
 
 router = APIRouter()
+
+
+# ── Per-tenant graph cache ────────────────────────────────────────────────────
+
+@dataclass
+class _GraphCache:
+    # nodes keyed by id, edges keyed by id
+    nodes: dict[str, dict] = field(default_factory=dict)
+    edges: list[dict] = field(default_factory=list)
+    # adjacency: node_id → set of neighbor node ids
+    adjacency: dict[str, set[str]] = field(default_factory=dict)
+    # degree map: node_id → connection count
+    degree: dict[str, int] = field(default_factory=dict)
+    # nodes that originate from personal user data (work_context, meeting_notes, pm_decisions)
+    personal_node_ids: dict[int, set[str]] = field(default_factory=dict)  # user_id → set of node_ids
+    fetched_at: float = 0.0
+    # asyncio lock so concurrent requests share one in-flight fetch
+    _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+    def is_fresh(self) -> bool:
+        return (time.monotonic() - self.fetched_at) < GRAPH_CACHE_TTL
+
+    def invalidate(self) -> None:
+        self.fetched_at = 0.0
+
+
+# tenant_id → _GraphCache
+_CACHE: dict[int, _GraphCache] = {}
+
+
+def _get_cache(tenant_id: int) -> _GraphCache:
+    if tenant_id not in _CACHE:
+        _CACHE[tenant_id] = _GraphCache()
+    return _CACHE[tenant_id]
 
 
 def _lightrag_url() -> str:
@@ -51,6 +103,139 @@ def _require_lightrag() -> str:
     if not url:
         raise HTTPException(status_code=503, detail="Knowledge graph service not configured (LIGHTRAG_URL missing)")
     return url
+
+
+async def _fetch_and_populate_cache(
+    cache: _GraphCache,
+    tenant_id: int,
+    user_id: int,
+    db: AsyncSession,
+) -> None:
+    """Fetch full graph from LightRAG, filter to tenant, populate cache."""
+    url = _require_lightrag()
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            f"{url}/graphs",
+            params={"label": "*", "max_depth": 1, "max_nodes": 2000},
+            headers=await lightrag_auth_headers(),
+        )
+        if resp.status_code == 401:
+            invalidate_lightrag_jwt()
+            resp = await client.get(
+                f"{url}/graphs",
+                params={"label": "*", "max_depth": 1, "max_nodes": 2000},
+                headers=await lightrag_auth_headers(),
+            )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=503, detail="Knowledge graph service unavailable")
+
+    data = resp.json()
+    valid_paths = await _tenant_file_paths(tenant_id, user_id, db)
+    personal_paths = await _user_personal_paths(user_id, db)
+
+    if not valid_paths:
+        cache.nodes = {}
+        cache.edges = []
+        cache.adjacency = {}
+        cache.degree = {}
+        cache.fetched_at = time.monotonic()
+        return
+
+    raw_nodes: list[dict] = data.get("nodes", [])
+    raw_edges: list[dict] = data.get("edges", [])
+
+    tenant_node_ids: set[str] = set()
+    personal_node_ids: set[str] = set()
+    nodes: dict[str, dict] = {}
+    for n in raw_nodes:
+        if not _node_belongs(n, valid_paths):
+            continue
+        props = n.get("properties") or {}
+        raw_attrs = props.get("attributes")
+        if isinstance(raw_attrs, str) and raw_attrs:
+            try:
+                props["attributes"] = _json.loads(raw_attrs)
+            except _json.JSONDecodeError:
+                props["attributes"] = None
+        tenant_node_ids.add(n["id"])
+        # Tag as personal if any source file_path is a personal path
+        fp: str = props.get("file_path", "")
+        is_personal = any(part.strip() in personal_paths for part in fp.split(GRAPH_FIELD_SEP) if part.strip())
+        props["is_personal"] = is_personal
+        if is_personal:
+            personal_node_ids.add(n["id"])
+        nodes[n["id"]] = n
+
+    edges: list[dict] = []
+    adjacency: dict[str, set[str]] = {nid: set() for nid in tenant_node_ids}
+    degree: dict[str, int] = {nid: 0 for nid in tenant_node_ids}
+    for e in raw_edges:
+        s, t = e.get("source"), e.get("target")
+        if s in tenant_node_ids and t in tenant_node_ids:
+            edges.append(e)
+            adjacency[s].add(t)
+            adjacency[t].add(s)
+            degree[s] = degree.get(s, 0) + 1
+            degree[t] = degree.get(t, 0) + 1
+
+    cache.nodes = nodes
+    cache.edges = edges
+    cache.adjacency = adjacency
+    cache.degree = degree
+    # Store personal node ids per user so multi-user tenants get correct tagging
+    cache.personal_node_ids[user_id] = personal_node_ids
+    cache.fetched_at = time.monotonic()
+
+
+async def _get_tenant_cache(tenant_id: int, user_id: int, db: AsyncSession) -> _GraphCache:
+    """Return a fresh cache entry, fetching from LightRAG if stale."""
+    cache = _get_cache(tenant_id)
+    if cache.is_fresh():
+        return cache
+    async with cache._lock:
+        # Re-check after acquiring lock — another coroutine may have refreshed
+        if cache.is_fresh():
+            return cache
+        await _fetch_and_populate_cache(cache, tenant_id, user_id, db)
+    return cache
+
+
+async def _user_personal_paths(user_id: int, db: AsyncSession) -> set[str]:
+    """
+    Paths for data contributed by this specific user.
+    Covers: context sources they uploaded, their PM-OS data, and their AI session entries.
+    """
+    paths: set[str] = set()
+
+    # PM-OS data (always user-scoped)
+    for model, prefix in [
+        (WorkContext, "work_context"),
+        (MeetingNote, "meeting_note"),
+        (PMDecision, "pm_decision"),
+    ]:
+        r = await db.execute(select(model.id).where(model.user_id == user_id))
+        for (rid,) in r.all():
+            paths.add(f"{prefix}:{rid}")
+
+    # Context sources uploaded by this user
+    r = await db.execute(
+        select(ContextSource.id).where(ContextSource.user_id == user_id)
+    )
+    for (sid,) in r.all():
+        paths.add(f"context_source:{sid}")
+
+    # AI session knowledge entries authored by this user
+    try:
+        from app.models.team_knowledge import KnowledgeEntry
+        r = await db.execute(
+            select(KnowledgeEntry.id).where(KnowledgeEntry.user_id == user_id)
+        )
+        for (kid,) in r.all():
+            paths.add(f"knowledge_entry:{kid}")
+    except Exception:
+        pass
+
+    return paths
 
 
 async def _tenant_file_paths(tenant_id: int, user_id: int, db: AsyncSession) -> set[str]:
@@ -114,78 +299,148 @@ def _node_belongs(node: dict, valid_paths: set[str]) -> bool:
     return False
 
 
-@router.get("/graph")
-async def get_graph(
-    label: str = Query(default="*", description="Entity label filter, '*' for all"),
-    max_depth: int = Query(default=3, ge=1, le=10),
+@router.get("/hubs")
+async def get_hub_nodes(
+    limit: int = Query(default=50, ge=5, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
-    Fetch the knowledge graph nodes and edges from LightRAG, filtered to the
-    current tenant. LightRAG has no native multi-tenancy so we scope at the
-    proxy layer using the file_path labels set during ingestion.
+    Return the top-N highest-degree nodes (hubs) plus their edges, served from
+    a 5-minute server-side cache. Also returns stub descriptors for every
+    neighbor of a hub that isn't itself a hub — these let the frontend render
+    small placeholder dots without loading the full node data yet.
+
+    Response shape:
+      {
+        "nodes": [...],          # full node objects for hubs
+        "edges": [...],          # edges between hubs
+        "stubs": {               # lightweight placeholders for unloaded neighbors
+          "<node_id>": {
+            "id": "...",
+            "entity_type": "...",
+            "label": "...",
+            "degree": N
+          }
+        },
+        "total_nodes": N,
+        "total_edges": N,
+        "cached": true/false
+      }
     """
-    url = _require_lightrag()
-
-    # Fetch the full graph from LightRAG; retry once if JWT expired (401)
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(
-            f"{url}/graphs",
-            params={"label": label, "max_depth": max_depth, "max_nodes": 1000},
-            headers=await lightrag_auth_headers(),
-        )
-        if resp.status_code == 401:
-            invalidate_lightrag_jwt()
-            resp = await client.get(
-                f"{url}/graphs",
-                params={"label": label, "max_depth": max_depth, "max_nodes": 1000},
-                headers=await lightrag_auth_headers(),
-            )
-    if resp.status_code != 200:
-        logger.warning(f"LightRAG /graphs returned {resp.status_code}: {resp.text[:200]}")
-        raise HTTPException(status_code=503, detail="Knowledge graph service unavailable")
-
-    data = resp.json()
-
-    # No tenant context → return empty (SUPER_ADMIN without tenant scope)
     if current_user.tenant_id is None:
-        return {"nodes": [], "edges": [], "is_truncated": False}
+        return {"nodes": [], "edges": [], "stubs": {}, "total_nodes": 0, "total_edges": 0, "cached": False}
 
-    # Build the set of file_path labels owned by this tenant
-    valid_paths = await _tenant_file_paths(current_user.tenant_id, current_user.id, db)
+    cache = await _get_tenant_cache(current_user.tenant_id, current_user.id, db)
 
-    if not valid_paths:
-        return {"nodes": [], "edges": [], "is_truncated": False}
+    if not cache.nodes:
+        return {"nodes": [], "edges": [], "stubs": {}, "total_nodes": 0, "total_edges": 0, "cached": True}
 
-    # Filter nodes
-    all_nodes: list[dict] = data.get("nodes", [])
-    tenant_nodes = [n for n in all_nodes if _node_belongs(n, valid_paths)]
-    tenant_node_ids = {n["id"] for n in tenant_nodes}
+    # Sort all nodes by degree desc, take top `limit` as hubs
+    sorted_ids = sorted(cache.degree.keys(), key=lambda nid: cache.degree.get(nid, 0), reverse=True)
+    hub_ids: set[str] = set(sorted_ids[:limit])
 
-    # Deserialise the `attributes` field from JSON string → dict so the frontend
-    # can read node.properties.attributes directly without a JSON.parse call.
-    import json as _json
-    for node in tenant_nodes:
-        props = node.get("properties") or {}
-        raw_attrs = props.get("attributes")
-        if isinstance(raw_attrs, str) and raw_attrs:
-            try:
-                props["attributes"] = _json.loads(raw_attrs)
-            except _json.JSONDecodeError:
-                props["attributes"] = None
+    hub_nodes = [cache.nodes[nid] for nid in hub_ids if nid in cache.nodes]
+    hub_edges = [e for e in cache.edges if e["source"] in hub_ids and e["target"] in hub_ids]
 
-    # Filter edges — keep only edges where BOTH endpoints are in tenant nodes
-    all_edges: list[dict] = data.get("edges", [])
-    tenant_edges = [
-        e for e in all_edges
-        if e.get("source") in tenant_node_ids and e.get("target") in tenant_node_ids
+    # Build stubs for neighbors of hubs that aren't hubs themselves.
+    # Also track which hub each stub connects to (first encountered hub anchor)
+    # so the frontend can place it near that hub rather than at the canvas centre.
+    stub_ids: set[str] = set()
+    stub_hub_anchor: dict[str, str] = {}  # stub_id → hub_id
+    for hub_id in hub_ids:
+        for neighbor_id in cache.adjacency.get(hub_id, set()):
+            if neighbor_id not in hub_ids:
+                stub_ids.add(neighbor_id)
+                if neighbor_id not in stub_hub_anchor:
+                    stub_hub_anchor[neighbor_id] = hub_id
+
+    personal_ids = cache.personal_node_ids.get(current_user.id, set())
+    stubs: dict[str, dict] = {}
+    for sid in stub_ids:
+        n = cache.nodes.get(sid)
+        if not n:
+            continue
+        props = n.get("properties", {})
+        stubs[sid] = {
+            "id": sid,
+            "entity_type": props.get("entity_type", "default"),
+            "label": props.get("entity_id", sid),
+            "degree": cache.degree.get(sid, 0),
+            "hub_anchor": stub_hub_anchor.get(sid),
+            "is_personal": sid in personal_ids,
+        }
+
+    # Include hub→stub edges so the frontend can draw connections to stub dots
+    # and use them for positioning. Only include edges where exactly one endpoint
+    # is a hub and the other is a stub (hub-hub edges are already in hub_edges).
+    hub_stub_edges = [
+        e for e in cache.edges
+        if (e["source"] in hub_ids and e["target"] in stub_ids)
+        or (e["target"] in hub_ids and e["source"] in stub_ids)
     ]
 
     return {
-        "nodes": tenant_nodes,
-        "edges": tenant_edges,
-        "is_truncated": data.get("is_truncated", False),
+        "nodes": hub_nodes,
+        "edges": hub_edges + hub_stub_edges,
+        "stubs": stubs,
+        "total_nodes": len(cache.nodes),
+        "total_edges": len(cache.edges),
+        "cached": True,
+    }
+
+
+@router.get("/node/{node_id:path}")
+async def get_node(
+    node_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    Return the full node data for a single node plus its immediate neighbors'
+    full data and the edges connecting them. Served from the 5-minute cache.
+    Used when the user clicks a stub dot or zooms into a region.
+    """
+    if current_user.tenant_id is None:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    cache = await _get_tenant_cache(current_user.tenant_id, current_user.id, db)
+
+    node = cache.nodes.get(node_id)
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    neighbor_ids = cache.adjacency.get(node_id, set())
+    neighbor_nodes = [cache.nodes[nid] for nid in neighbor_ids if nid in cache.nodes]
+    relevant_edges = [
+        e for e in cache.edges
+        if (e["source"] == node_id or e["target"] == node_id)
+        and e["source"] in cache.nodes and e["target"] in cache.nodes
+    ]
+
+    return {
+        "node": node,
+        "neighbors": neighbor_nodes,
+        "edges": relevant_edges,
+    }
+
+
+@router.get("/graph")
+async def get_graph(
+    label: str = Query(default="*"),
+    max_depth: int = Query(default=3, ge=1, le=10),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Full graph fetch — kept for backwards compatibility. Uses cache."""
+    if current_user.tenant_id is None:
+        return {"nodes": [], "edges": [], "is_truncated": False}
+
+    cache = await _get_tenant_cache(current_user.tenant_id, current_user.id, db)
+    return {
+        "nodes": list(cache.nodes.values()),
+        "edges": cache.edges,
+        "is_truncated": False,
     }
 
 
@@ -312,7 +567,10 @@ async def edit_entity(
 ) -> Any:
     """Update an entity's properties (description, entity_type, rename, merge)."""
     url = _require_lightrag()
-    return await _lightrag_post(url, "/graph/entity/edit", request.model_dump())
+    result = await _lightrag_post(url, "/graph/entity/edit", request.model_dump())
+    if current_user.tenant_id:
+        _get_cache(current_user.tenant_id).invalidate()
+    return result
 
 
 @router.post("/entities/merge")
@@ -322,7 +580,10 @@ async def merge_entities(
 ) -> Any:
     """Merge multiple entities into one, transferring all relationships."""
     url = _require_lightrag()
-    return await _lightrag_post(url, "/graph/entities/merge", request.model_dump())
+    result = await _lightrag_post(url, "/graph/entities/merge", request.model_dump())
+    if current_user.tenant_id:
+        _get_cache(current_user.tenant_id).invalidate()
+    return result
 
 
 @router.post("/entity/create")
@@ -332,7 +593,10 @@ async def create_entity(
 ) -> Any:
     """Create a new entity node in the knowledge graph."""
     url = _require_lightrag()
-    return await _lightrag_post(url, "/graph/entity/create", request.model_dump())
+    result = await _lightrag_post(url, "/graph/entity/create", request.model_dump())
+    if current_user.tenant_id:
+        _get_cache(current_user.tenant_id).invalidate()
+    return result
 
 
 @router.post("/relation/edit")
@@ -342,7 +606,10 @@ async def edit_relation(
 ) -> Any:
     """Update a relationship's description or keywords."""
     url = _require_lightrag()
-    return await _lightrag_post(url, "/graph/relation/edit", request.model_dump())
+    result = await _lightrag_post(url, "/graph/relation/edit", request.model_dump())
+    if current_user.tenant_id:
+        _get_cache(current_user.tenant_id).invalidate()
+    return result
 
 
 @router.get("/health")
@@ -496,6 +763,10 @@ async def sync_to_graph(
         raise HTTPException(status_code=400, detail="Sync requires a tenant context")
 
     counts = await _run_full_sync(current_user.tenant_id, current_user.id, db)
+
+    # Invalidate the graph cache so the next /hubs call re-fetches fresh data
+    _get_cache(current_user.tenant_id).invalidate()
+
     total = sum(v for k, v in counts.items() if k != "errors")
     return {
         "status": "ok",

@@ -239,6 +239,10 @@ export const api = {
       apiClient.post('/api/v1/graph/entity/create', data),
     editRelation: (data: { source_id: string; target_id: string; updated_data: Record<string, any> }) =>
       apiClient.post('/api/v1/graph/relation/edit', data),
+    getHubs: (limit = 50) =>
+      apiClient.get('/api/v1/graph/hubs', { params: { limit } }),
+    getNode: (nodeId: string) =>
+      apiClient.get(`/api/v1/graph/node/${encodeURIComponent(nodeId)}`),
   },
 
   // Generic helpers
