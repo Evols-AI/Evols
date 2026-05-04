@@ -3,7 +3,7 @@
 ## ✅ What We Built
 
 You now have a **unified-pm-os** folder with:
-- ✅ 83 PM skills merged from 3 projects
+- ✅ 83 AI skills merged from 3 projects
 - ✅ Three-layer architecture (framework + intelligence + discipline)
 - ✅ Ready for personal use OR Evols integration
 

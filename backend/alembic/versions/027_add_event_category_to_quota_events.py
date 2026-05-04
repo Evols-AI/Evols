@@ -25,15 +25,35 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("CREATE TYPE eventcategory AS ENUM ('creation', 'retrieval', 'mixed')")
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'eventcategory') THEN
+                CREATE TYPE eventcategory AS ENUM ('creation', 'retrieval', 'mixed');
+            END IF;
+        END
+        $$
+    """)
 
-    op.add_column('quota_events', sa.Column(
-        'event_category',
-        sa.Enum('creation', 'retrieval', 'mixed', name='eventcategory'),
-        nullable=True,
-    ))
-    op.add_column('quota_events', sa.Column('tokens_invested', sa.Integer(), nullable=True, server_default='0'))
-    op.add_column('quota_events', sa.Column('actual_savings', sa.Integer(), nullable=True, server_default='0'))
+    # Add columns only if they don't already exist
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name='quota_events' AND column_name='event_category') THEN
+                ALTER TABLE quota_events ADD COLUMN event_category eventcategory;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name='quota_events' AND column_name='tokens_invested') THEN
+                ALTER TABLE quota_events ADD COLUMN tokens_invested INTEGER DEFAULT 0;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name='quota_events' AND column_name='actual_savings') THEN
+                ALTER TABLE quota_events ADD COLUMN actual_savings INTEGER DEFAULT 0;
+            END IF;
+        END
+        $$
+    """)
 
     # Backfill: rows with tokens_retrieved > 0 are retrieval events; others are creation
     op.execute("""

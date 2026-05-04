@@ -1,6 +1,6 @@
 # Unified PM Operating System
 
-> **83 framework-based PM skills** + **knowledge layer** + **memory system** + **daily discipline**
+> **83 framework-based AI skills** + **knowledge layer** + **memory system** + **daily discipline**
 
 The best of pm-skills, PM-operating-OS, and pm-os-bootstrap merged into one unified system.
 
@@ -91,7 +91,7 @@ unified-pm-os/
 │       ├── strategy/
 │       └── execution/
 │
-├── skills/                          ← 83 PM skills (merged)
+├── skills/                          ← 83 AI skills (merged)
 │   ├── 01-discovery/                (13 skills from pm-skills)
 │   ├── 02-strategy/                 (12 skills from pm-skills)
 │   ├── 03-execution/                (15 skills from pm-skills)

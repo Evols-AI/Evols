@@ -1,9 +1,9 @@
 import Head from 'next/head'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import {
   Sparkles, MessageSquare, ArrowRight, Zap, Save, RotateCcw,
-  Eye, Edit3
+  Eye, Edit3, Filter, ChevronDown, Check
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
@@ -29,6 +29,104 @@ interface SkillCustomization {
   updated_at: string
 }
 
+function getCategoryDisplayName(categoryId: string): string {
+  return categoryId
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+    .replace('Os Infrastructure', 'Mechanisms')
+    .replace('Data Analytics', 'Data & Analytics')
+    .replace('Marketing Growth', 'Marketing & Growth')
+    .replace('Go To Market', 'Go-to-Market')
+}
+
+function SkillCategoryFilterDropdown({
+  skills,
+  selected,
+  onChange,
+}: {
+  skills: Skill[]
+  selected: Set<string>
+  onChange: (next: Set<string>) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as HTMLElement)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const counts = skills.reduce<Record<string, number>>((acc, s) => {
+    acc[s.category] = (acc[s.category] ?? 0) + 1
+    return acc
+  }, {})
+
+  const categories = Object.keys(counts).sort((a, b) =>
+    getCategoryDisplayName(a).localeCompare(getCategoryDisplayName(b))
+  )
+
+  const toggle = (cat: string) => {
+    const next = new Set(selected)
+    if (next.has(cat)) next.delete(cat)
+    else next.add(cat)
+    onChange(next)
+  }
+
+  const label = selected.size === 0
+    ? 'All categories'
+    : selected.size === 1
+      ? getCategoryDisplayName([...selected][0])
+      : `${selected.size} categories`
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-3 py-2 bg-input border border-border rounded-lg hover:bg-muted transition-colors"
+      >
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 mt-2 w-56 bg-card border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
+          <div className="p-2">
+            <button
+              onClick={() => onChange(new Set())}
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded transition-colors text-left"
+            >
+              <div className="w-4 h-4 border border-border rounded flex items-center justify-center flex-shrink-0">
+                {selected.size === 0 && <Check className="w-3 h-3 text-primary" />}
+              </div>
+              <span className="text-sm font-medium text-foreground">All categories</span>
+              <span className="ml-auto text-xs text-muted-foreground">({skills.length})</span>
+            </button>
+            <div className="border-t border-border my-1" />
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => toggle(cat)}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded transition-colors"
+              >
+                <div className="w-4 h-4 border border-border rounded flex items-center justify-center flex-shrink-0">
+                  {selected.has(cat) && <Check className="w-3 h-3 text-primary" />}
+                </div>
+                <span className="text-sm text-foreground flex-1 text-left">{getCategoryDisplayName(cat)}</span>
+                <span className="text-xs text-muted-foreground">({counts[cat]})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Skills() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -36,7 +134,7 @@ export default function Skills() {
   const [customizations, setCustomizations] = useState<SkillCustomization[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [viewingSkill, setViewingSkill] = useState<any>(null)
   const [loadingSkillDetails, setLoadingSkillDetails] = useState(false)
 
@@ -209,6 +307,13 @@ export default function Skills() {
           title="AI Skills"
           description="Expert-curated skills to help streamline daily tasks"
           icon={Zap}
+          action={skills.length > 0 ? (
+            <SkillCategoryFilterDropdown
+              skills={skills}
+              selected={selectedCategories}
+              onChange={setSelectedCategories}
+            />
+          ) : undefined}
         />
 
         {error && (
@@ -225,65 +330,11 @@ export default function Skills() {
           />
         ) : (
           <>
-            {/* Category Filter */}
-            <div className="mb-6 flex flex-wrap gap-2">
-              {(() => {
-                // Generate categories dynamically from skills data
-                const categoryMap = new Map()
-
-                // Count skills per category
-                skills.forEach((skill: Skill) => {
-                  const category = skill.category
-                  categoryMap.set(category, (categoryMap.get(category) || 0) + 1)
-                })
-
-                // Create categories array
-                const categories = [
-                  { id: 'all', name: 'All Skills', count: skills.length }
-                ]
-
-                // Add dynamic categories with proper display names
-                categoryMap.forEach((count, categoryId) => {
-                  const displayName = categoryId
-                    .split('-')
-                    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ')
-                    .replace('Os Infrastructure', 'Mechanisms')
-                    .replace('Data Analytics', 'Data & Analytics')
-                    .replace('Marketing Growth', 'Marketing & Growth')
-                    .replace('Go To Market', 'Go-to-Market')
-                    .replace('Market Research', 'Market Research')
-                    .replace('Daily Discipline', 'Daily Discipline')
-
-                  categories.push({
-                    id: categoryId,
-                    name: displayName,
-                    count: count
-                  })
-                })
-
-                // Sort categories alphabetically (except "All" which stays first)
-                const sortedCategories = [
-                  categories[0], // "All Skills"
-                  ...categories.slice(1).sort((a, b) => a.name.localeCompare(b.name))
-                ]
-
-                return sortedCategories
-              })().map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={selectedCategory === cat.id ? 'btn-primary' : 'btn-secondary'}
-                >
-                  {cat.name} ({cat.count})
-                </button>
-              ))}
-            </div>
 
             {/* Skills Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {skills.filter((skill: Skill) =>
-                selectedCategory === 'all' || skill.category === selectedCategory
+                selectedCategories.size === 0 || selectedCategories.has(skill.category)
               ).map((skill: Skill) => {
                 const customization = getSkillCustomization(skill.name)
                 return (

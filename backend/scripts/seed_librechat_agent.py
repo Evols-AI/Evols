@@ -68,7 +68,7 @@ def build_system_prompt(catalog: str) -> str:
 
 ## Available Skills
 
-You have access to a library of PM skills. Each skill provides expert instructions for a specific type of analysis or document. When a user's request maps to a skill, call `get_skill_details` with the skill name to load the full instructions, then follow them.
+You have access to a library of AI skills. Each skill provides expert instructions for a specific type of analysis or document. When a user's request maps to a skill, call `get_skill_details` with the skill name to load the full instructions, then follow them.
 
 {catalog}
 

@@ -91,9 +91,9 @@ gcloud run deploy evols-backend \
   --set-env-vars "OIDC_ISSUER=${PUBLIC_BASE}/api/v1/oidc" \
   --set-env-vars "OIDC_CLIENT_ID=evols-workbench" \
   --set-env-vars "OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}" \
-  --set-env-vars "LIGHTRAG_URL=https://evols-lightrag-446160743186.us-central1.run.app" \
+  --set-env-vars "LIGHTRAG_URL=https://evols-lightrag-kdqer5oyua-uc.a.run.app" \
   --set-env-vars "LIGHTRAG_API_KEY=${LIGHTRAG_API_KEY:?Set LIGHTRAG_API_KEY}" \
-  --set-env-vars "FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY}" \
+  --set-secrets "FIELD_ENCRYPTION_KEY=evols-field-encryption-key:latest" \
   --set-secrets "AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest" \
   --set-secrets "AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest" \
   --add-cloudsql-instances "${SQL_CONNECTION_NAME}" \

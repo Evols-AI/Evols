@@ -85,7 +85,7 @@ class ContextAggregator:
         catalog_lines = []
         catalog_lines.append("# Available Skills (Lightweight)")
         catalog_lines.append("")
-        catalog_lines.append("You have access to specialized PM skills. When a user's request matches a skill, respond with the skill name.")
+        catalog_lines.append("You have access to specialized AI skills. When a user's request matches a skill, respond with the skill name.")
         catalog_lines.append("")
 
         # Count skills for overview

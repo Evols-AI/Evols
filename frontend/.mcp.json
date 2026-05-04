@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "evols": {
+      "command": "/Users/akshay/.claude/plugins/data/evols-evols-ai/venv/bin/python3",
+      "args": [
+        "/Users/akshay/.claude/plugins/cache/evols-ai/evols/1.8.0/plugin/mcp_server/server.py"
+      ],
+      "env": {
+        "EVOLS_API_URL": "https://api.evols.ai",
+        "EVOLS_API_KEY": "",
+        "EVOLS_PLAN": "pro"
+      }
+    }
+  }
+}

@@ -88,7 +88,7 @@ Evols is your team's AI brain for collaboration and coordination:
    - Works in both CLI and VSCode extension
 
 8. **Evols Zed Plugin** 🧩 *Team context in Zed AI*
-   - Injects PM skills + team knowledge into every new Zed AI thread via the Rules Library
+   - Injects AI skills + team knowledge into every new Zed AI thread via the Rules Library
    - MCP tools: `get_pm_skill`, `get_team_context`, `sync_session_context`, `check_redundancy`, `get_quota_status`
    - Slash commands: `/evols:reload`, `/evols:skill <name>`
 
@@ -395,7 +395,7 @@ Theme (Feedback Clusters) → Initiative (Strategic Bets) → Project (Work Item
 - ✅ **Team Knowledge Graph** — shared institutional memory across all tools
 - ✅ **LightRAG integration** — graph-based knowledge extraction from all ingested data
 - ✅ **Evols Claude Code plugin** — team knowledge + redundancy detection in Claude Code
-- ✅ **Evols Zed plugin** — PM skills + team knowledge auto-injected into Zed AI threads
+- ✅ **Evols Zed plugin** — AI skills + team knowledge auto-injected into Zed AI threads
 - ✅ **Long-lived API keys** — `evols_...` format keys for plugin and service auth
 - ✅ **MCP Streamable-HTTP endpoint** — tools: get_team_context, check_redundancy, sync_session_context, plus 10 product-data tools
 - ✅ **OIDC provider bridge** — Evols acts as OIDC provider for AI Workbench SSO
