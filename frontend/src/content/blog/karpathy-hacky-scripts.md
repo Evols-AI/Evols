@@ -1,7 +1,7 @@
 ---
 title: "What Karpathy's \"Hacky Scripts\" Observation Reveals About Where Developer Tools Are Heading"
 description: "Andrej Karpathy described his LLM knowledge workflow as a hacky collection of scripts and noted room for an incredible new product. What that product actually needs to be is more specific than it first appears."
-date: 2026-04-22
+date: 2026-04-08
 author: Akshay Saraswat
 authorRole: Founder, Evols
 readingTime: 13 min read

@@ -1,7 +1,7 @@
 ---
 title: "The Handoff Tax: Why Your Team's AI Productivity Numbers Are Wrong"
 description: "The 55% individual productivity gain from AI coding tools is real but it does not account for what happens after the task ends. DORA 2024 found that individual speed gains come with declining team delivery stability."
-date: 2026-04-21
+date: 2026-04-05
 author: Akshay Saraswat
 authorRole: Founder, Evols
 readingTime: 15 min read

@@ -1,7 +1,7 @@
 ---
 title: "Multiplayer AI: The Category That Doesn't Exist Yet (But Will)"
 description: "Every major productivity category follows the same arc: individual tools first, then a coordination layer that becomes the defensible platform. AI tooling is mid-transition and the multiplayer layer has not been built yet."
-date: 2026-04-20
+date: 2026-04-02
 author: Akshay Saraswat
 authorRole: Founder, Evols
 readingTime: 14 min read
