@@ -384,6 +384,40 @@ TOOLS = [
             },
         },
     },
+    {
+        "name": "simulate_persona_votes",
+        "description": (
+            "Ask AI-powered persona digital twins to vote on strategic options. "
+            "Returns each persona's choice, reasoning, and confidence score. "
+            "After presenting findings, automatically call sync_session_context to save the analysis."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "required": ["question", "options"],
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": "The decision question to pose to personas",
+                },
+                "options": {
+                    "type": "array",
+                    "description": "List of options to vote on",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "name": {"type": "string"},
+                            "description": {"type": "string"},
+                        },
+                    },
+                },
+                "persona_filter": {
+                    "type": "string",
+                    "description": "Optional filter (e.g. 'CTO'). Leave blank for all personas.",
+                },
+            },
+        },
+    },
 ]
 
 
@@ -804,6 +838,7 @@ async def _call_tool(
         "get_competitive_landscape",
         "get_features",
         "get_past_skill_work",
+        "simulate_persona_votes",
     ):
         result = await tool_registry.execute_tool(
             tool_name, dict(args), tenant_id, db, user_id=current_user.id

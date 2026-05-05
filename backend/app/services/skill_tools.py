@@ -776,6 +776,96 @@ Respond in JSON:
 
 
 @tool_registry.register(
+    name="engage_persona_twin",
+    description="Have a conversation with a persona's AI digital twin grounded in their knowledge graph context (pain points, feature requests, attributes). Ask for their opinion on any topic.",
+    parameters=[
+        ToolParameter(name="persona_name", type="string", description="Name of the persona as it appears in the knowledge graph"),
+        ToolParameter(name="question", type="string", description="Question or topic to ask the persona"),
+    ]
+)
+async def engage_persona_twin(
+    persona_name: str,
+    question: str,
+    tenant_id: int,
+    db: AsyncSession,
+) -> Dict[str, Any]:
+    """Simulate a response from a single persona's digital twin using their knowledge graph context."""
+    from app.services.llm_service import get_llm_service
+    from app.core.security import decrypt_llm_config
+    from app.models.tenant import Tenant as TenantModel
+
+    nodes, edges = await _fetch_graph_nodes(tenant_id)
+    persona_nodes = _filter_nodes_by_type(nodes, "persona")
+
+    name_lower = persona_name.lower()
+    node = next((n for n in persona_nodes if n.get("id", "").lower() == name_lower), None)
+    if node is None:
+        node = next((n for n in persona_nodes if name_lower in n.get("id", "").lower()), None)
+
+    if node is None:
+        available = [n.get("id", "") for n in persona_nodes]
+        return {
+            "error": f"Persona '{persona_name}' not found in knowledge graph.",
+            "available_personas": available[:10],
+            "suggestion": "Use get_personas to see all available personas.",
+        }
+
+    props = node.get("properties") or {}
+    nid = node.get("id", persona_name)
+    persona_desc = (props.get("description") or "")[:800]
+    segment = (props.get("attributes") or {}).get("segment") or ""
+
+    def _neighbor_names(target_type: str) -> List[str]:
+        return _get_connected_names(nid, nodes, edges, target_type)
+
+    pain_points = _neighbor_names("painpoint")
+    feature_requests = _neighbor_names("featurerequest")
+    competitors = _neighbor_names("competitor")
+
+    context_parts = [f"Persona: {nid}"]
+    if segment:
+        context_parts.append(f"Segment: {segment}")
+    if persona_desc:
+        context_parts.append(f"Background: {persona_desc}")
+    if pain_points:
+        context_parts.append(f"Pain points: {', '.join(pain_points[:5])}")
+    if feature_requests:
+        context_parts.append(f"Feature requests: {', '.join(feature_requests[:5])}")
+    if competitors:
+        context_parts.append(f"Competitors they mention: {', '.join(competitors[:3])}")
+
+    persona_context = "\n".join(context_parts)
+
+    tenant_result = await db.execute(select(TenantModel).where(TenantModel.id == tenant_id))
+    tenant = tenant_result.scalar_one_or_none()
+    tenant_config = decrypt_llm_config(tenant.llm_config) if tenant and tenant.llm_config else None
+    llm = get_llm_service(tenant_config)
+
+    prompt = f"""You are simulating a customer persona in a product research conversation.
+
+{persona_context}
+
+Respond to the following as this persona would — using their specific background, pain points, and needs as context. Be specific and candid, not generic. Speak in first person.
+
+Question: {question}"""
+
+    try:
+        response = await llm.generate(prompt=prompt, temperature=0.4, max_tokens=500)
+        return {
+            "persona_name": nid,
+            "segment": segment,
+            "response": response.content,
+            "context_used": {
+                "pain_points": pain_points[:5],
+                "feature_requests": feature_requests[:5],
+            },
+            "source": "knowledge_graph",
+        }
+    except Exception as e:
+        return {"error": f"LLM call failed: {e}", "persona_name": nid}
+
+
+@tool_registry.register(
     name="pull_decision_context",
     description="Pull relevant customer context and extracted entities for a strategic decision",
     parameters=[
