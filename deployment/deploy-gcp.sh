@@ -89,11 +89,12 @@ gcloud run deploy evols-backend \
   --set-env-vars "EMBEDDING_PROVIDER=aws_bedrock" \
   --set-env-vars "UNIFIED_PM_OS_PATH=./resources/unified-pm-os" \
   --set-env-vars "FRONTEND_URL=${PUBLIC_BASE}" \
-  --set-env-vars "OIDC_ISSUER=${PUBLIC_BASE}/api/v1/oidc" \
+  --set-env-vars "OIDC_ISSUER=SET_AFTER_BACKEND_DEPLOY" \
   --set-env-vars "OIDC_CLIENT_ID=evols-workbench" \
   --set-env-vars "OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}" \
   --set-env-vars "LIGHTRAG_URL=https://evols-lightrag-kdqer5oyua-uc.a.run.app" \
   --set-env-vars "LIGHTRAG_API_KEY=${LIGHTRAG_API_KEY:?Set LIGHTRAG_API_KEY}" \
+  --set-env-vars "LIGHTRAG_TOKEN_SECRET=81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02" \
   --set-secrets "FIELD_ENCRYPTION_KEY=evols-field-encryption-key:latest" \
   --set-secrets "AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest" \
   --set-secrets "AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest" \
@@ -108,6 +109,17 @@ echo "Backend URL: ${BACKEND_URL}"
 
 # Fall back to backend Cloud Run URL if no custom domain was set
 PUBLIC_BASE="${PUBLIC_BASE:-${BACKEND_URL}}"
+
+# Now that PUBLIC_BASE is resolved, patch OIDC_ISSUER on the backend service.
+# FRONTEND_URL must point at the user-facing frontend (evols.ai), not the backend,
+# because OIDC authorize redirects the browser to ${FRONTEND_URL}/login.
+FRONTEND_BASE="${EVOLS_DOMAIN:+https://${EVOLS_DOMAIN}}"
+FRONTEND_BASE="${FRONTEND_BASE:-${BACKEND_URL}}"
+echo "==> Patching OIDC_ISSUER and FRONTEND_URL on evols-backend..."
+gcloud run services update evols-backend \
+  --region "${REGION}" --platform managed \
+  --update-env-vars "OIDC_ISSUER=${PUBLIC_BASE}/api/v1/oidc,FRONTEND_URL=${FRONTEND_BASE}" \
+  --project "${PROJECT_ID}"
 
 # ── 1b. LightRAG — build custom image + deploy ────────────────────────────────
 # We maintain a patched LightRAG image (evols-lightrag) that adds ENTITY_ATTRIBUTES
@@ -127,45 +139,63 @@ gcloud builds submit --config=deployment/cloudbuild-lightrag.yaml \
   --project "${PROJECT_ID}" .
 
 echo "==> Deploying evols-lightrag..."
-# PM-domain entity types and attributes — must be kept in sync with
-# docker/docker-compose.yml ENTITY_TYPES / ENTITY_ATTRIBUTES / ENTITY_ATTRIBUTE_VALUES env vars.
-ENTITY_TYPES='["Person","Organization","Product","Feature","PainPoint","FeatureRequest","Persona","Competitor","BusinessGoal","Metric","Decision","Meeting","Project","Technology","Market"]'
-ENTITY_ATTRIBUTES='["sentiment","urgency","business_impact","context_snippet","confidence"]'
-ENTITY_ATTRIBUTE_VALUES='{"sentiment":["positive","mostly_positive","neutral","mostly_negative","negative"],"urgency":["critical","high","medium","low","minimal"],"business_impact":["transformative","high","medium","low","negligible"]}'
+# Build env-vars file to safely pass JSON values (gcloud --set-env-vars chokes on brackets).
+# NetworkXStorage writes graph.graphml to WORKING_DIR; mount GCS bucket there so it
+# survives container restarts and redeploys without needing Cloud NAT or AGE extension.
+# Ensure the GCS bucket exists for persistent graph storage (free within normal GCS pricing).
+gsutil mb -p "${PROJECT_ID}" -l "${REGION}" "gs://evols-lightrag-storage" 2>/dev/null || true
+# Grant the default compute SA (used by Cloud Run) object-level access.
+DEFAULT_SA="${PROJECT_NUMBER:-$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')}"-compute@developer.gserviceaccount.com
+gsutil iam ch "serviceAccount:${DEFAULT_SA}:objectAdmin" gs://evols-lightrag-storage 2>/dev/null || true
+
+LIGHTRAG_ENV_FILE="$(mktemp /tmp/lightrag-env-XXXXXX.yaml)"
+python3 - <<PYEOF
+env = {
+    "LIGHTRAG_KV_STORAGE": "PGKVStorage",
+    "LIGHTRAG_VECTOR_STORAGE": "PGVectorStorage",
+    "LIGHTRAG_GRAPH_STORAGE": "NetworkXStorage",
+    "LIGHTRAG_DOC_STATUS_STORAGE": "PGDocStatusStorage",
+    "POSTGRES_HOST": "/cloudsql/${SQL_CONNECTION_NAME}",
+    "POSTGRES_PORT": "5432",
+    "POSTGRES_DATABASE": "evols",
+    "POSTGRES_USER": "postgres",
+    "LLM_BINDING": "openai",
+    "LLM_MODEL": "claude-haiku-4-5-20251001",
+    "LLM_BINDING_HOST": "${BACKEND_URL}/api/v1/llm-proxy/bedrock",
+    "EMBEDDING_BINDING": "openai",
+    "EMBEDDING_MODEL": "amazon.titan-embed-text-v2:0",
+    "EMBEDDING_DIM": "1024",
+    "EMBEDDING_BINDING_HOST": "${BACKEND_URL}/api/v1/llm-proxy/bedrock",
+    "EMBEDDING_TIMEOUT": "120",
+    "MAX_ASYNC": "2",
+    "MAX_TOKENS": "32768",
+    "ENTITY_TYPES": '["Person","Organization","Product","Feature","PainPoint","FeatureRequest","Persona","Competitor","BusinessGoal","Metric","Decision","Meeting","Project","Technology","Market"]',
+    "ENTITY_ATTRIBUTES": '["sentiment","urgency","business_impact","context_snippet","confidence"]',
+    "ENTITY_ATTRIBUTE_VALUES": '{"sentiment":["positive","mostly_positive","neutral","mostly_negative","negative"],"urgency":["critical","high","medium","low","minimal"],"business_impact":["transformative","high","medium","low","negligible"]}',
+    "AUTH_ACCOUNTS": "evols:${LIGHTRAG_API_KEY}",
+    "TOKEN_SECRET": "81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02",
+}
+with open("${LIGHTRAG_ENV_FILE}", "w") as f:
+    for k, v in env.items():
+        f.write(f"{k}: {repr(v)}\n")
+PYEOF
 
 gcloud run deploy evols-lightrag \
   --image "${LIGHTRAG_IMAGE}" \
   --region "${REGION}" --platform managed \
   --allow-unauthenticated \
+  --ingress=all \
   --min-instances=1 \
-  --set-env-vars "LIGHTRAG_KV_STORAGE=PGKVStorage" \
-  --set-env-vars "LIGHTRAG_VECTOR_STORAGE=PGVectorStorage" \
-  --set-env-vars "LIGHTRAG_GRAPH_STORAGE=NetworkXStorage" \
-  --set-env-vars "LIGHTRAG_DOC_STATUS_STORAGE=PGDocStatusStorage" \
-  --set-env-vars "POSTGRES_HOST=/cloudsql/${SQL_CONNECTION_NAME}" \
-  --set-env-vars "POSTGRES_PORT=5432" \
-  --set-env-vars "POSTGRES_DATABASE=evols" \
-  --set-env-vars "POSTGRES_USER=postgres" \
-  --set-env-vars "LLM_BINDING=openai" \
-  --set-env-vars "LLM_MODEL=claude-haiku-4-5-20251001" \
-  --set-env-vars "LLM_BINDING_HOST=${BACKEND_URL}/api/v1/llm-proxy/bedrock" \
-  --set-env-vars "EMBEDDING_BINDING=openai" \
-  --set-env-vars "EMBEDDING_MODEL=amazon.titan-embed-text-v2:0" \
-  --set-env-vars "EMBEDDING_DIM=1024" \
-  --set-env-vars "EMBEDDING_BINDING_HOST=${BACKEND_URL}/api/v1/llm-proxy/bedrock" \
-  --set-env-vars "EMBEDDING_TIMEOUT=120" \
-  --set-env-vars "MAX_ASYNC=2" \
-  --set-env-vars "MAX_TOKENS=32768" \
-  --set-env-vars "ENTITY_TYPES=${ENTITY_TYPES}" \
-  --set-env-vars "ENTITY_ATTRIBUTES=${ENTITY_ATTRIBUTES}" \
-  --set-env-vars "ENTITY_ATTRIBUTE_VALUES=${ENTITY_ATTRIBUTE_VALUES}" \
-  --set-env-vars "AUTH_ACCOUNTS=evols:${LIGHTRAG_API_KEY}" \
-  --set-env-vars "TOKEN_SECRET=81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02" \
+  --env-vars-file "${LIGHTRAG_ENV_FILE}" \
   --set-secrets "POSTGRES_PASSWORD=lightrag-pg-password:latest" \
   --set-secrets "LLM_BINDING_API_KEY=lightrag-api-key:latest" \
   --set-secrets "EMBEDDING_BINDING_API_KEY=lightrag-api-key:latest" \
   --add-cloudsql-instances "${SQL_CONNECTION_NAME}" \
+  --add-volume="name=graph-storage,type=cloud-storage,bucket=evols-lightrag-storage" \
+  --add-volume-mount="volume=graph-storage,mount-path=/app/data/rag_storage" \
   --project "${PROJECT_ID}" || echo "Warning: LightRAG deploy failed (service may not exist yet)"
+
+rm -f "${LIGHTRAG_ENV_FILE}"
 
 # ── 2. Frontend ───────────────────────────────────────────────────────────────
 echo "==> Building frontend image..."
@@ -203,6 +233,16 @@ else
   docker push "${WORKBENCH_IMAGE}"
 fi
 
+echo "==> Uploading resolved librechat.yaml to GCS..."
+# librechat.yaml is excluded from the Docker image (.dockerignore: librechat*)
+# so we resolve env vars and serve it via CONFIG_PATH from GCS instead.
+LIBRECHAT_CONFIG_BUCKET="evols-config"
+gsutil mb -p "${PROJECT_ID}" "gs://${LIBRECHAT_CONFIG_BUCKET}" 2>/dev/null || true
+sed "s|\${EVOLS_BACKEND_URL}|${PUBLIC_BASE}|g" "${WORKBENCH_DIR}/librechat.yaml" \
+  | gsutil cp - "gs://${LIBRECHAT_CONFIG_BUCKET}/librechat.yaml"
+gsutil acl ch -u AllUsers:R "gs://${LIBRECHAT_CONFIG_BUCKET}/librechat.yaml"
+LIBRECHAT_CONFIG_URL="https://storage.googleapis.com/${LIBRECHAT_CONFIG_BUCKET}/librechat.yaml"
+
 echo "==> Storing workbench secrets..."
 store_secret "workbench-mongo-uri"             "${MONGO_URI}"
 store_secret "workbench-oidc-client-secret"    "${OIDC_CLIENT_SECRET}"
@@ -221,9 +261,9 @@ gcloud run deploy evols-workbench \
   --allow-unauthenticated \
   --ingress=all \
   --memory=1Gi --cpu=1 \
-  --min-instances=0 --max-instances=5 \
+  --min-instances=1 --max-instances=1 \
   --port=3080 \
-  --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,BASE_PATH=/workbench/app,APP_BASE_PATH=/workbench/app,ALLOW_REGISTRATION=false,ALLOW_SOCIAL_LOGIN=true,ALLOW_SOCIAL_REGISTRATION=true,OPENID_ISSUER=${PUBLIC_BASE}/api/v1/oidc,OPENID_CLIENT_ID=evols-workbench,OPENID_SCOPE=openid profile email,OPENID_CALLBACK_URL=/workbench/app/oauth/openid/callback,OPENID_BUTTON_LABEL=Sign in with Evols,EVOLS_BACKEND_URL=${PUBLIC_BASE},DOMAIN_CLIENT=${PUBLIC_BASE}/workbench/app,DOMAIN_SERVER=${PUBLIC_BASE}" \
+  --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,BASE_PATH=/workbench/app,APP_BASE_PATH=/workbench/app,ALLOW_REGISTRATION=false,ALLOW_EMAIL_LOGIN=false,ALLOW_SOCIAL_LOGIN=true,ALLOW_SOCIAL_REGISTRATION=true,OPENID_ISSUER=${PUBLIC_BASE}/api/v1/oidc,OPENID_CLIENT_ID=evols-workbench,OPENID_SCOPE=openid profile email,OPENID_CALLBACK_URL=/workbench/app/oauth/openid/callback,OPENID_BUTTON_LABEL=Sign in with Evols,EVOLS_BACKEND_URL=${PUBLIC_BASE},DOMAIN_CLIENT=${FRONTEND_BASE}/workbench/app,DOMAIN_SERVER=${FRONTEND_BASE},CONFIG_PATH=${LIBRECHAT_CONFIG_URL}" \
   --set-secrets="MONGO_URI=workbench-mongo-uri:latest,OPENID_CLIENT_SECRET=workbench-oidc-client-secret:latest,JWT_SECRET=workbench-jwt-secret:latest,JWT_REFRESH_SECRET=workbench-jwt-refresh-secret:latest,CREDS_KEY=workbench-creds-key:latest,CREDS_IV=workbench-creds-iv:latest,OPENID_SESSION_SECRET=workbench-openid-session-secret:latest"
 
 WORKBENCH_URL=$(gcloud run services describe evols-workbench \

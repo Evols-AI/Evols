@@ -472,6 +472,7 @@ export default function KnowledgeGraphTab({ typeFilter, searchTerm = '' }: Knowl
   const [editInfo, setEditInfo] = useState<{ id: string; attrs: NodeAttrs } | null>(null)
   const [mergeIds, setMergeIds] = useState<string[] | null>(null)
   const [showQuery, setShowQuery] = useState(false)
+  const [graphBuilt, setGraphBuilt] = useState(0)
   const queryPanelRef = useRef<HTMLDivElement>(null)
 
   // ── Apply type filter + search as Sigma reducers ─────────────────────────────
@@ -864,18 +865,28 @@ export default function KnowledgeGraphTab({ typeFilter, searchTerm = '' }: Knowl
 
       setLayoutRunning(false)
 
-      // Now init Sigma with already-laid-out graph
-      initSigma()
-
-      // Fit camera to show all nodes
-      setTimeout(() => {
-        sigmaRef.current?.getCamera().animatedReset()
-        drawMinimap()
-      }, 100)
+      // Signal that graph data is ready — initSigma runs after loading→false
+      // so containerRef.current is guaranteed to be in the DOM.
+      setGraphBuilt(n => n + 1)
 
     } catch (e: any) { setError(e?.message ?? 'Failed to load knowledge graph') }
     finally { setLoading(false) }
   }, [buildGraph, initSigma, drawMinimap])
+
+  // Init Sigma after the loading spinner is gone — containerRef is in the DOM at this point.
+  useEffect(() => {
+    if (loading || graphBuilt === 0) return
+    initSigma()
+    setTimeout(() => {
+      sigmaRef.current?.refresh()
+      sigmaRef.current?.getCamera().animatedReset()
+      drawMinimap()
+    }, 50)
+    setTimeout(() => {
+      sigmaRef.current?.refresh()
+      sigmaRef.current?.getCamera().animatedReset()
+    }, 400)
+  }, [loading, graphBuilt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadGraph()

@@ -16,6 +16,7 @@ import time
 from typing import Any, Optional
 
 import httpx
+from jose import jwt as jose_jwt
 
 from app.core.config import settings
 
@@ -24,39 +25,40 @@ logger = logging.getLogger(__name__)
 _jwt_cache: dict[str, Any] = {}
 _jwt_lock = asyncio.Lock()
 
+# LightRAG TOKEN_SECRET — must match the value deployed to evols-lightrag.
+# Generating the JWT locally avoids an HTTP round-trip to /login, which fails
+# when the backend's VPC egress cannot reach LightRAG's public Cloud Run URL.
+_LIGHTRAG_TOKEN_SECRET = os.environ.get(
+    "LIGHTRAG_TOKEN_SECRET",
+    "81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02",
+)
+
 
 def _lightrag_url() -> str:
     url = getattr(settings, "LIGHTRAG_URL", None) or os.environ.get("LIGHTRAG_URL", "")
     return url.rstrip("/")
 
 
+def _mint_lightrag_jwt() -> str:
+    """Mint a LightRAG-compatible HS256 JWT locally — no network call required."""
+    now = int(time.time())
+    payload = {"sub": "evols", "exp": now + 3600}
+    return jose_jwt.encode(payload, _LIGHTRAG_TOKEN_SECRET, algorithm="HS256")
+
+
 async def lightrag_auth_headers() -> dict[str, str]:
-    """Return headers with a valid LightRAG JWT, obtained via POST /login. Cached ~55 min."""
+    """Return headers with a valid LightRAG JWT, minted locally. Cached ~55 min."""
     async with _jwt_lock:
         if _jwt_cache.get("token") and _jwt_cache.get("expires_at", 0) > time.time() + 30:
             return {"Content-Type": "application/json", "Authorization": f"Bearer {_jwt_cache['token']}"}
-        api_key = getattr(settings, "LIGHTRAG_API_KEY", None) or os.environ.get("LIGHTRAG_API_KEY", "")
-        if not api_key:
-            logger.error("LIGHTRAG_API_KEY not configured — cannot authenticate to LightRAG")
-            return {"Content-Type": "application/json"}
-        url = _lightrag_url()
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                f"{url}/login",
-                data={"username": "evols", "password": api_key},
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
-        if resp.status_code != 200:
-            logger.error(f"LightRAG login failed: {resp.status_code} {resp.text[:200]}")
-            return {"Content-Type": "application/json"}
-        token = resp.json().get("access_token") or resp.json().get("token", "")
+        token = _mint_lightrag_jwt()
         _jwt_cache["token"] = token
         _jwt_cache["expires_at"] = time.time() + 3300  # ~55 min
         return {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
 
 
 def invalidate_lightrag_jwt() -> None:
-    """Force-expire the cached LightRAG JWT so the next call re-authenticates."""
+    """Force-expire the cached JWT so the next call mints a fresh one."""
     _jwt_cache.clear()
 
 

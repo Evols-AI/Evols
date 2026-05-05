@@ -112,6 +112,7 @@ async def add_knowledge_entry(
     Add a new entry to the team knowledge graph.
     Called by the Evols plugin Stop hook at the end of each AI session.
     """
+    import uuid
     entry = await team_knowledge_service.add_entry(
         db=db,
         tenant_id=tenant_id,
@@ -131,6 +132,24 @@ async def add_knowledge_entry(
         model=request.model,
         llm_config=llm_config,
     )
+
+    # Auto-record a creation quota event when token counts are provided.
+    # This handles Zed MCP and any client that syncs entries without a separate stop hook.
+    # Uses source_session_id if available so the stop hook can upsert onto the same row later.
+    tokens_invested = request.discovery_tokens or request.session_tokens_used or 0
+    if tokens_invested > 0:
+        session_id = request.source_session_id or f"entry-{entry.id}-{uuid.uuid4().hex[:8]}"
+        await team_knowledge_service.record_quota_event(
+            db=db,
+            tenant_id=tenant_id,
+            user_id=current_user.id,
+            session_id=session_id,
+            tokens_used=tokens_invested,
+            tokens_retrieved=0,
+            tokens_created=tokens_invested,
+            model=request.model,
+        )
+
     return EntryResponse(
         id=entry.id,
         title=entry.title,
