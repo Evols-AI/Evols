@@ -79,6 +79,7 @@ gcloud run deploy evols-backend \
   --image "${IMAGE_PREFIX}/evols-backend:latest" \
   --region "${REGION}" --platform managed \
   --allow-unauthenticated \
+  --memory=2Gi \
   --min-instances=1 \
   --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:postgres123@/evols?host=/cloudsql/${SQL_CONNECTION_NAME}" \
   --set-env-vars "ENVIRONMENT=production" \

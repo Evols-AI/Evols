@@ -208,17 +208,30 @@ class TeamKnowledgeService:
 
         # Embed the query
         query_embedding = None
+        embed_svc = None
         try:
-            svc = get_embedding_service(tenant_config=llm_config or {})
-            query_embedding = await svc.embed_text(query)
+            embed_svc = get_embedding_service(tenant_config=llm_config or {})
+            query_embedding = await embed_svc.embed_text(query)
         except Exception as e:
             logger.warning(f"Query embedding failed, falling back to recent entries: {e}")
 
         selected_with_scores: List[tuple]  # (entry, similarity_score)
         if query_embedding is not None:
+            stored_dim = len(all_entries[0].embedding)
+            query_dim = len(query_embedding)
+            if stored_dim != query_dim:
+                logger.warning(
+                    f"Embedding dimension mismatch: query={query_dim}, stored={stored_dim}. "
+                    f"Re-embed knowledge entries via POST /api/v1/team-knowledge/re-embed to fix. "
+                    f"Falling back to recent entries."
+                )
+                query_embedding = None
+
+        if query_embedding is not None:
+            similarity_threshold = embed_svc.get_similarity_threshold()
             embeddings = [e.embedding for e in all_entries]
             top_indices = find_most_similar(query_embedding, embeddings, top_k=top_k)
-            selected_with_scores = [(all_entries[i], score) for i, score in top_indices if score > 0.5]
+            selected_with_scores = [(all_entries[i], score) for i, score in top_indices if score > similarity_threshold]
         else:
             # Fallback: most recent entries, no similarity score available — use 1.0
             recent = sorted(all_entries, key=lambda e: e.created_at, reverse=True)[:top_k]
@@ -792,6 +805,71 @@ class TeamKnowledgeService:
             "net_impact": net_impact,
             "roi_pct": roi_pct,
         }
+
+
+    async def re_embed_entries(
+        self,
+        db: AsyncSession,
+        tenant_id: int,
+        llm_config: Optional[Dict] = None,
+    ) -> Dict[str, Any]:
+        """
+        Re-embed all knowledge entries for a tenant using the current embedding provider.
+        Necessary when the tenant switches LLM providers (e.g. sentence-transformers → Bedrock Titan)
+        because stored vectors become incompatible with query vectors from the new provider.
+
+        Steps:
+          1. Re-embed every entry (skip if embedding fails — leaves old vector, logs warning)
+          2. Delete all SEMANTIC edges for the tenant (all are stale after re-embed)
+          3. Rebuild SEMANTIC edges from scratch using the new embeddings
+        """
+        result = await db.execute(
+            select(KnowledgeEntry).where(KnowledgeEntry.tenant_id == tenant_id)
+        )
+        entries = result.scalars().all()
+
+        if not entries:
+            return {"reembedded": 0, "failed": 0, "total": 0}
+
+        svc = get_embedding_service(tenant_config=llm_config or {})
+        reembedded = 0
+        failed = 0
+
+        for entry in entries:
+            try:
+                text_to_embed = f"{entry.title}\n\n{entry.content}"
+                entry.embedding = await svc.embed_text(text_to_embed)
+                reembedded += 1
+            except Exception as e:
+                logger.warning(f"Re-embed failed for entry {entry.id}: {e}")
+                failed += 1
+
+        await db.flush()
+
+        # Delete all existing semantic edges — they are now stale
+        stale_edges_result = await db.execute(
+            select(KnowledgeEdge).where(
+                and_(
+                    KnowledgeEdge.tenant_id == tenant_id,
+                    KnowledgeEdge.edge_type == EdgeType.SEMANTIC,
+                )
+            )
+        )
+        for edge in stale_edges_result.scalars().all():
+            await db.delete(edge)
+        await db.flush()
+
+        # Rebuild semantic edges from new embeddings
+        successfully_embedded = [e for e in entries if isinstance(e.embedding, list) and len(e.embedding) > 0]
+        for entry in successfully_embedded:
+            await self._create_semantic_edges(db, tenant_id, entry, entry.embedding)
+
+        await db.commit()
+        logger.info(
+            f"Re-embed complete for tenant {tenant_id}: "
+            f"{reembedded} reembedded, {failed} failed, {len(successfully_embedded)} edges rebuilt"
+        )
+        return {"reembedded": reembedded, "failed": failed, "total": len(entries)}
 
 
 team_knowledge_service = TeamKnowledgeService()

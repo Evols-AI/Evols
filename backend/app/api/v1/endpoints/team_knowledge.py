@@ -340,6 +340,32 @@ async def search_layer3(
     return await team_knowledge_service.search_layer3(db=db, tenant_id=tenant_id, entry_ids=entry_ids)
 
 
+class ReEmbedResponse(BaseModel):
+    reembedded: int
+    failed: int
+    total: int
+
+
+@router.post("/re-embed", response_model=ReEmbedResponse)
+async def re_embed_entries(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    tenant_id: int = Depends(get_current_tenant_id),
+    llm_config: Optional[dict] = Depends(get_tenant_llm_config),
+):
+    """
+    Re-embed all knowledge entries using the tenant's current LLM provider.
+    Call this after switching LLM providers to fix embedding dimension mismatches.
+    Rebuilds all semantic edges from scratch.
+    """
+    result = await team_knowledge_service.re_embed_entries(
+        db=db,
+        tenant_id=tenant_id,
+        llm_config=llm_config,
+    )
+    return ReEmbedResponse(**result)
+
+
 @router.get("/quota/summary", response_model=QuotaSummaryResponse)
 async def get_quota_summary(
     days: int = Query(default=7, ge=1, le=90),

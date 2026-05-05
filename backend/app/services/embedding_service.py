@@ -216,6 +216,21 @@ class EmbeddingService:
     # Utility
     # ------------------------------------------------------------------ #
 
+    def get_similarity_threshold(self) -> float:
+        """
+        Return the minimum cosine similarity score to consider two embeddings semantically related.
+        Titan/Cohere produce lower raw cosine scores than sentence-transformers for equivalent
+        semantic similarity, so each model family needs a different threshold.
+        """
+        if self.provider == "sentence_transformers":
+            return 0.50
+        if self.provider == "aws_bedrock":
+            return 0.15
+        # OpenAI text-embedding-3-* also produces lower scores than sentence-transformers
+        if self.provider in ("openai", "azure_openai"):
+            return 0.20
+        return 0.20  # Safe default for unknown providers
+
     def get_embedding_dimension(self) -> int:
         """Return the vector dimension for the configured model."""
         dim_map = {
