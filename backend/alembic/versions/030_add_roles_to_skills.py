@@ -1,7 +1,7 @@
 """Add roles column to skills table
 
 Revision ID: 030
-Revises: 029_add_missing_model_columns
+Revises: 029
 Create Date: 2026-05-05
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSON
 
 revision = '030'
-down_revision = '029_add_missing_model_columns'
+down_revision = '029'
 branch_labels = None
 depends_on = None
 
