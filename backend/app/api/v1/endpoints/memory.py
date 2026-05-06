@@ -12,7 +12,7 @@ from datetime import datetime
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_tenant_id
 from app.models.user import User
-from app.services.unified_pm_os import MemoryManager
+from app.services.skills import MemoryManager
 
 router = APIRouter()
 

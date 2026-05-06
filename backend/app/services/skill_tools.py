@@ -1351,7 +1351,7 @@ async def get_past_skill_work(
     category: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Get recent skill executions to understand what work has been done"""
-    from app.services.unified_pm_os import MemoryManager
+    from app.services.skills import MemoryManager
 
     mm = MemoryManager(db)
 
@@ -1400,7 +1400,7 @@ async def get_skill_memory_details(
     db: AsyncSession
 ) -> Dict[str, Any]:
     """Get full details of a specific skill execution"""
-    from app.services.unified_pm_os import MemoryManager
+    from app.services.skills import MemoryManager
 
     mm = MemoryManager(db)
 
@@ -1441,7 +1441,7 @@ async def search_past_skill_work(
     limit: int = 20,
 ) -> Dict[str, Any]:
     """Search skill memory by keyword"""
-    from app.services.unified_pm_os import MemoryManager
+    from app.services.skills import MemoryManager
 
     mm = MemoryManager(db)
 
@@ -1488,7 +1488,7 @@ async def get_skill_usage_stats(
     db: AsyncSession,
 ) -> Dict[str, Any]:
     """Get skill usage statistics"""
-    from app.services.unified_pm_os import MemoryManager
+    from app.services.skills import MemoryManager
 
     mm = MemoryManager(db)
 

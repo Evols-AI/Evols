@@ -99,6 +99,7 @@ class SkillInfo(BaseModel):
     description: str
     category: str
     has_customization: bool
+    roles: List[str] = []
 
 
 @router.get("/available-skills", response_model=List[SkillInfo])
@@ -126,7 +127,8 @@ async def list_available_skills(
             name=skill_name,
             description=skill_data.get('description', ''),
             category=skill_data.get('category', ''),
-            has_customization=skill_name in customized_skills
+            has_customization=skill_name in customized_skills,
+            roles=skill_data.get('roles', [])
         ))
 
     # Sort by category, then name

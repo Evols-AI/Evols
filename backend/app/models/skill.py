@@ -69,9 +69,9 @@ class Skill(BaseModel):
     instructions = Column(Text, nullable=False)  # System prompt
     output_template = Column(Text, nullable=True)  # How to format results
 
-    # unified-pm-os integration
     category = Column(String(50), nullable=True)  # e.g., 'discovery', 'strategy'
-    source = Column(String(20), nullable=True, default='database')  # 'unified-pm-os' or 'database'
+    source = Column(String(20), nullable=True, default='database')  # 'file' or 'database'
+    roles = Column(JSON, nullable=False, default=list)  # e.g., ['pm', 'engineer']
 
     is_active = Column(Boolean, nullable=False, default=True)
 

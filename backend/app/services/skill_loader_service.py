@@ -10,7 +10,7 @@ from loguru import logger
 from functools import lru_cache
 
 from app.core.config import settings
-from app.services.unified_pm_os import SkillAdapter
+from app.services.skills import SkillAdapter
 
 
 class SkillLoaderService:
@@ -35,12 +35,11 @@ class SkillLoaderService:
         if self._initialized:
             return
 
-        # Path to bundled unified-pm-os resources
         backend_dir = Path(__file__).parent.parent.parent
-        self.unified_pm_os_path = settings.UNIFIED_PM_OS_PATH or str(backend_dir / 'resources' / 'unified-pm-os')
+        self.skills_path = settings.SKILLS_PATH or str(backend_dir / 'resources' / 'skills')
 
         self._initialized = True
-        logger.info(f"SkillLoaderService initialized with path: {self.unified_pm_os_path}")
+        logger.info(f"SkillLoaderService initialized with path: {self.skills_path}")
 
     def load_all_skills(self, force_reload: bool = False) -> Dict[str, Dict[str, Any]]:
         """
@@ -59,7 +58,7 @@ class SkillLoaderService:
         logger.info("Loading all skills from SKILL.md files...")
 
         try:
-            adapter = SkillAdapter(self.unified_pm_os_path)
+            adapter = SkillAdapter(self.skills_path)
             skill_files = adapter.discover_all_skills()
 
             skills = {}
@@ -115,6 +114,17 @@ class SkillLoaderService:
                 return skill_data
 
         return None
+
+    def get_skills_by_role(self, role: str) -> List[Dict[str, Any]]:
+        """Get all skills available for a given role (e.g. 'pm', 'engineer')."""
+        if self._skills_cache is None:
+            self.load_all_skills()
+
+        role_lower = role.lower()
+        return [
+            skill for skill in self._skills_cache.values()
+            if role_lower in skill.get('roles', ['pm'])
+        ]
 
     def get_skills_by_category(self, category: str) -> List[Dict[str, Any]]:
         """Get all skills in a category"""

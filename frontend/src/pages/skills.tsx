@@ -16,6 +16,7 @@ interface Skill {
   description: string
   category: string
   has_customization: boolean
+  roles: string[]
 }
 
 interface SkillCustomization {
@@ -38,6 +39,116 @@ function getCategoryDisplayName(categoryId: string): string {
     .replace('Data Analytics', 'Data & Analytics')
     .replace('Marketing Growth', 'Marketing & Growth')
     .replace('Go To Market', 'Go-to-Market')
+}
+
+const ROLE_COLORS: Record<string, string> = {
+  pm: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  engineer: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  sales: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  marketing: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  designer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+  founder: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+}
+
+function getRoleDisplayName(role: string): string {
+  const names: Record<string, string> = {
+    pm: 'PM',
+    engineer: 'Engineer',
+    sales: 'Sales',
+    marketing: 'Marketing',
+    designer: 'Designer',
+    founder: 'Founder',
+  }
+  return names[role] ?? role.charAt(0).toUpperCase() + role.slice(1)
+}
+
+function SkillRoleFilterDropdown({
+  skills,
+  selected,
+  onChange,
+}: {
+  skills: Skill[]
+  selected: Set<string>
+  onChange: (next: Set<string>) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as HTMLElement)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const counts = skills.reduce<Record<string, number>>((acc, s) => {
+    for (const role of (s.roles ?? [])) {
+      acc[role] = (acc[role] ?? 0) + 1
+    }
+    return acc
+  }, {})
+
+  const roles = Object.keys(counts).sort((a, b) =>
+    getRoleDisplayName(a).localeCompare(getRoleDisplayName(b))
+  )
+
+  const toggle = (role: string) => {
+    const next = new Set(selected)
+    if (next.has(role)) next.delete(role)
+    else next.add(role)
+    onChange(next)
+  }
+
+  const label = selected.size === 0
+    ? 'All roles'
+    : selected.size === 1
+      ? getRoleDisplayName([...selected][0])
+      : `${selected.size} roles`
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-3 py-2 bg-input border border-border rounded-lg hover:bg-muted transition-colors"
+      >
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 mt-2 w-48 bg-card border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
+          <div className="p-2">
+            <button
+              onClick={() => onChange(new Set())}
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded transition-colors text-left"
+            >
+              <div className="w-4 h-4 border border-border rounded flex items-center justify-center flex-shrink-0">
+                {selected.size === 0 && <Check className="w-3 h-3 text-primary" />}
+              </div>
+              <span className="text-sm font-medium text-foreground">All roles</span>
+              <span className="ml-auto text-xs text-muted-foreground">({skills.length})</span>
+            </button>
+            <div className="border-t border-border my-1" />
+            {roles.map((role) => (
+              <button
+                key={role}
+                onClick={() => toggle(role)}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted rounded transition-colors"
+              >
+                <div className="w-4 h-4 border border-border rounded flex items-center justify-center flex-shrink-0">
+                  {selected.has(role) && <Check className="w-3 h-3 text-primary" />}
+                </div>
+                <span className="text-sm text-foreground flex-1 text-left">{getRoleDisplayName(role)}</span>
+                <span className="text-xs text-muted-foreground">({counts[role]})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function SkillCategoryFilterDropdown({
@@ -135,6 +246,7 @@ export default function Skills() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
+  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set())
   const [viewingSkill, setViewingSkill] = useState<any>(null)
   const [loadingSkillDetails, setLoadingSkillDetails] = useState(false)
 
@@ -308,11 +420,18 @@ export default function Skills() {
           description="Expert-curated skills to help streamline daily tasks"
           icon={Zap}
           action={skills.length > 0 ? (
-            <SkillCategoryFilterDropdown
-              skills={skills}
-              selected={selectedCategories}
-              onChange={setSelectedCategories}
-            />
+            <div className="flex items-center gap-2">
+              <SkillRoleFilterDropdown
+                skills={skills}
+                selected={selectedRoles}
+                onChange={setSelectedRoles}
+              />
+              <SkillCategoryFilterDropdown
+                skills={skills}
+                selected={selectedCategories}
+                onChange={setSelectedCategories}
+              />
+            </div>
           ) : undefined}
         />
 
@@ -334,7 +453,8 @@ export default function Skills() {
             {/* Skills Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {skills.filter((skill: Skill) =>
-                selectedCategories.size === 0 || selectedCategories.has(skill.category)
+                (selectedCategories.size === 0 || selectedCategories.has(skill.category)) &&
+                (selectedRoles.size === 0 || (skill.roles ?? []).some(r => selectedRoles.has(r)))
               ).map((skill: Skill) => {
                 const customization = getSkillCustomization(skill.name)
                 return (
@@ -349,9 +469,23 @@ export default function Skills() {
                       </div>
 
                       {/* Description */}
-                      <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+                      <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
                         {skill.description}
                       </p>
+
+                      {/* Role Badges */}
+                      {skill.roles && skill.roles.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {skill.roles.map(role => (
+                            <span
+                              key={role}
+                              className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium ${ROLE_COLORS[role] ?? 'bg-muted text-muted-foreground'}`}
+                            >
+                              {getRoleDisplayName(role)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Category & Status Badges */}
                       <div className="flex items-center justify-between mb-4">

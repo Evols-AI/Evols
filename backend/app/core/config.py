@@ -100,8 +100,8 @@ class Settings(BaseSettings):
     OIDC_CLIENT_ID: str = "evols-workbench"
     OIDC_CLIENT_SECRET: Optional[str] = None    # Long random secret shared with LibreChat
 
-    # Unified PM OS Integration
-    UNIFIED_PM_OS_PATH: str = "resources/unified-pm-os"
+    # Skills path
+    SKILLS_PATH: str = "resources/skills"
 
 
 # Create global settings instance
