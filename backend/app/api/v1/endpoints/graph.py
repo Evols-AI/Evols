@@ -184,7 +184,11 @@ async def _fetch_and_populate_cache(
     cache.degree = degree
     # Store personal node ids per user so multi-user tenants get correct tagging
     cache.personal_node_ids[user_id] = personal_node_ids
-    cache.fetched_at = time.monotonic()
+    # Only mark cache fresh when there are actual nodes — if LightRAG returned
+    # empty results (still processing documents), leave fetched_at=0 so the
+    # next request retries immediately instead of waiting the full TTL.
+    if nodes:
+        cache.fetched_at = time.monotonic()
 
 
 async def _get_tenant_cache(tenant_id: int, user_id: int, db: AsyncSession) -> _GraphCache:
