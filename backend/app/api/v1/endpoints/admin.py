@@ -564,5 +564,14 @@ async def delete_tenant_user(
             detail="Cannot delete your own account"
         )
 
+    # Explicitly delete child rows whose FK lacks a DB-level CASCADE so the ORM
+    # doesn't try to SET NULL on NOT NULL columns before the parent delete.
+    from sqlalchemy import delete as sa_delete
+    from app.models.api_key import ApiKey as APIKey
+    from app.models.preference import UserPreference
+    from app.models.user_skill_customization import UserSkillCustomization
+    for model in (APIKey, UserPreference, UserSkillCustomization):
+        await db.execute(sa_delete(model).where(model.user_id == user_id))
+
     await db.delete(user)
     await db.commit()
