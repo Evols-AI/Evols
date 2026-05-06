@@ -103,6 +103,10 @@ class Settings(BaseSettings):
     # Skills path
     SKILLS_PATH: str = "resources/skills"
 
+    # Microsoft OAuth (Outlook / Teams integrations)
+    MICROSOFT_CLIENT_ID: Optional[str] = None
+    MICROSOFT_CLIENT_SECRET: Optional[str] = None
+
 
 # Create global settings instance
 settings = Settings()

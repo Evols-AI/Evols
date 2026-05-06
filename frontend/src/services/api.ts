@@ -245,6 +245,22 @@ export const api = {
       apiClient.get(`/api/v1/graph/node/${encodeURIComponent(nodeId)}`),
   },
 
+  // Integrations — per-user OAuth data source connections
+  integrations: {
+    list: () =>
+      apiClient.get('/api/v1/integrations'),
+    connect: (system: string, data: { access_token: string; refresh_token?: string; token_expiry?: string; config?: Record<string, any> }) =>
+      apiClient.post(`/api/v1/integrations/${system}/connect`, data),
+    updateConfig: (system: string, data: { config?: Record<string, any>; sync_enabled?: boolean }) =>
+      apiClient.patch(`/api/v1/integrations/${system}`, data),
+    disconnect: (system: string) =>
+      apiClient.delete(`/api/v1/integrations/${system}`),
+    sync: (system: string) =>
+      apiClient.post(`/api/v1/integrations/${system}/sync`, {}),
+    microsoftOAuthUrl: (system: 'outlook' | 'teams') =>
+      `/api/v1/integrations/oauth/start/microsoft?system=${system}`,
+  },
+
   // Generic helpers
   get: (path: string, params?: any) => apiClient.get(`/api/v1${path}`, { params }),
   post: (path: string, data: any, config?: any) => apiClient.post(`/api/v1${path}`, data, config),

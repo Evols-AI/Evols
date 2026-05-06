@@ -3,9 +3,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import {
-  Database, Plus, Upload, FileText, MessageSquare, Mail, Slack,
-  Github, BookOpen, Cloud, X, Loader2, Search,
-  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network, Filter, Pencil, GitMerge, Layers
+  Database, Plus, Upload, FileText, MessageSquare, Mail, Slack, Github,
+  BookOpen, Cloud, X, Loader2, Search,
+  Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network, Filter, Pencil, GitMerge, Layers,
+  Link2, Link2Off, Play, CheckCircle2, XCircle, ArrowLeft
 } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api, apiClient } from '@/services/api'
@@ -27,8 +28,8 @@ export default function Context() {
   const [entitiesLoading, setEntitiesLoading] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState<string>('all')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [filterType] = useState<string>('all')
+  const [filterStatus] = useState<string>('all')
   const [entityTypeFilter, setEntityTypeFilter] = useState<Set<string>>(new Set())
   const [processingSourceIds, setProcessingSourceIds] = useState<Set<number>>(new Set())
 
@@ -1339,6 +1340,18 @@ function EntityCard({
   )
 }
 
+
+
+const INTEGRATION_CONFIG_FIELDS: Record<string, { key: string; label: string; placeholder: string }[]> = {
+  slack:      [{ key: 'channel_ids', label: 'Channel IDs (comma-separated)', placeholder: 'C123ABC, C456DEF  (leave blank for all)' }],
+  notion:     [{ key: 'database_ids', label: 'Database IDs (comma-separated)', placeholder: 'leave blank for all' }],
+  zendesk:    [{ key: 'subdomain', label: 'Zendesk subdomain', placeholder: 'yourcompany' }],
+  github:     [{ key: 'repos', label: 'Repositories (comma-separated)', placeholder: 'org/repo1, org/repo2' }],
+  salesforce: [{ key: 'instance_url', label: 'Salesforce instance URL', placeholder: 'https://yourorg.salesforce.com' }],
+  outlook:    [],
+  teams:      [],
+}
+
 export function AddContextModal({
   onClose,
   onSuccess
@@ -1346,7 +1359,7 @@ export function AddContextModal({
   onClose: () => void
   onSuccess: (newSourceId?: number) => void
 }) {
-  const [step, setStep] = useState<'select-type' | 'upload'>('select-type')
+  const [step, setStep] = useState<'select-type' | 'upload' | 'connect'>('select-type')
   const [sourceType, setSourceType] = useState('')
   const [uploading, setUploading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
@@ -1356,39 +1369,148 @@ export function AddContextModal({
   const [showRetentionDropdown, setShowRetentionDropdown] = useState(false)
   const [error, setError] = useState('')
 
+  // Integration connect state
+  const [selectedIntegration, setSelectedIntegration] = useState<any>(null)
+  const [integrationStatus, setIntegrationStatus] = useState<any>(null)
+  const [oauthToken, setOauthToken] = useState('')
+  const [configValues, setConfigValues] = useState<Record<string, string>>({})
+  const [connecting, setConnecting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [savingConfig, setSavingConfig] = useState(false)
+
+  const openIntegrationConnect = async (system: string) => {
+    setSelectedIntegration(system)
+    setOauthToken('')
+    setConfigValues({})
+    setError('')
+    // Load current status for this integration
+    try {
+      const res = await api.integrations.list()
+      const integrations: any[] = Array.isArray(res.data) ? res.data : []
+      const found = integrations.find((i: any) => i.source_system === system)
+      setIntegrationStatus(found ?? { source_system: system, status: 'not_connected', config: {}, meta: {} })
+    } catch {
+      setIntegrationStatus({ source_system: system, status: 'not_connected', config: {}, meta: {} })
+    }
+    setStep('connect')
+  }
+
+  const handleMicrosoftOAuth = (system: string) => {
+    const url = `/api/v1/integrations/oauth/start/microsoft?system=${system}`
+    const popup = window.open(url, 'ms_oauth', 'width=600,height=700')
+    const timer = setInterval(async () => {
+      if (popup?.closed) {
+        clearInterval(timer)
+        // Refresh status
+        try {
+          const res = await api.integrations.list()
+          const integrations: any[] = Array.isArray(res.data) ? res.data : []
+          const found = integrations.find((i: any) => i.source_system === system)
+          setIntegrationStatus(found ?? integrationStatus)
+        } catch {}
+      }
+    }, 500)
+  }
+
+  const handleTokenConnect = async () => {
+    if (!oauthToken.trim()) { setError('Token is required'); return }
+    setConnecting(true); setError('')
+    try {
+      const fields = INTEGRATION_CONFIG_FIELDS[selectedIntegration] || []
+      const configPayload: Record<string, any> = {}
+      fields.forEach(f => {
+        if (configValues[f.key]) {
+          const raw = configValues[f.key]
+          configPayload[f.key] = f.key.endsWith('_ids') || f.key === 'repos'
+            ? raw.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : raw.trim()
+        }
+      })
+      await api.integrations.connect(selectedIntegration, { access_token: oauthToken.trim(), config: configPayload })
+      const res = await api.integrations.list()
+      const integrations: any[] = Array.isArray(res.data) ? res.data : []
+      setIntegrationStatus(integrations.find((i: any) => i.source_system === selectedIntegration) ?? integrationStatus)
+      setOauthToken('')
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? e?.message ?? 'Connection failed')
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  const handleSaveConfig = async () => {
+    setSavingConfig(true); setError('')
+    try {
+      const fields = INTEGRATION_CONFIG_FIELDS[selectedIntegration] || []
+      const configPayload: Record<string, any> = {}
+      fields.forEach(f => {
+        if (configValues[f.key] !== undefined) {
+          const raw = configValues[f.key]
+          configPayload[f.key] = f.key.endsWith('_ids') || f.key === 'repos'
+            ? raw.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : raw.trim()
+        }
+      })
+      await api.integrations.updateConfig(selectedIntegration, { config: configPayload })
+      const res = await api.integrations.list()
+      const integrations: any[] = Array.isArray(res.data) ? res.data : []
+      setIntegrationStatus(integrations.find((i: any) => i.source_system === selectedIntegration) ?? integrationStatus)
+      setConfigValues({})
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? e?.message ?? 'Save failed')
+    } finally {
+      setSavingConfig(false)
+    }
+  }
+
+  const handleSyncNow = async () => {
+    setSyncing(true); setError('')
+    try {
+      await api.integrations.sync(selectedIntegration)
+      const res = await api.integrations.list()
+      const integrations: any[] = Array.isArray(res.data) ? res.data : []
+      setIntegrationStatus(integrations.find((i: any) => i.source_system === selectedIntegration) ?? integrationStatus)
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? e?.message ?? 'Sync failed')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleDisconnect = async () => {
+    if (!confirm(`Disconnect ${selectedIntegration}? Stored tokens will be deleted.`)) return
+    setDisconnecting(true)
+    try {
+      await api.integrations.disconnect(selectedIntegration)
+      setIntegrationStatus({ ...integrationStatus, status: 'disconnected' })
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? e?.message ?? 'Disconnect failed')
+    } finally {
+      setDisconnecting(false)
+    }
+  }
+
   const sourceTypes = [
     {
-      category: 'Customer Feedback',
+      category: 'Upload',
       types: [
-        { value: 'csv_survey', label: 'Survey CSV', icon: FileText, enabled: true },
-        { value: 'support_ticket', label: 'Support Tickets', icon: AlertCircle, enabled: true },
-        { value: 'intercom', label: 'Intercom', icon: MessageSquare, enabled: false, comingSoon: true },
+        { value: 'document_pdf', label: 'Document', icon: Upload, enabled: true },
       ]
     },
     {
-      category: 'Meetings & Communication',
+      category: 'Live Integrations',
+      integration: true,
       types: [
-        { value: 'meeting_transcript', label: 'Meeting Transcript', icon: MessageSquare, enabled: true },
-        { value: 'email', label: 'Email Thread', icon: Mail, enabled: true },
-        { value: 'slack_conversation', label: 'Slack Messages', icon: Slack, enabled: true },
+        { value: 'slack',      label: 'Slack',                icon: Slack,         enabled: true },
+        { value: 'outlook',    label: 'Outlook / Office 365', icon: Mail,          enabled: true },
+        { value: 'teams',      label: 'Microsoft Teams',      icon: MessageSquare, enabled: true },
+        { value: 'notion',     label: 'Notion',               icon: BookOpen,      enabled: true },
+        { value: 'salesforce', label: 'Salesforce',           icon: Cloud,         enabled: true },
+        { value: 'zendesk',    label: 'Zendesk',              icon: AlertCircle,   enabled: true },
+        { value: 'github',     label: 'GitHub',               icon: Github,        enabled: true },
       ]
     },
-    {
-      category: 'Documentation',
-      types: [
-        { value: 'document_pdf', label: 'PDF Document', icon: FileText, enabled: true },
-        { value: 'web_page', label: 'Web Page / URL', icon: BookOpen, enabled: false, comingSoon: true },
-        { value: 'github_repo', label: 'GitHub Repository', icon: Github, enabled: false, comingSoon: true },
-      ]
-    },
-    {
-      category: 'Integrations',
-      types: [
-        { value: 'slack_integration', label: 'Slack (Live)', icon: Slack, enabled: false, comingSoon: true },
-        { value: 'confluence', label: 'Confluence', icon: Cloud, enabled: false, comingSoon: true },
-        { value: 'gmail_api', label: 'Gmail API', icon: Mail, enabled: false, comingSoon: true },
-      ]
-    }
   ]
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1475,13 +1597,27 @@ export function AddContextModal({
     }
   }
 
+  const isMicrosoft = selectedIntegration === 'outlook' || selectedIntegration === 'teams'
+  const isConnected = integrationStatus?.status === 'connected'
+  const integrationFields = INTEGRATION_CONFIG_FIELDS[selectedIntegration] || []
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50">
       <div className="bg-card rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-border flex items-center justify-between sticky top-0 bg-card z-10">
-          <h2 className="page-title">
-            {step === 'select-type' ? 'Select Source Type' : 'Upload File'}
-          </h2>
+          <div className="flex items-center gap-3">
+            {step !== 'select-type' && (
+              <button
+                onClick={() => { setStep('select-type'); setError('') }}
+                className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <h2 className="page-title">
+              {step === 'select-type' ? 'Add Source' : step === 'upload' ? 'Upload File' : (integrationStatus?.meta?.label ?? selectedIntegration)}
+            </h2>
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">
             <X className="w-5 h-5" />
           </button>
@@ -1499,7 +1635,10 @@ export function AddContextModal({
                     <button
                       key={type.value}
                       onClick={() => {
-                        if (type.enabled) {
+                        if (!type.enabled) return
+                        if ((category as any).integration) {
+                          openIntegrationConnect(type.value)
+                        } else {
                           setSourceType(type.value)
                           setStep('upload')
                         }
@@ -1513,7 +1652,7 @@ export function AddContextModal({
                     >
                       <type.icon className="w-6 h-6 mb-2 text-muted-foreground" />
                       <div className="text-sm font-medium">{type.label}</div>
-                      {type.comingSoon && (
+                      {(type as any).comingSoon && (
                         <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-chart-4/20 text-chart-4 font-medium">
                           Soon
                         </span>
@@ -1523,6 +1662,134 @@ export function AddContextModal({
                 </div>
               </div>
             ))}
+          </div>
+        ) : step === 'connect' ? (
+          <div className="p-6 space-y-5">
+            {/* Status row */}
+            <div className="flex items-center gap-3">
+              {isConnected
+                ? <span className="flex items-center gap-1.5 text-sm px-3 py-1 rounded-full bg-chart-3/15 text-chart-3 font-medium"><CheckCircle2 className="w-4 h-4" />Connected</span>
+                : integrationStatus?.status === 'error'
+                  ? <span className="flex items-center gap-1.5 text-sm px-3 py-1 rounded-full bg-destructive/15 text-destructive font-medium"><XCircle className="w-4 h-4" />Error</span>
+                  : <span className="text-sm px-3 py-1 rounded-full bg-muted text-muted-foreground">Not connected</span>
+              }
+              {integrationStatus?.last_synced_at && (
+                <span className="text-xs text-muted-foreground">Last synced: {new Date(integrationStatus.last_synced_at).toLocaleString()}</span>
+              )}
+            </div>
+
+            {integrationStatus?.last_error && (
+              <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{integrationStatus.last_error}</p>
+            )}
+
+            {/* Description */}
+            <p className="text-sm text-muted-foreground">{integrationStatus?.meta?.description ?? ''}</p>
+
+            {/* Connect area */}
+            {!isConnected && (
+              isMicrosoft ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Click below to authorise Evols with your Microsoft account. A popup will open — sign in and approve the requested permissions.
+                  </p>
+                  <button
+                    onClick={() => handleMicrosoftOAuth(selectedIntegration)}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary/85 text-primary-foreground rounded-lg hover:bg-primary transition text-sm"
+                  >
+                    <Link2 className="w-4 h-4" />
+                    Authorise with Microsoft
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Access token / API key</label>
+                    <input
+                      type="password"
+                      value={oauthToken}
+                      onChange={e => setOauthToken(e.target.value)}
+                      placeholder="Paste your token here"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm"
+                    />
+                  </div>
+                  {integrationFields.map(f => (
+                    <div key={f.key}>
+                      <label className="block text-sm font-medium mb-1.5">{f.label}</label>
+                      <input
+                        type="text"
+                        value={configValues[f.key] ?? ''}
+                        onChange={e => setConfigValues(v => ({ ...v, [f.key]: e.target.value }))}
+                        placeholder={f.placeholder}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm"
+                      />
+                    </div>
+                  ))}
+                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  <button
+                    onClick={handleTokenConnect}
+                    disabled={connecting}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary/85 text-primary-foreground rounded-lg hover:bg-primary transition text-sm disabled:opacity-50"
+                  >
+                    {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                    Connect
+                  </button>
+                </div>
+              )
+            )}
+
+            {/* Config for already-connected integrations */}
+            {isConnected && integrationFields.length > 0 && (
+              <div className="space-y-4 pt-2 border-t border-border">
+                <h3 className="text-sm font-medium text-foreground">Configuration</h3>
+                {integrationFields.map(f => (
+                  <div key={f.key}>
+                    <label className="block text-sm font-medium mb-1.5">{f.label}</label>
+                    <input
+                      type="text"
+                      value={configValues[f.key] ?? (
+                        Array.isArray(integrationStatus?.config?.[f.key])
+                          ? integrationStatus.config[f.key].join(', ')
+                          : integrationStatus?.config?.[f.key] ?? ''
+                      )}
+                      onChange={e => setConfigValues(v => ({ ...v, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm"
+                    />
+                  </div>
+                ))}
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <button
+                  onClick={handleSaveConfig}
+                  disabled={savingConfig}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary/85 text-primary-foreground rounded-lg hover:bg-primary transition text-sm disabled:opacity-50"
+                >
+                  {savingConfig ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Save
+                </button>
+              </div>
+            )}
+
+            {/* Connected actions */}
+            {isConnected && (
+              <div className="flex items-center gap-3 pt-2 border-t border-border">
+                <button
+                  onClick={handleSyncNow}
+                  disabled={syncing}
+                  className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition text-sm disabled:opacity-50"
+                >
+                  {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                  Sync Now
+                </button>
+                <button
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-destructive/10 hover:text-destructive transition text-sm text-muted-foreground disabled:opacity-50"
+                >
+                  {disconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2Off className="w-4 h-4" />}
+                  Disconnect
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="p-6 space-y-6">

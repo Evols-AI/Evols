@@ -129,6 +129,7 @@ export default function Settings() {
   // Knowledge source refresh state
   const [knowledgeRefreshEnabled, setKnowledgeRefreshEnabled] = useState(false)
   const [knowledgeRefreshDays, setKnowledgeRefreshDays] = useState(7)
+  const [integrationSyncMinutes, setIntegrationSyncMinutes] = useState(5)
   const [lastKnowledgeRefreshDate, setLastKnowledgeRefreshDate] = useState<string | null>(null)
   const [savingKnowledgeRefresh, setSavingKnowledgeRefresh] = useState(false)
 
@@ -430,6 +431,7 @@ export default function Settings() {
       const response = await api.getKnowledgeRefreshSettings()
       setKnowledgeRefreshEnabled(response.data.enabled)
       setKnowledgeRefreshDays(response.data.interval_days)
+      setIntegrationSyncMinutes(response.data.integration_sync_interval_minutes ?? 5)
       setLastKnowledgeRefreshDate(response.data.last_refresh_date)
     } catch (error) {
       console.error('Failed to load knowledge refresh settings:', error)
@@ -442,9 +444,10 @@ export default function Settings() {
       await api.updateKnowledgeRefreshSettings({
         enabled: knowledgeRefreshEnabled,
         interval_days: knowledgeRefreshDays,
+        integration_sync_interval_minutes: Math.max(5, integrationSyncMinutes),
       })
       await loadKnowledgeRefreshSettings()
-      alert('Knowledge source refresh settings saved successfully!')
+      alert('Refresh settings saved successfully!')
     } catch (error) {
       console.error('Failed to save settings:', error)
       alert('Failed to save settings. Please try again.')
@@ -1415,7 +1418,7 @@ export default function Settings() {
                   {knowledgeRefreshEnabled && (
                     <div>
                       <label className="block text-sm font-medium mb-2 text-foreground">
-                        Refresh Interval (Days)
+                        Re-index Interval (Days)
                       </label>
                       <input
                         type="number"
@@ -1426,10 +1429,27 @@ export default function Settings() {
                         className="w-32 px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
                       />
                       <p className="text-xs text-muted-foreground mt-2">
-                        Knowledge sources will be re-indexed every {knowledgeRefreshDays} day(s)
+                        Uploaded sources will be re-indexed every {knowledgeRefreshDays} day(s)
                       </p>
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">
+                      Live Integration Sync Interval (Minutes)
+                    </label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="1440"
+                      value={integrationSyncMinutes}
+                      onChange={(e) => setIntegrationSyncMinutes(Math.max(5, Number(e.target.value)))}
+                      className="w-32 px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Slack, Outlook, Teams, Notion, and other live integrations sync every {integrationSyncMinutes} minute(s). Minimum 5 minutes.
+                    </p>
+                  </div>
 
                   <button
                     onClick={handleSaveKnowledgeRefreshSettings}

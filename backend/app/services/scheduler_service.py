@@ -43,6 +43,15 @@ class SchedulerService:
             replace_existing=True
         )
 
+        # Pull external integrations (Slack, Outlook, Teams, etc.) every 5 minutes
+        self.scheduler.add_job(
+            self.run_integration_sync,
+            IntervalTrigger(minutes=5),
+            id='integration_sync',
+            name='Integration Data Sync',
+            replace_existing=True
+        )
+
     def shutdown(self):
         """Shutdown the scheduler"""
         self.scheduler.shutdown()
@@ -156,6 +165,16 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error in content cleanup job: {e}")
+
+    async def run_integration_sync(self):
+        """Pull new data from all connected user integrations (Slack, Outlook, Teams, etc.)"""
+        try:
+            from app.services.integration_sync_service import sync_all_due
+
+            async with AsyncSessionLocal() as db:
+                await sync_all_due(db)
+        except Exception as e:
+            logger.error(f"Error in integration sync job: {e}")
 
 
 # Global scheduler instance

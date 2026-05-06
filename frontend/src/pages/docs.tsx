@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect } from 'react'
-import { Sparkles, Book, Code, Zap, Server, Briefcase, Brain, Network, Key, Building2, Lock } from 'lucide-react'
+import { Sparkles, Book, Code, Zap, Server, Briefcase, Brain, Network, Key, Building2, Lock, Plug } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
@@ -46,6 +46,7 @@ export default function Docs() {
               { icon: Briefcase, title: 'Work Context',    description: 'Role, projects, tasks, and capacity — your AI work hub', href: '#work-context' },
               { icon: Brain,     title: 'Knowledge',       description: 'Document intelligence and LightRAG entity extraction', href: '#knowledge' },
               { icon: Network,   title: 'Knowledge Graph', description: 'Visual graph of entities, relationships, and confidence scores', href: '#knowledge' },
+              { icon: Plug,      title: 'Integrations',    description: 'Connect Slack, Outlook, Teams, Notion, Salesforce, Zendesk, GitHub', href: '/docs/integrations' },
               { icon: Key,       title: 'Developer Tools', description: 'MCP endpoint, API keys, Claude Code plugin', href: '#developer-tools' },
               { icon: Building2, title: 'Tenancy & BYOK',  description: 'Workspace isolation, user roles, and 13-provider BYOK LLM support', href: '#byok' },
             ].map(({ icon: Icon, title, description, href }) => (
@@ -181,6 +182,24 @@ export default function Docs() {
                   </p>
                 </div>
               </div>
+            </Section>
+
+            <Section id="integrations" title="Data Source Integrations">
+              <FeatureDoc
+                title="Live connectors for your team's tools"
+                description="Connect Slack, Outlook, Teams, Notion, Salesforce, Zendesk, and GitHub to pull live data into the knowledge graph. Each team member connects their own account — data is synced every 5 minutes and entities are extracted automatically."
+                features={[
+                  'Slack: channel messages and threads — filter by channel ID to control scope',
+                  'Outlook / Teams: your own inbox, calendar, and Teams channels via Microsoft Graph delta API',
+                  'Notion: pages and databases shared with the Evols integration',
+                  'Salesforce: accounts, contacts, opportunities, and activity notes visible to your profile',
+                  'Zendesk: tickets and comments assigned to or CC\'d to you',
+                  'GitHub: issues, pull requests, and review comments for configured repositories',
+                  'Tokens encrypted AES-256-GCM at rest; per-user auth enables cross-source identity resolution',
+                ]}
+                link="/docs/integrations"
+                linkText="Full integrations documentation →"
+              />
             </Section>
 
             <Section id="developer-tools" title="Developer Tools">

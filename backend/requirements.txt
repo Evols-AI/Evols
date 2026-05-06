@@ -82,6 +82,16 @@ beautifulsoup4==4.12.3  # HTML parsing
 # UTILITIES (Required)
 # ============================================================================
 python-slugify==8.0.3  # URL-friendly string generation
+cryptography>=42.0.0  # AES-256-GCM token encryption (already pulled transitively; pinned here for explicitness)
+
+# ============================================================================
+# DATA INTEGRATIONS (Required)
+# dlt: in-process connector framework for Slack, Notion, Zendesk, GitHub, Salesforce
+# msal + msgraph-sdk-python: Microsoft OAuth + Graph API for Outlook / Teams
+# ============================================================================
+dlt[duckdb]>=1.0.0          # Core dlt; duckdb backend for staging buffers
+msal>=1.28.0                  # Microsoft Authentication Library — PKCE + refresh token management
+msgraph-sdk>=1.0.0            # Microsoft Graph SDK — Outlook mail, Teams messages, calendar
 
 # ============================================================================
 # MONITORING & BACKGROUND TASKS (Required)

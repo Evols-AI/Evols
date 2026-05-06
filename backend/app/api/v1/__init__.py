@@ -10,6 +10,7 @@ from app.api.v1.endpoints import admin, users, support, copilot, copilot_cleanup
 from app.api.v1.endpoints import knowledge, memory, work_context, skill_customizations
 from app.api.v1.endpoints import team_knowledge, api_keys, mcp, oidc, llm_proxy
 from app.api.v1.endpoints import graph
+from app.api.v1.endpoints import integrations
 
 api_router = APIRouter()
 
@@ -39,3 +40,4 @@ api_router.include_router(mcp.router, prefix="/mcp", tags=["MCP"])
 api_router.include_router(oidc.router, prefix="/oidc", tags=["OIDC"])
 api_router.include_router(llm_proxy.router, prefix="/llm-proxy", tags=["LLM Proxy"])
 api_router.include_router(graph.router, prefix="/graph", tags=["Knowledge Graph"])
+api_router.include_router(integrations.router, tags=["Integrations"])
