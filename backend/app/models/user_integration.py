@@ -24,6 +24,19 @@ class IntegrationSystem(str, enum.Enum):
     SALESFORCE = "salesforce"
     ZENDESK    = "zendesk"
     GITHUB     = "github"
+    # dlt verified sources
+    JIRA       = "jira"
+    HUBSPOT    = "hubspot"
+    FRESHDESK  = "freshdesk"
+    ASANA      = "asana"
+    PIPEDRIVE  = "pipedrive"
+    # REST-API custom sources
+    CONFLUENCE = "confluence"
+    INTERCOM   = "intercom"
+    LINEAR     = "linear"
+    GMAIL      = "gmail"
+    ZOOM       = "zoom"
+    DISCORD    = "discord"
 
 
 class IntegrationStatus(str, enum.Enum):
@@ -83,6 +96,83 @@ INTEGRATION_META: dict[str, dict] = {
         "icon": "github",
         "auth_type": "oauth",
         "scopes": ["repo", "read:user"],
+    },
+    "jira": {
+        "label": "Jira",
+        "description": "Import issues, epics, sprints, and comments from Jira projects",
+        "icon": "jira",
+        "auth_type": "api_token",
+        "scopes": [],
+    },
+    "hubspot": {
+        "label": "HubSpot",
+        "description": "Import contacts, deals, companies, and CRM notes",
+        "icon": "hubspot",
+        "auth_type": "api_token",
+        "scopes": [],
+    },
+    "freshdesk": {
+        "label": "Freshdesk",
+        "description": "Import support tickets and customer conversations",
+        "icon": "freshdesk",
+        "auth_type": "api_token",
+        "scopes": [],
+    },
+    "asana": {
+        "label": "Asana",
+        "description": "Import tasks, projects, and team activity from Asana",
+        "icon": "asana",
+        "auth_type": "api_token",
+        "scopes": [],
+    },
+    "pipedrive": {
+        "label": "Pipedrive",
+        "description": "Import deals, contacts, and pipeline activity from Pipedrive",
+        "icon": "pipedrive",
+        "auth_type": "api_token",
+        "scopes": [],
+    },
+    "confluence": {
+        "label": "Confluence",
+        "description": "Import pages and spaces from your Confluence knowledge base",
+        "icon": "confluence",
+        "auth_type": "api_token",
+        "scopes": [],
+    },
+    "intercom": {
+        "label": "Intercom",
+        "description": "Import customer conversations and support threads from Intercom",
+        "icon": "intercom",
+        "auth_type": "api_token",
+        "scopes": [],
+    },
+    "linear": {
+        "label": "Linear",
+        "description": "Import issues, projects, and roadmap data from Linear",
+        "icon": "linear",
+        "auth_type": "api_token",
+        "scopes": [],
+    },
+    "gmail": {
+        "label": "Gmail",
+        "description": "Import emails and threads from Gmail",
+        "icon": "gmail",
+        "auth_type": "oauth",
+        "scopes": ["https://www.googleapis.com/auth/gmail.readonly"],
+    },
+    "zoom": {
+        "label": "Zoom",
+        "description": "Import meeting transcripts and recordings metadata from Zoom",
+        "icon": "zoom",
+        "auth_type": "oauth",
+        "scopes": ["recording:read", "meeting:read"],
+    },
+    "discord": {
+        "label": "Discord",
+        "description": "Import messages and threads from Discord servers",
+        "icon": "discord",
+        "auth_type": "api_token",
+        "scopes": [],
     },
 }
 

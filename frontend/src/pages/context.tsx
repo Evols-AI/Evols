@@ -3,11 +3,12 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import {
-  Database, Plus, Upload, FileText, MessageSquare, Mail, Slack, Github,
-  BookOpen, Cloud, X, Loader2, Search,
+  Database, Plus, Upload, MessageSquare,
+  X, Loader2, Search,
   Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network, Filter, Pencil, GitMerge, Layers,
   Link2, Link2Off, Play, CheckCircle2, XCircle, ArrowLeft
 } from 'lucide-react'
+import ConnectorIcon from '@/components/ConnectorIcon'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api, apiClient } from '@/services/api'
 import Header from '@/components/Header'
@@ -1066,19 +1067,7 @@ function ContextSourceCard({ source, onRefresh, isProcessing }: { source: any; o
   }
 
   const getSourceIcon = (type: string) => {
-    const iconMap: Record<string, any> = {
-      'csv_survey': FileText,
-      'meeting_transcript': MessageSquare,
-      'email': Mail,
-      'slack_conversation': Slack,
-      'document_pdf': FileText,
-      'web_page': BookOpen,
-      'github_repo': Github,
-      'intercom': MessageSquare,
-      'support_ticket': AlertCircle,
-    }
-    const Icon = iconMap[type] || Database
-    return <Icon className="w-5 h-5" />
+    return <ConnectorIcon type={type} className="w-5 h-5" />
   }
 
   const getStatusColor = (status: string) => {
@@ -1343,6 +1332,7 @@ function EntityCard({
 
 
 const INTEGRATION_CONFIG_FIELDS: Record<string, { key: string; label: string; placeholder: string }[]> = {
+  // existing
   slack:      [{ key: 'channel_ids', label: 'Channel IDs (comma-separated)', placeholder: 'C123ABC, C456DEF  (leave blank for all)' }],
   notion:     [{ key: 'database_ids', label: 'Database IDs (comma-separated)', placeholder: 'leave blank for all' }],
   zendesk:    [{ key: 'subdomain', label: 'Zendesk subdomain', placeholder: 'yourcompany' }],
@@ -1350,6 +1340,28 @@ const INTEGRATION_CONFIG_FIELDS: Record<string, { key: string; label: string; pl
   salesforce: [{ key: 'instance_url', label: 'Salesforce instance URL', placeholder: 'https://yourorg.salesforce.com' }],
   outlook:    [],
   teams:      [],
+  // new
+  jira:       [
+    { key: 'domain',  label: 'Atlassian domain',      placeholder: 'yourcompany.atlassian.net' },
+    { key: 'email',   label: 'Account email',          placeholder: 'you@company.com' },
+  ],
+  hubspot:    [],
+  freshdesk:  [{ key: 'domain', label: 'Freshdesk domain', placeholder: 'yourcompany.freshdesk.com' }],
+  asana:      [{ key: 'workspace_id', label: 'Workspace ID (optional)', placeholder: 'leave blank for all workspaces' }],
+  pipedrive:  [],
+  confluence: [
+    { key: 'domain',    label: 'Atlassian domain',      placeholder: 'yourcompany.atlassian.net' },
+    { key: 'email',     label: 'Account email',          placeholder: 'you@company.com' },
+    { key: 'space_key', label: 'Space key (optional)',   placeholder: 'leave blank for all spaces' },
+  ],
+  intercom:   [],
+  linear:     [{ key: 'team_key', label: 'Team key (optional)', placeholder: 'leave blank for all teams' }],
+  gmail:      [],
+  zoom:       [],
+  discord:    [
+    { key: 'guild_id',    label: 'Server (Guild) ID',               placeholder: '123456789012345678' },
+    { key: 'channel_ids', label: 'Channel IDs (comma-separated, optional)', placeholder: 'leave blank for all text channels' },
+  ],
 }
 
 export function AddContextModal({
@@ -1365,8 +1377,6 @@ export function AddContextModal({
   const [file, setFile] = useState<File | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [retentionPolicy, setRetentionPolicy] = useState('30_days')
-  const [showRetentionDropdown, setShowRetentionDropdown] = useState(false)
   const [error, setError] = useState('')
 
   // Integration connect state
@@ -1495,20 +1505,31 @@ export function AddContextModal({
     {
       category: 'Upload',
       types: [
-        { value: 'document_pdf', label: 'Document', icon: Upload, enabled: true },
+        { value: 'document_pdf', label: 'Document', enabled: true },
       ]
     },
     {
       category: 'Live Integrations',
       integration: true,
       types: [
-        { value: 'slack',      label: 'Slack',                icon: Slack,         enabled: true },
-        { value: 'outlook',    label: 'Outlook / Office 365', icon: Mail,          enabled: true },
-        { value: 'teams',      label: 'Microsoft Teams',      icon: MessageSquare, enabled: true },
-        { value: 'notion',     label: 'Notion',               icon: BookOpen,      enabled: true },
-        { value: 'salesforce', label: 'Salesforce',           icon: Cloud,         enabled: true },
-        { value: 'zendesk',    label: 'Zendesk',              icon: AlertCircle,   enabled: true },
-        { value: 'github',     label: 'GitHub',               icon: Github,        enabled: true },
+        { value: 'slack',      label: 'Slack',                enabled: true },
+        { value: 'outlook',    label: 'Outlook / Office 365', enabled: true },
+        { value: 'teams',      label: 'Microsoft Teams',      enabled: true },
+        { value: 'notion',     label: 'Notion',               enabled: true },
+        { value: 'salesforce', label: 'Salesforce',           enabled: true },
+        { value: 'zendesk',    label: 'Zendesk',              enabled: true },
+        { value: 'github',     label: 'GitHub',               enabled: true },
+        { value: 'jira',       label: 'Jira',                 enabled: true },
+        { value: 'hubspot',    label: 'HubSpot',              enabled: true },
+        { value: 'freshdesk',  label: 'Freshdesk',            enabled: true },
+        { value: 'asana',      label: 'Asana',                enabled: true },
+        { value: 'pipedrive',  label: 'Pipedrive',            enabled: true },
+        { value: 'confluence', label: 'Confluence',           enabled: true },
+        { value: 'intercom',   label: 'Intercom',             enabled: true },
+        { value: 'linear',     label: 'Linear',               enabled: true },
+        { value: 'gmail',      label: 'Gmail',                enabled: true },
+        { value: 'zoom',       label: 'Zoom',                 enabled: true },
+        { value: 'discord',    label: 'Discord',              enabled: true },
       ]
     },
   ]
@@ -1539,7 +1560,6 @@ export function AddContextModal({
       formData.append('file', file)
       formData.append('name', name)
       formData.append('source_type', sourceType)
-      formData.append('retention_policy', retentionPolicy)
       if (description) {
         formData.append('description', description)
       }
@@ -1650,7 +1670,7 @@ export function AddContextModal({
                           : 'border-border hover:border-primary hover:bg-primary/5'
                       }`}
                     >
-                      <type.icon className="w-6 h-6 mb-2 text-muted-foreground" />
+                      <ConnectorIcon type={type.value} className="w-6 h-6 mb-2 text-muted-foreground" />
                       <div className="text-sm font-medium">{type.label}</div>
                       {(type as any).comingSoon && (
                         <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-chart-4/20 text-chart-4 font-medium">
@@ -1852,135 +1872,6 @@ export function AddContextModal({
             </div>
 
             {/* Data Retention Policy */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Data Retention Policy</label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowRetentionDropdown(!showRetentionDropdown)}
-                  className="w-full flex items-center justify-between px-4 py-3 border border-border rounded-lg bg-input text-foreground hover:bg-muted focus:ring-2 focus:ring-ring/50 focus:border-ring transition"
-                >
-                  <span className="flex items-center gap-2 text-sm">
-                    {retentionPolicy === 'delete_immediately' && '🔒 Maximum Privacy'}
-                    {retentionPolicy === '30_days' && (
-                      <>
-                        ⚖️ Balanced
-                        <span className="px-2 py-0.5 text-[10px] rounded-full bg-chart-3/15 text-chart-3 font-medium">
-                          Recommended
-                        </span>
-                      </>
-                    )}
-                    {retentionPolicy === '90_days' && '📅 Extended Retention'}
-                    {retentionPolicy === 'retain_encrypted' && '📁 Full Retention (Encrypted)'}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showRetentionDropdown ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showRetentionDropdown && (
-                  <div className="absolute z-50 mt-2 w-full bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-                    <div className="p-1 space-y-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRetentionPolicy('delete_immediately');
-                          setShowRetentionDropdown(false);
-                        }}
-                        className={`w-full text-left px-3 py-3 rounded transition-colors ${
-                          retentionPolicy === 'delete_immediately'
-                            ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary'
-                            : 'text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm">🔒 Maximum Privacy</span>
-                          {retentionPolicy === 'delete_immediately' && (
-                            <Check className="w-4 h-4 text-primary dark:text-primary" />
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Delete original file after AI extraction completes.
-                        </p>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRetentionPolicy('30_days');
-                          setShowRetentionDropdown(false);
-                        }}
-                        className={`w-full text-left px-3 py-3 rounded transition-colors ${
-                          retentionPolicy === '30_days'
-                            ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary'
-                            : 'text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">⚖️ Balanced</span>
-                            <span className="px-2 py-0.5 text-[10px] rounded-full bg-chart-3/15 text-chart-3 font-medium">
-                              Recommended
-                            </span>
-                          </div>
-                          {retentionPolicy === '30_days' && (
-                            <Check className="w-4 h-4 text-primary dark:text-primary" />
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Keep original for 30 days, then auto-delete.
-                        </p>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRetentionPolicy('90_days');
-                          setShowRetentionDropdown(false);
-                        }}
-                        className={`w-full text-left px-3 py-3 rounded transition-colors ${
-                          retentionPolicy === '90_days'
-                            ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary'
-                            : 'text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm">📅 Extended Retention</span>
-                          {retentionPolicy === '90_days' && (
-                            <Check className="w-4 h-4 text-primary dark:text-primary" />
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Keep original for 90 days, then auto-delete.
-                        </p>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRetentionPolicy('retain_encrypted');
-                          setShowRetentionDropdown(false);
-                        }}
-                        className={`w-full text-left px-3 py-3 rounded transition-colors ${
-                          retentionPolicy === 'retain_encrypted'
-                            ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary'
-                            : 'text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm">📁 Full Retention (Encrypted)</span>
-                          {retentionPolicy === 'retain_encrypted' && (
-                            <Check className="w-4 h-4 text-primary dark:text-primary" />
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Keep original file indefinitely, encrypted.
-                        </p>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Error Message */}
             {error && (
               <div className="bg-destructive/10 border border-destructive/30 text-destructive dark:text-destructive px-4 py-3 rounded-lg text-sm">

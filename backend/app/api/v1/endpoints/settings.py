@@ -132,6 +132,11 @@ class KnowledgeRefreshSettings(BaseModel):
     enabled: bool
     interval_days: int = Field(ge=1, le=365, description="Days between refreshes (1-365)")
     integration_sync_interval_minutes: int = Field(ge=5, le=1440, default=5, description="Minutes between live integration syncs (5-1440, minimum 5)")
+    dedup_interval_hours: int = Field(ge=1, le=168, default=24, description="Hours between entity dedup & resolution runs (1-168, default 24)")
+    default_retention_policy: str = Field(
+        default="30_days_encrypted",
+        description="Default raw-data retention policy applied to all sources (uploaded docs + live integrations)"
+    )
 
 
 @router.get("/knowledge-refresh")
@@ -154,6 +159,8 @@ async def get_knowledge_refresh_settings(
         "interval_days": settings.get("knowledge_refresh_interval_days", 7),
         "last_refresh_date": settings.get("knowledge_last_refresh_date"),
         "integration_sync_interval_minutes": settings.get("integration_sync_interval_minutes", 5),
+        "dedup_interval_hours": settings.get("dedup_interval_hours", 24),
+        "default_retention_policy": settings.get("default_retention_policy", "30_days_encrypted"),
     }
 
 
@@ -176,6 +183,14 @@ async def update_knowledge_refresh_settings(
     settings["knowledge_refresh_enabled"] = settings_update.enabled
     settings["knowledge_refresh_interval_days"] = settings_update.interval_days
     settings["integration_sync_interval_minutes"] = max(5, settings_update.integration_sync_interval_minutes)
+    settings["dedup_interval_hours"] = max(1, settings_update.dedup_interval_hours)
+
+    from app.services.retention_service import RetentionPolicyService
+    if settings_update.default_retention_policy in RetentionPolicyService.valid_policies():
+        settings["default_retention_policy"] = settings_update.default_retention_policy
+    else:
+        raise HTTPException(status_code=400, detail=f"Invalid retention policy: {settings_update.default_retention_policy}")
+
     tenant.settings = settings
 
     # Mark as modified for SQLAlchemy to detect JSON change

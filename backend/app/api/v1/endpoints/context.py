@@ -16,6 +16,7 @@ import logging
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.context import ContextSource, ContextSourceType, ContextProcessingStatus, SourceGroup
+from app.models.tenant import Tenant
 from app.models.user import User
 
 router = APIRouter()
@@ -338,7 +339,6 @@ async def upload_context_file(
     name: str = Form(...),
     description: Optional[str] = Form(None),
     source_type: str = Form("csv_survey"),
-    retention_policy: str = Form("30_days"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -378,10 +378,16 @@ async def upload_context_file(
         except ValueError:
             source_type_enum = ContextSourceType.DOCUMENT_PDF
 
-        # Validate retention policy
-        valid_policies = ['delete_immediately', '30_days', '90_days', 'retain_encrypted']
-        if retention_policy not in valid_policies:
-            retention_policy = '30_days'  # Default fallback
+        # Read retention policy from tenant settings (universal default for all sources)
+        from app.services.retention_service import RetentionPolicyService
+        tenant_result = await db.execute(
+            select(Tenant).where(Tenant.id == current_user.tenant_id)
+        )
+        tenant_obj = tenant_result.scalar_one_or_none()
+        tenant_settings = (tenant_obj.settings or {}) if tenant_obj else {}
+        retention_policy = tenant_settings.get("default_retention_policy", "30_days_encrypted")
+        if retention_policy not in RetentionPolicyService.valid_policies():
+            retention_policy = "30_days_encrypted"
 
         # === CSV SPECIAL HANDLING: Parse rows into separate sources ===
         if file_ext == '.csv':
@@ -712,33 +718,13 @@ async def get_retention_policies(
     return {
         "policies": [
             {
-                "id": "delete_immediately",
-                "name": "Maximum Privacy",
-                "description": "Delete original file after AI extraction completes. You'll keep extracted insights and short quotes.",
-                "days": 0,
-                "recommended": False
-            },
-            {
-                "id": "30_days",
-                "name": "Balanced (Recommended)",
-                "description": "Keep original for 30 days, then auto-delete. Allows re-extraction if needed.",
-                "days": 30,
-                "recommended": True
-            },
-            {
-                "id": "90_days",
-                "name": "Extended Retention",
-                "description": "Keep original for 90 days, then auto-delete.",
-                "days": 90,
-                "recommended": False
-            },
-            {
-                "id": "retain_encrypted",
-                "name": "Full Retention (Encrypted)",
-                "description": "Keep original file indefinitely, encrypted. Best for audit/compliance requirements.",
-                "days": None,
-                "recommended": False
+                "id": policy_id,
+                "name": config["description"],
+                "days": config["days"],
+                "encrypted": config["requires_encryption"],
+                "recommended": policy_id == "30_days_encrypted",
             }
+            for policy_id, config in RetentionPolicyService.RETENTION_POLICIES.items()
         ]
     }
 
@@ -764,6 +750,9 @@ async def update_retention_policy(
 
     if not source:
         raise HTTPException(status_code=404, detail="Context source not found")
+
+    if policy not in RetentionPolicyService.valid_policies():
+        raise HTTPException(status_code=400, detail=f"Invalid retention policy: {policy}")
 
     retention_service = RetentionPolicyService(db)
     try:

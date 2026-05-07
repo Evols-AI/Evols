@@ -110,12 +110,12 @@ class ContextSource(TenantScopedModel):
     file_path = Column(String(500), nullable=True)  # For uploaded files
 
     # Data Retention & Privacy
-    retention_policy = Column(String(50), nullable=True, default='30_days')  # delete_immediately, 30_days, 90_days, retain_encrypted
+    retention_policy = Column(String(50), nullable=True, default='30_days_encrypted')  # delete_immediately, 30_days, 30_days_encrypted, 90_days, 90_days_encrypted
     content_deleted_at = Column(DateTime, nullable=True)  # When content was deleted
     deletion_scheduled_for = Column(DateTime, nullable=True)  # When scheduled for deletion
     content_summary = Column(Text, nullable=True)  # Summary after deletion (e.g., "47 responses, 2.3MB")
 
-    # Encryption (for retain_encrypted policy)
+    # Encryption (for *_encrypted policies)
     encrypted_content = Column(sa.LargeBinary, nullable=True)  # Encrypted content blob
     encryption_key_id = Column(String(100), nullable=True)  # Reference to encryption key
     is_encrypted = Column(sa.Boolean, default=False, nullable=False)

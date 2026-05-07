@@ -130,6 +130,8 @@ export default function Settings() {
   const [knowledgeRefreshEnabled, setKnowledgeRefreshEnabled] = useState(false)
   const [knowledgeRefreshDays, setKnowledgeRefreshDays] = useState(7)
   const [integrationSyncMinutes, setIntegrationSyncMinutes] = useState(5)
+  const [dedupIntervalHours, setDedupIntervalHours] = useState(24)
+  const [defaultRetentionPolicy, setDefaultRetentionPolicy] = useState('30_days_encrypted')
   const [lastKnowledgeRefreshDate, setLastKnowledgeRefreshDate] = useState<string | null>(null)
   const [savingKnowledgeRefresh, setSavingKnowledgeRefresh] = useState(false)
 
@@ -432,6 +434,8 @@ export default function Settings() {
       setKnowledgeRefreshEnabled(response.data.enabled)
       setKnowledgeRefreshDays(response.data.interval_days)
       setIntegrationSyncMinutes(response.data.integration_sync_interval_minutes ?? 5)
+      setDedupIntervalHours(response.data.dedup_interval_hours ?? 24)
+      setDefaultRetentionPolicy(response.data.default_retention_policy ?? '30_days_encrypted')
       setLastKnowledgeRefreshDate(response.data.last_refresh_date)
     } catch (error) {
       console.error('Failed to load knowledge refresh settings:', error)
@@ -445,6 +449,8 @@ export default function Settings() {
         enabled: knowledgeRefreshEnabled,
         interval_days: knowledgeRefreshDays,
         integration_sync_interval_minutes: Math.max(5, integrationSyncMinutes),
+        dedup_interval_hours: Math.max(1, dedupIntervalHours),
+        default_retention_policy: defaultRetentionPolicy,
       })
       await loadKnowledgeRefreshSettings()
       alert('Refresh settings saved successfully!')
@@ -1449,6 +1455,81 @@ export default function Settings() {
                     <p className="text-xs text-muted-foreground mt-2">
                       Slack, Outlook, Teams, Notion, and other live integrations sync every {integrationSyncMinutes} minute(s). Minimum 5 minutes.
                     </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">
+                      Entity Dedup & Resolution Interval (Hours)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="168"
+                      value={dedupIntervalHours}
+                      onChange={(e) => setDedupIntervalHours(Math.max(1, Number(e.target.value)))}
+                      className="w-32 px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Resolves duplicate entities, merges similar names, and refreshes confidence scores every {dedupIntervalHours} hour(s). Minimum 1 hour. High-volume teams may set this lower.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">
+                      Raw Data Retention Policy
+                    </label>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Applies to all data sources — uploaded documents and live integrations (Slack, Outlook, GitHub, etc.). The extracted knowledge graph is always kept; this controls how long the original raw text is stored.
+                    </p>
+                    <div className="space-y-2">
+                      {[
+                        {
+                          value: 'delete_immediately',
+                          label: '🔒 Delete immediately',
+                          description: 'Raw text deleted as soon as LightRAG finishes extraction. Maximum privacy.',
+                        },
+                        {
+                          value: '30_days_encrypted',
+                          label: '🔐 30 days — encrypted',
+                          description: 'Raw text kept for 30 days, AES-256 encrypted at rest, then auto-deleted. Recommended for SOC 2 / GDPR.',
+                          recommended: true,
+                        },
+                        {
+                          value: '90_days_encrypted',
+                          label: '🔐 90 days — encrypted',
+                          description: 'Raw text kept for 90 days, AES-256 encrypted at rest, then auto-deleted.',
+                        },
+                      ].map((option) => (
+                        <label
+                          key={option.value}
+                          className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            defaultRetentionPolicy === option.value
+                              ? 'border-ring bg-primary/5 dark:bg-primary/10'
+                              : 'border-border hover:bg-muted'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="defaultRetentionPolicy"
+                            value={option.value}
+                            checked={defaultRetentionPolicy === option.value}
+                            onChange={() => setDefaultRetentionPolicy(option.value)}
+                            className="mt-0.5 accent-primary"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                              {option.label}
+                              {option.recommended && (
+                                <span className="px-2 py-0.5 text-[10px] rounded-full bg-chart-3/15 text-chart-3 font-medium">
+                                  Recommended
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
                   </div>
 
                   <button

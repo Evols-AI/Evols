@@ -22,22 +22,21 @@ class RetentionPolicyService:
             'description': 'Delete original content immediately after extraction',
             'requires_encryption': False
         },
-        '30_days': {
+        '30_days_encrypted': {
             'days': 30,
-            'description': 'Keep original for 30 days, then auto-delete',
-            'requires_encryption': False
+            'description': 'Keep original for 30 days (AES-256 encrypted at rest), then auto-delete',
+            'requires_encryption': True
         },
-        '90_days': {
+        '90_days_encrypted': {
             'days': 90,
-            'description': 'Keep original for 90 days, then auto-delete',
-            'requires_encryption': False
-        },
-        'retain_encrypted': {
-            'days': None,  # Indefinite
-            'description': 'Keep original indefinitely, encrypted',
+            'description': 'Keep original for 90 days (AES-256 encrypted at rest), then auto-delete',
             'requires_encryption': True
         },
     }
+
+    @classmethod
+    def valid_policies(cls) -> list[str]:
+        return list(cls.RETENTION_POLICIES.keys())
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -45,7 +44,7 @@ class RetentionPolicyService:
     async def apply_retention_policy(
         self,
         source: ContextSource,
-        policy: str = '30_days',
+        policy: str = '30_days_encrypted',
         encrypt_if_needed: bool = True
     ) -> None:
         """
@@ -65,22 +64,20 @@ class RetentionPolicyService:
         policy_config = self.RETENTION_POLICIES[policy]
         source.retention_policy = policy
 
-        # Handle immediate deletion
+        # Immediate deletion — wipe raw content now, keep metadata + knowledge graph
         if policy == 'delete_immediately':
             await self._delete_content(source)
             return
 
-        # Handle encryption for retain_encrypted policy
-        if policy == 'retain_encrypted' and encrypt_if_needed:
+        # Encrypt at rest if this policy requires it
+        if policy_config['requires_encryption'] and encrypt_if_needed:
             if source.content and not source.is_encrypted:
                 await self._encrypt_content(source)
-            return
 
-        # Schedule deletion for time-based policies
-        if policy_config['days'] is not None:
-            deletion_date = datetime.utcnow() + timedelta(days=policy_config['days'])
-            source.deletion_scheduled_for = deletion_date
-            logger.info(f"[RetentionService] Scheduled deletion for source {source.id} on {deletion_date}")
+        # Schedule deletion for all time-based policies
+        deletion_date = datetime.utcnow() + timedelta(days=policy_config['days'])
+        source.deletion_scheduled_for = deletion_date
+        logger.info(f"[RetentionService] Scheduled deletion for source {source.id} on {deletion_date}")
 
         await self.db.commit()
 
@@ -105,9 +102,12 @@ class RetentionPolicyService:
 
         source.content_summary = summary
 
-        # Delete content
+        # Delete all forms of the raw content
         source.content = None
         source.raw_content = None
+        source.encrypted_content = None
+        source.encryption_key_id = None
+        source.is_encrypted = False
         source.content_deleted_at = datetime.utcnow()
 
         logger.info(f"[RetentionService] Deleted content from source {source.id}: {summary}")
