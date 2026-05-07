@@ -52,6 +52,15 @@ class SchedulerService:
             replace_existing=True
         )
 
+        # Temporal dedup & entity resolution — check every hour; per-tenant interval controls actual run
+        self.scheduler.add_job(
+            self.run_temporal_dedup,
+            IntervalTrigger(hours=1),
+            id='temporal_dedup',
+            name='Temporal Dedup & Entity Resolution',
+            replace_existing=True
+        )
+
     def shutdown(self):
         """Shutdown the scheduler"""
         self.scheduler.shutdown()
@@ -175,6 +184,16 @@ class SchedulerService:
                 await sync_all_due(db)
         except Exception as e:
             logger.error(f"Error in integration sync job: {e}")
+
+    async def run_temporal_dedup(self):
+        """Run temporal dedup, entity resolution, and confidence refresh for all tenants"""
+        try:
+            from app.jobs.temporal_dedup_job import run_temporal_dedup_job
+
+            result = await run_temporal_dedup_job()
+            logger.info(f"Temporal dedup job completed: {result}")
+        except Exception as e:
+            logger.error(f"Error in temporal dedup job: {e}")
 
 
 # Global scheduler instance

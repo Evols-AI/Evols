@@ -107,6 +107,15 @@ class Settings(BaseSettings):
     MICROSOFT_CLIENT_ID: Optional[str] = None
     MICROSOFT_CLIENT_SECRET: Optional[str] = None
 
+    # LightRAG PostgreSQL — direct connection for the temporal dedup job.
+    # Defaults fall back to the POSTGRES_* vars used by LightRAG itself so that
+    # single-host deployments don't need duplicate configuration.
+    LIGHTRAG_PG_HOST: Optional[str] = None
+    LIGHTRAG_PG_PORT: Optional[str] = None
+    LIGHTRAG_PG_USER: Optional[str] = None
+    LIGHTRAG_PG_PASSWORD: Optional[str] = None
+    LIGHTRAG_PG_DATABASE: Optional[str] = None
+
 
 # Create global settings instance
 settings = Settings()
