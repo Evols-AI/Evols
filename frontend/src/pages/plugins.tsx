@@ -78,10 +78,21 @@ const PLUGINS = [
             body: 'Press Cmd+Shift+P (macOS) or Ctrl+Shift+P (Windows/Linux), then type "Open User Settings JSON" and select Preferences: Open User Settings (JSON). This opens the raw JSON file — not the UI settings panel.',
           },
           {
-            title: 'Add the plugin config',
-            body: 'Add the following block inside the top-level { } object:',
+            title: 'Add the VS Code plugin config',
+            body: 'Add the following block inside the top-level { } object. This configures the MCP server used by the VS Code extension:',
             code: `"claude.plugins": {
   "evols": {
+    "EVOLS_API_KEY": "evols_your_key_here",
+    "EVOLS_API_URL": "https://api.evols.ai",
+    "EVOLS_PLAN": "pro"
+  }
+}`,
+          },
+          {
+            title: 'Add the CLI plugin config',
+            body: 'Open ~/.claude/settings.json (create it if it doesn\'t exist) and add the following inside the top-level { } object. This is required for lifecycle hooks — session start, stop, and prompt events:',
+            code: `"pluginConfigs": {
+  "evols@evols-ai": {
     "EVOLS_API_KEY": "evols_your_key_here",
     "EVOLS_API_URL": "https://api.evols.ai",
     "EVOLS_PLAN": "pro"
