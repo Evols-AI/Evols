@@ -10,6 +10,7 @@ import { getCurrentUser } from '@/utils/auth'
 const NAV_LINKS = [
   { label: 'How it works', href: '#how-it-works' },
   { label: 'Features', href: '#features' },
+  { label: 'Plugins', href: '/plugins' },
   { label: 'Blog', href: '/blog' },
   { label: 'Docs', href: '/docs' },
 ]

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { LogoWordmark } from '@/components/Logo'
 
 const LINKS = [
+  { label: 'Plugins', href: '/plugins' },
   { label: 'Blog', href: '/blog' },
   { label: 'Docs', href: '/docs' },
   { label: 'Support', href: '/support' },

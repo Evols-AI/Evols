@@ -45,6 +45,9 @@ next-env.d.ts
 *.swo
 *~
 
+# MCP config (contains API keys, generated at runtime by evols-mcp)
+.mcp.json
+
 # Environment
 .env
 .env.local
