@@ -184,6 +184,7 @@ export const api = {
     createPMDecision: (data: any) => apiClient.post('/api/v1/work-context/pm-decisions', data),
     updatePMDecision: (id: number, data: any) => apiClient.put(`/api/v1/work-context/pm-decisions/${id}`, data),
     deletePMDecision: (id: number) => apiClient.delete(`/api/v1/work-context/pm-decisions/${id}`),
+    getDecisionsTimeline: () => apiClient.get('/api/v1/work-context/decisions-timeline'),
 
     // Tasks
     getTasks: (params?: any) => apiClient.get('/api/v1/work-context/tasks', { params }),

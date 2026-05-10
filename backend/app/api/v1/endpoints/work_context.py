@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
+from app.models.team_knowledge import KnowledgeEntry, EntryType
 from app.models.work_context import (
     WorkContext, ActiveProject, KeyRelationship,
     PMDecision, Task, WeeklyFocus, MeetingNote,
@@ -777,3 +778,95 @@ async def delete_meeting_note(
     await db.delete(note)
     await db.commit()
     return None
+
+
+@router.get("/decisions-timeline")
+async def get_decisions_timeline(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Unified timeline of all decisions across three sources:
+    1. PMDecision — manually logged by the user
+    2. KnowledgeEntry(entry_type=decision) — synced from AI sessions
+    3. MeetingNote.decisions[] — decisions captured in meeting notes
+    """
+    items = []
+
+    # 1. Manual PM decisions
+    pm_result = await db.execute(
+        select(PMDecision)
+        .where(PMDecision.user_id == current_user.id)
+        .order_by(PMDecision.decision_date.desc())
+    )
+    for d in pm_result.scalars().all():
+        items.append({
+            "id": f"pm-{d.id}",
+            "source": "manual",
+            "source_label": "Logged manually",
+            "title": d.title,
+            "summary": d.decision,
+            "context": d.context,
+            "category": d.category,
+            "date": d.decision_date.isoformat(),
+            "tags": [],
+            "pm_decision_id": d.id,
+        })
+
+    # 2. AI session decisions (KnowledgeEntry with entry_type=decision, scoped to tenant)
+    tenant_id = current_user.tenant_id
+    if tenant_id is not None:
+        ke_result = await db.execute(
+            select(KnowledgeEntry)
+            .where(
+                KnowledgeEntry.tenant_id == tenant_id,
+                KnowledgeEntry.entry_type == EntryType.DECISION,
+            )
+            .order_by(KnowledgeEntry.created_at.desc())
+        )
+        for e in ke_result.scalars().all():
+            items.append({
+                "id": f"ke-{e.id}",
+                "source": "ai_session",
+                "source_label": e.source or "AI session",
+                "title": e.title,
+                "summary": e.content,
+                "context": None,
+                "category": e.product_area,
+                "date": e.created_at.isoformat(),
+                "tags": e.tags or [],
+                "knowledge_entry_id": e.id,
+            })
+
+    # 3. Meeting note decisions
+    mn_result = await db.execute(
+        select(MeetingNote)
+        .where(
+            MeetingNote.user_id == current_user.id,
+            MeetingNote.decisions.isnot(None),
+        )
+        .order_by(MeetingNote.meeting_date.desc())
+    )
+    for note in mn_result.scalars().all():
+        decisions_list = note.decisions or []
+        if not isinstance(decisions_list, list):
+            continue
+        for idx, decision_text in enumerate(decisions_list):
+            if not decision_text:
+                continue
+            items.append({
+                "id": f"mn-{note.id}-{idx}",
+                "source": "meeting",
+                "source_label": note.title,
+                "title": str(decision_text)[:120],
+                "summary": str(decision_text),
+                "context": None,
+                "category": note.meeting_type.value if hasattr(note.meeting_type, "value") else str(note.meeting_type),
+                "date": note.meeting_date.isoformat(),
+                "tags": [],
+                "meeting_note_id": note.id,
+            })
+
+    # Sort all by date descending
+    items.sort(key=lambda x: x["date"], reverse=True)
+    return items
