@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Briefcase, TrendingUp, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2, Users, Bot, FileText, Calendar } from 'lucide-react'
+import { Briefcase, TrendingUp, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2, Users, Bot, FileText } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -29,7 +29,6 @@ export default function WorkContext() {
   const [decisions, setDecisions] = useState<any[]>([])
   const [timeline, setTimeline] = useState<any[]>([])
   const [timelineLoading, setTimelineLoading] = useState(false)
-  const [meetings, setMeetings] = useState<any[]>([])
   const [weeklyFocus, setWeeklyFocus] = useState<any>(null)
 
   const [taskModalOpen, setTaskModalOpen] = useState(false)
@@ -56,13 +55,12 @@ export default function WorkContext() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [contextRes, projectsRes, relationshipsRes, tasksRes, decisionsRes, meetingsRes, focusRes] = await Promise.all([
+      const [contextRes, projectsRes, relationshipsRes, tasksRes, decisionsRes, focusRes] = await Promise.all([
         api.workContext.getWorkContext(),
         api.workContext.getActiveProjects(),
         api.workContext.getKeyRelationships(),
         api.workContext.getTasks(),
         api.workContext.getPMDecisions(),
-        api.workContext.getMeetingNotes({ limit: 10 }),
         api.workContext.getCurrentWeeklyFocus()
       ])
       setWorkContext(contextRes.data)
@@ -70,7 +68,6 @@ export default function WorkContext() {
       setKeyRelationships(relationshipsRes.data)
       setTasks(tasksRes.data)
       setDecisions(decisionsRes.data)
-      setMeetings(meetingsRes.data)
       setWeeklyFocus(focusRes.data)
       // Refresh timeline if it was already loaded
       if (timeline.length > 0 || selectedTab === 'decisions') {
@@ -374,7 +371,7 @@ export default function WorkContext() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Decisions from AI sessions, meeting notes, and manually logged entries — sorted by date.
+                Decisions from AI sessions and manually logged entries — sorted by date.
               </p>
               <button onClick={() => openDecisionModal()} className="btn-primary flex items-center gap-2">
                 <Plus className="w-4 h-4" />Log Decision
@@ -395,9 +392,8 @@ export default function WorkContext() {
                     const showDateDivider = !prevDate || date.toDateString() !== prevDate.toDateString()
 
                     const sourceConfig: Record<string, { icon: any; color: string; label: string }> = {
-                      manual:     { icon: FileText, color: 'text-primary bg-primary/10',      label: 'Manual' },
-                      ai_session: { icon: Bot,      color: 'text-chart-3 bg-chart-3/15',      label: item.source_label },
-                      meeting:    { icon: Calendar, color: 'text-chart-4 bg-chart-4/15',      label: item.source_label },
+                      manual:     { icon: FileText, color: 'text-primary bg-primary/10',  label: 'Manual' },
+                      ai_session: { icon: Bot,      color: 'text-chart-3 bg-chart-3/15',  label: item.source_label },
                     }
                     const src = sourceConfig[item.source] ?? sourceConfig.manual
                     const Icon = src.icon
@@ -477,7 +473,7 @@ export default function WorkContext() {
             ) : (
               <Card>
                 <p className="text-center text-muted-foreground py-8">
-                  No decisions found. Log one manually, or decisions from AI sessions and meetings will appear here automatically.
+                  No decisions found. Log one manually, or AI session decisions will appear here automatically when synced.
                 </p>
               </Card>
             )}

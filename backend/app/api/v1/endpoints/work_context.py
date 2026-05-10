@@ -786,10 +786,9 @@ async def get_decisions_timeline(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Unified timeline of all decisions across three sources:
+    Unified timeline of decisions from two sources:
     1. PMDecision — manually logged by the user
-    2. KnowledgeEntry(entry_type=decision) — synced from AI sessions
-    3. MeetingNote.decisions[] — decisions captured in meeting notes
+    2. KnowledgeEntry(entry_type=decision) — synced from AI sessions via sync_session_context
     """
     items = []
 
@@ -836,35 +835,6 @@ async def get_decisions_timeline(
                 "date": e.created_at.isoformat(),
                 "tags": e.tags or [],
                 "knowledge_entry_id": e.id,
-            })
-
-    # 3. Meeting note decisions
-    mn_result = await db.execute(
-        select(MeetingNote)
-        .where(
-            MeetingNote.user_id == current_user.id,
-            MeetingNote.decisions.isnot(None),
-        )
-        .order_by(MeetingNote.meeting_date.desc())
-    )
-    for note in mn_result.scalars().all():
-        decisions_list = note.decisions or []
-        if not isinstance(decisions_list, list):
-            continue
-        for idx, decision_text in enumerate(decisions_list):
-            if not decision_text:
-                continue
-            items.append({
-                "id": f"mn-{note.id}-{idx}",
-                "source": "meeting",
-                "source_label": note.title,
-                "title": str(decision_text)[:120],
-                "summary": str(decision_text),
-                "context": None,
-                "category": note.meeting_type.value if hasattr(note.meeting_type, "value") else str(note.meeting_type),
-                "date": note.meeting_date.isoformat(),
-                "tags": [],
-                "meeting_note_id": note.id,
             })
 
     # Sort all by date descending
