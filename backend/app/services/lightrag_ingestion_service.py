@@ -33,6 +33,11 @@ _LIGHTRAG_TOKEN_SECRET = os.environ.get(
     "81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02",
 )
 
+# Set LIGHTRAG_AUTH_ENABLED=false in local/docker environments where LightRAG
+# runs with auth_mode=disabled. Sending an Authorization header to a no-auth
+# LightRAG instance causes it to return empty results silently.
+_LIGHTRAG_AUTH_ENABLED = os.environ.get("LIGHTRAG_AUTH_ENABLED", "true").lower() not in ("false", "0", "no")
+
 
 def _lightrag_url() -> str:
     url = getattr(settings, "LIGHTRAG_URL", None) or os.environ.get("LIGHTRAG_URL", "")
@@ -47,7 +52,9 @@ def _mint_lightrag_jwt() -> str:
 
 
 async def lightrag_auth_headers() -> dict[str, str]:
-    """Return headers with a valid LightRAG JWT, minted locally. Cached ~55 min."""
+    """Return headers for LightRAG requests. Omits Authorization when auth is disabled."""
+    if not _LIGHTRAG_AUTH_ENABLED:
+        return {"Content-Type": "application/json"}
     async with _jwt_lock:
         if _jwt_cache.get("token") and _jwt_cache.get("expires_at", 0) > time.time() + 30:
             return {"Content-Type": "application/json", "Authorization": f"Bearer {_jwt_cache['token']}"}
