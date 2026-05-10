@@ -13,6 +13,18 @@ from typing import Tuple, Optional
 from loguru import logger
 
 
+def _get_master_secret() -> Optional[str]:
+    """Read ENCRYPTION_MASTER_SECRET from settings (which loads .env) then fall back to os.getenv."""
+    try:
+        from app.core.config import settings
+        val = getattr(settings, "ENCRYPTION_MASTER_SECRET", None)
+        if val:
+            return str(val)
+    except Exception:
+        pass
+    return os.getenv("ENCRYPTION_MASTER_SECRET")
+
+
 class EncryptionService:
     """
     Service for encrypting and decrypting content
@@ -28,7 +40,7 @@ class EncryptionService:
         Args:
             master_secret: Master secret for key derivation. If None, uses ENCRYPTION_MASTER_SECRET from env
         """
-        self.master_secret = master_secret or os.getenv('ENCRYPTION_MASTER_SECRET')
+        self.master_secret = master_secret or _get_master_secret()
 
         if not self.master_secret:
             logger.warning("[EncryptionService] No master secret configured. Encryption will not be available.")

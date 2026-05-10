@@ -116,7 +116,8 @@ class RetentionPolicyService:
     async def _encrypt_content(self, source: ContextSource) -> None:
         """Encrypt content for secure retention. Skips gracefully if master secret is not configured."""
         import os
-        if not os.getenv("ENCRYPTION_MASTER_SECRET"):
+        from app.services.encryption_service import _get_master_secret
+        if not _get_master_secret():
             logger.warning(
                 f"[RetentionService] ENCRYPTION_MASTER_SECRET not set — "
                 f"skipping encryption for source {source.id}, content kept as plaintext"
