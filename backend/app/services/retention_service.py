@@ -114,35 +114,27 @@ class RetentionPolicyService:
         await self.db.commit()
 
     async def _encrypt_content(self, source: ContextSource) -> None:
-        """
-        Encrypt content for secure retention
+        """Encrypt content for secure retention. Skips gracefully if master secret is not configured."""
+        import os
+        if not os.getenv("ENCRYPTION_MASTER_SECRET"):
+            logger.warning(
+                f"[RetentionService] ENCRYPTION_MASTER_SECRET not set — "
+                f"skipping encryption for source {source.id}, content kept as plaintext"
+            )
+            return
 
-        Args:
-            source: ContextSource to encrypt
-
-        Raises:
-            ValueError: If encryption fails
-        """
         if not source.content:
             logger.warning(f"[RetentionService] No content to encrypt for source {source.id}")
             return
 
         try:
-            # Generate unique key ID
             key_id = f"context_{source.id}_{source.tenant_id}"
-
-            # Encrypt content
             encrypted_blob = encrypt_text(source.content, key_id)
-
-            # Store encrypted content
             source.encrypted_content = encrypted_blob
             source.encryption_key_id = key_id
             source.is_encrypted = True
-
-            # Clear plaintext content
             source.content = None
             source.raw_content = None
-
             logger.info(f"[RetentionService] Encrypted content for source {source.id}")
             await self.db.commit()
 
