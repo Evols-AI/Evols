@@ -30,6 +30,87 @@ def _estimate_tokens(text: str) -> int:
     return max(1, len(text) // 4)
 
 
+async def _expand_query_intent(query: str, llm_config: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Use the tenant's LLM (Haiku/cheap model) to expand a short/ambiguous query into
+    a semantic intent description before embedding. This improves redundancy matching
+    by bridging the gap between short tool call queries ("jitsi meet", "fix auth") and
+    the fuller context stored in knowledge entries (title + content snippet).
+
+    Uses the tenant's configured LLM provider (Bedrock, OpenAI, Anthropic, etc.)
+    so it works regardless of which provider is configured in production.
+
+    Returns the expanded description, or the original query on any failure.
+    """
+    # Only expand short queries — longer ones already carry enough signal
+    if len(query.split()) >= 12:
+        return query
+
+    if not llm_config:
+        return query
+
+    from app.services.llm_service import LLMService, LLMConfig
+
+    provider = llm_config.get("provider", "")
+    if not provider:
+        return query
+
+    try:
+        if provider == "aws_bedrock":
+            svc_cfg = LLMConfig(
+                provider="aws_bedrock",
+                model=llm_config.get("model_id", "us.anthropic.claude-haiku-4-5-20251001"),
+                max_tokens=120,
+                temperature=0.3,
+                aws_region=llm_config.get("region", "us-east-1"),
+                aws_access_key_id=llm_config.get("access_key_id"),
+                aws_secret_access_key=llm_config.get("secret_access_key"),
+                aws_session_token=llm_config.get("session_token"),
+            )
+        elif provider == "anthropic":
+            api_key = llm_config.get("api_key", "")
+            if not api_key:
+                return query
+            svc_cfg = LLMConfig(
+                provider="anthropic",
+                model="claude-haiku-4-5-20251001",
+                max_tokens=120,
+                temperature=0.3,
+                api_key=api_key,
+            )
+        elif provider == "openai":
+            api_key = llm_config.get("api_key", "")
+            if not api_key:
+                return query
+            svc_cfg = LLMConfig(
+                provider="openai",
+                model="gpt-4o-mini",
+                max_tokens=120,
+                temperature=0.3,
+                api_key=api_key,
+            )
+        else:
+            return query
+
+        llm_svc = LLMService(svc_cfg, enable_cache=False)
+        prompt = (
+            "Convert this short query into a 1-2 sentence description of the topic, "
+            "task, or research area it represents. Focus on semantic intent and expected "
+            "output type (e.g. research, analysis, bug fix, feature design). "
+            "Do NOT answer the query — only describe what it is about.\n\n"
+            f"Query: {query}\n\n"
+            "Description:"
+        )
+        response = await llm_svc.generate(prompt=prompt, max_tokens=120, temperature=0.3)
+        expanded = (response.content or "").strip()
+        if expanded:
+            return f"{query}\n\n{expanded}"
+    except Exception as e:
+        logger.debug(f"Query intent expansion failed (using raw query): {e}")
+
+    return query
+
+
 class TeamKnowledgeService:
 
     # ------------------------------------------------------------------ #
@@ -88,7 +169,11 @@ class TeamKnowledgeService:
         embedding = None
         try:
             svc = get_embedding_service(tenant_config=llm_config or {})
-            text_to_embed = f"{title}\n\n{content}"
+            # Embed title + first 500 chars of content only.
+            # Embedding the full content dilutes the title signal — short queries like
+            # "jitsi meet" fail to match a 4800-token document even when it's clearly relevant.
+            content_snippet = content[:500] if content else ""
+            text_to_embed = f"{title}\n\n{content_snippet}"
             embedding = await svc.embed_text(text_to_embed)
         except Exception as e:
             logger.warning(f"Embedding failed for knowledge entry (storing without embedding): {e}")
@@ -342,10 +427,16 @@ class TeamKnowledgeService:
         if not recent_entries:
             return {"found": False, "similar_entries": [], "message": ""}
 
+        # Expand the raw query into a semantic intent description before embedding.
+        # This maps short/ambiguous queries ("jitsi meet", "fix the auth bug") to a richer
+        # representation that matches how knowledge entries are stored (title + context snippet).
+        # Falls back to the raw query if expansion fails.
+        expanded_query = await _expand_query_intent(query, llm_config=llm_config)
+
         query_embedding = None
         try:
             svc = get_embedding_service(tenant_config=llm_config or {})
-            query_embedding = await svc.embed_text(query)
+            query_embedding = await svc.embed_text(expanded_query)
         except Exception as e:
             logger.warning(f"Redundancy check embedding failed: {e}")
             return {"found": False, "similar_entries": [], "message": ""}
