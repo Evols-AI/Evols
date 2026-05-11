@@ -12,7 +12,7 @@ import Header from '@/components/Header'
 import { Loading } from '@/components/PageContainer'
 import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare, Volume2, Database } from 'lucide-react'
 
-type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'api_keys' | 'chat' | 'speech' | 'data_controls'
+type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'chat' | 'speech' | 'data_controls'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini' | 'groq' | 'mistral' | 'cohere' | 'together_ai' | 'ollama' | 'deepseek' | 'xai' | 'openrouter'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -91,7 +91,7 @@ export default function Settings() {
     // Handle ?tab= query parameter
     if (router.query.tab && typeof router.query.tab === 'string') {
       const tabParam = router.query.tab as Tab
-      if (['profile', 'security', 'api_keys', 'notifications', 'llm', 'data_refresh', 'team', 'chat', 'speech', 'data_controls'].includes(tabParam)) {
+      if (['profile', 'security', 'notifications', 'llm', 'data_refresh', 'team', 'chat', 'speech', 'data_controls'].includes(tabParam)) {
         setActiveTab(tabParam)
       }
     }
@@ -135,6 +135,19 @@ export default function Settings() {
   const [lastKnowledgeRefreshDate, setLastKnowledgeRefreshDate] = useState<string | null>(null)
   const [savingKnowledgeRefresh, setSavingKnowledgeRefresh] = useState(false)
 
+  // Graph extraction settings state
+  type EntityEntry = { name: string; definition: string | null }
+  const [entityTypes, setEntityTypes] = useState<EntityEntry[]>([])
+  const [entityAttributes, setEntityAttributes] = useState<EntityEntry[]>([])
+  const [newTypeName, setNewTypeName] = useState('')
+  const [newTypeDefinition, setNewTypeDefinition] = useState('')
+  const [newAttrName, setNewAttrName] = useState('')
+  const [newAttrDefinition, setNewAttrDefinition] = useState('')
+  const [editingType, setEditingType] = useState<string | null>(null)
+  const [editingAttr, setEditingAttr] = useState<string | null>(null)
+  const [loadingGraphExtraction, setLoadingGraphExtraction] = useState(false)
+  const [savingGraphExtraction, setSavingGraphExtraction] = useState(false)
+
   // API Keys state
   const [apiKeys, setApiKeys] = useState<any[]>([])
   const [loadingApiKeys, setLoadingApiKeys] = useState(false)
@@ -154,7 +167,6 @@ export default function Settings() {
   const tabs = [
     { id: 'profile' as Tab, label: 'Profile', icon: User },
     { id: 'security' as Tab, label: 'Security', icon: Shield },
-    { id: 'api_keys' as Tab, label: 'API Keys', icon: Key },
     // { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
     { id: 'data_refresh' as Tab, label: 'Data Refresh', icon: RefreshCw },
@@ -170,10 +182,11 @@ export default function Settings() {
       loadModelOptions()
     } else if (activeTab === 'data_refresh') {
       loadKnowledgeRefreshSettings()
+      loadGraphExtractionSettings()
     } else if (activeTab === 'team') {
       loadTeamMembers()
       loadInvites()
-    } else if (activeTab === 'api_keys') {
+    } else if (activeTab === 'security') {
       loadApiKeys()
     }
   }, [activeTab])
@@ -462,6 +475,79 @@ export default function Settings() {
     }
   }
 
+  const loadGraphExtractionSettings = async () => {
+    try {
+      setLoadingGraphExtraction(true)
+      const response = await api.getGraphExtractionSettings()
+      setEntityTypes(response.data.entity_types ?? [])
+      setEntityAttributes(response.data.entity_attributes ?? [])
+    } catch (error) {
+      console.error('Failed to load graph extraction settings:', error)
+    } finally {
+      setLoadingGraphExtraction(false)
+    }
+  }
+
+  const handleSaveGraphExtractionSettings = async () => {
+    // Auto-commit any pending entry in the add-row inputs before saving
+    const pendingTypeName = newTypeName.trim()
+    const finalEntityTypes =
+      pendingTypeName && !entityTypes.some((t) => t.name === pendingTypeName)
+        ? [...entityTypes, { name: pendingTypeName, definition: newTypeDefinition.trim() || null }]
+        : entityTypes
+
+    const pendingAttrName = newAttrName.trim()
+    const finalEntityAttributes =
+      pendingAttrName && !entityAttributes.some((a) => a.name === pendingAttrName)
+        ? [...entityAttributes, { name: pendingAttrName, definition: newAttrDefinition.trim() || null }]
+        : entityAttributes
+
+    try {
+      setSavingGraphExtraction(true)
+      await api.updateGraphExtractionSettings({
+        entity_types: finalEntityTypes,
+        entity_attributes: finalEntityAttributes,
+      })
+      // Sync state so UI reflects what was actually saved
+      setEntityTypes(finalEntityTypes)
+      setEntityAttributes(finalEntityAttributes)
+      setNewTypeName('')
+      setNewTypeDefinition('')
+      setNewAttrName('')
+      setNewAttrDefinition('')
+      alert('Graph extraction settings saved. Changes apply on the next ingestion or manual sync.')
+    } catch (error: any) {
+      console.error('Failed to save graph extraction settings:', error)
+      alert(`Failed to save: ${error.response?.data?.detail || error.message}`)
+    } finally {
+      setSavingGraphExtraction(false)
+    }
+  }
+
+  const addEntityType = () => {
+    const name = newTypeName.trim()
+    if (!name || entityTypes.some((t) => t.name === name)) return
+    setEntityTypes([...entityTypes, { name, definition: newTypeDefinition.trim() || null }])
+    setNewTypeName('')
+    setNewTypeDefinition('')
+  }
+
+  const addEntityAttribute = () => {
+    const name = newAttrName.trim()
+    if (!name || entityAttributes.some((a) => a.name === name)) return
+    setEntityAttributes([...entityAttributes, { name, definition: newAttrDefinition.trim() || null }])
+    setNewAttrName('')
+    setNewAttrDefinition('')
+  }
+
+  const updateEntityTypeDefinition = (typeName: string, definition: string) => {
+    setEntityTypes(entityTypes.map((t) => t.name === typeName ? { ...t, definition: definition || null } : t))
+  }
+
+  const updateEntityAttributeDefinition = (attrName: string, definition: string) => {
+    setEntityAttributes(entityAttributes.map((a) => a.name === attrName ? { ...a, definition: definition || null } : a))
+  }
+
   // API Keys functions
   const loadApiKeys = async () => {
     try {
@@ -476,7 +562,7 @@ export default function Settings() {
   }
 
   const handleRevokeApiKey = async (keyId: number, keyName: string) => {
-    if (!confirm(`Revoke "${keyName}"? Any plugin using this key will stop working immediately.`)) return
+    if (!confirm(`Revoke "${keyName}"? Any agent using this key will stop working immediately.`)) return
     try {
       await api.delete(`/auth/api-keys/${keyId}`)
       await loadApiKeys()
@@ -643,7 +729,7 @@ export default function Settings() {
           */}
 
           {activeTab === 'security' && (
-            <div className="max-w-2xl space-y-6">
+            <div className="max-w-2xl space-y-8">
               <div>
                 <h3 className="text-lg mb-4 text-heading">Change Password</h3>
                 <div className="space-y-4">
@@ -690,6 +776,116 @@ export default function Settings() {
                 </div>
               </div>
               */}
+
+              {/* API Keys */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg text-heading">API Keys</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Long-lived keys for the Evols CLI. Configure once in{' '}
+                      <code className="text-xs bg-muted text-muted-foreground px-1 py-0.5 rounded">~/.evols/config.json</code>.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowCreateKeyModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85 transition-colors whitespace-nowrap flex-shrink-0 ml-4"
+                  >
+                    <Plus className="w-4 h-4" />
+                    New Key
+                  </button>
+                </div>
+
+                {/* Newly-created key banner */}
+                {newKeyData && (
+                  <div className="mb-6 p-4 bg-chart-3/10 border border-chart-3/30 rounded-lg">
+                    <p className="text-sm font-medium text-chart-3 mb-2">
+                      ✓ Key created — copy it now. It won&apos;t be shown again.
+                    </p>
+                    <p className="text-xs text-chart-3/80 mb-3">
+                      <strong>{newKeyData.name}</strong>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-card text-foreground border border-chart-3/30 rounded px-3 py-2 font-mono break-all">
+                        {newKeyData.key}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(newKeyData.key)
+                          setCopiedKey(true)
+                          setTimeout(() => setCopiedKey(false), 2000)
+                        }}
+                        className="flex-shrink-0 p-2 bg-chart-3 text-primary-foreground rounded hover:bg-chart-3/85 transition-colors"
+                        title="Copy key"
+                      >
+                        {copiedKey ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-chart-3/80 mt-3">
+                      Add to <code className="bg-chart-3/10 text-chart-3 px-1 rounded">~/.evols/config.json</code> as{' '}
+                      <code className="bg-chart-3/10 text-chart-3 px-1 rounded">&quot;api_key&quot;: &quot;{newKeyData.key.slice(0, 12)}...&quot;</code>
+                    </p>
+                    <button
+                      onClick={() => setNewKeyData(null)}
+                      className="mt-3 text-xs text-chart-3 underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+
+                {loadingApiKeys ? (
+                  <Loading text="Loading keys..." />
+                ) : apiKeys.length === 0 ? (
+                  <div className="text-center py-12 border border-dashed border-border rounded-lg">
+                    <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-muted-foreground mb-4">No API keys yet.</p>
+                    <button
+                      onClick={() => setShowCreateKeyModal(true)}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85"
+                    >
+                      Create First Key
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+                    {apiKeys.map((k: any) => (
+                      <div key={k.id} className="flex items-center justify-between px-4 py-3 bg-card">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{k.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            <code className="font-mono">{k.key_prefix}...</code>
+                            {' · '}
+                            Created {new Date(k.created_at).toLocaleDateString()}
+                            {k.last_used_at && ` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`}
+                            {!k.is_active && <span className="ml-2 text-destructive">Revoked</span>}
+                          </p>
+                        </div>
+                        {k.is_active && (
+                          <button
+                            onClick={() => handleRevokeApiKey(k.id, k.name)}
+                            className="p-2 text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/15 rounded transition-colors"
+                            title="Revoke key"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {showCreateKeyModal && (
+                  <CreateApiKeyModal
+                    onClose={() => setShowCreateKeyModal(false)}
+                    onSuccess={(key, name) => {
+                      setShowCreateKeyModal(false)
+                      setNewKeyData({ key, name })
+                      loadApiKeys()
+                    }}
+                  />
+                )}
+              </div>
             </div>
           )}
 
@@ -1547,118 +1743,225 @@ export default function Settings() {
                   )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* API Keys Tab */}
-          {activeTab === 'api_keys' && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg text-foreground">API Keys</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Long-lived keys for the Evols Claude Code plugin. Configure once in{' '}
-                    <code className="text-xs bg-muted text-muted-foreground px-1 py-0.5 rounded">~/.evols/config.json</code>.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowCreateKeyModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85 transition-colors whitespace-nowrap flex-shrink-0 ml-4"
-                >
-                  <Plus className="w-4 h-4" />
-                  New Key
-                </button>
-              </div>
+              {/* Knowledge Graph Extraction */}
+              <div className="mt-10 pt-8 border-t border-border">
+                <h3 className="text-lg mb-1 text-foreground">Knowledge Graph Extraction</h3>
+                <p className="text-muted-foreground mb-6">
+                  Customise the entity types and attributes LightRAG extracts from your data.
+                  Definitions are injected into the AI extraction prompt — the more precise the definition,
+                  the better the extraction quality and confidence score.
+                  Remove types that don't apply to your business or add new ones specific to your domain.
+                </p>
 
-              {/* Newly-created key banner */}
-              {newKeyData && (
-                <div className="mb-6 p-4 bg-chart-3/10 border border-chart-3/30 rounded-lg">
-                  <p className="text-sm font-medium text-chart-3 mb-2">
-                    ✓ Key created — copy it now. It won&apos;t be shown again.
-                  </p>
-                  <p className="text-xs text-chart-3/80 mb-3">
-                    <strong>{newKeyData.name}</strong>
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs bg-card text-foreground border border-chart-3/30 rounded px-3 py-2 font-mono break-all">
-                      {newKeyData.key}
-                    </code>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(newKeyData.key)
-                        setCopiedKey(true)
-                        setTimeout(() => setCopiedKey(false), 2000)
-                      }}
-                      className="flex-shrink-0 p-2 bg-chart-3 text-primary-foreground rounded hover:bg-chart-3/85 transition-colors"
-                      title="Copy key"
-                    >
-                      {copiedKey ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </button>
+                {loadingGraphExtraction ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                    </svg>
+                    Loading extraction settings…
                   </div>
-                  <p className="text-xs text-chart-3/80 mt-3">
-                    Add to <code className="bg-chart-3/10 text-chart-3 px-1 rounded">~/.evols/config.json</code> as{' '}
-                    <code className="bg-chart-3/10 text-chart-3 px-1 rounded">&quot;api_key&quot;: &quot;{newKeyData.key.slice(0, 12)}...&quot;</code>
-                  </p>
-                  <button
-                    onClick={() => setNewKeyData(null)}
-                    className="mt-3 text-xs text-chart-3 underline"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
+                ) : null}
 
-              {loadingApiKeys ? (
-                <Loading text="Loading keys..." />
-              ) : apiKeys.length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-border rounded-lg">
-                  <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-muted-foreground mb-4">No API keys yet.</p>
-                  <button
-                    onClick={() => setShowCreateKeyModal(true)}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/85"
-                  >
-                    Create First Key
-                  </button>
-                </div>
-              ) : (
-                <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
-                  {apiKeys.map((k: any) => (
-                    <div key={k.id} className="flex items-center justify-between px-4 py-3 bg-card">
+                <div className={`space-y-10 ${loadingGraphExtraction ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {/* Entity Types */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-sm font-medium text-foreground">{k.name}</p>
+                        <label className="block text-sm font-medium text-foreground">Entity types</label>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          <code className="font-mono">{k.key_prefix}...</code>
-                          {' · '}
-                          Created {new Date(k.created_at).toLocaleDateString()}
-                          {k.last_used_at && ` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`}
-                          {!k.is_active && <span className="ml-2 text-destructive">Revoked</span>}
+                          Types the LLM will recognise and extract. Pre-populated with Evols defaults — remove, edit, or add your own.
                         </p>
                       </div>
-                      {k.is_active && (
-                        <button
-                          onClick={() => handleRevokeApiKey(k.id, k.name)}
-                          className="p-2 text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/15 rounded transition-colors"
-                          title="Revoke key"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="border border-border rounded-md overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 border-b border-border">
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-36">Name</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Definition (injected into extraction prompt)</th>
+                            <th className="w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {entityTypes.map((t) => (
+                            <tr key={t.name} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                              <td className="px-3 py-2 font-medium text-foreground whitespace-nowrap">{t.name}</td>
+                              <td className="px-3 py-1.5">
+                                {editingType === t.name ? (
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    defaultValue={t.definition ?? ''}
+                                    onBlur={(e) => { updateEntityTypeDefinition(t.name, e.target.value); setEditingType(null) }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') { updateEntityTypeDefinition(t.name, (e.target as HTMLInputElement).value); setEditingType(null) }
+                                      if (e.key === 'Escape') setEditingType(null)
+                                    }}
+                                    className="w-full px-2 py-1 border border-ring rounded bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+                                  />
+                                ) : (
+                                  <span
+                                    className="block text-muted-foreground cursor-pointer hover:text-foreground transition-colors py-1 min-h-[1.75rem]"
+                                    onClick={() => setEditingType(t.name)}
+                                    title="Click to edit definition"
+                                  >
+                                    {t.definition || <span className="italic text-muted-foreground/50">Click to add definition…</span>}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-2 py-2 text-center">
+                                <button
+                                  onClick={() => setEntityTypes(entityTypes.filter((x) => x.name !== t.name))}
+                                  className="text-muted-foreground hover:text-destructive transition-colors text-base leading-none"
+                                  aria-label={`Remove ${t.name}`}
+                                >
+                                  ×
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <td className="px-3 py-2">
+                              <input
+                                type="text"
+                                value={newTypeName}
+                                onChange={(e) => setNewTypeName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEntityType() } }}
+                                placeholder="New type name"
+                                className="w-full px-2 py-1 border border-border rounded bg-input text-foreground text-sm placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="text"
+                                value={newTypeDefinition}
+                                onChange={(e) => setNewTypeDefinition(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEntityType() } }}
+                                placeholder="One-line definition (optional but recommended)"
+                                className="w-full px-2 py-1 border border-border rounded bg-input text-foreground text-sm placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                              />
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              <button
+                                onClick={addEntityType}
+                                disabled={!newTypeName.trim()}
+                                className="text-primary hover:text-primary/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg leading-none font-light"
+                                aria-label="Add entity type"
+                              >
+                                +
+                              </button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-              {showCreateKeyModal && (
-                <CreateApiKeyModal
-                  onClose={() => setShowCreateKeyModal(false)}
-                  onSuccess={(key, name) => {
-                    setShowCreateKeyModal(false)
-                    setNewKeyData({ key, name })
-                    loadApiKeys()
-                  }}
-                />
-              )}
+                  {/* Entity Attributes */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground">Entity attributes</label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Per-entity fields the LLM will extract as structured metadata. Stored as a JSON block inside each entity description.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="border border-border rounded-md overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 border-b border-border">
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-36">Attribute key</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Definition (helps the LLM understand what to extract)</th>
+                            <th className="w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {entityAttributes.map((a) => (
+                            <tr key={a.name} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                              <td className="px-3 py-2 font-mono text-foreground whitespace-nowrap">{a.name}</td>
+                              <td className="px-3 py-1.5">
+                                {editingAttr === a.name ? (
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    defaultValue={a.definition ?? ''}
+                                    onBlur={(e) => { updateEntityAttributeDefinition(a.name, e.target.value); setEditingAttr(null) }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') { updateEntityAttributeDefinition(a.name, (e.target as HTMLInputElement).value); setEditingAttr(null) }
+                                      if (e.key === 'Escape') setEditingAttr(null)
+                                    }}
+                                    className="w-full px-2 py-1 border border-ring rounded bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+                                  />
+                                ) : (
+                                  <span
+                                    className="block text-muted-foreground cursor-pointer hover:text-foreground transition-colors py-1 min-h-[1.75rem]"
+                                    onClick={() => setEditingAttr(a.name)}
+                                    title="Click to edit definition"
+                                  >
+                                    {a.definition || <span className="italic text-muted-foreground/50">Click to add definition…</span>}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-2 py-2 text-center">
+                                <button
+                                  onClick={() => setEntityAttributes(entityAttributes.filter((x) => x.name !== a.name))}
+                                  className="text-muted-foreground hover:text-destructive transition-colors text-base leading-none"
+                                  aria-label={`Remove ${a.name}`}
+                                >
+                                  ×
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <td className="px-3 py-2">
+                              <input
+                                type="text"
+                                value={newAttrName}
+                                onChange={(e) => setNewAttrName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEntityAttribute() } }}
+                                placeholder="New attribute key"
+                                className="w-full px-2 py-1 border border-border rounded bg-input text-foreground font-mono text-sm placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="text"
+                                value={newAttrDefinition}
+                                onChange={(e) => setNewAttrDefinition(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEntityAttribute() } }}
+                                placeholder="One-line definition (optional but recommended)"
+                                className="w-full px-2 py-1 border border-border rounded bg-input text-foreground text-sm placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                              />
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              <button
+                                onClick={addEntityAttribute}
+                                disabled={!newAttrName.trim()}
+                                className="text-primary hover:text-primary/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg leading-none font-light"
+                                aria-label="Add entity attribute"
+                              >
+                                +
+                              </button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSaveGraphExtractionSettings}
+                    disabled={savingGraphExtraction}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/85 disabled:bg-primary/40 dark:disabled:bg-primary/40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {savingGraphExtraction ? 'Saving...' : 'Save Extraction Settings'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
