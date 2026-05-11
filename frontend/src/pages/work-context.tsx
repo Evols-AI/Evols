@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { Briefcase, TrendingUp, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2, Users, Bot, FileText } from 'lucide-react'
+import { Briefcase, TrendingUp, CheckSquare, Lightbulb, Plus, Trash2, Edit, Loader2, Users, Bot, FileText, ChevronRight, ChevronLeft, GitBranch } from 'lucide-react'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { api } from '@/services/api'
 import Header from '@/components/Header'
@@ -16,6 +16,7 @@ import WeeklyFocusModal from '@/components/work-context/WeeklyFocusModal'
 import StrategyTab from '@/components/context/StrategyTab'
 
 type TabType = 'overview' | 'tasks' | 'decisions' | 'meetings' | 'weekly-focus' | 'strategy'
+type GraphTask = { id: string; name: string; description: string }
 
 export default function WorkContext() {
   const router = useRouter()
@@ -38,6 +39,11 @@ export default function WorkContext() {
   const [weeklyFocusModalOpen, setWeeklyFocusModalOpen] = useState(false)
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null)
   const [deletingDecisionId, setDeletingDecisionId] = useState<number | null>(null)
+  const [graphTasks, setGraphTasks] = useState<GraphTask[]>([])
+  const [graphTasksLoading, setGraphTasksLoading] = useState(false)
+  const [movingTaskId, setMovingTaskId] = useState<number | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null)
+  const [graphPanelOpen, setGraphPanelOpen] = useState(false)
 
 
   useEffect(() => {
@@ -49,6 +55,7 @@ export default function WorkContext() {
       setSelectedTab(tab as TabType)
     }
     loadData()
+    loadGraphTasks()
   }, [])
 
 
@@ -78,6 +85,73 @@ export default function WorkContext() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadGraphTasks = async () => {
+    setGraphTasksLoading(true)
+    try {
+      const res = await api.graph.getAll()
+      const nodes: any[] = res.data?.nodes ?? []
+      const parsed: GraphTask[] = nodes
+        .filter(n => (n.properties?.entity_type ?? '').toLowerCase() === 'task')
+        .map(n => {
+          const props = n.properties ?? {}
+          let desc = props.description ?? ''
+          const m = desc.match(/<!--\s*attrs:\s*(\{.*?\})\s*-->/)
+          if (m) desc = desc.replace(m[0], '').trim()
+          return { id: n.id, name: props.entity_id ?? n.id, description: desc }
+        })
+      setGraphTasks(parsed)
+    } catch (e) {
+      console.error('Failed to load graph tasks', e)
+    } finally {
+      setGraphTasksLoading(false)
+    }
+  }
+
+  const handlePullFromGraph = async (graphTask: GraphTask) => {
+    const userName = user?.name || user?.email || 'Unknown'
+    const description = graphTask.description
+      ? `${graphTask.description}\n\nAssigned to: ${userName}`
+      : `Assigned to: ${userName}`
+    try {
+      await api.workContext.createTask({
+        title: graphTask.name,
+        description,
+        status: 'todo',
+        priority: 'backlog',
+      })
+      await loadData()
+    } catch { alert('Failed to pull task') }
+  }
+
+  const handleMoveTask = async (taskId: number, direction: 'left' | 'right') => {
+    const STATUSES = ['todo', 'in_progress', 'completed'] as const
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    const idx = STATUSES.indexOf(task.status)
+    const nextIdx = direction === 'right' ? idx + 1 : idx - 1
+    if (nextIdx < 0 || nextIdx >= STATUSES.length) return
+    setMovingTaskId(taskId)
+    try {
+      await api.workContext.updateTask(taskId, { status: STATUSES[nextIdx] })
+      await loadData()
+    } catch { alert('Failed to move task') }
+    finally { setMovingTaskId(null) }
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault()
+    setDragOverCol(null)
+    const taskId = parseInt(e.dataTransfer.getData('taskId'), 10)
+    const fromStatus = e.dataTransfer.getData('fromStatus')
+    if (!taskId || fromStatus === targetStatus) return
+    setMovingTaskId(taskId)
+    try {
+      await api.workContext.updateTask(taskId, { status: targetStatus })
+      await loadData()
+    } catch { alert('Failed to move task') }
+    finally { setMovingTaskId(null) }
   }
 
   const handleDeleteTask = async (taskId: number) => {
@@ -174,24 +248,41 @@ export default function WorkContext() {
 
         {/* Tabs */}
         <div className="mb-6 border-b border-border">
-          <div className="flex gap-1 overflow-x-auto">
-            {TABS.map(({ id, label, icon: Icon, badge, onClick }) => (
-              <button
-                key={id}
-                onClick={onClick ?? (() => setSelectedTab(id))}
-                className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap flex items-center gap-1.5 ${
-                  selectedTab === id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-                {badge !== undefined && badge > 0 && (
-                  <span className="ml-1 text-xs bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 leading-none">{badge}</span>
-                )}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1 overflow-x-auto">
+              {TABS.map(({ id, label, icon: Icon, badge, onClick }) => (
+                <button
+                  key={id}
+                  onClick={onClick ?? (() => setSelectedTab(id))}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition whitespace-nowrap flex items-center gap-1.5 ${
+                    selectedTab === id
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                  {badge !== undefined && badge > 0 && (
+                    <span className="ml-1 text-xs bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 leading-none">{badge}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            {selectedTab === 'tasks' && (
+              <div className="flex items-center gap-2 mb-1">
+                <button onClick={() => setGraphPanelOpen(true)} className="btn-secondary flex items-center gap-2">
+                  <GitBranch className="w-4 h-4" />From Knowledge Graph
+                </button>
+                <button onClick={() => openTaskModal()} className="btn-primary flex items-center gap-2">
+                  <Plus className="w-4 h-4" />New Task
+                </button>
+              </div>
+            )}
+            {selectedTab === 'decisions' && (
+              <button onClick={() => openDecisionModal()} className="btn-primary flex items-center gap-2 mb-1">
+                <Plus className="w-4 h-4" />Log Decision
               </button>
-            ))}
+            )}
           </div>
         </div>
 
@@ -306,77 +397,129 @@ export default function WorkContext() {
 
         {/* ── Tasks Tab ─────────────────────────────────────────── */}
         {selectedTab === 'tasks' && (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <button onClick={() => openTaskModal()} className="btn-primary flex items-center gap-2">
-                <Plus className="w-4 h-4" />New Task
-              </button>
-            </div>
+          <div className="flex gap-4 items-start relative">
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {([
-                { status: 'todo',        label: '📋 To Do',      statusKey: 'todo' },
-                { status: 'in_progress', label: '🚀 In Progress', statusKey: 'in_progress' },
-                { status: 'completed',   label: '✅ Done',        statusKey: 'completed' },
-              ] as const).map(({ status, label }) => {
-                const colTasks = tasks.filter(t => t.status === status)
-                return (
-                  <div key={status} className="flex flex-col rounded-xl border border-border overflow-hidden">
-                    <div className="px-4 py-3 bg-muted/50 border-b border-border">
-                      <h3 className="text-sm font-medium text-foreground">
-                        {label} <span className="text-muted-foreground font-normal">({colTasks.length})</span>
-                      </h3>
+            {/* Knowledge graph slide-in panel */}
+            {graphPanelOpen && (
+              <div className="fixed inset-y-0 right-0 z-50 flex">
+                {/* backdrop */}
+                <div className="fixed inset-0 bg-black/30" onClick={() => setGraphPanelOpen(false)} />
+                <div className="relative ml-auto w-80 bg-background border-l border-border flex flex-col shadow-xl" style={{ height: '100vh' }}>
+                  <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="w-4 h-4 text-muted-foreground" />
+                      <h3 className="text-sm font-medium text-foreground">From Knowledge Graph</h3>
                     </div>
-                    <div className="flex-1 bg-muted/20 p-3 space-y-2 min-h-[480px]">
-                      {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
-                        const priorityTasks = colTasks.filter(t => t.priority === priority)
-                        if (priorityTasks.length === 0) return null
-                        return (
-                          <div key={priority} className="space-y-2">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider pt-1">
-                              {getPriorityLabel(priority)}
-                            </div>
-                            {priorityTasks.map((task) => (
-                              <TaskCard
-                                key={task.id}
-                                task={task}
-                                done={status === 'completed'}
-                                deleting={deletingTaskId === task.id}
-                                onEdit={() => openTaskModal(task)}
-                                onDelete={() => handleDeleteTask(task.id)}
-                              />
-                            ))}
-                          </div>
-                        )
-                      })}
-                      {colTasks.length === 0 && (
-                        <div className="text-center text-muted-foreground/50 text-sm py-8">No tasks</div>
-                      )}
-                    </div>
+                    <button onClick={() => setGraphPanelOpen(false)} className="p-1 text-muted-foreground hover:text-foreground rounded transition">
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
-                )
-              })}
-            </div>
-
-            {tasks.length === 0 && (
-              <Card>
-                <p className="text-center text-muted-foreground py-8">No tasks yet. Click "New Task" to add one.</p>
-              </Card>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {graphTasksLoading ? (
+                      <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+                    ) : graphTasks.length === 0 ? (
+                      <p className="text-sm text-muted-foreground/60 text-center py-8">No Task entities in graph yet</p>
+                    ) : graphTasks.map(gt => {
+                      const alreadyPulled = tasks.some(t => t.title === gt.name)
+                      return (
+                        <div key={gt.id} className="bg-card border border-border rounded-lg p-3 group">
+                          <p className="text-sm font-medium text-foreground mb-1">{gt.name}</p>
+                          {gt.description && (
+                            <p className="text-xs text-muted-foreground mb-2 line-clamp-3">{gt.description}</p>
+                          )}
+                          {alreadyPulled ? (
+                            <span className="text-xs text-muted-foreground/60 italic">Already in board</span>
+                          ) : (
+                            <button
+                              onClick={() => handlePullFromGraph(gt)}
+                              className="text-xs text-primary hover:underline flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />Pull to board
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
             )}
+
+            {/* Swimlanes */}
+            <div className="flex-1 min-w-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+                {([
+                  { status: 'todo',        label: '📋 To Do' },
+                  { status: 'in_progress', label: '🚀 In Progress' },
+                  { status: 'completed',   label: '✅ Done' },
+                ] as const).map(({ status, label }, colIdx) => {
+                  const colTasks = tasks.filter(t => t.status === status)
+                  const isOver = dragOverCol === status
+                  return (
+                    <div
+                      key={status}
+                      className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${isOver ? 'border-primary bg-primary/5' : 'border-border'}`}
+                      style={{ height: 'calc(100vh - 220px)' }}
+                      onDragOver={e => { e.preventDefault(); setDragOverCol(status) }}
+                      onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverCol(null) }}
+                      onDrop={e => handleDrop(e, status)}
+                    >
+                      <div className="px-4 py-3 bg-muted/50 border-b border-border flex-shrink-0">
+                        <h3 className="text-sm font-medium text-foreground">
+                          {label} <span className="text-muted-foreground font-normal">({colTasks.length})</span>
+                        </h3>
+                      </div>
+                      <div className="flex-1 overflow-y-auto bg-muted/20 p-3 space-y-2">
+                        {['critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'].map((priority) => {
+                          const priorityTasks = colTasks.filter(t => t.priority === priority)
+                          if (priorityTasks.length === 0) return null
+                          return (
+                            <div key={priority} className="space-y-2">
+                              <div className="text-xs text-muted-foreground tracking-wide pt-1">
+                                {getPriorityLabel(priority)}
+                              </div>
+                              {priorityTasks.map((task) => (
+                                <TaskCard
+                                  key={task.id}
+                                  task={task}
+                                  done={status === 'completed'}
+                                  deleting={deletingTaskId === task.id}
+                                  moving={movingTaskId === task.id}
+                                  colIdx={colIdx}
+                                  onEdit={() => openTaskModal(task)}
+                                  onDelete={() => handleDeleteTask(task.id)}
+                                  onMoveLeft={() => handleMoveTask(task.id, 'left')}
+                                  onMoveRight={() => handleMoveTask(task.id, 'right')}
+                                  onDragStart={e => {
+                                    e.dataTransfer.setData('taskId', String(task.id))
+                                    e.dataTransfer.setData('fromStatus', status)
+                                    e.dataTransfer.effectAllowed = 'move'
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )
+                        })}
+                        {colTasks.length === 0 && (
+                          <div className="text-center text-muted-foreground/50 text-sm py-8">
+                            {isOver ? 'Drop here' : 'No tasks'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         )}
 
         {/* ── Decisions Tab ─────────────────────────────────────── */}
         {selectedTab === 'decisions' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Decisions from AI sessions and manually logged entries — sorted by date.
-              </p>
-              <button onClick={() => openDecisionModal()} className="btn-primary flex items-center gap-2">
-                <Plus className="w-4 h-4" />Log Decision
-              </button>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Decisions from AI sessions and manually logged entries — sorted by date.
+            </p>
 
             {timelineLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
@@ -402,7 +545,7 @@ export default function WorkContext() {
                       <div key={item.id}>
                         {showDateDivider && (
                           <div className="flex items-center gap-3 py-3 pl-10">
-                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            <span className="text-xs font-medium text-muted-foreground tracking-wide">
                               {date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
                           </div>
@@ -524,20 +667,36 @@ export default function WorkContext() {
 
 // ── Shared task card ───────────────────────────────────────────────────────
 
-function TaskCard({ task, done, deleting, onEdit, onDelete }: {
-  task: any; done: boolean; deleting: boolean; onEdit: () => void; onDelete: () => void
+function TaskCard({ task, done, deleting, moving, colIdx, onEdit, onDelete, onMoveLeft, onMoveRight, onDragStart }: {
+  task: any; done: boolean; deleting: boolean; moving: boolean; colIdx: number
+  onEdit: () => void; onDelete: () => void; onMoveLeft: () => void; onMoveRight: () => void
+  onDragStart: (e: React.DragEvent) => void
 }) {
   return (
-    <div className={`bg-card border border-border p-3 rounded-lg group hover:border-primary/30 transition ${done ? 'opacity-60' : ''}`}>
+    <div
+      draggable
+      onDragStart={onDragStart}
+      className={`bg-card border border-border p-3 rounded-lg group hover:border-primary/30 transition cursor-grab active:cursor-grabbing ${done ? 'opacity-60' : ''}`}
+    >
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className={`flex-1 min-w-0 font-medium text-sm text-foreground ${done ? 'line-through' : ''}`}>
           {task.title}
         </div>
-        <div className="flex items-center gap-1">
-          <button onClick={onEdit} className="p-1 text-muted-foreground hover:text-primary rounded opacity-0 group-hover:opacity-100 transition" title="Edit">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+          {colIdx > 0 && (
+            <button onClick={onMoveLeft} disabled={moving} className="p-1 text-muted-foreground hover:text-primary rounded" title="Move left">
+              {moving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+            </button>
+          )}
+          {colIdx < 2 && (
+            <button onClick={onMoveRight} disabled={moving} className="p-1 text-muted-foreground hover:text-primary rounded" title="Move right">
+              {moving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+          )}
+          <button onClick={onEdit} className="p-1 text-muted-foreground hover:text-primary rounded" title="Edit">
             <Edit className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onDelete} disabled={deleting} className="p-1 text-muted-foreground hover:text-destructive rounded opacity-0 group-hover:opacity-100 transition" title="Delete">
+          <button onClick={onDelete} disabled={deleting} className="p-1 text-muted-foreground hover:text-destructive rounded" title="Delete">
             {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           </button>
         </div>

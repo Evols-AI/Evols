@@ -246,6 +246,7 @@ export const api = {
       apiClient.get('/api/v1/graph/hubs', { params: { limit } }),
     getNode: (nodeId: string) =>
       apiClient.get(`/api/v1/graph/node/${encodeURIComponent(nodeId)}`),
+    getAll: () => apiClient.get('/api/v1/graph/graph'),
   },
 
   // Integrations — per-user OAuth data source connections

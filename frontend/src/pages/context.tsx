@@ -394,30 +394,45 @@ export default function Context() {
                     </button>
                   </div>
 
-                  {/* Search + entity type filter — hidden on AI sessions tab */}
-                  {selectedView !== 'ai_sessions' && <div className="flex items-center gap-2">
+                  {/* Right side controls: days filter for AI sessions, search+filter for others */}
+                  {selectedView === 'ai_sessions' ? (
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search..."
-                        className="pl-10 pr-4 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none"
-                      />
+                      <select
+                        value={aiDays}
+                        onChange={e => setAiDays(Number(e.target.value))}
+                        className="text-sm px-3 py-2 pr-8 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50"
+                      >
+                        <option value={7}>Last 7 days</option>
+                        <option value={14}>Last 14 days</option>
+                        <option value={30}>Last 30 days</option>
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
-                    {(selectedView === 'entities' || selectedView === 'knowledge_graph') && (
-                      <EntityTypeFilterDropdown
-                        selected={entityTypeFilter}
-                        onChange={setEntityTypeFilter}
-                        availableTypes={configuredEntityTypes}
-                        counts={graphEntities.reduce<Record<string, number>>((acc, e) => {
-                          acc[e.entity_type] = (acc[e.entity_type] ?? 0) + 1
-                          return acc
-                        }, {})}
-                      />
-                    )}
-                  </div>}
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Search..."
+                          className="pl-10 pr-4 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none"
+                        />
+                      </div>
+                      {(selectedView === 'entities' || selectedView === 'knowledge_graph') && (
+                        <EntityTypeFilterDropdown
+                          selected={entityTypeFilter}
+                          onChange={setEntityTypeFilter}
+                          availableTypes={configuredEntityTypes}
+                          counts={graphEntities.reduce<Record<string, number>>((acc, e) => {
+                            acc[e.entity_type] = (acc[e.entity_type] ?? 0) + 1
+                            return acc
+                          }, {})}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -455,8 +470,6 @@ export default function Context() {
                   entries={aiEntries}
                   loading={aiLoading}
                   days={aiDays}
-                  onDaysChange={(d) => { setAiDays(d); }}
-                  onRefresh={loadAiSessions}
                   onEntryClick={handleAiEntryClick}
                 />
               ) : (
@@ -1546,38 +1559,16 @@ function AiSessionsView({
   entries,
   loading,
   days,
-  onDaysChange,
-  onRefresh,
   onEntryClick,
 }: {
   summary: any
   entries: any[]
   loading: boolean
   days: number
-  onDaysChange: (d: number) => void
-  onRefresh: () => void
   onEntryClick: (entry: any) => void
 }) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <select
-            value={days}
-            onChange={e => onDaysChange(Number(e.target.value))}
-            className="text-sm px-3 py-2 pr-8 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50"
-          >
-            <option value={7}>Last 7 days</option>
-            <option value={14}>Last 14 days</option>
-            <option value={30}>Last 30 days</option>
-          </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-        </div>
-        <button onClick={onRefresh} disabled={loading} className="btn-secondary flex items-center gap-2">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />Refresh
-        </button>
-      </div>
-
       {loading ? <Card><div className="p-8 text-center text-sm text-muted-foreground">Loading session data...</div></Card> : summary ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1589,7 +1580,7 @@ function AiSessionsView({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card padding="md">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Knowledge Investment</h3>
+              <h3 className="card-header text-sm mb-3">Knowledge Investment</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tokens invested</span>
@@ -1607,7 +1598,7 @@ function AiSessionsView({
             </Card>
 
             <Card padding="md">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Knowledge Reuse</h3>
+              <h3 className="card-header text-sm mb-3">Knowledge Reuse</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tokens retrieved</span>
@@ -1628,7 +1619,7 @@ function AiSessionsView({
             </Card>
 
             <Card padding="md">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Net Impact</h3>
+              <h3 className="card-header text-sm mb-3">Net Impact</h3>
               {(() => {
                 const net = summary.net_impact ?? ((summary.actual_savings ?? 0) - (summary.tokens_invested ?? 0))
                 const roi = summary.roi_pct ?? 0
@@ -1664,8 +1655,8 @@ function AiSessionsView({
       )}
 
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-          Session Knowledge — {entries.length} entries
+        <h2 className="card-header text-sm mb-4">
+          Session Knowledge ({entries.length})
         </h2>
         {loading ? null : entries.length === 0 ? (
           <Card>

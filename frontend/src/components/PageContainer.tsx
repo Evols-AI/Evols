@@ -164,7 +164,7 @@ export function StatCard({ title, value, subtitle, icon, trend, trendValue, colo
     <Card>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground dark:text-muted-foreground mb-1">
+          <p className="text-sm font-medium text-foreground mb-1" style={{ fontFamily: "'Syne', system-ui, sans-serif" }}>
             {title}
           </p>
           <p className="text-3xl font-medium text-foreground dark:text-foreground mb-1">
