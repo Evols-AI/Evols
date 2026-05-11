@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect } from 'react'
-import { Sparkles, Book, Code, Zap, Server, Briefcase, Brain, Network, Key, Building2, Lock, Plug } from 'lucide-react'
+import { Sparkles, Book, Code, Zap, Server, Briefcase, Brain, Network, Key, Building2, Lock, Plug, Rocket } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
@@ -42,12 +42,13 @@ export default function Docs() {
           {/* Quick Links Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
             {[
+              { icon: Rocket,     title: 'Quickstart',      description: 'Get up and running in 2 minutes — individual, team setup, or new team member', href: '/docs/quickstart' },
               { icon: Sparkles,   title: 'AI Workbench',    description: 'Conversational AI with 80+ skills, RAG, and internet search', href: '/docs/workbench' },
               { icon: Briefcase, title: 'Work Context',    description: 'Role, projects, tasks, and capacity — your AI work hub', href: '#work-context' },
               { icon: Brain,     title: 'Knowledge',       description: 'Document intelligence and LightRAG entity extraction', href: '#knowledge' },
               { icon: Network,   title: 'Knowledge Graph', description: 'Visual graph of entities, relationships, and confidence scores', href: '#knowledge' },
               { icon: Plug,      title: 'Integrations',    description: 'Connect Slack, Outlook, Teams, Notion, Salesforce, Zendesk, GitHub', href: '/docs/integrations' },
-              { icon: Key,       title: 'Developer Tools', description: 'MCP endpoint, API keys, Claude Code plugin', href: '#developer-tools' },
+              { icon: Key,       title: 'Developer Tools', description: 'MCP endpoint, API keys, Evols CLI', href: '#developer-tools' },
               { icon: Building2, title: 'Tenancy & BYOK',  description: 'Workspace isolation, user roles, and 13-provider BYOK LLM support', href: '#byok' },
             ].map(({ icon: Icon, title, description, href }) => (
               <SpotlightCard key={title}>
@@ -67,7 +68,23 @@ export default function Docs() {
 
             <Section id="getting-started" title="Getting Started">
               <div className="space-y-4 text-sm text-muted-foreground">
-                <h3 className="text-base font-medium text-foreground">Self-hosted Installation</h3>
+                <p>
+                  New to Evols? The <Link href="/docs/quickstart" className="text-primary hover:underline">Quickstart guide</Link> walks you through setup in under 5 minutes — choose your path:
+                </p>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[
+                    { label: 'Individual Setup', desc: 'Just you, 2 min', href: '/docs/quickstart' },
+                    { label: 'Team Setup', desc: 'Creating a workspace, 5 min', href: '/docs/quickstart' },
+                    { label: 'New Team Member', desc: 'Joining an existing team, 3 min', href: '/docs/quickstart' },
+                  ].map(({ label, desc, href }) => (
+                    <Link key={label} href={href}
+                      className="p-3 rounded-lg border border-border bg-card hover:border-primary/40 transition-colors block">
+                      <div className="text-sm font-medium text-foreground">{label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
+                    </Link>
+                  ))}
+                </div>
+                <h3 className="text-base font-medium text-foreground pt-2">Self-hosted Installation</h3>
                 <p>Run Evols locally with Docker Compose:</p>
                 <pre className="p-4 rounded-lg overflow-x-auto text-sm bg-muted text-foreground">
                   <code>{`cd docker\ndocker-compose up -d`}</code>
@@ -215,12 +232,13 @@ export default function Docs() {
                   ]}
                 />
                 <FeatureDoc
-                  title="Claude Code Plugin"
-                  description="Share team product context with Claude Code during engineering sessions. Surfaces knowledge graph entities, team knowledge, and decisions inside Claude Code — useful for engineers who need PM context while building features."
+                  title="Evols CLI"
+                  description="The Evols CLI wires MCP and hooks into every coding agent on your machine. Claude Code, Cursor, Zed, Codex, and Antigravity are detected and configured automatically."
                   features={[
-                    'CLI install: claude mcp add evols -- npx @evols-ai/claude-code-plugin (set EVOLS_API_KEY env var to your key from Settings → API Keys)',
-                    'VSCode UI: open the Claude Code extension → click "MCP" in the sidebar → "Add Server" → set command to npx @evols-ai/claude-code-plugin → add EVOLS_API_KEY environment variable → save',
-                    'Cursor / other editors: add to your mcp.json with command npx @evols-ai/claude-code-plugin and env EVOLS_API_KEY set to your API key',
+                    'Install: curl -fsSL https://api.evols.ai/api/v1/install/script | sh',
+                    'Authenticate: evols login — enter your API key from Settings → API Keys',
+                    'Wire all detected agents: evols install',
+                    'The MCP server (evols mcp-server) is spawned automatically by agents — no manual process required',
                   ]}
                 />
                 <FeatureDoc

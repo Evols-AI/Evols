@@ -10,7 +10,6 @@ import { getCurrentUser } from '@/utils/auth'
 const NAV_LINKS = [
   { label: 'How it works', href: '#how-it-works' },
   { label: 'Features', href: '#features' },
-  { label: 'Plugins', href: '/plugins' },
   { label: 'Blog', href: '/blog' },
   { label: 'Docs', href: '/docs' },
 ]
@@ -51,8 +50,8 @@ export default function Header({ user, currentPage, variant = 'app' }: HeaderPro
 
   const navItems = [
     { href: '/workbench', label: 'Workbench', key: 'workbench', icon: Sparkles },
-    { href: '/work-context', label: 'Work Context', key: 'work-context', icon: Briefcase },
     { href: '/context', label: 'Knowledge', key: 'context', icon: Brain },
+    { href: '/work-context', label: 'Work Context', key: 'work-context', icon: Briefcase },
     { href: '/skills', label: 'Skills', key: 'skills', icon: Zap },
   ]
 

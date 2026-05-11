@@ -92,7 +92,7 @@ const FEATURES = [
   {
     icon: <MessageSquare className="w-6 h-6" />,
     title: 'Works Where You Work',
-    description: 'One plugin install activates everything in Claude Code. MCP integration covers Copilot, Kiro, Cursor, and Cline automatically.',
+    description: 'One CLI install activates everything. MCP server and hooks are wired automatically into Claude Code, Cursor, Zed, Codex, and Antigravity.',
     stat: '1 cmd',
     statLabel: 'to activate',
   },
@@ -161,7 +161,7 @@ export default function Home() {
         <title>Evols AI - The Team AI Operating System</title>
         <meta name="description" content="Evols eliminates the handoff tax. Every AI session your team runs compounds into shared intelligence — zero cold start, no duplicate work, full quota visibility." />
         <meta property="og:title" content="Evols AI — The Team AI Operating System" />
-        <meta property="og:description" content="Turn every AI session into team intelligence. One plugin install activates everything." />
+        <meta property="og:description" content="Turn every AI session into team intelligence. One CLI install activates everything." />
         <meta name="robots" content="index, follow" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
@@ -333,7 +333,7 @@ export default function Home() {
                 One install. Everything connects.
               </h2>
               <p className={`${textFaint} max-w-xl mx-auto text-base leading-relaxed`}>
-                The Evols plugin bundles hooks, MCP server, and team context — no manual configuration.
+                The Evols CLI bundles hooks, MCP server, and team context — no manual configuration.
               </p>
             </div>
 
@@ -346,9 +346,9 @@ export default function Home() {
                   <span className={`ml-3 text-xs ${textFaint} font-mono`}>terminal</span>
                 </div>
                 <div className="p-5 font-mono text-sm">
-                  <p><span className={textFaint}>$ </span><span className={text}>claude plugin install evols</span></p>
-                  <p className={`${textMuted} mt-2`}>→ Enter your team workspace URL: <span style={{ color: lav }}>app.evols.ai/acme</span></p>
-                  <p className={textMuted}>→ Enter your API key: <span style={{ color: lav }}>••••••••••••</span></p>
+                  <p><span className={textFaint}>$ </span><span className={text}>curl -fsSL https://api.evols.ai/api/v1/install/script | sh</span></p>
+                  <p className={`${textMuted} mt-2`}><span className={textFaint}>$ </span><span className={text}>evols login</span></p>
+                  <p className={textMuted}><span className={textFaint}>$ </span><span className={text}>evols install</span></p>
                   <p className="text-[#22C55E] mt-2">✓ Hooks registered • MCP server active • Team context loaded</p>
                   <p className="text-[#22C55E]">✓ Done. Your team's knowledge base is ready.</p>
                 </div>
