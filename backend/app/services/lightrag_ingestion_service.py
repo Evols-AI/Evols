@@ -106,8 +106,22 @@ async def _delete_document(file_source: str) -> bool:
         return False
 
 
-async def _insert_texts(texts: list[str], file_sources: list[str]) -> bool:
-    """POST a batch of texts to LightRAG /documents/texts. Returns True on success."""
+async def _insert_texts(
+    texts: list[str],
+    file_sources: list[str],
+    extra_entity_types: list[str] | None = None,
+    extra_entity_attributes: list[str] | None = None,
+    entity_type_definitions: dict[str, str] | None = None,
+    entity_attribute_definitions: dict[str, str] | None = None,
+) -> bool:
+    """POST a batch of texts to LightRAG /documents/texts. Returns True on success.
+
+    extra_entity_types / extra_entity_attributes are forwarded to LightRAG so
+    that the patched image can merge them with the global defaults for this batch.
+    entity_type_definitions / entity_attribute_definitions are name→definition
+    maps injected into the extraction prompt so the LLM understands each type
+    and attribute precisely, improving extraction confidence.
+    """
     url = _lightrag_url()
     if not url:
         logger.warning("LightRAG URL not configured — skipping ingestion")
@@ -123,19 +137,28 @@ async def _insert_texts(texts: list[str], file_sources: list[str]) -> bool:
         logger.warning("_insert_texts: all texts were empty after filtering")
         return True
     texts_clean, sources_clean = zip(*pairs)
+    body: dict = {"texts": list(texts_clean), "file_sources": list(sources_clean)}
+    if extra_entity_types:
+        body["extra_entity_types"] = extra_entity_types
+    if extra_entity_attributes:
+        body["extra_entity_attributes"] = extra_entity_attributes
+    if entity_type_definitions:
+        body["entity_type_definitions"] = entity_type_definitions
+    if entity_attribute_definitions:
+        body["entity_attribute_definitions"] = entity_attribute_definitions
     try:
         headers = await lightrag_auth_headers()
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(
                 f"{url}/documents/texts",
-                json={"texts": list(texts_clean), "file_sources": list(sources_clean)},
+                json=body,
                 headers=headers,
             )
             if resp.status_code == 401:
                 invalidate_lightrag_jwt()
                 resp = await client.post(
                     f"{url}/documents/texts",
-                    json={"texts": list(texts_clean), "file_sources": list(sources_clean)},
+                    json=body,
                     headers=await lightrag_auth_headers(),
                 )
         if resp.status_code not in (200, 202):
@@ -345,18 +368,139 @@ def format_pm_decision(decision, user_name: str = "", product_name: str = "") ->
     return "\n".join(lines).strip()
 
 
+# ── Built-in type/attribute names (LightRAG knows these natively) ─────────────
+_BUILTIN_TYPE_NAMES: frozenset[str] = frozenset([
+    "Person", "Organization", "Product", "Feature", "PainPoint",
+    "FeatureRequest", "Persona", "Competitor", "BusinessGoal", "Metric",
+    "Decision", "Meeting", "Project", "Technology", "Market",
+])
+
+
+def _parse_entry_list(raw: list) -> list[dict]:
+    """Normalise a stored list to [{name, definition}] — handles legacy plain strings."""
+    out = []
+    for item in raw:
+        if isinstance(item, dict) and item.get("name", "").strip():
+            out.append({"name": item["name"].strip(), "definition": item.get("definition") or None})
+        elif isinstance(item, str) and item.strip():
+            out.append({"name": item.strip(), "definition": None})
+    return out
+
+
+# ── Tenant graph extraction config ───────────────────────────────────────────
+
+class TenantGraphConfig:
+    """Per-tenant entity types and attributes loaded from Tenant.settings.
+
+    Tenants own the full list. Types not in _BUILTIN_TYPE_NAMES are sent as
+    extra_entity_types so LightRAG merges them with its global defaults.
+    All types (builtin + custom) with definitions are sent as
+    entity_type_definitions for prompt injection.
+    """
+    __slots__ = (
+        "extra_entity_types",
+        "extra_entity_attributes",
+        "entity_type_definitions",
+        "entity_attribute_definitions",
+    )
+
+    def __init__(
+        self,
+        extra_entity_types: list[str] | None = None,
+        extra_entity_attributes: list[str] | None = None,
+        entity_type_definitions: dict[str, str] | None = None,
+        entity_attribute_definitions: dict[str, str] | None = None,
+    ):
+        self.extra_entity_types: list[str] = extra_entity_types or []
+        self.extra_entity_attributes: list[str] = extra_entity_attributes or []
+        self.entity_type_definitions: dict[str, str] = entity_type_definitions or {}
+        self.entity_attribute_definitions: dict[str, str] = entity_attribute_definitions or {}
+
+    @classmethod
+    def from_tenant_settings(cls, settings: dict | None) -> "TenantGraphConfig":
+        s = settings or {}
+
+        # Prefer new unified format; fall back to legacy custom_entity_types key
+        if "entity_types" in s:
+            raw_types = _parse_entry_list(s["entity_types"])
+        else:
+            raw_types = _parse_entry_list(s.get("custom_entity_types") or [])
+            # Prepend built-in names with no definitions if not already present
+            existing = {e["name"] for e in raw_types}
+            raw_types = [
+                {"name": n, "definition": None}
+                for n in _BUILTIN_TYPE_NAMES if n not in existing
+            ] + raw_types
+
+        if "entity_attributes" in s:
+            raw_attrs = _parse_entry_list(s["entity_attributes"])
+        else:
+            # Legacy: custom_entity_attributes were plain strings
+            raw_attrs = [
+                {"name": a, "definition": None}
+                for a in (s.get("custom_entity_attributes") or [])
+                if isinstance(a, str) and a.strip()
+            ]
+
+        extra_types = [e["name"] for e in raw_types if e["name"] not in _BUILTIN_TYPE_NAMES]
+        extra_attrs = [e["name"] for e in raw_attrs]
+        type_defs = {e["name"]: e["definition"] for e in raw_types if e.get("definition")}
+        attr_defs = {e["name"]: e["definition"] for e in raw_attrs if e.get("definition")}
+
+        return cls(
+            extra_entity_types=extra_types,
+            extra_entity_attributes=extra_attrs,
+            entity_type_definitions=type_defs,
+            entity_attribute_definitions=attr_defs,
+        )
+
+    @property
+    def has_custom(self) -> bool:
+        return bool(self.extra_entity_types or self.extra_entity_attributes)
+
+
+async def load_tenant_graph_config(tenant_id: int | None, db: Any) -> TenantGraphConfig:
+    """Load TenantGraphConfig from the database for a given tenant_id.
+
+    Returns an empty config (no custom types) when tenant_id is None or the
+    tenant cannot be found — safe to call from any endpoint.
+    """
+    if not tenant_id:
+        return TenantGraphConfig()
+    try:
+        from sqlalchemy import select as _select
+        from app.models.tenant import Tenant as _Tenant
+        result = await db.execute(_select(_Tenant).where(_Tenant.id == tenant_id))
+        tenant = result.scalar_one_or_none()
+        return TenantGraphConfig.from_tenant_settings(getattr(tenant, "settings", None))
+    except Exception:
+        return TenantGraphConfig()
+
+
 # ── High-level ingestion calls ────────────────────────────────────────────────
 
-async def ingest_context_source(source, product_name: str = "") -> bool:
+async def ingest_context_source(
+    source, product_name: str = "", tenant_config: TenantGraphConfig | None = None
+) -> bool:
     """Push a single ContextSource (with its content) into LightRAG."""
     text = format_context_source(source)
     if not text:
         return True
     source_label = f"context_source:{source.id}"
-    return await _insert_texts([text], [source_label])
+    cfg = tenant_config
+    return await _insert_texts(
+        [text], [source_label],
+        extra_entity_types=cfg.extra_entity_types if cfg else None,
+        extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+        entity_type_definitions=cfg.entity_type_definitions if cfg else None,
+        entity_attribute_definitions=cfg.entity_attribute_definitions if cfg else None,
+    )
 
 
-async def ingest_extracted_entities(entities: list, source_map: dict = None, product_name: str = "") -> bool:
+async def ingest_extracted_entities(
+    entities: list, source_map: dict = None, product_name: str = "",
+    tenant_config: TenantGraphConfig | None = None,
+) -> bool:
     """Push a list of ExtractedEntity objects as a single batch into LightRAG."""
     source_map = source_map or {}
     texts, sources = [], []
@@ -366,41 +510,91 @@ async def ingest_extracted_entities(entities: list, source_map: dict = None, pro
         if text:
             texts.append(text)
             sources.append(f"entity:{e.id}")
-    return await _insert_texts(texts, sources)
+    cfg = tenant_config
+    return await _insert_texts(
+        texts, sources,
+        extra_entity_types=cfg.extra_entity_types if cfg else None,
+        extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+        entity_type_definitions=cfg.entity_type_definitions if cfg else None,
+        entity_attribute_definitions=cfg.entity_attribute_definitions if cfg else None,
+    )
 
 
-async def ingest_personas(personas: list, product_name: str = "") -> bool:
+async def ingest_personas(
+    personas: list, product_name: str = "",
+    tenant_config: TenantGraphConfig | None = None,
+) -> bool:
     """Push a list of Persona objects into LightRAG."""
     texts = [format_persona(p, product_name) for p in personas]
     sources = [f"persona:{p.id}" for p in personas]
-    return await _insert_texts(texts, sources)
+    cfg = tenant_config
+    return await _insert_texts(
+        texts, sources,
+        extra_entity_types=cfg.extra_entity_types if cfg else None,
+        extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+        entity_type_definitions=cfg.entity_type_definitions if cfg else None,
+        entity_attribute_definitions=cfg.entity_attribute_definitions if cfg else None,
+    )
 
 
-async def ingest_work_context(wc, user_name: str = "", projects=None, relationships=None) -> bool:
+async def ingest_work_context(
+    wc, user_name: str = "", projects=None, relationships=None,
+    tenant_config: TenantGraphConfig | None = None,
+) -> bool:
     """Push a WorkContext (with projects + relationships) into LightRAG."""
     text = format_work_context(wc, user_name, projects, relationships)
     if not text:
         return True
-    return await _insert_texts([text], [f"work_context:{wc.id}"])
+    cfg = tenant_config
+    return await _insert_texts(
+        [text], [f"work_context:{wc.id}"],
+        extra_entity_types=cfg.extra_entity_types if cfg else None,
+        extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+        entity_type_definitions=cfg.entity_type_definitions if cfg else None,
+        entity_attribute_definitions=cfg.entity_attribute_definitions if cfg else None,
+    )
 
 
-async def ingest_meeting_note(note, user_name: str = "") -> bool:
+async def ingest_meeting_note(
+    note, user_name: str = "",
+    tenant_config: TenantGraphConfig | None = None,
+) -> bool:
     """Push a single MeetingNote into LightRAG."""
     text = format_meeting_note(note, user_name)
     if not text:
         return True
-    return await _insert_texts([text], [f"meeting_note:{note.id}"])
+    cfg = tenant_config
+    return await _insert_texts(
+        [text], [f"meeting_note:{note.id}"],
+        extra_entity_types=cfg.extra_entity_types if cfg else None,
+        extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+        entity_type_definitions=cfg.entity_type_definitions if cfg else None,
+        entity_attribute_definitions=cfg.entity_attribute_definitions if cfg else None,
+    )
 
 
-async def ingest_pm_decision(decision, user_name: str = "", product_name: str = "") -> bool:
+async def ingest_pm_decision(
+    decision, user_name: str = "", product_name: str = "",
+    tenant_config: TenantGraphConfig | None = None,
+) -> bool:
     """Push a single PMDecision into LightRAG."""
     text = format_pm_decision(decision, user_name, product_name)
     if not text:
         return True
-    return await _insert_texts([text], [f"pm_decision:{decision.id}"])
+    cfg = tenant_config
+    return await _insert_texts(
+        [text], [f"pm_decision:{decision.id}"],
+        extra_entity_types=cfg.extra_entity_types if cfg else None,
+        extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+        entity_type_definitions=cfg.entity_type_definitions if cfg else None,
+        entity_attribute_definitions=cfg.entity_attribute_definitions if cfg else None,
+    )
 
 
-async def ingest_knowledge_entries(entries: list) -> bool:
+async def ingest_knowledge_entries(
+    entries: list,
+    tenant_config: TenantGraphConfig | None = None,
+) -> bool:
     """Push team knowledge entries (from Claude Code sessions) into LightRAG."""
     texts, sources = [], []
     for e in entries:
@@ -419,4 +613,11 @@ async def ingest_knowledge_entries(entries: list) -> bool:
         if text:
             texts.append(text)
             sources.append(f"knowledge_entry:{e.id}")
-    return await _insert_texts(texts, sources)
+    cfg = tenant_config
+    return await _insert_texts(
+        texts, sources,
+        extra_entity_types=cfg.extra_entity_types if cfg else None,
+        extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+        entity_type_definitions=cfg.entity_type_definitions if cfg else None,
+        entity_attribute_definitions=cfg.entity_attribute_definitions if cfg else None,
+    )

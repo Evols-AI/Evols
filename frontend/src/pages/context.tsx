@@ -6,7 +6,7 @@ import {
   Database, Plus, Upload, MessageSquare,
   X, Loader2, Search,
   Building2, User, Lightbulb, AlertCircle, Zap, Users, Target, Trash2, Check, RefreshCw, Brain, ChevronDown, Network, Filter, Pencil, GitMerge, Layers,
-  Link2, Link2Off, Play, CheckCircle2, XCircle, ArrowLeft
+  Link2, Link2Off, Play, CheckCircle2, XCircle, ArrowLeft, BarChart3, BookOpen, Tag, ChevronRight, Clock, TrendingUp
 } from 'lucide-react'
 import ConnectorIcon from '@/components/ConnectorIcon'
 import { getCurrentUser, isAuthenticated } from '@/utils/auth'
@@ -15,7 +15,7 @@ import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, Loading } from '@/components/PageContainer'
 const KnowledgeGraphTab = dynamic(() => import('@/components/context/KnowledgeGraphTab'), { ssr: false })
 
-type ViewType = 'sources' | 'entities' | 'insights' | 'knowledge_graph'
+type ViewType = 'sources' | 'entities' | 'insights' | 'knowledge_graph' | 'ai_sessions'
 
 export default function Context() {
   const router = useRouter()
@@ -32,7 +32,13 @@ export default function Context() {
   const [filterType] = useState<string>('all')
   const [filterStatus] = useState<string>('all')
   const [entityTypeFilter, setEntityTypeFilter] = useState<Set<string>>(new Set())
+  const [configuredEntityTypes, setConfiguredEntityTypes] = useState<string[]>([])
   const [processingSourceIds, setProcessingSourceIds] = useState<Set<number>>(new Set())
+  const [aiSummary, setAiSummary] = useState<any>(null)
+  const [aiEntries, setAiEntries] = useState<any[]>([])
+  const [aiDays, setAiDays] = useState(7)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [selectedAiEntry, setSelectedAiEntry] = useState<any>(null)
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -45,12 +51,14 @@ export default function Context() {
 
     // Check URL params for tab
     const { tab } = router.query
-    if (tab && ['sources', 'entities', 'insights', 'knowledge_graph'].includes(tab as string)) {
+    if (tab && ['sources', 'entities', 'insights', 'knowledge_graph', 'ai_sessions'].includes(tab as string)) {
       setSelectedView(tab as ViewType)
       if (tab === 'entities' || tab === 'knowledge_graph') loadGraphEntities()
+      if (tab === 'ai_sessions') loadAiSessions()
     }
 
     loadContext()
+    loadConfiguredEntityTypes()
   }, [router])
 
   // Poll LightRAG processing status for newly uploaded sources
@@ -90,10 +98,35 @@ export default function Context() {
     return () => clearInterval(interval)
   }, [processingSourceIds])
 
+  const loadAiSessions = async () => {
+    setAiLoading(true)
+    try {
+      const [sumRes, entriesRes] = await Promise.all([
+        apiClient.get(`/api/v1/team-knowledge/quota/summary?days=${aiDays}`),
+        apiClient.get('/api/v1/team-knowledge/entries?limit=50'),
+      ])
+      setAiSummary(sumRes.data)
+      setAiEntries(entriesRes.data)
+    } catch (e) {
+      console.error('Failed to load AI session data', e)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleAiEntryClick = async (entry: any) => {
+    setSelectedAiEntry(entry)
+    try {
+      const detail = await apiClient.get(`/api/v1/team-knowledge/entries/${entry.id}`)
+      setSelectedAiEntry(detail.data)
+    } catch { /* leave preview */ }
+  }
+
   const handleTabChange = (view: ViewType) => {
     setSelectedView(view)
     router.push(`/context?tab=${view}`, undefined, { shallow: true })
     if (view === 'entities' || view === 'knowledge_graph') loadGraphEntities()
+    if (view === 'ai_sessions') loadAiSessions()
   }
 
   const loadContext = async () => {
@@ -145,36 +178,45 @@ export default function Context() {
   // Map a LightRAG graph node to the entity shape expected by EntityCard
   function nodeToEntity(node: any): any {
     const props = node.properties ?? {}
-    const attrs = props.attributes ?? {}
+    // LightRAG stores extracted attributes inline in the description as
+    // <!-- attrs: {"key":"value"} --> — parse them out and strip the marker.
+    let rawDescription: string = props.description ?? ''
+    let inlineAttrs: Record<string, string> = {}
+    const attrsMatch = rawDescription.match(/<!--\s*attrs:\s*(\{.*?\})\s*-->/)
+    if (attrsMatch) {
+      try { inlineAttrs = JSON.parse(attrsMatch[1]) } catch { /* ignore malformed */ }
+      rawDescription = rawDescription.replace(attrsMatch[0], '').trim()
+    }
+    const attrs = Object.keys(inlineAttrs).length > 0 ? inlineAttrs : (props.attributes ?? {})
     // Parse LLM confidence (0-1) from attributes if present
     const llmConf = attrs.confidence != null && attrs.confidence !== 'null'
       ? parseFloat(attrs.confidence) : null
     // 3-signal structural confidence (mirrors KnowledgeGraphTab formula, no degree available here)
     const sourceCount = (props.source_id ?? '').split('<SEP>').filter(Boolean).length || 1
-    const descLen = (props.description ?? '').length
+    const descLen = rawDescription.length
     const structConf = 0.4 * Math.min(sourceCount / 5, 1) + 0.3 * Math.min(descLen / 300, 1)
     const confidence = llmConf !== null && !isNaN(llmConf)
       ? 0.25 * Math.min(Math.max(llmConf, 0), 1) + 0.35 * Math.min(sourceCount / 5, 1) + 0.15 * Math.min(descLen / 300, 1)
       : structConf
-    // Normalize LightRAG types (stored as lowercase-fused: "painpoint", "featurerequest")
-    // to canonical underscore form used by filter buttons and icon/color maps
-    const rawType: string = props.entity_type ?? 'other'
-    const typeNorm: Record<string, string> = {
-      'painpoint': 'pain_point', 'featurerequest': 'feature_request',
-      'businessgoal': 'business_goal',
-      // PascalCase variants (belt-and-suspenders)
-      'PainPoint': 'pain_point', 'FeatureRequest': 'feature_request',
-      'BusinessGoal': 'business_goal',
-    }
-    const normalizedType = typeNorm[rawType] ?? rawType.toLowerCase()
+    const normalizedType = normaliseEntityType(props.entity_type ?? 'other')
     return {
       id: node.id,
       name: props.entity_id ?? node.id,
       entity_type: normalizedType,
-      description: props.description ?? '',
+      description: rawDescription,
       confidence_score: confidence,
       attributes: attrs,
       source_count: sourceCount,
+    }
+  }
+
+  const loadConfiguredEntityTypes = async () => {
+    try {
+      const res = await api.getGraphExtractionSettings()
+      const types: {name: string}[] = res.data.entity_types ?? []
+      setConfiguredEntityTypes(types.map(t => normaliseEntityType(t.name)))
+    } catch {
+      // non-fatal — filter falls back to deriving from graph data
     }
   }
 
@@ -273,7 +315,11 @@ export default function Context() {
               </div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => { loadContext(); loadGraphEntities() }}
+                  onClick={() => {
+                    loadContext()
+                    loadGraphEntities()
+                    if (selectedView === 'ai_sessions') loadAiSessions()
+                  }}
                   className="btn-secondary flex items-center gap-2"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -335,10 +381,21 @@ export default function Context() {
                       <Network className="w-4 h-4 inline mr-2" />
                       Entity Graph
                     </button>
+                    <button
+                      onClick={() => handleTabChange('ai_sessions')}
+                      className={`px-4 py-3 font-medium text-sm border-b-2 transition ${
+                        selectedView === 'ai_sessions'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                      }`}
+                    >
+                      <BarChart3 className="w-4 h-4 inline mr-2" />
+                      AI Sessions
+                    </button>
                   </div>
 
-                  {/* Search + entity type filter */}
-                  <div className="flex items-center gap-2">
+                  {/* Search + entity type filter — hidden on AI sessions tab */}
+                  {selectedView !== 'ai_sessions' && <div className="flex items-center gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input
@@ -353,13 +410,14 @@ export default function Context() {
                       <EntityTypeFilterDropdown
                         selected={entityTypeFilter}
                         onChange={setEntityTypeFilter}
+                        availableTypes={configuredEntityTypes}
                         counts={graphEntities.reduce<Record<string, number>>((acc, e) => {
                           acc[e.entity_type] = (acc[e.entity_type] ?? 0) + 1
                           return acc
                         }, {})}
                       />
                     )}
-                  </div>
+                  </div>}
                 </div>
               </div>
 
@@ -387,15 +445,29 @@ export default function Context() {
                   entities={filteredEntities}
                   loading={entitiesLoading}
                   onRefresh={loadGraphEntities}
+                  configuredEntityTypes={configuredEntityTypes}
                 />
               ) : selectedView === 'knowledge_graph' ? (
                 <KnowledgeGraphTab typeFilter={entityTypeFilter} onTypeFilterChange={setEntityTypeFilter} searchTerm={searchTerm} />
+              ) : selectedView === 'ai_sessions' ? (
+                <AiSessionsView
+                  summary={aiSummary}
+                  entries={aiEntries}
+                  loading={aiLoading}
+                  days={aiDays}
+                  onDaysChange={(d) => { setAiDays(d); }}
+                  onRefresh={loadAiSessions}
+                  onEntryClick={handleAiEntryClick}
+                />
               ) : (
                 <InsightsView sources={contextSources} entities={graphEntities} />
               )}
             </>
           )}
         </PageContainer>
+
+        {/* AI Entry Detail Modal */}
+        {selectedAiEntry && <AiEntryDetailModal entry={selectedAiEntry} onClose={() => setSelectedAiEntry(null)} />}
 
         {/* Add Context Modal */}
         {showAddModal && (
@@ -415,6 +487,24 @@ export default function Context() {
   )
 }
 
+function normaliseEntityType(raw: string): string {
+  const map: Record<string, string> = {
+    'painpoint': 'pain_point', 'featurerequest': 'feature_request',
+    'businessgoal': 'business_goal',
+    'PainPoint': 'pain_point', 'FeatureRequest': 'feature_request',
+    'BusinessGoal': 'business_goal',
+  }
+  return map[raw] ?? raw.toLowerCase()
+}
+
+function humaniseEntityType(type: string): string {
+  // Convert snake_case / camelCase / PascalCase to Title Case words
+  return type
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
 const ENTITY_TYPE_COLORS: Record<string, string> = {
   person:          'hsl(var(--chart-5))',
   decision:        'hsl(var(--chart-5))',
@@ -432,31 +522,17 @@ const ENTITY_TYPE_COLORS: Record<string, string> = {
   pain_point:      'hsl(var(--destructive))',
 }
 
-const ENTITY_TYPES = [
-  { value: 'persona',         label: 'Personas'         },
-  { value: 'person',          label: 'People'           },
-  { value: 'pain_point',      label: 'Pain Points'      },
-  { value: 'feature_request', label: 'Feature Requests' },
-  { value: 'feature',         label: 'Features'         },
-  { value: 'competitor',      label: 'Competitors'      },
-  { value: 'organization',    label: 'Organizations'    },
-  { value: 'product',         label: 'Products'         },
-  { value: 'technology',      label: 'Technology'       },
-  { value: 'project',         label: 'Projects'         },
-  { value: 'business_goal',   label: 'Business Goals'   },
-  { value: 'metric',          label: 'Metrics'          },
-  { value: 'decision',        label: 'Decisions'        },
-  { value: 'market',          label: 'Markets'          },
-]
 
 function EntityTypeFilterDropdown({
   selected,
   onChange,
   counts = {},
+  availableTypes = [],
 }: {
   selected: Set<string>
   onChange: (next: Set<string>) => void
   counts?: Record<string, number>
+  availableTypes?: string[]
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -469,6 +545,12 @@ function EntityTypeFilterDropdown({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // Merge configured types with any extra types actually present in the graph.
+  // Sort: configured types first (in their config order), then unknown extras alphabetically.
+  const configSet = new Set(availableTypes)
+  const graphExtras = Object.keys(counts).filter(t => !configSet.has(t)).sort()
+  const allTypes = [...availableTypes, ...graphExtras]
+
   const toggle = (type: string) => {
     const next = new Set(selected)
     if (next.has(type)) next.delete(type)
@@ -479,7 +561,7 @@ function EntityTypeFilterDropdown({
   const label = selected.size === 0
     ? 'All types'
     : selected.size === 1
-      ? ENTITY_TYPES.find(t => t.value === [...selected][0])?.label ?? [...selected][0]
+      ? humaniseEntityType([...selected][0])
       : `${selected.size} types`
 
   return (
@@ -506,7 +588,7 @@ function EntityTypeFilterDropdown({
               <span className="text-sm font-medium text-foreground">All types</span>
             </button>
             <div className="border-t border-border my-1" />
-            {ENTITY_TYPES.map(({ value, label: lbl }) => (
+            {allTypes.map((value) => (
               <button
                 key={value}
                 onClick={() => toggle(value)}
@@ -516,7 +598,7 @@ function EntityTypeFilterDropdown({
                   {selected.has(value) && <Check className="w-3 h-3 text-primary" />}
                 </div>
                 <span className="text-sm text-foreground flex-1 text-left">
-                  {lbl}
+                  {humaniseEntityType(value)}
                   {counts[value] != null && (
                     <span className="ml-1 text-muted-foreground">({counts[value]})</span>
                   )}
@@ -677,10 +759,12 @@ function EntitiesView({
   entities,
   loading,
   onRefresh,
+  configuredEntityTypes = [],
 }: {
   entities: any[]
   loading: boolean
   onRefresh?: () => void
+  configuredEntityTypes?: string[]
 }) {
   const [editEntity, setEditEntity] = React.useState<any | null>(null)
   const [mergeEntity, setMergeEntity] = React.useState<any | null>(null)
@@ -759,6 +843,7 @@ function EntitiesView({
           entity={editEntity}
           onClose={() => setEditEntity(null)}
           onSaved={handleSaved}
+          entityTypes={configuredEntityTypes}
         />
       )}
 
@@ -782,10 +867,12 @@ function EditEntityModal({
   entity,
   onClose,
   onSaved,
+  entityTypes = [],
 }: {
   entity: any
   onClose: () => void
   onSaved: () => void
+  entityTypes?: string[]
 }) {
   const [name, setName] = React.useState(entity.name)
   const [entityType, setEntityType] = React.useState(entity.entity_type)
@@ -848,8 +935,9 @@ function EditEntityModal({
               onChange={e => setEntityType(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-ring/50 outline-none text-sm"
             >
-              {ENTITY_TYPES.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
+              {/* Always include the current type even if not in configured list */}
+              {Array.from(new Set([entityType, ...entityTypes])).map((value) => (
+                <option key={value} value={value}>{humaniseEntityType(value)}</option>
               ))}
             </select>
           </div>
@@ -1217,6 +1305,11 @@ function EntityCard({
   const urgency: string | null = attrs.urgency && attrs.urgency !== 'null' ? attrs.urgency : null
   const businessImpact: string | null = attrs.business_impact && attrs.business_impact !== 'null' ? attrs.business_impact : null
   const snippet: string | null = attrs.context_snippet && attrs.context_snippet !== 'null' ? attrs.context_snippet : null
+  // Custom attributes — any key that isn't one of the known special-cased ones
+  const knownAttrKeys = new Set(['sentiment', 'urgency', 'business_impact', 'context_snippet', 'confidence'])
+  const customAttrs = Object.entries(attrs).filter(
+    ([k, v]) => !knownAttrKeys.has(k) && v != null && v !== 'null' && v !== ''
+  ) as [string, string][]
 
   const sentimentColor = (s: string) => {
     if (/^positive$/i.test(s)) return 'bg-chart-3/20 text-chart-3'
@@ -1260,23 +1353,32 @@ function EntityCard({
         </div>
 
         {/* Attribute badges */}
-        {(sentiment || urgency || businessImpact) && (
+        {(sentiment || urgency || businessImpact || customAttrs.length > 0) && (
           <div className="flex flex-wrap gap-1.5">
             {sentiment && (
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sentimentColor(sentiment)}`}>
-                {sentiment}
+                Sentiment: {sentiment}
               </span>
             )}
             {urgency && (
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${urgencyColor(urgency)}`}>
-                {urgency} urgency
+                Urgency: {urgency}
               </span>
             )}
             {businessImpact && (
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${impactColor(businessImpact)}`}>
-                {businessImpact} impact
+                Impact: {businessImpact}
               </span>
             )}
+            {customAttrs.map(([key, value]) => (
+              <span
+                key={key}
+                className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
+                title={key.replace(/_/g, ' ')}
+              >
+                {key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}: {String(value)}
+              </span>
+            ))}
           </div>
         )}
 
@@ -1330,6 +1432,260 @@ function EntityCard({
 }
 
 
+
+// ── AI Sessions helpers ────────────────────────────────────────────────────────
+
+function formatAiTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
+}
+
+function formatAiCost(tokens: number): string {
+  const dollars = (tokens / 1_000_000) * 3
+  if (dollars < 0.01) return '<$0.01'
+  return `$${dollars.toFixed(2)}`
+}
+
+function timeAgo(isoDate: string): string {
+  const normalized = isoDate.endsWith('Z') || isoDate.includes('+') ? isoDate : isoDate + 'Z'
+  const diff = Date.now() - new Date(normalized).getTime()
+  const h = Math.floor(diff / 3_600_000)
+  if (h < 1) return 'just now'
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
+const ROLE_COLORS: Record<string, string> = {
+  engineer: 'bg-primary/10 text-primary dark:text-primary',
+  pm:       'bg-primary/10 text-primary dark:text-primary',
+  designer: 'bg-chart-2/15 text-chart-2',
+  qa:       'bg-chart-4/20 text-chart-4',
+  other:    'bg-muted text-muted-foreground',
+}
+
+const ENTRY_TYPE_LABELS: Record<string, string> = {
+  insight: 'Insight', decision: 'Decision', artifact: 'Artifact',
+  research_finding: 'Research', pattern: 'Pattern', context: 'Context',
+}
+
+function AiSessionEntryCard({ entry, onClick }: { entry: any; onClick: () => void }) {
+  const roleColor = ROLE_COLORS[entry.role] || ROLE_COLORS.other
+  return (
+    <Card hover onClick={onClick} padding="sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>{entry.role}</span>
+            <span className="text-xs text-muted-foreground">{ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}</span>
+            {entry.product_area && <span className="text-xs text-muted-foreground/60">· {entry.product_area}</span>}
+          </div>
+          <h4 className="text-sm font-medium text-foreground leading-snug mb-1.5">{entry.title}</h4>
+          {entry.tags && entry.tags.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              <Tag className="w-3 h-3 text-muted-foreground/60" />
+              {entry.tags.slice(0, 3).map((tag: string) => (
+                <span key={tag} className="text-xs text-muted-foreground/70">{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <span className="text-xs text-muted-foreground/60">{timeAgo(entry.created_at)}</span>
+          {entry.token_count && <span className="text-xs font-mono text-muted-foreground/60">{formatAiTokens(entry.token_count)} tok</span>}
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function AiEntryDetailModal({ entry, onClose }: { entry: any; onClose: () => void }) {
+  const roleColor = ROLE_COLORS[entry.role] || ROLE_COLORS.other
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-6 border-b border-border">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColor}`}>{entry.role}</span>
+              <span className="text-xs text-muted-foreground">{ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}</span>
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">{entry.title}</h3>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              {timeAgo(entry.created_at)}
+              {entry.token_count && ` · ${formatAiTokens(entry.token_count)} tokens`}
+              {entry.retrieval_count !== undefined && ` · retrieved ${entry.retrieval_count}×`}
+            </p>
+          </div>
+          <button onClick={onClose} className="ml-4 text-muted-foreground hover:text-foreground flex-shrink-0 transition-colors">✕</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          {entry.content
+            ? <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{entry.content}</p>
+            : <p className="text-sm text-muted-foreground italic">Loading content...</p>
+          }
+          {entry.tags && entry.tags.length > 0 && (
+            <div className="flex items-center gap-2 mt-4 flex-wrap">
+              <Tag className="w-3.5 h-3.5 text-muted-foreground/60" />
+              {entry.tags.map((tag: string) => (
+                <span key={tag} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+import { StatCard } from '@/components/PageContainer'
+
+function AiSessionsView({
+  summary,
+  entries,
+  loading,
+  days,
+  onDaysChange,
+  onRefresh,
+  onEntryClick,
+}: {
+  summary: any
+  entries: any[]
+  loading: boolean
+  days: number
+  onDaysChange: (d: number) => void
+  onRefresh: () => void
+  onEntryClick: (entry: any) => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <select
+            value={days}
+            onChange={e => onDaysChange(Number(e.target.value))}
+            className="text-sm px-3 py-2 pr-8 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50"
+          >
+            <option value={7}>Last 7 days</option>
+            <option value={14}>Last 14 days</option>
+            <option value={30}>Last 30 days</option>
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        </div>
+        <button onClick={onRefresh} disabled={loading} className="btn-secondary flex items-center gap-2">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />Refresh
+        </button>
+      </div>
+
+      {loading ? <Card><div className="p-8 text-center text-sm text-muted-foreground">Loading session data...</div></Card> : summary ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard title="Sessions"          value={summary.sessions}                subtitle="tracked"                                  icon={<Clock className="w-5 h-5" />}     color="blue" />
+            <StatCard title="Knowledge Entries" value={summary.knowledge_entries_total} subtitle={`+${summary.knowledge_entries_new} this period`} icon={<BookOpen className="w-5 h-5" />}  color="orange" />
+            <StatCard title="Quota Extended"    value={`${summary.quota_extended_pct}%`} subtitle="effective capacity gain"                icon={<TrendingUp className="w-5 h-5" />} color="purple" />
+            <StatCard title="Rate Limit Hits"   value={summary.rate_limit_hits}          subtitle="this period"                            icon={<Users className="w-5 h-5" />}     color={summary.rate_limit_hits > 0 ? 'red' : 'blue'} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card padding="md">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Knowledge Investment</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tokens invested</span>
+                  <span className="font-mono font-medium text-foreground">{formatAiTokens(summary.tokens_invested ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Creation sessions</span>
+                  <span className="font-mono font-medium text-foreground">{summary.creation_sessions ?? 0}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-2 mt-1">
+                  <span className="text-muted-foreground">Potential future value</span>
+                  <span className="font-mono font-medium text-chart-4">~{formatAiTokens(summary.potential_future_value ?? 0)}</span>
+                </div>
+              </div>
+            </Card>
+
+            <Card padding="md">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Knowledge Reuse</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tokens retrieved</span>
+                  <span className="font-mono font-medium text-foreground">{formatAiTokens(summary.tokens_retrieved)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Retrieval sessions</span>
+                  <span className="font-mono font-medium text-foreground">{summary.retrieval_sessions ?? 0}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-2 mt-1">
+                  <span className="text-muted-foreground">Actual savings</span>
+                  <span className="font-mono font-medium text-chart-3">{formatAiTokens(summary.actual_savings ?? 0)}</span>
+                </div>
+              </div>
+              {(summary.retrieval_sessions ?? 0) === 0 && (
+                <p className="text-xs text-muted-foreground/60 mt-3">No reuse yet — savings realized when context is retrieved</p>
+              )}
+            </Card>
+
+            <Card padding="md">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Net Impact</h3>
+              {(() => {
+                const net = summary.net_impact ?? ((summary.actual_savings ?? 0) - (summary.tokens_invested ?? 0))
+                const roi = summary.roi_pct ?? 0
+                const isPositive = net >= 0
+                return (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Net tokens</span>
+                      <span className={`font-mono font-semibold ${isPositive ? 'text-chart-3' : 'text-muted-foreground'}`}>
+                        {isPositive ? '+' : ''}{formatAiTokens(net)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cost impact</span>
+                      <span className={`font-mono font-medium ${isPositive ? 'text-chart-3' : 'text-muted-foreground'}`}>
+                        {isPositive ? '-' : '+'}{formatAiCost(Math.abs(net))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-border pt-2 mt-1">
+                      <span className="text-muted-foreground">ROI</span>
+                      <span className={`font-mono font-semibold ${isPositive ? 'text-chart-3' : 'text-muted-foreground'}`}>
+                        {(summary.tokens_invested ?? 0) > 0 ? `${roi > 0 ? '+' : ''}${roi.toFixed(0)}%` : 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <Card><p className="text-sm text-muted-foreground p-4">No session data yet. Start a Claude Code session with the Evols CLI installed to begin tracking.</p></Card>
+      )}
+
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+          Session Knowledge — {entries.length} entries
+        </h2>
+        {loading ? null : entries.length === 0 ? (
+          <Card>
+            <div className="p-12 text-center">
+              <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+              <h3 className="text-base font-medium mb-1">No knowledge entries yet</h3>
+              <p className="text-sm text-muted-foreground">Complete a Claude Code session with the Evols CLI installed — the Stop hook will auto-sync your session knowledge.</p>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {entries.map((entry: any) => (
+              <AiSessionEntryCard key={entry.id} entry={entry} onClick={() => onEntryClick(entry)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const INTEGRATION_CONFIG_FIELDS: Record<string, { key: string; label: string; placeholder: string }[]> = {
   // existing

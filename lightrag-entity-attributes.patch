@@ -1,0 +1,162 @@
+--- a/lightrag/api/config.py
++++ b/lightrag/api/config.py
+@@ -400,6 +400,7 @@
+     args.cors_origins = get_env_value("CORS_ORIGINS", "*")
+     args.summary_language = get_env_value("SUMMARY_LANGUAGE", DEFAULT_SUMMARY_LANGUAGE)
+     args.entity_types = get_env_value("ENTITY_TYPES", DEFAULT_ENTITY_TYPES, list)
++    args.entity_attributes = get_env_value("ENTITY_ATTRIBUTES", [], list)
+     args.whitelist_paths = get_env_value("WHITELIST_PATHS", "/health,/api/*")
+ 
+     # For JWT Auth
+--- a/lightrag/api/lightrag_server.py
++++ b/lightrag/api/lightrag_server.py
+@@ -1088,6 +1088,7 @@
+             addon_params={
+                 "language": args.summary_language,
+                 "entity_types": args.entity_types,
++                "entity_attributes": args.entity_attributes,
+             },
+             ollama_server_infos=ollama_server_infos,
+         )
+--- a/lightrag/operate.py
++++ b/lightrag/operate.py
+@@ -2905,9 +2905,46 @@
+     entity_types = global_config["addon_params"].get(
+         "entity_types", DEFAULT_ENTITY_TYPES
+     )
++    entity_attributes = global_config["addon_params"].get("entity_attributes", [])
++    entity_type_definitions = global_config["addon_params"].get("entity_type_definitions", {})
+ 
+     examples = "\n".join(PROMPTS["entity_extraction_examples"])
++
++    # Inject a numbered instruction listing every entity type with its definition.
++    # When definitions are provided the LLM can distinguish types precisely and
++    # produce higher-confidence extractions.
++    definitions_instruction = ""
++    if entity_type_definitions:
++        def_lines = "\n".join(
++            f"  - {name}: {defn}" for name, defn in entity_type_definitions.items()
++        )
++        definitions_instruction = (
++            "\n\n8.  **Entity Type Definitions:** Use the following definitions to "
++            "classify entities accurately:\n" + def_lines
++        )
+ 
++    entity_attribute_definitions = global_config["addon_params"].get("entity_attribute_definitions", {})
++
++    # When entity_attributes are configured, inject a numbered instruction asking
++    # the LLM to append a compact JSON object per entity with the listed keys.
++    attribute_instruction = ""
++    if entity_attributes:
++        attr_list = ", ".join('"' + a + '"' for a in entity_attributes)
++        step_num = "9"
++        attr_def_lines = ""
++        if entity_attribute_definitions:
++            attr_def_lines = " Attribute definitions:\n" + "\n".join(
++                f"  - {name}: {defn}" for name, defn in entity_attribute_definitions.items()
++            )
++        attribute_instruction = (
++            "\n\n" + step_num + ".  **Entity Attributes:** For each entity, append a compact JSON"
++            " object at the very end of `entity_description` using exactly this"
++            ' format: `<!-- attrs: {"key": "value"} -->`.'
++            " Extract only the following attribute keys where present in the text:"
++            " [" + attr_list + "]." + attr_def_lines +
++            " Use null for any attribute not mentioned."
++        )
++
+     example_context_base = dict(
+         tuple_delimiter=PROMPTS["DEFAULT_TUPLE_DELIMITER"],
+         completion_delimiter=PROMPTS["DEFAULT_COMPLETION_DELIMITER"],
+@@ -2951,6 +2988,10 @@
+         entity_extraction_system_prompt = PROMPTS[
+             "entity_extraction_system_prompt"
+         ].format(**context_base)
++        if definitions_instruction:
++            entity_extraction_system_prompt += definitions_instruction
++        if attribute_instruction:
++            entity_extraction_system_prompt += attribute_instruction
+         # Format user prompts with input_text for each chunk
+         entity_extraction_user_prompt = PROMPTS["entity_extraction_user_prompt"].format(
+             **{**context_base, "input_text": content}
+--- a/lightrag/api/routers/document_routes.py
++++ b/lightrag/api/routers/document_routes.py
+@@ -275,6 +275,22 @@
+     )
+     file_sources: Optional[list[str]] = Field(
+         default=None, min_length=0, description="Sources of the texts"
++    )
++    extra_entity_types: Optional[list[str]] = Field(
++        default=None,
++        description="Extra entity types to append to the global ENTITY_TYPES for this batch",
++    )
++    extra_entity_attributes: Optional[list[str]] = Field(
++        default=None,
++        description="Extra entity attributes to append to the global ENTITY_ATTRIBUTES for this batch",
++    )
++    entity_type_definitions: Optional[dict] = Field(
++        default=None,
++        description="Mapping of entity type name to one-line definition, injected into the extraction prompt",
++    )
++    entity_attribute_definitions: Optional[dict] = Field(
++        default=None,
++        description="Mapping of attribute name to one-line definition, injected into the extraction prompt",
+     )
+ 
+     @field_validator("texts", mode="after")
+@@ -1745,6 +1761,10 @@
+     texts: List[str],
+     file_sources: List[str] = None,
+     track_id: str = None,
++    extra_entity_types: List[str] = None,
++    extra_entity_attributes: List[str] = None,
++    entity_type_definitions: dict = None,
++    entity_attribute_definitions: dict = None,
+ ):
+     """Index a list of texts with track_id
+ 
+@@ -1772,7 +1792,33 @@
+     await rag.apipeline_enqueue_documents(
+         input=texts, file_paths=normalized_file_sources, track_id=track_id
+     )
+-    await rag.apipeline_process_enqueue_documents()
++
++    # Temporarily augment addon_params with per-request entity overrides.
++    # LightRAG serialises extraction via the "busy" flag, so mutating and
++    # restoring addon_params around the processing call is safe.
++    saved_addon_params = None
++    if extra_entity_types or extra_entity_attributes or entity_type_definitions or entity_attribute_definitions:
++        saved_addon_params = dict(rag.addon_params)
++        merged = dict(rag.addon_params)
++        if extra_entity_types:
++            base_types = list(merged.get("entity_types", []))
++            new_types = [t for t in extra_entity_types if t not in base_types]
++            merged["entity_types"] = base_types + new_types
++        if extra_entity_attributes:
++            base_attrs = list(merged.get("entity_attributes", []))
++            new_attrs = [a for a in extra_entity_attributes if a not in base_attrs]
++            merged["entity_attributes"] = base_attrs + new_attrs
++        if entity_type_definitions:
++            merged["entity_type_definitions"] = entity_type_definitions
++        if entity_attribute_definitions:
++            merged["entity_attribute_definitions"] = entity_attribute_definitions
++        rag.addon_params = merged
++
++    try:
++        await rag.apipeline_process_enqueue_documents()
++    finally:
++        if saved_addon_params is not None:
++            rag.addon_params = saved_addon_params
+ 
+ 
+ async def run_scanning_process(
+@@ -2432,6 +2478,10 @@
+                 request.texts,
+                 file_sources=request.file_sources,
+                 track_id=track_id,
++                extra_entity_types=request.extra_entity_types,
++                extra_entity_attributes=request.extra_entity_attributes,
++                entity_type_definitions=request.entity_type_definitions,
++                entity_attribute_definitions=request.entity_attribute_definitions,
+             )
+ 
+             return InsertResponse(

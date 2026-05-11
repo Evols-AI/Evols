@@ -68,6 +68,8 @@ export const api = {
   // Settings
   getKnowledgeRefreshSettings: () => apiClient.get('/api/v1/settings/knowledge-refresh'),
   updateKnowledgeRefreshSettings: (data: any) => apiClient.put('/api/v1/settings/knowledge-refresh', data),
+  getGraphExtractionSettings: () => apiClient.get('/api/v1/settings/graph-extraction'),
+  updateGraphExtractionSettings: (data: any) => apiClient.put('/api/v1/settings/graph-extraction', data),
 
   // Workbench
   getWorkbenchContext: (data: any) => apiClient.post('/api/v1/workbench/context', data),
