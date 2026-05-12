@@ -326,7 +326,7 @@ def auto_sync_knowledge(api_url, api_key, session_id, transcript_text, token_cou
         # Get API key from Anthropic env var (available in Claude Code sessions)
         anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if not anthropic_key:
-            return None
+            return fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, token_count, files_read, files_modified, model)
 
         req = urllib.request.Request(
             "https://api.anthropic.com/v1/messages",
@@ -380,6 +380,48 @@ def auto_sync_knowledge(api_url, api_key, session_id, transcript_text, token_cou
             entry = json.loads(resp.read())
             return entry.get("id")
 
+    except Exception:
+        return fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, token_count, files_read, files_modified, model)
+
+
+def fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, token_count,
+                            files_read, files_modified, model):
+    """Simple rule-based knowledge sync when LLM extraction is unavailable."""
+    lines = transcript_text.split("\n")
+    # Try to find a meaningful title from user prompts or assistant summaries
+    title = "Session sync (fallback)"
+    for line in lines:
+        if line.startswith("User:"):
+            title = line[5:].strip()[:80]
+            break
+
+    # Construct content from last few turns
+    content = f"Session {session_id} synced via fallback (LLM extraction unavailable).\n\nTranscript snippet:\n" + transcript_text[-800:]
+
+    sync_payload = {
+        "title": title,
+        "content": content,
+        "role": "other",
+        "session_type": "code",
+        "entry_type": "insight",
+        "tags": ["fallback", "auto-sync"],
+        "source_session_id": session_id,
+        "session_tokens_used": token_count,
+        "files_read": files_read or [],
+        "files_modified": files_modified or [],
+        "model": model or None,
+    }
+
+    try:
+        sync_req = urllib.request.Request(
+            f"{api_url.rstrip('/')}/api/v1/team-knowledge/entries",
+            data=json.dumps(sync_payload).encode("utf-8"),
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(sync_req, timeout=10) as resp:
+            entry = json.loads(resp.read())
+            return entry.get("id")
     except Exception:
         return None
 

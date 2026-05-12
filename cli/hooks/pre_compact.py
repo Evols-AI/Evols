@@ -79,7 +79,7 @@ def sync_knowledge_via_haiku(api_url: str, api_key: str, transcript_text: str,
     """Call Haiku to extract structured knowledge, then POST to Evols team knowledge graph."""
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not anthropic_key:
-        return None
+        return fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, files_read, files_modified)
 
     prompt = (
         "You are extracting team knowledge from an AI coding session transcript.\n\n"
@@ -155,6 +155,41 @@ def sync_knowledge_via_haiku(api_url: str, api_key: str, transcript_text: str,
         with urllib.request.urlopen(sync_req, timeout=10) as resp:
             entry = json.loads(resp.read())
             return entry
+    except Exception:
+        return fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, files_read, files_modified)
+
+
+def fallback_sync_knowledge(api_url: str, api_key: str, session_id: str,
+                            transcript_text: str, files_read: list, files_modified: list) -> dict | None:
+    """Simple rule-based knowledge sync for pre-compaction fallback."""
+    title = "Pre-compaction sync (fallback)"
+    lines = transcript_text.split("\n")
+    for line in lines:
+        if line.startswith("User:"):
+            title = line[5:].strip()[:80]
+            break
+
+    sync_payload = {
+        "title": title,
+        "content": f"Pre-compaction checkpoint for session {session_id}.\n\nTranscript snippet:\n" + transcript_text[-800:],
+        "role": "other",
+        "session_type": "code",
+        "entry_type": "insight",
+        "tags": ["checkpoint", "fallback"],
+        "source_session_id": session_id,
+        "files_read": files_read or [],
+        "files_modified": files_modified or [],
+    }
+
+    try:
+        sync_req = urllib.request.Request(
+            f"{api_url.rstrip('/')}/api/v1/team-knowledge/entries",
+            data=json.dumps(sync_payload).encode(),
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(sync_req, timeout=10) as resp:
+            return json.loads(resp.read())
     except Exception:
         return None
 

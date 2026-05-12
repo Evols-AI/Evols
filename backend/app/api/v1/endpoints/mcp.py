@@ -139,8 +139,8 @@ TOOLS = [
     {
         "name": "sync_session_context",
         "description": (
-            "ALWAYS call this automatically after completing any analysis, investigation, or research — "
-            "do not wait to be asked. "
+            "ALWAYS call this automatically after completing any major unit of work, analysis, "
+            "investigation, or research — do not wait to be asked. "
             "Saves findings to the shared team knowledge graph so teammates avoid repeating the same work. "
             "Include the analysis topic, key findings, conclusions, and any data retrieved. "
             "This is the mechanism that prevents token waste across the team: every analysis saved here "
@@ -179,6 +179,37 @@ TOOLS = [
                 "session_tokens_used": {
                     "type": "integer",
                     "description": "Exact token count from the session (for accurate ROI tracking)",
+                },
+            },
+            "required": ["title", "content"],
+        },
+    },
+    {
+        "name": "sync_subtask_context",
+        "description": (
+            "Alias for sync_session_context. Call this after completing a specific subtask or focused unit of work. "
+            "Ensures that your progress is persisted in the team knowledge graph immediately."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Short title for this subtask outcome",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "The subtask results, decisions, and findings",
+                },
+                "role": {
+                    "type": "string",
+                    "description": "Contributor role: pm, engineer, designer, qa, other",
+                    "default": "other",
+                },
+                "entry_type": {
+                    "type": "string",
+                    "description": "Type: insight, decision, artifact, research_finding, pattern, context",
+                    "default": "insight",
                 },
             },
             "required": ["title", "content"],
@@ -750,7 +781,7 @@ async def _call_tool(
             f"Next step: call get_team_context(query=\"{query}\") now."
         )
 
-    elif tool_name == "sync_session_context":
+    elif tool_name in ("sync_session_context", "sync_subtask_context"):
         title = (args.get("title") or "").strip()
         content = (args.get("content") or "").strip()
         if not title:
