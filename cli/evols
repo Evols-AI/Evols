@@ -316,7 +316,64 @@ def install_codex_hooks(cfg: dict):
     print(f"  ✓ Codex: hooks registered (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, Stop)")
 
 
+def install_antigravity_hooks(cfg: dict):
+    """Wire hooks into ~/.gemini/antigravity/hooks.json."""
+    path = Path.home() / ".gemini" / "antigravity" / "hooks.json"
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+
+    py = sys.executable
+    hd = str(HOOKS_DIR)
+    s.setdefault("version", 1)
+    hooks = s.setdefault("hooks", {})
+
+    # Session lifecycle
+    hooks["sessionStart"]       = [{"command": f"{py} {hd}/session_start.py"}]
+    # Prompt validation (redundancy check)
+    hooks["beforeSubmitPrompt"] = [{"command": f"{py} {hd}/user_prompt_submit.py"}]
+    # Tool use
+    hooks["preToolUse"]         = [{"command": f"{py} {hd}/pre_tool_use.py"}]
+    hooks["postToolUse"]        = [{"command": f"{py} {hd}/post_tool_use.py"}]
+    # Context compaction
+    hooks["preCompact"]         = [{"command": f"{py} {hd}/pre_compact.py"}]
+    # Stop
+    hooks["stop"]               = [{"command": f"{py} {hd}/stop.py"}]
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Antigravity: hooks registered (sessionStart, beforeSubmitPrompt, preToolUse, postToolUse, preCompact, stop)")
+
+
 # ── Hooks installer ────────────────────────────────────────────────────────────
+
+def install_cli_binary():
+    """Copy this script to ~/.evols/bin/evols and ensure /opt/homebrew/bin symlink exists.
+    Only runs when invoked from the repo layout (i.e. CLI_PATH != BIN_DIR/evols).
+    """
+    dest = BIN_DIR / "evols"
+    if CLI_PATH == dest:
+        return  # already running from installed location, nothing to do
+
+    BIN_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(CLI_PATH, dest)
+    dest.chmod(0o755)
+
+    # Ensure the symlink in /opt/homebrew/bin (standard Homebrew prefix on Apple Silicon)
+    homebrew_bin = Path("/opt/homebrew/bin")
+    if homebrew_bin.exists():
+        symlink = homebrew_bin / "evols"
+        if not symlink.exists() or (symlink.is_symlink() and symlink.resolve() != dest.resolve()):
+            try:
+                if symlink.is_symlink() or symlink.exists():
+                    symlink.unlink()
+                symlink.symlink_to(dest)
+            except PermissionError:
+                pass  # symlink already correct or no permission — not fatal
+
+    print(f"  ✓ CLI binary updated ({dest})")
+
 
 def install_hooks():
     """Copy hook scripts to ~/.evols/hooks/.
@@ -364,6 +421,9 @@ def generate_claude_md(cfg: dict, product_name: str = "", team_context: str = ""
 {product_line}{context_block}
 ## MANDATORY WORKFLOW — Follow this exactly or you will waste the user's time and tokens
 
+**Step 0 — At the very beginning of the session:**
+Call `mcp__evols__get_work_context_summary` to understand the user's current role, active projects, and priorities. This ensures you are aligned with the team's immediate focus.
+
 **Step 1 — Before doing anything on any research, analysis, planning, or PM task:**
 Call `mcp__evols__check_redundancy` with a description of what you're about to do.
 - If it returns a match: you MUST immediately call `mcp__evols__get_team_context` with the same query to retrieve the full prior work. Do not generate any response until you have read that full content. Build your answer on top of what already exists — do not start from scratch.
@@ -375,7 +435,7 @@ Skipping this step or ignoring a match means the user gets a generic answer when
 Stop immediately. Do not proceed. Surface the existing work to the user and ask whether to reuse it or start fresh. The content in that message is a preview only — call `mcp__evols__get_team_context` to get the full stored knowledge before answering.
 
 **Step 3 — After completing any focused unit of work** (one research topic, one component, one investigation):
-Call `mcp__evols__sync_subtask_context` with your findings. This prevents teammates from repeating the same work.
+Call `mcp__evols__sync_subtask_context` with your findings. This prevents teammates from repeating the same work and ensures persistence even if the session ends unexpectedly.
 
 **Step 4 — When the user's request maps to a PM skill** (research, PRD, OKRs, outreach, event strategy, etc.):
 Call `mcp__evols__get_skill_details` with the skill name before starting.
@@ -388,9 +448,10 @@ Team knowledge is automatically loaded at session start. To fetch additional con
 
 - Always check logs first before guessing root cause.
 - Never run `git reset --hard` with unstaged changes.
+- Call `mcp__evols__get_work_context_summary` at the start of every session.
 - Call `mcp__evols__check_redundancy` before starting any research task.
 - After completing each focused subtask, call `mcp__evols__sync_subtask_context`.
-""".strip() + "\n"
+""" + "\n"
 
 
 # ── Context fetcher ────────────────────────────────────────────────────────────
@@ -565,8 +626,52 @@ def cmd_login(args):
     print("  Verifying key...", end=" ", flush=True)
     plan_type = fetch_plan_type(EVOLS_API_URL_DEFAULT, api_key)
     print(f"✓  (plan: {plan_type})")
-    save_config({"api_url": EVOLS_API_URL_DEFAULT, "api_key": api_key, "plan_type": plan_type})
-    print(f"\n✓ Logged in. Run `evols install` to wire up your coding agents.")
+    cfg = {"api_url": EVOLS_API_URL_DEFAULT, "api_key": api_key, "plan_type": plan_type}
+    save_config(cfg)
+    print(f"\n✓ Logged in.")
+
+    # Propagate new key to all already-installed agent configs
+    agents = detect_agents()
+    updated = []
+
+    updaters = {
+        "claude":      lambda: install_claude_mcp(cfg),
+        "cursor":      lambda: install_cursor_mcp(cfg),
+        "zed":         lambda: install_zed_mcp(cfg),
+        "codex":       lambda: install_codex_mcp(cfg),
+        "windsurf":    lambda: install_windsurf_mcp(cfg),
+        "antigravity": lambda: install_antigravity_mcp(cfg),
+    }
+
+    for name, info in agents.items():
+        path = info.get("settings")
+        if path is None:
+            continue
+        # Only update if evols is already installed for this agent
+        try:
+            if path.suffix == ".toml":
+                already = "[mcp_servers.evols]" in path.read_text()
+            else:
+                content = json.loads(path.read_text()) if path.exists() else {}
+                already = (
+                    "evols" in content.get("mcpServers", {}) or
+                    "evols" in content.get("context_servers", {})
+                )
+        except Exception:
+            already = False
+
+        if already and name in updaters:
+            try:
+                updaters[name]()
+                updated.append(name)
+            except Exception as e:
+                print(f"  ✗ {name}: failed to update — {e}")
+
+    if updated:
+        print(f"  Updated API key in: {', '.join(updated)}")
+        print("  Restart your coding agents to pick up the new key.")
+    else:
+        print("  Run `evols install` to wire up your coding agents.")
 
 
 def cmd_install(args):
@@ -576,7 +681,8 @@ def cmd_install(args):
         print("Error: not logged in. Run `evols login` first.")
         sys.exit(1)
 
-    # Install hook scripts to ~/.evols/hooks/
+    # Install/update CLI binary and hook scripts
+    install_cli_binary()
     install_hooks()
 
     agents = detect_agents()
@@ -593,7 +699,7 @@ def cmd_install(args):
         "zed":         lambda: install_zed_mcp(cfg),
         "codex":       lambda: (install_codex_mcp(cfg), install_codex_hooks(cfg)),
         "windsurf":    lambda: install_windsurf_mcp(cfg),
-        "antigravity": lambda: install_antigravity_mcp(cfg),
+        "antigravity": lambda: (install_antigravity_mcp(cfg), install_antigravity_hooks(cfg)),
     }
 
     for name in agents:
@@ -663,6 +769,10 @@ def cmd_init(args):
     if "cline" in detected:
         _write_context_file(project_dir / ".clinerules", new_block, ".clinerules")
 
+    # .antigravityrules — only if Antigravity is installed
+    if "antigravity" in detected:
+        _write_context_file(project_dir / ".antigravityrules", new_block, ".antigravityrules")
+
     print(f"\n✓ Project initialized. Restart your coding agent to pick up changes.")
 
 
@@ -719,6 +829,7 @@ def cmd_status(args):
         (".cursorrules",   cwd / ".cursorrules"),
         (".windsurfrules", cwd / ".windsurfrules"),
         (".clinerules",    cwd / ".clinerules"),
+        (".antigravityrules", cwd / ".antigravityrules"),
     ]
     for label, path in context_files:
         if path.exists():
