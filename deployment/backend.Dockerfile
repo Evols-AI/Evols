@@ -17,5 +17,11 @@ RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 # Copy application code
 COPY backend/ .
 
+# Bundle the evols CLI + hooks — served via /api/v1/install/cli
+# No platform-specific binaries needed: agents run `evols mcp-server` directly
+RUN mkdir -p /app/cli/hooks
+COPY cli/evols        /app/cli/evols
+COPY cli/hooks/       /app/cli/hooks/
+
 # Run migrations then start the application
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

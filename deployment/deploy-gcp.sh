@@ -15,6 +15,7 @@
 #   export OIDC_CLIENT_SECRET="..."
 #   export AWS_ACCESS_KEY_ID="..."
 #   export AWS_SECRET_ACCESS_KEY="..."
+#   export SMTP_PASSWORD="..."              # Zoho/SMTP password for transactional email
 #   export EVOLS_DOMAIN="evols.ai"          # omit to use the backend Cloud Run URL
 #   export LIGHTRAG_API_KEY="lr_..."        # optional, has default
 #   ./deployment/deploy-gcp.sh PROJECT_ID [REGION]
@@ -32,6 +33,11 @@ SKIP_BUILD="${SKIP_BUILD:-false}"
 # ── Required secrets ──────────────────────────────────────────────────────────
 MONGO_URI="${MONGO_URI:?Set MONGO_URI}"
 OIDC_CLIENT_SECRET="${OIDC_CLIENT_SECRET:?Set OIDC_CLIENT_SECRET}"
+SMTP_HOST="${SMTP_HOST:-smtp.zoho.com}"
+SMTP_PORT="${SMTP_PORT:-587}"
+SMTP_USER="${SMTP_USER:-info@evols.ai}"
+SMTP_PASSWORD="${SMTP_PASSWORD:?Set SMTP_PASSWORD (Zoho/SMTP password for transactional email)}"
+EMAIL_FROM="${EMAIL_FROM:-info@evols.ai}"
 LIGHTRAG_API_KEY="${LIGHTRAG_API_KEY:-lr_6c7e3b0a348fe6f206cf83cd794a908f751e2f07bee8c997}"
 # FIELD_ENCRYPTION_KEY: stable Fernet key stored in Secret Manager. Falls back to env var.
 # First-time setup: python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
@@ -40,6 +46,14 @@ if [ -z "${FIELD_ENCRYPTION_KEY:-}" ]; then
   FIELD_ENCRYPTION_KEY=$(gcloud secrets versions access latest --secret=evols-field-encryption-key --project="${PROJECT_ID}" 2>/dev/null || true)
 fi
 FIELD_ENCRYPTION_KEY="${FIELD_ENCRYPTION_KEY:?FIELD_ENCRYPTION_KEY not set. Create the secret: gcloud secrets create evols-field-encryption-key --data-file=- <<< your_fernet_key}"
+
+# ENCRYPTION_MASTER_SECRET: AES-256-GCM master key for content-at-rest encryption (retention policies).
+# First-time setup: python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
+# then: gcloud secrets create evols-encryption-master-secret --data-file=-
+if [ -z "${ENCRYPTION_MASTER_SECRET:-}" ]; then
+  ENCRYPTION_MASTER_SECRET=$(gcloud secrets versions access latest --secret=evols-encryption-master-secret --project="${PROJECT_ID}" 2>/dev/null || true)
+fi
+ENCRYPTION_MASTER_SECRET="${ENCRYPTION_MASTER_SECRET:?ENCRYPTION_MASTER_SECRET not set. Create the secret: python3 -c 'import secrets; print(secrets.token_urlsafe(32))' | gcloud secrets create evols-encryption-master-secret --data-file=-}"
 JWT_SECRET="${JWT_SECRET:-$(openssl rand -hex 32)}"
 JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET:-$(openssl rand -hex 32)}"
 CREDS_KEY="${CREDS_KEY:-$(openssl rand -hex 32)}"
@@ -85,6 +99,11 @@ gcloud run deploy evols-backend \
   --set-env-vars "ENVIRONMENT=production" \
   --set-env-vars "REDIS_URL=redis://10.128.0.43:6379/0" \
   --set-env-vars 'BACKEND_CORS_ORIGINS=["*"]' \
+  --set-env-vars "SMTP_HOST=${SMTP_HOST}" \
+  --set-env-vars "SMTP_PORT=${SMTP_PORT}" \
+  --set-env-vars "SMTP_USER=${SMTP_USER}" \
+  --set-env-vars "SMTP_PASSWORD=${SMTP_PASSWORD}" \
+  --set-env-vars "EMAIL_FROM=${EMAIL_FROM}" \
   --set-env-vars "TAVILY_API_KEY=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" \
   --set-env-vars "EMBEDDING_PROVIDER=aws_bedrock" \
   --set-env-vars "UNIFIED_PM_OS_PATH=./resources/unified-pm-os" \
@@ -95,9 +114,7 @@ gcloud run deploy evols-backend \
   --set-env-vars "LIGHTRAG_URL=https://evols-lightrag-kdqer5oyua-uc.a.run.app" \
   --set-env-vars "LIGHTRAG_API_KEY=${LIGHTRAG_API_KEY:?Set LIGHTRAG_API_KEY}" \
   --set-env-vars "LIGHTRAG_TOKEN_SECRET=81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02" \
-  --set-secrets "FIELD_ENCRYPTION_KEY=evols-field-encryption-key:latest" \
-  --set-secrets "AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest" \
-  --set-secrets "AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest" \
+  --set-secrets "FIELD_ENCRYPTION_KEY=evols-field-encryption-key:latest,ENCRYPTION_MASTER_SECRET=evols-encryption-master-secret:latest,AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest,AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest" \
   --add-cloudsql-instances "${SQL_CONNECTION_NAME}" \
   --network default --subnet default \
   --vpc-egress private-ranges-only \

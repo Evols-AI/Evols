@@ -11,6 +11,7 @@ from app.api.v1.endpoints import knowledge, memory, work_context, skill_customiz
 from app.api.v1.endpoints import team_knowledge, api_keys, mcp, oidc, llm_proxy
 from app.api.v1.endpoints import graph
 from app.api.v1.endpoints import integrations
+from app.api.v1.endpoints import install
 
 api_router = APIRouter()
 
@@ -41,3 +42,4 @@ api_router.include_router(oidc.router, prefix="/oidc", tags=["OIDC"])
 api_router.include_router(llm_proxy.router, prefix="/llm-proxy", tags=["LLM Proxy"])
 api_router.include_router(graph.router, prefix="/graph", tags=["Knowledge Graph"])
 api_router.include_router(integrations.router, tags=["Integrations"])
+api_router.include_router(install.router, prefix="/install", tags=["Install"])

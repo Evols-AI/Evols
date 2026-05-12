@@ -1457,7 +1457,13 @@ async def sync_integration(integration: UserIntegration, db: AsyncSession) -> in
 
         if texts:
             # Push to LightRAG (always — regardless of retention policy)
-            await _insert_texts(texts, file_sources)
+            from app.services.lightrag_ingestion_service import load_tenant_graph_config
+            cfg = await load_tenant_graph_config(integration.tenant_id, db)
+            await _insert_texts(
+                texts, file_sources,
+                extra_entity_types=cfg.extra_entity_types if cfg else None,
+                extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+            )
 
             # Record raw content in Evols DB and apply tenant retention policy
             source_label = f"{integration.source_system.value} sync — user {integration.user_id} — {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"

@@ -46,29 +46,44 @@ async def _expand_query_intent(query: str, llm_config: Optional[Dict[str, Any]] 
     if len(query.split()) >= 12:
         return query
 
-    if not llm_config:
-        return query
-
+    import os as _os
     from app.services.llm_service import LLMService, LLMConfig
 
-    provider = llm_config.get("provider", "")
+    cfg = llm_config or {}
+    provider = cfg.get("provider", "")
+
+    # When tenant has no llm_config, fall back to env-level AWS Bedrock creds
+    # (same pattern as EmbeddingService — prod uses these directly)
     if not provider:
-        return query
+        aws_key = _os.environ.get("AWS_ACCESS_KEY_ID", "")
+        aws_secret = _os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+        aws_region = _os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+        if aws_key and aws_secret:
+            provider = "aws_bedrock"
+            cfg = {
+                "provider": "aws_bedrock",
+                "model_id": "us.anthropic.claude-haiku-4-5-20251001",
+                "region": aws_region,
+                "access_key_id": aws_key,
+                "secret_access_key": aws_secret,
+            }
+        else:
+            return query
 
     try:
         if provider == "aws_bedrock":
             svc_cfg = LLMConfig(
                 provider="aws_bedrock",
-                model=llm_config.get("model_id", "us.anthropic.claude-haiku-4-5-20251001"),
+                model=cfg.get("model_id", "us.anthropic.claude-haiku-4-5-20251001"),
                 max_tokens=120,
                 temperature=0.3,
-                aws_region=llm_config.get("region", "us-east-1"),
-                aws_access_key_id=llm_config.get("access_key_id"),
-                aws_secret_access_key=llm_config.get("secret_access_key"),
-                aws_session_token=llm_config.get("session_token"),
+                aws_region=cfg.get("region", "us-east-1"),
+                aws_access_key_id=cfg.get("access_key_id"),
+                aws_secret_access_key=cfg.get("secret_access_key"),
+                aws_session_token=cfg.get("session_token"),
             )
         elif provider == "anthropic":
-            api_key = llm_config.get("api_key", "")
+            api_key = cfg.get("api_key", "")
             if not api_key:
                 return query
             svc_cfg = LLMConfig(
@@ -79,7 +94,7 @@ async def _expand_query_intent(query: str, llm_config: Optional[Dict[str, Any]] 
                 api_key=api_key,
             )
         elif provider == "openai":
-            api_key = llm_config.get("api_key", "")
+            api_key = cfg.get("api_key", "")
             if not api_key:
                 return query
             svc_cfg = LLMConfig(
@@ -210,9 +225,14 @@ class TeamKnowledgeService:
 
         # Push raw content to LightRAG for graph extraction (single pass, no double LLM cost)
         try:
-            from app.services.lightrag_ingestion_service import _insert_texts
+            from app.services.lightrag_ingestion_service import _insert_texts, load_tenant_graph_config
+            cfg = await load_tenant_graph_config(tenant_id, db)
             text = f"# {title}\n\n{content}"
-            await _insert_texts([text], [f"knowledge_entry:{entry.id}"])
+            await _insert_texts(
+                [text], [f"knowledge_entry:{entry.id}"],
+                extra_entity_types=cfg.extra_entity_types if cfg else None,
+                extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+            )
         except Exception as e:
             logger.warning(f"LightRAG push skipped for knowledge entry {entry.id}: {e}")
 
@@ -467,16 +487,16 @@ class TeamKnowledgeService:
             })
 
         if not matches:
-            # Second pass: soft match at lower threshold to catch related work
-            # with different framing (e.g. "Jitsi competitive analysis" vs "Jitsi research")
-            SOFT_THRESHOLD = 0.55
-            soft_matches = []
+            # No entries crossed the embedding threshold. Return top 5 candidates anyway
+            # so the calling agent can judge by title whether any cover the request.
+            # Embedding similarity undershoots when a task-phrased query is compared against
+            # a result-phrased title — the agent reads the title directly and does not have
+            # this problem.
+            candidates = []
             for idx, score in ranked:
-                if score < SOFT_THRESHOLD:
-                    break
                 entry = recent_entries[idx]
                 hours_ago = (datetime.utcnow() - entry.created_at).total_seconds() / 3600
-                soft_matches.append({
+                candidates.append({
                     "id": entry.id,
                     "title": entry.title,
                     "role": entry.role.value if hasattr(entry.role, "value") else entry.role,
@@ -488,21 +508,20 @@ class TeamKnowledgeService:
                     "hours_ago": round(hours_ago, 1),
                     "user_id": entry.user_id,
                 })
-            if not soft_matches:
+
+            if not candidates:
                 return {"found": False, "similar_entries": [], "message": ""}
-            best = soft_matches[0]
-            retrieval_cost = 140
-            saving = max(0, best["token_count"] - retrieval_cost)
-            message = (
-                f"Related work found: \"{best['title']}\" "
-                f"({best['hours_ago']:.0f}h ago, ~{best['token_count']:,} tokens, {best['similarity']:.0%} match). "
-                f"Call get_team_context to check if this covers your subtask before researching from scratch."
-            )
+
+            best = candidates[0]
+            saving = max(0, best["token_count"] - 140)
             return {
                 "found": True,
                 "is_soft_match": True,
-                "similar_entries": soft_matches,
-                "message": message,
+                "similar_entries": candidates,
+                "message": (
+                    "No strong embedding match found, but here are the most related entries by title. "
+                    "Review the titles — if any cover your request, call get_team_context before proceeding."
+                ),
                 "best_match_token_count": best["token_count"],
                 "estimated_saving": saving,
             }

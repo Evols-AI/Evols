@@ -1,0 +1,769 @@
+#!/usr/bin/env python3
+"""
+Evols CLI
+Commands:
+  evols login               — save API credentials
+  evols install             — install global MCP server + hooks into all detected agents
+  evols init [path]         — inject team context into a project for all detected agents
+  evols status              — show what's installed and configured
+  evols mcp-server          — run the MCP stdio server (spawned automatically by agents)
+"""
+
+import sys
+import json
+import shutil
+import urllib.request
+import urllib.parse
+from pathlib import Path
+
+EVOLS_DIR = Path.home() / ".evols"
+CONFIG_FILE = EVOLS_DIR / "config.json"
+HOOKS_DIR = EVOLS_DIR / "hooks"
+BIN_DIR = EVOLS_DIR / "bin"
+CLI_PATH = Path(__file__).resolve()
+
+EVOLS_API_URL_DEFAULT = "https://api.evols.ai"
+
+
+# ── Agent detection ────────────────────────────────────────────────────────────
+
+def _vscode_extensions_dirs() -> list:
+    """Return candidate VSCode/Cursor extensions directories that exist."""
+    candidates = [
+        Path.home() / ".vscode" / "extensions",
+        Path.home() / ".cursor" / "extensions",
+        # Linux VSCode snap
+        Path.home() / "snap" / "code" / "current" / ".vscode" / "extensions",
+    ]
+    return [p for p in candidates if p.exists()]
+
+def detect_agents() -> dict:
+    agents = {}
+    if (Path.home() / ".claude").exists():
+        agents["claude"] = {"settings": Path.home() / ".claude" / "settings.json", "type": "claude"}
+    if (Path.home() / ".cursor").exists():
+        agents["cursor"] = {"settings": Path.home() / ".cursor" / "mcp.json", "type": "cursor"}
+    if (Path.home() / ".config" / "zed").exists():
+        agents["zed"] = {"settings": Path.home() / ".config" / "zed" / "settings.json", "type": "zed"}
+    if (Path.home() / ".codex").exists():
+        agents["codex"] = {"settings": Path.home() / ".codex" / "config.toml", "type": "codex"}
+    if (Path.home() / ".codeium" / "windsurf").exists():
+        agents["windsurf"] = {"settings": Path.home() / ".codeium" / "windsurf" / "mcp_config.json", "type": "windsurf"}
+    if (Path.home() / ".gemini" / "antigravity").exists():
+        agents["antigravity"] = {"settings": Path.home() / ".gemini" / "antigravity" / "mcp_config.json", "type": "antigravity"}
+    # Cline: VSCode extension saoudrizwan.claude-dev
+    for ext_dir in _vscode_extensions_dirs():
+        if any(p.name.startswith("saoudrizwan.claude-dev") for p in ext_dir.iterdir() if p.is_dir()):
+            agents["cline"] = {"type": "cline"}
+            break
+    return agents
+
+
+# ── Config helpers ─────────────────────────────────────────────────────────────
+
+def load_config() -> dict | None:
+    if not CONFIG_FILE.exists():
+        return None
+    try:
+        return json.loads(CONFIG_FILE.read_text())
+    except Exception:
+        return None
+
+
+def save_config(cfg: dict):
+    EVOLS_DIR.mkdir(parents=True, exist_ok=True)
+    CONFIG_FILE.write_text(json.dumps(cfg, indent=2) + "\n")
+
+
+# ── MCP entry builder — points to `evols mcp-server` ─────────────────────────
+
+def mcp_entry(cfg: dict) -> dict:
+    return {
+        "command": str(CLI_PATH),
+        "args": ["mcp-server"],
+        "env": {
+            "EVOLS_API_URL": cfg.get("api_url", EVOLS_API_URL_DEFAULT),
+            "EVOLS_API_KEY": cfg.get("api_key", ""),
+            "EVOLS_PLAN": cfg.get("plan_type", "pro"),
+        },
+    }
+
+
+# ── Agent MCP installers ───────────────────────────────────────────────────────
+
+def install_claude_mcp(cfg: dict):
+    path = Path.home() / ".claude" / "settings.json"
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+    s.setdefault("mcpServers", {})["evols"] = mcp_entry(cfg)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Claude Code: MCP server registered")
+
+
+def install_cursor_mcp(cfg: dict):
+    path = Path.home() / ".cursor" / "mcp.json"
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+    s.setdefault("mcpServers", {})["evols"] = mcp_entry(cfg)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Cursor: MCP server registered")
+
+
+def install_zed_mcp(cfg: dict):
+    path = Path.home() / ".config" / "zed" / "settings.json"
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+    # Zed uses context_servers with flat command string
+    s.setdefault("context_servers", {})["evols"] = {
+        "command": str(CLI_PATH),
+        "args": ["mcp-server"],
+        "env": {
+            "EVOLS_API_URL": cfg.get("api_url", EVOLS_API_URL_DEFAULT),
+            "EVOLS_API_KEY": cfg.get("api_key", ""),
+            "EVOLS_PLAN": cfg.get("plan_type", "pro"),
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Zed: context server registered")
+
+
+def install_windsurf_mcp(cfg: dict):
+    path = Path.home() / ".codeium" / "windsurf" / "mcp_config.json"
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+    s.setdefault("mcpServers", {})["evols"] = mcp_entry(cfg)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Windsurf: MCP server registered")
+
+
+def install_codex_mcp(cfg: dict):
+    """Write evols MCP server to ~/.codex/config.toml (the only file Codex reads)."""
+    import re
+    path = Path.home() / ".codex" / "config.toml"
+    content = path.read_text() if path.exists() else ""
+
+    api_url = cfg.get("api_url", EVOLS_API_URL_DEFAULT)
+    api_key = cfg.get("api_key", "")
+    plan   = cfg.get("plan_type", "pro")
+
+    new_section = (
+        f'\n[mcp_servers.evols]\n'
+        f'command = "{CLI_PATH}"\n'
+        f'args = ["mcp-server"]\n'
+        f'[mcp_servers.evols.env]\n'
+        f'EVOLS_API_URL = "{api_url}"\n'
+        f'EVOLS_API_KEY = "{api_key}"\n'
+        f'EVOLS_PLAN = "{plan}"\n'
+    )
+
+    # Remove all evols mcp_servers sections (parent and any sub-sections like .env)
+    content = re.sub(
+        r'\n\[mcp_servers\.evols[^\]]*\].*?(?=\n\[[^\[]|\Z)',
+        '',
+        content,
+        flags=re.DOTALL,
+    ).rstrip() + "\n"
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content + new_section)
+    print(f"  ✓ Codex: MCP server registered (config.toml)")
+
+
+def install_antigravity_mcp(cfg: dict):
+    path = Path.home() / ".gemini" / "antigravity" / "mcp_config.json"
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+    s.setdefault("mcpServers", {})["evols"] = mcp_entry(cfg)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Antigravity: MCP server registered")
+
+
+# ── Claude Code hooks installer ────────────────────────────────────────────────
+
+def install_claude_hooks(cfg: dict):
+    path = Path.home() / ".claude" / "settings.json"
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+
+    py = sys.executable
+    hd = str(HOOKS_DIR)
+    hooks = s.setdefault("hooks", {})
+
+    hooks["SessionStart"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/session_start.py"}]}]
+    hooks["UserPromptSubmit"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/user_prompt_submit.py"}]}]
+    hooks["PreToolUse"] = [{"matcher": "Bash|WebFetch|Agent", "hooks": [{"type": "command", "command": f"{py} {hd}/pre_tool_use.py"}]}]
+    hooks["PostToolUse"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/post_tool_use.py"}]}]
+    hooks["PreCompact"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/pre_compact.py"}]}]
+    hooks["Stop"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/stop.py"}]}]
+    hooks["StopFailure"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/stop.py --failure"}]}]
+
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Claude Code: hooks registered (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, Stop)")
+
+
+def install_cursor_hooks(cfg: dict):
+    """Wire hooks into ~/.cursor/hooks.json using Cursor's full hook surface."""
+    path = Path.home() / ".cursor" / "hooks.json"
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+
+    py = sys.executable
+    hd = str(HOOKS_DIR)
+    s.setdefault("version", 1)
+    hooks = s.setdefault("hooks", {})
+
+    # Session lifecycle
+    hooks["sessionStart"]       = [{"command": f"{py} {hd}/session_start.py"}]
+    # sessionEnd intentionally omitted — Cursor kills the process on window close
+    # before it can complete, causing spurious "hook failed" banners. stop handles cleanup.
+
+    # Prompt validation (redundancy check)
+    hooks["beforeSubmitPrompt"] = [{"command": f"{py} {hd}/user_prompt_submit.py"}]
+
+    # Tool use — generic pre/post (covers all tools including shell and MCP)
+    hooks["preToolUse"]         = [{"command": f"{py} {hd}/pre_tool_use.py"}]
+    hooks["postToolUse"]        = [{"command": f"{py} {hd}/post_tool_use.py"}]
+
+    # Context compaction — sync before context is trimmed
+    hooks["preCompact"]         = [{"command": f"{py} {hd}/pre_compact.py"}]
+
+    # Stop — sync session knowledge on completion
+    hooks["stop"]               = [{"command": f"{py} {hd}/stop.py"}]
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Cursor: hooks registered (sessionStart, beforeSubmitPrompt, preToolUse, postToolUse, preCompact, stop)")
+
+
+def install_codex_hooks(cfg: dict):
+    """Wire hooks into ~/.codex/config.toml using Codex TOML hook format."""
+    import re
+    path = Path.home() / ".codex" / "config.toml"
+    content = path.read_text() if path.exists() else ""
+
+    py = sys.executable
+    hd = str(HOOKS_DIR)
+
+    new_hooks = (
+        f'\n[[hooks.SessionStart]]\n'
+        f'\n[[hooks.SessionStart.hooks]]\n'
+        f'type = "command"\n'
+        f'command = "{py} {hd}/session_start.py"\n'
+        f'\n[[hooks.UserPromptSubmit]]\n'
+        f'\n[[hooks.UserPromptSubmit.hooks]]\n'
+        f'type = "command"\n'
+        f'command = "{py} {hd}/user_prompt_submit.py"\n'
+        f'\n[[hooks.PreToolUse]]\n'
+        f'matcher = "Bash|WebFetch|Agent"\n'
+        f'\n[[hooks.PreToolUse.hooks]]\n'
+        f'type = "command"\n'
+        f'command = "{py} {hd}/pre_tool_use.py"\n'
+        f'\n[[hooks.PostToolUse]]\n'
+        f'\n[[hooks.PostToolUse.hooks]]\n'
+        f'type = "command"\n'
+        f'command = "{py} {hd}/post_tool_use.py"\n'
+        f'\n[[hooks.PreCompact]]\n'
+        f'\n[[hooks.PreCompact.hooks]]\n'
+        f'type = "command"\n'
+        f'command = "{py} {hd}/pre_compact.py"\n'
+        f'\n[[hooks.Stop]]\n'
+        f'\n[[hooks.Stop.hooks]]\n'
+        f'type = "command"\n'
+        f'command = "{py} {hd}/stop.py"\n'
+    )
+
+    # Remove array-of-tables hook entries but preserve [hooks.state] section
+    # Split off any [hooks.state] block before stripping [[hooks.*]] entries
+    state_match = re.search(r'\n\[hooks\.state\].*', content, re.DOTALL)
+    state_block = state_match.group(0) if state_match else ""
+    if state_block:
+        content = content[:state_match.start()]
+
+    content = re.sub(
+        r'\n\[\[hooks\.[^\]]+\]\].*?(?=\n\[|\Z)',
+        '',
+        content,
+        flags=re.DOTALL,
+    ).rstrip() + "\n"
+
+    # Add [features] block to enable hooks if not present
+    if "[features]" not in content:
+        content += "\n[features]\nhooks = true\n"
+    elif "hooks = true" not in content:
+        content = re.sub(r'\[features\]', '[features]\nhooks = true', content, count=1)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content + new_hooks + state_block)
+    print(f"  ✓ Codex: hooks registered (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, Stop)")
+
+
+# ── Hooks installer ────────────────────────────────────────────────────────────
+
+def install_hooks():
+    """Copy hook scripts to ~/.evols/hooks/.
+    Source: cli/hooks/ alongside this script (repo layout),
+    or ~/.evols/hooks/ if already installed (deployed layout).
+    """
+    HOOKS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # In repo layout: hooks/ is a sibling of this script
+    # In deployed layout (~/.evols/bin/evols): hooks are already at ~/.evols/hooks/
+    src_dir = CLI_PATH.parent / "hooks"
+    if not src_dir.exists():
+        # Already deployed — hooks should already be in HOOKS_DIR
+        existing = list(HOOKS_DIR.glob("*.py"))
+        if existing:
+            print(f"  ✓ Hooks already installed ({len(existing)} scripts in {HOOKS_DIR})")
+        else:
+            print(f"  ✗ No hooks found. Re-run install from the evols repo or re-download the CLI.")
+        return
+
+    hook_files = [
+        "session_start.py", "user_prompt_submit.py", "pre_tool_use.py",
+        "post_tool_use.py", "pre_compact.py", "stop.py",
+    ]
+    copied = []
+    for fname in hook_files:
+        src = src_dir / fname
+        if src.exists():
+            shutil.copy2(src, HOOKS_DIR / fname)
+            copied.append(fname)
+
+    if copied:
+        print(f"  ✓ Hooks installed: {', '.join(copied)}")
+    else:
+        print(f"  ✗ No hooks found in {src_dir}")
+
+
+# ── CLAUDE.md template ─────────────────────────────────────────────────────────
+
+def generate_claude_md(cfg: dict, product_name: str = "", team_context: str = "") -> str:
+    product_line = f"**Product:** {product_name}\n" if product_name else ""
+    context_block = f"\n{team_context}\n" if team_context else ""
+    return f"""# Evols Team Intelligence
+
+{product_line}{context_block}
+## MANDATORY WORKFLOW — Follow this exactly or you will waste the user's time and tokens
+
+**Step 1 — Before doing anything on any research, analysis, planning, or PM task:**
+Call `mcp__evols__check_redundancy` with a description of what you're about to do.
+- If it returns a match: you MUST immediately call `mcp__evols__get_team_context` with the same query to retrieve the full prior work. Do not generate any response until you have read that full content. Build your answer on top of what already exists — do not start from scratch.
+- If it returns no match: proceed normally.
+
+Skipping this step or ignoring a match means the user gets a generic answer when they already have specific decisions and context stored. This is the single most important rule.
+
+**Step 2 — When you see `[Evols] A teammate already worked on something similar` in your context:**
+Stop immediately. Do not proceed. Surface the existing work to the user and ask whether to reuse it or start fresh. The content in that message is a preview only — call `mcp__evols__get_team_context` to get the full stored knowledge before answering.
+
+**Step 3 — After completing any focused unit of work** (one research topic, one component, one investigation):
+Call `mcp__evols__sync_subtask_context` with your findings. This prevents teammates from repeating the same work.
+
+**Step 4 — When the user's request maps to a PM skill** (research, PRD, OKRs, outreach, event strategy, etc.):
+Call `mcp__evols__get_skill_details` with the skill name before starting.
+
+## Context
+
+Team knowledge is automatically loaded at session start. To fetch additional context: `mcp__evols__get_work_context_summary`.
+
+## Coding Agent Rules
+
+- Always check logs first before guessing root cause.
+- Never run `git reset --hard` with unstaged changes.
+- Call `mcp__evols__check_redundancy` before starting any research task.
+- After completing each focused subtask, call `mcp__evols__sync_subtask_context`.
+""".strip() + "\n"
+
+
+# ── Context fetcher ────────────────────────────────────────────────────────────
+
+def fetch_tier1_context(cfg: dict) -> tuple[str, str]:
+    api_url = cfg.get("api_url", "")
+    api_key = cfg.get("api_key", "")
+    product_name = ""
+    context_text = ""
+    try:
+        req = urllib.request.Request(
+            f"{api_url.rstrip('/')}/api/v1/products",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            products = json.loads(resp.read())
+        if products and isinstance(products, list):
+            product_name = products[0].get("name", "")
+    except Exception:
+        pass
+    try:
+        params = urllib.parse.urlencode({"query": "team context project overview", "top_k": 3})
+        req = urllib.request.Request(
+            f"{api_url.rstrip('/')}/api/v1/team-knowledge/relevant?{params}",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+        if data and data.get("entry_count", 0) > 0:
+            context_text = data.get("context_text", "")[:800]
+    except Exception:
+        pass
+    return product_name, context_text
+
+
+def fetch_plan_type(api_url: str, api_key: str) -> str:
+    try:
+        req = urllib.request.Request(
+            f"{api_url.rstrip('/')}/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+        plan = data.get("tenant", {}).get("plan") or data.get("plan") or "pro"
+        return plan.lower()
+    except Exception:
+        return "pro"
+
+
+# ── MCP stdio server ───────────────────────────────────────────────────────────
+
+def cmd_mcp_server(args):
+    """
+    Run the Evols MCP stdio server.
+    Spawned automatically by coding agents — users never call this directly.
+    Reads JSON-RPC from stdin, proxies tool calls to the Evols backend API,
+    writes responses to stdout.
+    """
+    import os
+    import traceback
+
+    api_url = os.environ.get("EVOLS_API_URL", EVOLS_API_URL_DEFAULT)
+    api_key = os.environ.get("EVOLS_API_KEY", "")
+
+    # Fall back to config file if env vars not set
+    if not api_key:
+        cfg = load_config()
+        if cfg:
+            api_url = cfg.get("api_url", api_url)
+            api_key = cfg.get("api_key", "")
+
+    def api_post(path: str, payload: dict) -> dict:
+        data = json.dumps(payload).encode()
+        req = urllib.request.Request(
+            f"{api_url.rstrip('/')}{path}",
+            data=data,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read())
+
+    def api_get(path: str) -> dict:
+        req = urllib.request.Request(
+            f"{api_url.rstrip('/')}{path}",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read())
+
+    def send(obj: dict):
+        sys.stdout.write(json.dumps(obj) + "\n")
+        sys.stdout.flush()
+
+    def error_response(req_id, code: int, message: str) -> dict:
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
+
+    def handle(msg: dict) -> dict | None:
+        method = msg.get("method", "")
+        req_id = msg.get("id")
+        params = msg.get("params", {})
+
+        if method == "initialize":
+            # Fetch server info from backend MCP endpoint
+            try:
+                result = api_post("/api/v1/mcp", {
+                    "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": params,
+                })
+                return {"jsonrpc": "2.0", "id": req_id, "result": result.get("result", {})}
+            except Exception as e:
+                return error_response(req_id, -32603, f"Backend unavailable: {e}")
+
+        elif method == "notifications/initialized":
+            return None  # no response for notifications
+
+        elif method == "tools/list":
+            try:
+                result = api_post("/api/v1/mcp", {
+                    "jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": params,
+                })
+                return {"jsonrpc": "2.0", "id": req_id, "result": result.get("result", {"tools": []})}
+            except Exception as e:
+                return error_response(req_id, -32603, f"Backend unavailable: {e}")
+
+        elif method == "tools/call":
+            try:
+                result = api_post("/api/v1/mcp", {
+                    "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": params,
+                })
+                return {"jsonrpc": "2.0", "id": req_id, "result": result.get("result", {})}
+            except Exception as e:
+                return {"jsonrpc": "2.0", "id": req_id, "result": {
+                    "content": [{"type": "text", "text": f"Error: {e}"}],
+                    "isError": True,
+                }}
+
+        elif req_id is not None:
+            return error_response(req_id, -32601, f"Method not found: {method}")
+
+        return None
+
+    # Main stdio loop
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except json.JSONDecodeError:
+            send(error_response(None, -32700, "Parse error"))
+            continue
+        try:
+            response = handle(msg)
+            if response is not None:
+                send(response)
+        except Exception:
+            send(error_response(msg.get("id"), -32603, traceback.format_exc()))
+
+
+# ── CLI commands ───────────────────────────────────────────────────────────────
+
+def cmd_login(args):
+    print("Evols Login")
+    print("-" * 40)
+    existing = load_config() or {}
+    api_key = input("Evols API Key (evols_...): ").strip() or existing.get("api_key", "")
+    if not api_key:
+        print("Error: API key is required.")
+        sys.exit(1)
+    print("  Verifying key...", end=" ", flush=True)
+    plan_type = fetch_plan_type(EVOLS_API_URL_DEFAULT, api_key)
+    print(f"✓  (plan: {plan_type})")
+    save_config({"api_url": EVOLS_API_URL_DEFAULT, "api_key": api_key, "plan_type": plan_type})
+    print(f"\n✓ Logged in. Run `evols install` to wire up your coding agents.")
+
+
+def cmd_install(args):
+    """Install global MCP server and hooks into all detected coding agents."""
+    cfg = load_config()
+    if not cfg:
+        print("Error: not logged in. Run `evols login` first.")
+        sys.exit(1)
+
+    # Install hook scripts to ~/.evols/hooks/
+    install_hooks()
+
+    agents = detect_agents()
+    if not agents:
+        print("No coding agents detected. Checked: Claude Code, Cursor, Zed, Codex, Windsurf, Antigravity, Cline.")
+        sys.exit(1)
+
+    print(f"\nDetected agents: {', '.join(agents.keys())}")
+    print("Installing Evols MCP server...\n")
+
+    installers = {
+        "claude":      lambda: (install_claude_mcp(cfg), install_claude_hooks(cfg)),
+        "cursor":      lambda: (install_cursor_mcp(cfg), install_cursor_hooks(cfg)),
+        "zed":         lambda: install_zed_mcp(cfg),
+        "codex":       lambda: (install_codex_mcp(cfg), install_codex_hooks(cfg)),
+        "windsurf":    lambda: install_windsurf_mcp(cfg),
+        "antigravity": lambda: install_antigravity_mcp(cfg),
+    }
+
+    for name in agents:
+        if name in installers:
+            try:
+                installers[name]()
+            except Exception as e:
+                print(f"  ✗ {name}: failed — {e}")
+
+    print("\n✓ Installation complete. Restart your coding agents to pick up the MCP server.")
+    print("  Run `evols init` in any project to inject team context.")
+
+
+def _write_context_file(path: Path, content: str, label: str):
+    """Write content to path, merging if an Evols block already exists."""
+    marker = "# Evols Team Intelligence"
+    if path.exists():
+        existing = path.read_text()
+        if marker in existing:
+            lines = existing.split("\n")
+            start = next((i for i, l in enumerate(lines) if marker in l), None)
+            if start is not None:
+                end = next((i for i, l in enumerate(lines) if i > start and l.startswith("# ")), len(lines))
+                existing = "\n".join(lines[:start] + lines[end:]).strip() + "\n\n"
+            path.write_text(existing + content)
+        else:
+            path.write_text(existing.rstrip() + "\n\n" + content)
+        print(f"  ✓ {label} updated")
+    else:
+        path.write_text(content)
+        print(f"  ✓ {label} written")
+
+
+def cmd_init(args):
+    """Write agent context files and settings into a project directory."""
+    project_dir = Path(args[0]).resolve() if args else Path.cwd()
+    cfg = load_config()
+    if not cfg:
+        print("Error: not logged in. Run `evols login` first.")
+        sys.exit(1)
+    if not project_dir.exists():
+        print(f"Error: directory not found: {project_dir}")
+        sys.exit(1)
+
+    print(f"Initializing Evols in {project_dir}...")
+    print("  Fetching team context...")
+    product_name, team_context = fetch_tier1_context(cfg)
+    new_block = generate_claude_md(cfg, product_name, team_context)
+
+    detected = detect_agents()
+
+    # CLAUDE.md — always (Claude Code reads it; also a safe fallback)
+    _write_context_file(project_dir / "CLAUDE.md", new_block, "CLAUDE.md")
+
+    # AGENTS.md — always (Codex; also a safe cross-agent fallback)
+    _write_context_file(project_dir / "AGENTS.md", new_block, "AGENTS.md")
+
+    # .cursorrules — only if Cursor is installed
+    if "cursor" in detected:
+        _write_context_file(project_dir / ".cursorrules", new_block, ".cursorrules")
+
+    # .windsurfrules — only if Windsurf is installed
+    if "windsurf" in detected:
+        _write_context_file(project_dir / ".windsurfrules", new_block, ".windsurfrules")
+
+    # .clinerules — only if Cline VSCode extension is installed
+    if "cline" in detected:
+        _write_context_file(project_dir / ".clinerules", new_block, ".clinerules")
+
+    print(f"\n✓ Project initialized. Restart your coding agent to pick up changes.")
+
+
+def cmd_status(args):
+    cfg = load_config()
+    agents = detect_agents()
+
+    print("Evols Status")
+    print("=" * 40)
+    print(f"Config:     {'✓ ' + str(CONFIG_FILE) if cfg else '✗ not found — run evols login'}")
+    print(f"CLI:        ✓ {CLI_PATH}")
+    print(f"Hooks:      {'✓ ' + str(HOOKS_DIR) if HOOKS_DIR.exists() else '✗ not found — run evols install'}")
+    print()
+    print("Detected agents:")
+    for name, info in agents.items():
+        path = info.get("settings")
+        if path is None:
+            # Agent detected but config is managed via project .mcp.json (e.g. Cline)
+            print(f"  {name:14} ✓ detected")
+            continue
+        try:
+            if not path.exists():
+                has_evols = False
+            elif path.suffix == ".toml":
+                has_evols = "[mcp_servers.evols]" in path.read_text()
+            else:
+                content = json.loads(path.read_text())
+                has_evols = (
+                    "evols" in content.get("mcpServers", {}) or
+                    "evols" in content.get("context_servers", {})
+                )
+            status = "✓ MCP installed" if has_evols else "✗ not installed — run evols install"
+        except Exception:
+            status = "? (could not read config)"
+        print(f"  {name:14} {status}")
+
+    claude_settings = Path.home() / ".claude" / "settings.json"
+    if claude_settings.exists():
+        try:
+            s = json.loads(claude_settings.read_text())
+            hook_names = list(s.get("hooks", {}).keys())
+            print(f"\nClaude Code hooks: {', '.join(hook_names) if hook_names else 'none'}")
+        except Exception:
+            pass
+
+    # Cline detection for status display
+    detected = detect_agents()
+
+    cwd = Path.cwd()
+    print(f"\nCurrent project ({cwd.name}):")
+    context_files = [
+        ("CLAUDE.md",      cwd / "CLAUDE.md"),
+        ("AGENTS.md",      cwd / "AGENTS.md"),
+        (".cursorrules",   cwd / ".cursorrules"),
+        (".windsurfrules", cwd / ".windsurfrules"),
+        (".clinerules",    cwd / ".clinerules"),
+    ]
+    for label, path in context_files:
+        if path.exists():
+            print(f"  {label:28} ✓")
+    if not any(p.exists() for _, p in context_files):
+        print(f"  (none) — run evols init")
+
+
+# ── Entry point ────────────────────────────────────────────────────────────────
+
+COMMANDS = {
+    "login":      cmd_login,
+    "install":    cmd_install,
+    "init":       cmd_init,
+    "status":     cmd_status,
+    "mcp-server": cmd_mcp_server,
+}
+
+USAGE = """Usage: evols <command> [args]
+
+Commands:
+  login           Save Evols API credentials
+  install         Install MCP server + hooks into all detected coding agents
+  init [path]     Inject team context into a project for all detected agents
+  status          Show installation status
+  mcp-server      Run MCP stdio server (spawned automatically by agents)
+
+Examples:
+  evols login
+  evols install
+  evols init
+  evols status
+"""
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+        print(USAGE)
+        sys.exit(0)
+    command = sys.argv[1]
+    if command not in COMMANDS:
+        print(f"Unknown command: {command}\n{USAGE}")
+        sys.exit(1)
+    COMMANDS[command](sys.argv[2:])
+
+
+if __name__ == "__main__":
+    main()

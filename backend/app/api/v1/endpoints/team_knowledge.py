@@ -7,6 +7,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 
 from sqlalchemy import select
 from app.core.database import get_db
@@ -96,6 +97,23 @@ class QuotaSummaryResponse(BaseModel):
     roi_pct: float = 0.0
 
 
+class AutoSyncRequest(BaseModel):
+    session_text: str = Field(..., min_length=10, description="Transcript text or tool call log for this session")
+    source_session_id: Optional[str] = None
+    session_tokens_used: Optional[int] = Field(None, ge=0)
+    discovery_tokens: Optional[int] = Field(None, ge=0)
+    files_read: Optional[List[str]] = None
+    files_modified: Optional[List[str]] = None
+    model: Optional[str] = None
+    tool_name: str = Field(default="claude-code")
+
+
+class AutoSyncResponse(BaseModel):
+    entry_id: Optional[int] = None
+    skipped: bool = False
+    reason: Optional[str] = None
+
+
 # ===================================
 # ENDPOINTS
 # ===================================
@@ -161,6 +179,128 @@ async def add_knowledge_entry(
         token_count=entry.token_count,
         created_at=entry.created_at.isoformat(),
     )
+
+
+@router.post("/auto-sync", response_model=AutoSyncResponse, status_code=status.HTTP_200_OK)
+async def auto_sync_session(
+    request: AutoSyncRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    tenant_id: int = Depends(get_current_tenant_id),
+    llm_config: Optional[dict] = Depends(get_tenant_llm_config),
+):
+    """
+    Server-side knowledge extraction: accepts session transcript or tool call log,
+    uses the tenant's configured LLM to extract a knowledge entry, and stores it.
+    Called by plugin stop hooks when ANTHROPIC_API_KEY is unavailable client-side
+    (e.g. Codex plugin, Bedrock users).
+    """
+    import json as _json
+    from app.services.llm_service import LLMService, LLMConfig
+
+    if not llm_config:
+        return AutoSyncResponse(skipped=True, reason="no_llm_config")
+
+    provider = llm_config.get("provider", "")
+    if not provider:
+        return AutoSyncResponse(skipped=True, reason="no_llm_config")
+
+    # Build LLMConfig from tenant settings — same pattern as proxy_bedrock
+    if provider == "aws_bedrock":
+        service_cfg = LLMConfig(
+            provider="aws_bedrock",
+            model=llm_config.get("model_id", "us.anthropic.claude-haiku-4-5-20251001"),
+            max_tokens=512,
+            temperature=0.3,
+            aws_region=llm_config.get("region", "us-east-1"),
+            aws_access_key_id=llm_config.get("access_key_id"),
+            aws_secret_access_key=llm_config.get("secret_access_key"),
+            aws_session_token=llm_config.get("session_token"),
+        )
+    elif provider == "anthropic":
+        api_key = llm_config.get("api_key", "")
+        if not api_key:
+            return AutoSyncResponse(skipped=True, reason="no_llm_config")
+        service_cfg = LLMConfig(
+            provider="anthropic",
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            temperature=0.3,
+            api_key=api_key,
+        )
+    elif provider == "openai":
+        api_key = llm_config.get("api_key", "")
+        if not api_key:
+            return AutoSyncResponse(skipped=True, reason="no_llm_config")
+        service_cfg = LLMConfig(
+            provider="openai",
+            model="gpt-4o-mini",
+            max_tokens=512,
+            temperature=0.3,
+            api_key=api_key,
+        )
+    else:
+        return AutoSyncResponse(skipped=True, reason="unsupported_provider")
+
+    prompt = (
+        "You are extracting team knowledge from an AI session transcript or tool call log.\n\n"
+        "Given the session below, extract a knowledge entry with:\n"
+        "- title: one-line description of what was accomplished (max 80 chars)\n"
+        "- content: problem statement, approach taken, key decisions, outcome (3-8 sentences)\n"
+        "- entry_type: one of: insight, decision, artifact, research_finding, pattern, context\n"
+        "- tags: 2-5 comma-separated keywords\n"
+        "- product_area: the product/code area affected (or empty string)\n\n"
+        "If the session is trivial (e.g. just questions, no real work done), respond with: SKIP\n\n"
+        f"Session:\n{request.session_text[:6000]}\n\n"
+        "Respond ONLY with a JSON object with keys: title, content, entry_type, tags, product_area"
+    )
+
+    try:
+        service = LLMService(service_cfg, enable_cache=False)
+        response = await service.generate(
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = (response.content or "").strip()
+    except Exception as e:
+        logger.warning(f"auto-sync LLM call failed: {e}")
+        return AutoSyncResponse(skipped=True, reason="llm_error")
+
+    if not raw or raw == "SKIP":
+        return AutoSyncResponse(skipped=True, reason="trivial_session")
+
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1].lstrip("json").strip() if len(parts) >= 2 else raw
+
+    try:
+        extracted = _json.loads(raw)
+    except Exception:
+        return AutoSyncResponse(skipped=True, reason="parse_error")
+
+    tags_raw = extracted.get("tags", "")
+    tags = [t.strip() for t in tags_raw.split(",") if t.strip()] if isinstance(tags_raw, str) else tags_raw
+
+    entry = await team_knowledge_service.add_entry(
+        db=db,
+        tenant_id=tenant_id,
+        user_id=current_user.id,
+        title=extracted.get("title", "Untitled session"),
+        content=extracted.get("content", ""),
+        role="other",
+        session_type="code",
+        entry_type=extracted.get("entry_type", "insight"),
+        tags=tags,
+        product_area=extracted.get("product_area") or None,
+        source_session_id=request.source_session_id,
+        session_tokens_used=request.session_tokens_used,
+        discovery_tokens=request.discovery_tokens,
+        files_read=request.files_read,
+        files_modified=request.files_modified,
+        model=request.model,
+        llm_config=llm_config,
+    )
+
+    return AutoSyncResponse(entry_id=entry.id)
 
 
 @router.get("/relevant", response_model=RelevantContextResponse)

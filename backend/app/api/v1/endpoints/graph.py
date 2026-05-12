@@ -36,9 +36,11 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.context import ContextSource, ExtractedEntity, ContextProcessingStatus
+from app.models.tenant import Tenant
 from app.models.user import User
 from app.models.work_context import WorkContext, ActiveProject, KeyRelationship, MeetingNote, PMDecision
 from app.services.lightrag_ingestion_service import (
+    TenantGraphConfig,
     ingest_context_source,
     ingest_extracted_entities,
     ingest_work_context,
@@ -649,6 +651,13 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
         "errors": 0,
     }
 
+    # Load tenant's custom entity extraction config once for the whole sync.
+    tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant_obj = tenant_result.scalar_one_or_none()
+    tenant_cfg = TenantGraphConfig.from_tenant_settings(
+        getattr(tenant_obj, "settings", None)
+    )
+
     # ── 1. Context sources (completed ones with actual content) ───────────────
     sources_result = await db.execute(
         select(ContextSource).where(
@@ -660,7 +669,7 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
     source_map = {s.id: s.name or s.title or "" for s in sources}
 
     for source in sources:
-        ok = await ingest_context_source(source, "")
+        ok = await ingest_context_source(source, "", tenant_config=tenant_cfg)
         if ok:
             counts["context_sources"] += 1
         else:
@@ -672,7 +681,7 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
     )
     entities = entities_result.scalars().all()
     if entities:
-        ok = await ingest_extracted_entities(entities, source_map, "")
+        ok = await ingest_extracted_entities(entities, source_map, "", tenant_config=tenant_cfg)
         if ok:
             counts["extracted_entities"] = len(entities)
         else:
@@ -700,7 +709,7 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
         )
         relationships = rel_result.scalars().all()
 
-        ok = await ingest_work_context(wc, user_name, projects, relationships)
+        ok = await ingest_work_context(wc, user_name, projects, relationships, tenant_config=tenant_cfg)
         if ok:
             counts["work_contexts"] += 1
         else:
@@ -711,7 +720,7 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
         select(MeetingNote).where(MeetingNote.user_id == user_id)
     )
     for note in notes_result.scalars().all():
-        ok = await ingest_meeting_note(note, user_name)
+        ok = await ingest_meeting_note(note, user_name, tenant_config=tenant_cfg)
         if ok:
             counts["meeting_notes"] += 1
         else:
@@ -722,7 +731,7 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
         select(PMDecision).where(PMDecision.user_id == user_id)
     )
     for decision in decisions_result.scalars().all():
-        ok = await ingest_pm_decision(decision, user_name, "")
+        ok = await ingest_pm_decision(decision, user_name, "", tenant_config=tenant_cfg)
         if ok:
             counts["pm_decisions"] += 1
         else:
@@ -736,7 +745,7 @@ async def _run_full_sync(tenant_id: int, user_id: int, db: AsyncSession) -> dict
         )
         knowledge_entries = ke_result.scalars().all()
         if knowledge_entries:
-            ok = await ingest_knowledge_entries(knowledge_entries)
+            ok = await ingest_knowledge_entries(knowledge_entries, tenant_config=tenant_cfg)
             if ok:
                 counts["knowledge_entries"] = len(knowledge_entries)
             else:

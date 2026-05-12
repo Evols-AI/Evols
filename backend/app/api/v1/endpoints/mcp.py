@@ -108,9 +108,12 @@ TOOLS = [
     {
         "name": "check_redundancy",
         "description": (
-            "Check whether a teammate already solved a similar problem recently. "
-            "Call this before starting significant work. "
-            "Returns matching entries with token cost and savings estimates."
+            "ALWAYS call this before starting any research, analysis, or planning task. "
+            "Checks whether a teammate already did similar work. "
+            "If a match is found, you MUST call get_team_context next with the same query "
+            "to retrieve the full prior work before doing anything else. "
+            "Do NOT proceed with new research until you have read the full retrieved context. "
+            "Returns matching entries with title, similarity, and a content preview."
         ),
         "inputSchema": {
             "type": "object",
@@ -121,13 +124,13 @@ TOOLS = [
                 },
                 "hours": {
                     "type": "integer",
-                    "description": "How many hours to look back (default 48)",
-                    "default": 48,
+                    "description": "How many hours to look back (default 168)",
+                    "default": 168,
                 },
                 "similarity_threshold": {
                     "type": "number",
-                    "description": "Minimum similarity score to flag (0.4–1.0, default 0.75)",
-                    "default": 0.75,
+                    "description": "Minimum similarity score to flag (0.4–1.0, default 0.65)",
+                    "default": 0.65,
                 },
             },
             "required": ["query"],
@@ -698,8 +701,8 @@ async def _call_tool(
         query = (args.get("query") or "").strip()
         if not query:
             raise ValueError("'query' is required")
-        hours = int(args.get("hours", 48))
-        threshold = float(args.get("similarity_threshold", 0.75))
+        hours = int(args.get("hours", 168))
+        threshold = float(args.get("similarity_threshold", 0.65))
 
         result = await team_knowledge_service.check_redundancy(
             db=db,
@@ -713,18 +716,38 @@ async def _call_tool(
         if not result["found"]:
             return f"No similar work found in the last {hours}h. This appears to be new work."
 
-        best = result["similar_entries"][0]
+        entries = result["similar_entries"]
+        is_soft = result.get("is_soft_match", False)
         sep = "-" * 60
+
+        if is_soft:
+            # No strong embedding match — surface titles so the agent can judge
+            titles_block = "\n".join(
+                f'  {i+1}. "{e["title"]}" · {e["hours_ago"]:.0f}h ago · ~{e["token_count"]:,} tokens'
+                for i, e in enumerate(entries)
+            )
+            return (
+                f"No strong match found, but these are the most related entries in team knowledge.\n"
+                f"Review the titles — if any cover your request, call get_team_context before proceeding.\n"
+                f"{sep}\n"
+                f"{titles_block}\n"
+                f"{sep}\n"
+                f"If any title is relevant: call get_team_context(query=\"{query}\") to retrieve the full content."
+            )
+
+        best = entries[0]
         return (
-            f"Prior team work found ({best['similarity']:.0%} match)\n"
+            f"STOP — prior team work found ({best['similarity']:.0%} match).\n"
+            f"You MUST call get_team_context next with the same query to retrieve the full content.\n"
+            f"Do NOT generate any response or start new research until you have read the full retrieved context.\n"
             f"{sep}\n"
             f'  "{best["title"]}"\n'
-            f"  {best['hours_ago']:.0f}h ago · ~{best['token_count']:,} tokens\n"
-            f"  ~{result['estimated_saving']:,} tokens saved if reused\n"
+            f"  {best['hours_ago']:.0f}h ago · ~{best['token_count']:,} tokens · ~{result['estimated_saving']:,} tokens saved if reused\n"
             f"{sep}\n"
+            f"Preview (truncated — call get_team_context for full content):\n"
             f"{best['content_preview']}\n"
             f"{sep}\n"
-            f"Consider reusing or building on this work."
+            f"Next step: call get_team_context(query=\"{query}\") now."
         )
 
     elif tool_name == "sync_session_context":

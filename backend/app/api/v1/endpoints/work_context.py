@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 async def _push_work_context_to_lightrag(wc: WorkContext, user: User, db: AsyncSession) -> None:
     """Fire-and-forget: push work context with its projects + relationships to LightRAG."""
     try:
-        from app.services.lightrag_ingestion_service import ingest_work_context
+        from app.services.lightrag_ingestion_service import ingest_work_context, load_tenant_graph_config
         proj_result = await db.execute(
             select(ActiveProject).where(ActiveProject.work_context_id == wc.id)
         )
@@ -45,10 +45,12 @@ async def _push_work_context_to_lightrag(wc: WorkContext, user: User, db: AsyncS
             select(KeyRelationship).where(KeyRelationship.work_context_id == wc.id)
         )
         user_name = getattr(user, "full_name", "") or user.email or ""
+        tenant_cfg = await load_tenant_graph_config(getattr(user, "tenant_id", None), db)
         await ingest_work_context(
             wc, user_name,
             proj_result.scalars().all(),
             rel_result.scalars().all(),
+            tenant_config=tenant_cfg,
         )
     except Exception as e:
         logger.warning(f"LightRAG work context push skipped: {e}")
@@ -369,9 +371,10 @@ async def create_pm_decision(
     await db.commit()
     await db.refresh(decision)
     try:
-        from app.services.lightrag_ingestion_service import ingest_pm_decision
+        from app.services.lightrag_ingestion_service import ingest_pm_decision, load_tenant_graph_config
         user_name = getattr(current_user, "full_name", "") or current_user.email or ""
-        await ingest_pm_decision(decision, user_name)
+        tenant_cfg = await load_tenant_graph_config(getattr(current_user, "tenant_id", None), db)
+        await ingest_pm_decision(decision, user_name, tenant_config=tenant_cfg)
     except Exception as e:
         logger.warning(f"LightRAG decision push skipped: {e}")
     return decision
@@ -402,9 +405,10 @@ async def update_pm_decision(
     await db.commit()
     await db.refresh(decision)
     try:
-        from app.services.lightrag_ingestion_service import ingest_pm_decision
+        from app.services.lightrag_ingestion_service import ingest_pm_decision, load_tenant_graph_config
         user_name = getattr(current_user, "full_name", "") or current_user.email or ""
-        await ingest_pm_decision(decision, user_name)
+        tenant_cfg = await load_tenant_graph_config(getattr(current_user, "tenant_id", None), db)
+        await ingest_pm_decision(decision, user_name, tenant_config=tenant_cfg)
     except Exception as e:
         logger.warning(f"LightRAG decision push skipped: {e}")
     return decision
@@ -716,9 +720,10 @@ async def create_meeting_note(
     await db.commit()
     await db.refresh(note)
     try:
-        from app.services.lightrag_ingestion_service import ingest_meeting_note
+        from app.services.lightrag_ingestion_service import ingest_meeting_note, load_tenant_graph_config
         user_name = getattr(current_user, "full_name", "") or current_user.email or ""
-        await ingest_meeting_note(note, user_name)
+        tenant_cfg = await load_tenant_graph_config(getattr(current_user, "tenant_id", None), db)
+        await ingest_meeting_note(note, user_name, tenant_config=tenant_cfg)
     except Exception as e:
         logger.warning(f"LightRAG meeting note push skipped: {e}")
     return note
@@ -749,9 +754,10 @@ async def update_meeting_note(
     await db.commit()
     await db.refresh(note)
     try:
-        from app.services.lightrag_ingestion_service import ingest_meeting_note
+        from app.services.lightrag_ingestion_service import ingest_meeting_note, load_tenant_graph_config
         user_name = getattr(current_user, "full_name", "") or current_user.email or ""
-        await ingest_meeting_note(note, user_name)
+        tenant_cfg = await load_tenant_graph_config(getattr(current_user, "tenant_id", None), db)
+        await ingest_meeting_note(note, user_name, tenant_config=tenant_cfg)
     except Exception as e:
         logger.warning(f"LightRAG meeting note push skipped: {e}")
     return note

@@ -383,31 +383,31 @@ async def proxy_bedrock_embeddings(
     secret_access_key = config.get("secret_access_key")
     session_token = config.get("session_token")
 
-    def _embed_sync(texts: list[str]) -> tuple[list[list[float]], int]:
-        client = boto3.client(
+    def _embed_one(text: str) -> tuple[list[float], int]:
+        # Each call gets its own client to avoid connection contention across threads
+        _client = boto3.client(
             "bedrock-runtime",
             region_name=region,
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
             aws_session_token=session_token,
         )
-        embs, tokens = [], 0
-        for text in texts:
-            resp = client.invoke_model(
-                modelId=bedrock_model,
-                contentType="application/json",
-                accept="application/json",
-                body=json.dumps({"inputText": text, "dimensions": 1024, "normalize": True}),
-            )
-            data = json.loads(resp["body"].read())
-            embs.append(data["embedding"])
-            tokens += data.get("inputTextTokenCount", 0)
-        return embs, tokens
+        resp = _client.invoke_model(
+            modelId=bedrock_model,
+            contentType="application/json",
+            accept="application/json",
+            body=json.dumps({"inputText": text, "dimensions": 1024, "normalize": True}),
+        )
+        data = json.loads(resp["body"].read())
+        return data["embedding"], data.get("inputTextTokenCount", 0)
 
     try:
-        embeddings, total_tokens = await asyncio.get_event_loop().run_in_executor(
-            _BEDROCK_POOL, _embed_sync, inputs
-        )
+        # Submit all texts in parallel — each text gets its own thread in _BEDROCK_POOL.
+        # This brings a 10-text batch from ~300s (sequential) down to ~30s (parallel).
+        futures = [_BEDROCK_POOL.submit(_embed_one, t) for t in inputs]
+        results = [f.result(timeout=120) for f in futures]
+        embeddings = [r[0] for r in results]
+        total_tokens = sum(r[1] for r in results)
     except Exception as e:
         logger.error(f"[bedrock embeddings] {e}")
         raise HTTPException(status_code=502, detail=f"Bedrock embeddings error: {e}")

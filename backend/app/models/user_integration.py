@@ -187,7 +187,7 @@ class UserIntegration(Base):
     user_id   = Column(Integer, ForeignKey("users.id",   ondelete="CASCADE"), nullable=False, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
 
-    source_system = Column(SQLEnum(IntegrationSystem), nullable=False, index=True)
+    source_system = Column(SQLEnum(IntegrationSystem, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
 
     # AES-256-GCM encrypted blobs — use EncryptionService to read/write
     access_token_enc  = Column(BYTEA, nullable=True)
@@ -200,7 +200,7 @@ class UserIntegration(Base):
     # dlt pipeline state / Graph API deltaToken — updated after every successful pull
     incremental_state = Column(JSONB, nullable=False, server_default=sa.text("'{}'::jsonb"))
 
-    status         = Column(SQLEnum(IntegrationStatus), nullable=False, default=IntegrationStatus.PENDING_AUTH, index=True)
+    status         = Column(SQLEnum(IntegrationStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=IntegrationStatus.PENDING_AUTH, index=True)
     last_synced_at = Column(DateTime, nullable=True)
     last_error     = Column(Text, nullable=True)
     sync_enabled   = Column(Boolean, nullable=False, default=True)

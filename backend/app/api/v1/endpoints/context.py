@@ -23,14 +23,24 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-async def _push_raw_to_lightrag(content: str, source_label: str) -> None:
+async def _push_raw_to_lightrag(
+    content: str,
+    source_label: str,
+    tenant_id: int | None = None,
+    db=None,
+) -> None:
     """Push raw content to LightRAG for graph extraction. Never raises — failures are logged only."""
     if not content or not content.strip():
         logger.warning(f"LightRAG raw push skipped — empty content for {source_label}")
         return
     try:
-        from app.services.lightrag_ingestion_service import _insert_texts
-        await _insert_texts([content], [source_label])
+        from app.services.lightrag_ingestion_service import _insert_texts, load_tenant_graph_config
+        cfg = await load_tenant_graph_config(tenant_id, db) if (tenant_id and db) else None
+        await _insert_texts(
+            [content], [source_label],
+            extra_entity_types=cfg.extra_entity_types if cfg else None,
+            extra_entity_attributes=cfg.extra_entity_attributes if cfg else None,
+        )
     except Exception as e:
         logger.warning(f"LightRAG raw push failed ({source_label}): {e}")
 
@@ -236,7 +246,10 @@ async def create_context_source(
     await db.refresh(new_source)
 
     # Push raw content to LightRAG for graph extraction
-    await _push_raw_to_lightrag(source.content or "", f"context_source:{new_source.id}")
+    await _push_raw_to_lightrag(
+        source.content or "", f"context_source:{new_source.id}",
+        tenant_id=current_user.tenant_id, db=db,
+    )
 
     return ContextSourceResponse(
         id=new_source.id,
@@ -469,6 +482,7 @@ async def upload_context_file(
                         await _push_raw_to_lightrag(
                             parsed_fields['content'],
                             f"context_source:{new_source.id}",
+                            tenant_id=current_user.tenant_id, db=db,
                         )
 
                         # Apply retention policy and mark completed
@@ -557,7 +571,10 @@ async def upload_context_file(
         await db.refresh(new_source)
 
         # Push raw content to LightRAG for graph extraction (single LLM pass)
-        await _push_raw_to_lightrag(content_text, f"context_source:{new_source.id}")
+        await _push_raw_to_lightrag(
+            content_text, f"context_source:{new_source.id}",
+            tenant_id=current_user.tenant_id, db=db,
+        )
 
         # Apply retention policy and mark completed
         try:
@@ -616,7 +633,10 @@ async def trigger_extraction(
 
     try:
         content = source.content or ""
-        await _push_raw_to_lightrag(content, f"context_source:{source.id}")
+        await _push_raw_to_lightrag(
+            content, f"context_source:{source.id}",
+            tenant_id=current_user.tenant_id, db=db,
+        )
         source.status = ContextProcessingStatus.COMPLETED
         await db.commit()
         await db.refresh(source)
