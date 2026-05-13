@@ -1,27 +1,73 @@
 import Link from 'next/link'
+import { FaLinkedin, FaGithub } from 'react-icons/fa'
 import { LogoWordmark } from '@/components/Logo'
 
-const LINKS = [
-  { label: 'Blog', href: '/blog' },
-  { label: 'Docs', href: '/docs' },
-  { label: 'Support', href: '/support' },
-  { label: 'Login', href: '/login' },
+const COLUMNS = [
+  {
+    heading: 'Resources',
+    links: [
+      { label: 'Docs', href: '/docs' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Support', href: '/support' },
+    ],
+  },
+  {
+    heading: 'Connect',
+    links: [
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/company/116584015', external: true, icon: FaLinkedin },
+      { label: 'GitHub', href: 'https://github.com/evols-ai', external: true, icon: FaGithub },
+    ],
+  },
+  {
+    heading: 'Legal',
+    links: [
+      { label: 'Terms of Service', href: '/terms' },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Acceptable Use', href: '/acceptable-use' },
+    ],
+  },
 ]
 
 export default function Footer() {
   return (
-    <footer className="border-t border-border py-12">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-        <LogoWordmark iconSize={32} />
-        <div className="flex items-center gap-6 flex-wrap justify-center">
-          {LINKS.map(l => (
-            <Link key={l.label} href={l.href}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
-              {l.label}
-            </Link>
+    <footer className="border-t border-border py-6">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-5">
+          {/* Brand column */}
+          <div className="flex flex-col gap-1.5">
+            <LogoWordmark iconSize={24} />
+            <p className="text-xs text-muted-foreground leading-snug">
+              The team AI brain that eliminates knowledge fragmentation across AI coding sessions.
+            </p>
+          </div>
+
+          {/* Link columns */}
+          {COLUMNS.map(col => (
+            <div key={col.heading}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-foreground mb-2">
+                {col.heading}
+              </p>
+              <ul className="space-y-1">
+                {col.links.map(l => (
+                  <li key={l.label}>
+                    <Link
+                      href={l.href}
+                      {...('external' in l && l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
+                    >
+                      {'icon' in l && l.icon && <l.icon className="w-3 h-3 flex-shrink-0" />}
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">© 2026 Evols AI</p>
+
+        <div className="border-t border-border pt-4 text-center">
+          <p className="text-xs text-muted-foreground">© 2026 Evols AI. All rights reserved.</p>
+        </div>
       </div>
     </footer>
   )
