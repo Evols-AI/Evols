@@ -3,7 +3,7 @@ Admin Endpoints
 Cross-tenant management for SUPER_ADMIN users
 """
 
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -575,3 +575,43 @@ async def delete_tenant_user(
 
     await db.delete(user)
     await db.commit()
+
+
+# ── Auth Audit Logs ───────────────────────────────────────────────────────────
+
+from app.models.login_audit import LoginAuditLog
+
+
+class AuthLogEntry(BaseModel):
+    id: int
+    email: str
+    user_id: Optional[int]
+    method: str
+    success: bool
+    failure_reason: Optional[str]
+    ip_address: Optional[str]
+    user_agent: Optional[str]
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/auth-logs", response_model=List[AuthLogEntry])
+async def list_auth_logs(
+    limit: int = 100,
+    offset: int = 0,
+    email: Optional[str] = None,
+    success: Optional[bool] = None,
+    current_user: User = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List login audit logs — SUPER_ADMIN only. Ordered newest first."""
+    query = select(LoginAuditLog).order_by(LoginAuditLog.timestamp.desc())
+    if email:
+        query = query.where(LoginAuditLog.email.ilike(f"%{email}%"))
+    if success is not None:
+        query = query.where(LoginAuditLog.success == success)
+    query = query.offset(offset).limit(min(limit, 500))
+    result = await db.execute(query)
+    return result.scalars().all()

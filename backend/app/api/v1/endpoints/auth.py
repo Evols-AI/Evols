@@ -3,7 +3,7 @@ Authentication Endpoints
 User registration, login, and token management
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,7 @@ from app.models.tenant import Tenant
 from app.models.tenant_invite import TenantInvite
 from app.models.user_tenant import UserTenant
 from app.models.email_verification import EmailVerification
+from app.models.login_audit import LoginAuditLog
 from app.schemas.auth import UserLogin, UserRegister, Token, VerificationPendingResponse, EmailVerificationRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.services.email_service import EmailService
 from sqlalchemy import select
@@ -27,6 +28,37 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 router = APIRouter()
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
+async def _audit(
+    db: AsyncSession,
+    *,
+    email: str,
+    method: str,
+    success: bool,
+    request: Request,
+    user_id: int | None = None,
+    failure_reason: str | None = None,
+) -> None:
+    log = LoginAuditLog(
+        email=email.lower(),
+        user_id=user_id,
+        method=method,
+        success=success,
+        failure_reason=failure_reason,
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("User-Agent", "")[:512],
+        timestamp=datetime.utcnow(),
+    )
+    db.add(log)
+    # Flush but don't commit here — caller controls the transaction
 
 
 @router.post("/register")
@@ -513,7 +545,7 @@ async def verify_email(
 
 
 @router.post("/login", response_model=Token)
-async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
+async def login(credentials: UserLogin, request: Request, db: AsyncSession = Depends(get_db)):
     """
     Login with email and password
     """
@@ -522,6 +554,9 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(credentials.password, user.hashed_password):
+        await _audit(db, email=credentials.email, method="email", success=False,
+                     request=request, failure_reason="invalid_credentials")
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -529,6 +564,9 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
         )
 
     if not user.is_active:
+        await _audit(db, email=credentials.email, method="email", success=False,
+                     request=request, user_id=user.id, failure_reason="account_deactivated")
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is deactivated",
@@ -536,6 +574,7 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
 
     # Update last login time
     user.last_login_at = datetime.utcnow()
+    await _audit(db, email=user.email, method="email", success=True, request=request, user_id=user.id)
     await db.commit()
 
     # Create access token
@@ -720,6 +759,7 @@ async def social_login_redirect(provider: str, next: str = ""):
 @router.get("/social/{provider}/callback")
 async def social_login_callback(
     provider: str,
+    request: Request,
     code: str = "",
     state: str = "",
     error: str = "",
@@ -814,9 +854,13 @@ async def social_login_callback(
 
     if user:
         if not user.is_active:
+            await _audit(db, email=email, method=provider, success=False,
+                         request=request, user_id=user.id, failure_reason="account_deactivated")
+            await db.commit()
             return RedirectResponse(url=f"{frontend_url}/login?error=account_deactivated", status_code=302)
         # Update last login
         user.last_login_at = datetime.utcnow()
+        await _audit(db, email=email, method=provider, success=True, request=request, user_id=user.id)
         await db.commit()
     else:
         # Auto-create user + tenant using the same domain logic as register/verify_email
@@ -901,6 +945,7 @@ async def social_login_callback(
             )
             db.add(user_tenant)
 
+        await _audit(db, email=email, method=provider, success=True, request=request, user_id=new_user.id)
         await db.commit()
         await db.refresh(new_user)
         user = new_user

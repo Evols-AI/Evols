@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, LifeBuoy, Sparkles, UsersRound, Zap, Briefcase, Brain } from 'lucide-react'
+import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, ShieldCheck, LifeBuoy, Sparkles, UsersRound, Zap, Briefcase, Brain } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoWordmark } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
@@ -57,6 +57,7 @@ export default function Header({ user, currentPage, variant = 'app' }: HeaderPro
 
   const adminNavItems = [
     { href: '/admin/tenants', label: 'Admin Panel', key: 'admin', icon: Shield },
+    { href: '/admin/auth-logs', label: 'Auth Logs', key: 'auth-logs', icon: ShieldCheck },
     { href: '/admin/support', label: 'Support', key: 'support', icon: LifeBuoy },
   ]
 
