@@ -280,7 +280,16 @@ export default function Login() {
                   </div>
 
                   <div>
-                    <label htmlFor="password" className={labelClass}>Password</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="password" className="text-sm font-medium text-muted-foreground">Password</label>
+                      <button
+                        type="button"
+                        onClick={openForgot}
+                        className="text-sm font-medium text-primary hover:text-primary transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Lock className={iconClass} />
@@ -289,16 +298,6 @@ export default function Login() {
                         onChange={(e) => setPassword(e.target.value)}
                         className={inputClass} placeholder="••••••••" />
                     </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={openForgot}
-                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      Forgot password?
-                    </button>
                   </div>
 
                   <button type="submit" disabled={loading}
