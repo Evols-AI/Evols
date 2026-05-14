@@ -78,6 +78,17 @@ export default function Login() {
 
   useEffect(() => {
     const checkAuth = () => {
+      if (isAuthenticated() && isOidcCallback && oidcRedirectUri) {
+        // User is already signed in (e.g. just completed social login) and
+        // LibreChat is now requesting an OIDC code. Complete the handshake
+        // transparently without showing the login form.
+        const token = localStorage.getItem('token') || ''
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || ''
+        const callbackParams = new URLSearchParams({ token, redirect_uri: oidcRedirectUri })
+        if (oidcState) callbackParams.set('state', oidcState)
+        window.location.href = `${backendUrl}/api/v1/oidc/callback?${callbackParams.toString()}`
+        return
+      }
       if (isAuthenticated() && !isOidcCallback) {
         const user = localStorage.getItem('user')
         if (user) {
@@ -95,7 +106,7 @@ export default function Login() {
       }
     }
     if (router.isReady) checkAuth()
-  }, [router, isOidcCallback])
+  }, [router, isOidcCallback, oidcRedirectUri, oidcState])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
