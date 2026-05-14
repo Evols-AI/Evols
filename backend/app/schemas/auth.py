@@ -70,3 +70,16 @@ class EmailVerificationRequest(BaseModel):
     """Email verification request"""
 
     token: str = Field(..., min_length=1)
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Forgot password request — triggers reset email"""
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Reset password using token from email"""
+
+    token: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)

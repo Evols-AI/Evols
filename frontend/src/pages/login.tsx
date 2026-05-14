@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { Mail, Lock, AlertCircle } from 'lucide-react'
+import { Mail, Lock, AlertCircle, X, CheckCircle } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { isAuthenticated } from '@/utils/auth'
@@ -19,6 +19,12 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
+  const [forgotError, setForgotError] = useState('')
+  const forgotInputRef = useRef<HTMLInputElement>(null)
 
   const isOidcCallback = router.query.oidc_callback === '1'
   const oidcRedirectUri = (router.query.redirect_uri as string) || ''
@@ -150,6 +156,33 @@ export default function Login() {
     }
   }
 
+  const openForgot = () => {
+    setForgotEmail(email)
+    setForgotSent(false)
+    setForgotError('')
+    setForgotOpen(true)
+    setTimeout(() => forgotInputRef.current?.focus(), 50)
+  }
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotError('')
+    setForgotLoading(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      await fetch(`${apiUrl}/api/v1/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      })
+      setForgotSent(true)
+    } catch {
+      setForgotError('Unable to connect. Please try again.')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
   if (checkingAuth) return null
 
   const inputClass = `block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none ${
@@ -258,6 +291,16 @@ export default function Login() {
                     </div>
                   </div>
 
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={openForgot}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+
                   <button type="submit" disabled={loading}
                     className="w-full bg-primary hover:bg-primary/85 text-primary-foreground py-3 px-6 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     {loading ? 'Signing in...' : 'Sign In'}
@@ -279,6 +322,92 @@ export default function Login() {
 
         <Footer />
       </div>
+
+      {/* Forgot Password Modal */}
+      {forgotOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setForgotOpen(false) }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-foreground">Reset your password</h2>
+              <button
+                onClick={() => setForgotOpen(false)}
+                className="rounded-lg p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {forgotSent ? (
+              <div className="text-center py-4">
+                <div className="flex justify-center mb-4">
+                  <div className="rounded-full p-3 bg-primary/10">
+                    <CheckCircle className="w-10 h-10 text-primary" />
+                  </div>
+                </div>
+                <p className="text-foreground font-medium mb-2">Check your inbox</p>
+                <p className="text-sm text-muted-foreground mb-6">
+                  If <strong>{forgotEmail}</strong> is registered, you'll receive a reset link shortly.
+                </p>
+                <button
+                  onClick={() => setForgotOpen(false)}
+                  className="w-full bg-primary hover:bg-primary/85 text-primary-foreground py-2.5 px-4 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Enter the email you signed up with and we'll send you a reset link.
+                </p>
+
+                {forgotError && (
+                  <div className="mb-4 p-3 border rounded-lg flex items-center gap-2 bg-destructive/10 border-destructive/20">
+                    <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+                    <p className="text-xs text-destructive">{forgotError}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleForgotSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="forgot-email" className="block text-sm font-medium mb-2 text-muted-foreground">
+                      Email
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Mail className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <input
+                        id="forgot-email"
+                        ref={forgotInputRef}
+                        type="email"
+                        required
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg text-sm transition-colors outline-none border-border bg-input text-foreground placeholder-muted-foreground focus:border-ring/50 focus:ring-1 focus:ring-ring/30`}
+                        placeholder="you@company.com"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="w-full bg-primary hover:bg-primary/85 text-primary-foreground py-3 px-6 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {forgotLoading ? 'Sending...' : 'Send reset link'}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }

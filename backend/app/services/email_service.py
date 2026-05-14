@@ -207,6 +207,52 @@ class EmailService:
         EmailService._send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
+    def send_password_reset_email(to_email: str, reset_token: str):
+        """Send password reset link email."""
+        reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={reset_token}"
+        subject = "Reset your password - Evols"
+
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #4F46E5;">Reset your password</h2>
+                <p>We received a request to reset the password for your Evols account.</p>
+                <p>Click the button below to set a new password. This link expires in 1 hour.</p>
+                <div style="margin: 30px 0;">
+                    <a href="{reset_url}"
+                       style="background-color: #4F46E5; color: white; padding: 12px 30px;
+                              text-decoration: none; border-radius: 5px; display: inline-block;">
+                        Reset Password
+                    </a>
+                </div>
+                <p style="color: #666; font-size: 14px;">
+                    Or copy and paste this link into your browser:<br>
+                    <a href="{reset_url}">{reset_url}</a>
+                </p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                <p style="color: #999; font-size: 12px;">
+                    If you didn't request a password reset, you can safely ignore this email.
+                    Your password will not change.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+
+        text_body = f"""Reset your password
+
+We received a request to reset your Evols account password.
+
+Visit the link below to set a new password (expires in 1 hour):
+{reset_url}
+
+If you didn't request this, you can ignore this email.
+"""
+
+        EmailService._send_email(to_email, subject, html_body, text_body)
+
+    @staticmethod
     def send_welcome_email(to_email: str, tenant_name: str, is_first_user: bool = False):
         """
         Send welcome email after successful registration

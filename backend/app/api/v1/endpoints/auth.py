@@ -15,7 +15,7 @@ from app.models.tenant import Tenant
 from app.models.tenant_invite import TenantInvite
 from app.models.user_tenant import UserTenant
 from app.models.email_verification import EmailVerification
-from app.schemas.auth import UserLogin, UserRegister, Token, VerificationPendingResponse, EmailVerificationRequest
+from app.schemas.auth import UserLogin, UserRegister, Token, VerificationPendingResponse, EmailVerificationRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.services.email_service import EmailService
 from sqlalchemy import select
 from datetime import datetime, timedelta
@@ -556,6 +556,68 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
         email=user.email,
         full_name=user.full_name,
     )
+
+
+# ── Password Reset ────────────────────────────────────────────────────────────
+
+_RESET_TOKEN_EXPIRE_MINUTES = 60
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Send a password reset email if the address is registered.
+    Always returns 200 to prevent email enumeration.
+    """
+    result = await db.execute(select(User).where(User.email == request.email.lower()))
+    user = result.scalar_one_or_none()
+
+    if user and user.is_active:
+        reset_payload = {
+            "sub": str(user.id),
+            "email": user.email,
+            "purpose": "password_reset",
+            "exp": datetime.utcnow() + timedelta(minutes=_RESET_TOKEN_EXPIRE_MINUTES),
+            "iat": datetime.utcnow(),
+        }
+        reset_token = jwt.encode(reset_payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        try:
+            from app.services.email_service import EmailService
+            EmailService.send_password_reset_email(user.email, reset_token)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to send password reset email: {e}")
+
+    return {"message": "If that email is registered, you'll receive a reset link shortly."}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Validate the reset token and update the user's password.
+    """
+    try:
+        payload = jwt.decode(request.token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link is invalid or has expired. Please request a new one.",
+        )
+
+    if payload.get("purpose") != "password_reset":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token.")
+
+    user_id = int(payload["sub"])
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found.")
+
+    user.hashed_password = get_password_hash(request.new_password)
+    await db.commit()
+
+    return {"message": "Password updated successfully. You can now sign in."}
 
 
 # ── Social Login (Google / GitHub) ────────────────────────────────────────────
