@@ -603,10 +603,11 @@ async def list_auth_logs(
     offset: int = 0,
     email: Optional[str] = None,
     success: Optional[bool] = None,
-    current_user: User = Depends(require_super_admin),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List login audit logs — SUPER_ADMIN only. Ordered newest first."""
+    require_super_admin(current_user)
     query = select(LoginAuditLog).order_by(LoginAuditLog.timestamp.desc())
     if email:
         query = query.where(LoginAuditLog.email.ilike(f"%{email}%"))
