@@ -6,7 +6,7 @@ Commands:
   evols install             — install global MCP server + hooks into all detected agents
   evols init [path]         — inject team context into a project for all detected agents
   evols status              — show what's installed and configured
-  evols sync                — backfill historical sessions from Claude Code and Codex
+  evols sync                — backfill historical sessions from all supported agents
   evols mcp-server          — run the MCP stdio server (spawned automatically by agents)
 """
 
@@ -47,6 +47,37 @@ def _vscode_extensions_dirs() -> list:
     ]
     return [p for p in candidates if p.exists()]
 
+def _cline_mcp_settings_path() -> Optional[Path]:
+    """Return the path to Cline's global MCP settings file (first found)."""
+    candidates = [
+        # VSCode on macOS
+        Path.home() / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+        # Cursor on macOS
+        Path.home() / "Library" / "Application Support" / "Cursor" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+        # Linux VSCode
+        Path.home() / ".config" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json",
+    ]
+    for p in candidates:
+        if p.parent.exists():
+            return p
+    # Fall back to the first candidate (will be created)
+    return candidates[0] if candidates else None
+
+
+def _copilot_mcp_settings_path() -> Optional[Path]:
+    """Return path to GitHub Copilot's MCP config in VSCode user settings."""
+    candidates = [
+        # macOS
+        Path.home() / "Library" / "Application Support" / "Code" / "User" / "settings.json",
+        # Linux
+        Path.home() / ".config" / "Code" / "User" / "settings.json",
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return candidates[0] if candidates else None
+
+
 def detect_agents() -> dict:
     agents = {}
     if (Path.home() / ".claude").exists():
@@ -64,7 +95,13 @@ def detect_agents() -> dict:
     # Cline: VSCode extension saoudrizwan.claude-dev
     for ext_dir in _vscode_extensions_dirs():
         if any(p.name.startswith("saoudrizwan.claude-dev") for p in ext_dir.iterdir() if p.is_dir()):
-            agents["cline"] = {"type": "cline"}
+            cline_settings = _cline_mcp_settings_path()
+            agents["cline"] = {"settings": cline_settings, "type": "cline"}
+            break
+    # GitHub Copilot: detect via VSCode extension github.copilot-chat
+    for ext_dir in _vscode_extensions_dirs():
+        if any(p.name.startswith("github.copilot-chat") for p in ext_dir.iterdir() if p.is_dir()):
+            agents["copilot"] = {"settings": _copilot_mcp_settings_path(), "type": "copilot"}
             break
     return agents
 
@@ -201,6 +238,56 @@ def install_antigravity_mcp(cfg: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(s, indent=2) + "\n")
     print(f"  ✓ Antigravity: MCP server registered")
+
+
+def install_cline_mcp(cfg: dict):
+    """Register evols MCP server in Cline's global settings file."""
+    path = _cline_mcp_settings_path()
+    if path is None:
+        print(f"  ✗ Cline: could not determine settings path")
+        return
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+    s.setdefault("mcpServers", {})["evols"] = mcp_entry(cfg)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Cline: MCP server registered ({path})")
+
+
+def install_copilot_mcp(cfg: dict):
+    """Register evols MCP server in VSCode settings for GitHub Copilot.
+
+    Copilot reads MCP servers from the `github.copilot.chat.mcp.servers` key
+    in VSCode's user settings.json.
+    """
+    path = _copilot_mcp_settings_path()
+    if path is None:
+        print(f"  ✗ Copilot: could not determine VSCode settings path")
+        return
+    try:
+        s = json.loads(path.read_text()) if path.exists() else {}
+    except Exception:
+        s = {}
+    # Copilot MCP servers live under github.copilot.chat.mcp.servers (array of objects)
+    mcp_servers = s.setdefault("github.copilot.chat.mcp.servers", [])
+    # Remove existing evols entry if present
+    mcp_servers = [srv for srv in mcp_servers if srv.get("name") != "evols"]
+    mcp_servers.append({
+        "name": "evols",
+        "command": str(CLI_PATH),
+        "args": ["mcp-server"],
+        "env": {
+            "EVOLS_API_URL": cfg.get("api_url", EVOLS_API_URL_DEFAULT),
+            "EVOLS_API_KEY": cfg.get("api_key", ""),
+            "EVOLS_PLAN": cfg.get("plan_type", "pro"),
+        },
+    })
+    s["github.copilot.chat.mcp.servers"] = mcp_servers
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(s, indent=2) + "\n")
+    print(f"  ✓ Copilot: MCP server registered (VSCode settings.json)")
 
 
 # ── Claude Code hooks installer ────────────────────────────────────────────────
@@ -651,6 +738,8 @@ def cmd_login(args):
         "codex":       lambda: install_codex_mcp(cfg),
         "windsurf":    lambda: install_windsurf_mcp(cfg),
         "antigravity": lambda: install_antigravity_mcp(cfg),
+        "cline":       lambda: install_cline_mcp(cfg),
+        "copilot":     lambda: install_copilot_mcp(cfg),
     }
 
     for name, info in agents.items():
@@ -665,7 +754,8 @@ def cmd_login(args):
                 content = json.loads(path.read_text()) if path.exists() else {}
                 already = (
                     "evols" in content.get("mcpServers", {}) or
-                    "evols" in content.get("context_servers", {})
+                    "evols" in content.get("context_servers", {}) or
+                    any(srv.get("name") == "evols" for srv in content.get("github.copilot.chat.mcp.servers", []))
                 )
         except Exception:
             already = False
@@ -710,6 +800,8 @@ def cmd_install(args):
         "codex":       lambda: (install_codex_mcp(cfg), install_codex_hooks(cfg)),
         "windsurf":    lambda: install_windsurf_mcp(cfg),
         "antigravity": lambda: (install_antigravity_mcp(cfg), install_antigravity_hooks(cfg)),
+        "cline":       lambda: install_cline_mcp(cfg),
+        "copilot":     lambda: install_copilot_mcp(cfg),
     }
 
     for name in agents:
@@ -1379,16 +1471,321 @@ def _codex_extract(ref: SessionRef) -> Optional[ExtractedSession]:
     )
 
 
+# ── Antigravity extractor ──────────────────────────────────────────────────────
+
+ANTIGRAVITY_DIR = Path.home() / ".gemini" / "antigravity"
+ANTIGRAVITY_SESSIONS_DIR = ANTIGRAVITY_DIR / "sessions"
+
+
+def _antigravity_discover() -> Iterable[SessionRef]:
+    if not ANTIGRAVITY_SESSIONS_DIR.is_dir():
+        return
+    for jsonl in ANTIGRAVITY_SESSIONS_DIR.rglob("*.jsonl"):
+        try:
+            stat = jsonl.stat()
+        except OSError:
+            continue
+        yield SessionRef(
+            agent="antigravity",
+            source_id=jsonl.stem,
+            source_path=str(jsonl),
+            source_mtime=int(stat.st_mtime),
+            source_size=stat.st_size,
+        )
+
+
+def _antigravity_extract(ref: SessionRef) -> Optional[ExtractedSession]:
+    """Extract transcript from Antigravity session JSONL (Gemini-style format)."""
+    path = Path(ref.source_path)
+    if not path.exists():
+        return None
+    text_lines, files_read, files_modified = [], set(), set()
+    model = cwd = started_at = ended_at = None
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                ts = entry.get("timestamp") or entry.get("ts")
+                if ts:
+                    started_at = started_at or ts
+                    ended_at = ts
+                etype = entry.get("type", "")
+                payload = entry.get("payload", {}) or entry
+                if etype == "session_meta":
+                    cwd = payload.get("cwd") or cwd
+                    model = payload.get("model") or model
+                role = entry.get("role") or payload.get("role", "")
+                content = entry.get("content") or payload.get("content", "")
+                if role == "user" and isinstance(content, str) and content.strip():
+                    text_lines.append(f"User: {content[:600]}")
+                elif role in ("model", "assistant"):
+                    if isinstance(content, str) and content.strip():
+                        text_lines.append(f"Assistant: {content[:800]}")
+                    elif isinstance(content, list):
+                        for part in content:
+                            if isinstance(part, dict):
+                                txt = part.get("text", "")
+                                if txt:
+                                    text_lines.append(f"Assistant: {txt[:800]}")
+                                fc = part.get("functionCall") or part.get("function_call")
+                                if fc:
+                                    name = fc.get("name", "")
+                                    args = fc.get("args") or fc.get("arguments") or {}
+                                    text_lines.append(f"Tool: {name}({json.dumps(args)[:300]})")
+                                    fpath = args.get("path") or args.get("file_path") or args.get("filePath")
+                                    if fpath and name:
+                                        if "read" in name.lower() or "search" in name.lower():
+                                            files_read.add(fpath)
+                                        elif "write" in name.lower() or "edit" in name.lower():
+                                            files_modified.add(fpath)
+    except Exception:
+        return None
+    if not text_lines:
+        return None
+    return ExtractedSession(
+        agent="antigravity",
+        source_session_id=ref.source_id,
+        transcript_text="\n".join(text_lines[-120:]),
+        started_at=started_at, ended_at=ended_at, cwd=cwd,
+        model=model, tokens_used=None,
+        files_read=sorted(files_read), files_modified=sorted(files_modified),
+        schema_version="antigravity:1",
+    )
+
+
+# ── Cline extractor ───────────────────────────────────────────────────────────
+
+def _cline_task_dirs() -> list[Path]:
+    """Return all possible Cline task_history directories (VSCode + Cursor)."""
+    candidates = [
+        Path.home() / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "tasks",
+        Path.home() / "Library" / "Application Support" / "Cursor" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "tasks",
+        Path.home() / ".config" / "Code" / "User" / "globalStorage" / "saoudrizwan.claude-dev" / "tasks",
+    ]
+    return [p for p in candidates if p.is_dir()]
+
+
+def _cline_discover() -> Iterable[SessionRef]:
+    for tasks_dir in _cline_task_dirs():
+        for task_dir in tasks_dir.iterdir():
+            if not task_dir.is_dir():
+                continue
+            # Each task folder has an api_conversation_history.json
+            conv_file = task_dir / "api_conversation_history.json"
+            if not conv_file.exists():
+                continue
+            try:
+                stat = conv_file.stat()
+            except OSError:
+                continue
+            yield SessionRef(
+                agent="cline",
+                source_id=task_dir.name,  # task id is the folder name
+                source_path=str(conv_file),
+                source_mtime=int(stat.st_mtime),
+                source_size=stat.st_size,
+            )
+
+
+def _cline_extract(ref: SessionRef) -> Optional[ExtractedSession]:
+    """Extract transcript from Cline task conversation history."""
+    path = Path(ref.source_path)
+    if not path.exists():
+        return None
+    text_lines, files_read, files_modified = [], set(), set()
+    model = started_at = ended_at = None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+        if not isinstance(data, list):
+            return None
+        for msg in data:
+            if not isinstance(msg, dict):
+                continue
+            ts = msg.get("ts") or msg.get("timestamp")
+            if ts:
+                started_at = started_at or str(ts)
+                ended_at = str(ts)
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            # Cline stores content as list of content blocks
+            if isinstance(content, list):
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    btype = block.get("type", "")
+                    if btype == "text":
+                        txt = block.get("text", "")
+                        if txt and role == "user":
+                            text_lines.append(f"User: {txt[:600]}")
+                        elif txt and role == "assistant":
+                            text_lines.append(f"Assistant: {txt[:800]}")
+                    elif btype == "tool_use":
+                        name = block.get("name", "")
+                        inp = block.get("input", {})
+                        text_lines.append(f"Tool: {name}({json.dumps(inp)[:300]})")
+                        fpath = inp.get("path") or inp.get("file_path")
+                        if fpath:
+                            if name in ("read_file", "search_files", "list_files"):
+                                files_read.add(fpath)
+                            elif name in ("write_to_file", "replace_in_file"):
+                                files_modified.add(fpath)
+            elif isinstance(content, str) and content.strip():
+                prefix = "User" if role == "user" else ("Assistant" if role == "assistant" else None)
+                if prefix:
+                    text_lines.append(f"{prefix}: {content[:800]}")
+    except Exception:
+        return None
+    if not text_lines:
+        return None
+    return ExtractedSession(
+        agent="cline",
+        source_session_id=ref.source_id,
+        transcript_text="\n".join(text_lines[-120:]),
+        started_at=started_at, ended_at=ended_at, cwd=None,
+        model=model, tokens_used=None,
+        files_read=sorted(files_read), files_modified=sorted(files_modified),
+        schema_version="cline:1",
+    )
+
+
+# ── Copilot extractor ─────────────────────────────────────────────────────────
+
+def _copilot_conversations_dirs() -> list[Path]:
+    """Return paths to GitHub Copilot chat history directories."""
+    candidates = [
+        # macOS VSCode
+        Path.home() / "Library" / "Application Support" / "Code" / "User" / "workspaceStorage",
+        # Linux VSCode
+        Path.home() / ".config" / "Code" / "User" / "workspaceStorage",
+    ]
+    return [p for p in candidates if p.is_dir()]
+
+
+def _copilot_discover() -> Iterable[SessionRef]:
+    """Discover Copilot chat sessions from VSCode's chat history files."""
+    # Copilot stores conversations in the chatParticipant storage
+    for ws_dir in _copilot_conversations_dirs():
+        for workspace in ws_dir.iterdir():
+            if not workspace.is_dir():
+                continue
+            # Look for Copilot chat history in state.vscdb or chat JSON files
+            chat_dir = workspace / "state.vscdb"
+            # Also check for chat history files directly
+            chat_files = list(workspace.glob("**/github.copilot*chat*.json"))
+            for chat_file in chat_files:
+                try:
+                    stat = chat_file.stat()
+                except OSError:
+                    continue
+                yield SessionRef(
+                    agent="copilot",
+                    source_id=f"{workspace.name}:{chat_file.stem}",
+                    source_path=str(chat_file),
+                    source_mtime=int(stat.st_mtime),
+                    source_size=stat.st_size,
+                )
+    # Also check globalStorage for copilot chat history
+    global_candidates = [
+        Path.home() / "Library" / "Application Support" / "Code" / "User" / "globalStorage" / "github.copilot-chat",
+        Path.home() / ".config" / "Code" / "User" / "globalStorage" / "github.copilot-chat",
+    ]
+    for gdir in global_candidates:
+        if not gdir.is_dir():
+            continue
+        for chat_file in gdir.rglob("*.json"):
+            if chat_file.stat().st_size < 100:
+                continue
+            try:
+                stat = chat_file.stat()
+            except OSError:
+                continue
+            yield SessionRef(
+                agent="copilot",
+                source_id=chat_file.stem,
+                source_path=str(chat_file),
+                source_mtime=int(stat.st_mtime),
+                source_size=stat.st_size,
+            )
+
+
+def _copilot_extract(ref: SessionRef) -> Optional[ExtractedSession]:
+    """Extract transcript from a Copilot chat history file."""
+    path = Path(ref.source_path)
+    if not path.exists():
+        return None
+    text_lines = []
+    started_at = ended_at = model = None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+        # Handle various Copilot conversation formats
+        conversations = []
+        if isinstance(data, list):
+            conversations = data
+        elif isinstance(data, dict):
+            conversations = data.get("conversations") or data.get("threads") or data.get("messages") or []
+            if not conversations and "turns" in data:
+                conversations = data["turns"]
+
+        for conv in conversations:
+            if not isinstance(conv, dict):
+                continue
+            # Handle conversation-level wrapper
+            messages = conv.get("messages") or conv.get("turns") or [conv]
+            for msg in messages:
+                if not isinstance(msg, dict):
+                    continue
+                ts = msg.get("timestamp") or msg.get("createdAt") or msg.get("date")
+                if ts:
+                    started_at = started_at or str(ts)
+                    ended_at = str(ts)
+                role = msg.get("role") or msg.get("author") or ""
+                content = msg.get("content") or msg.get("text") or msg.get("message") or ""
+                if isinstance(content, str) and content.strip():
+                    if role in ("user", "human"):
+                        text_lines.append(f"User: {content[:600]}")
+                    elif role in ("assistant", "bot", "copilot"):
+                        text_lines.append(f"Assistant: {content[:800]}")
+                elif isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict):
+                            txt = block.get("text") or block.get("value") or ""
+                            if txt:
+                                prefix = "User" if role in ("user", "human") else "Assistant"
+                                text_lines.append(f"{prefix}: {txt[:800]}")
+    except Exception:
+        return None
+    if not text_lines:
+        return None
+    return ExtractedSession(
+        agent="copilot",
+        source_session_id=ref.source_id,
+        transcript_text="\n".join(text_lines[-100:]),
+        started_at=started_at, ended_at=ended_at, cwd=None,
+        model=model, tokens_used=None,
+        files_read=[], files_modified=[],
+        schema_version="copilot:1",
+    )
+
+
 _EXTRACTORS = [
-    ("claude", _claude_discover, _claude_extract, CLAUDE_PROJECTS_DIR.is_dir if CLAUDE_PROJECTS_DIR.exists() else lambda: False),
-    ("codex",  _codex_discover,  _codex_extract,  lambda: CODEX_SESSIONS_DIR.is_dir() or CODEX_SESSION_INDEX.exists()),
+    ("claude",       _claude_discover,       _claude_extract,       CLAUDE_PROJECTS_DIR.is_dir if CLAUDE_PROJECTS_DIR.exists() else lambda: False),
+    ("codex",        _codex_discover,        _codex_extract,        lambda: CODEX_SESSIONS_DIR.is_dir() or CODEX_SESSION_INDEX.exists()),
+    ("antigravity",  _antigravity_discover,  _antigravity_extract,  lambda: ANTIGRAVITY_SESSIONS_DIR.is_dir()),
+    ("cline",        _cline_discover,        _cline_extract,        lambda: bool(_cline_task_dirs())),
+    ("copilot",      _copilot_discover,      _copilot_extract,      lambda: bool(_copilot_conversations_dirs())),
 ]
 
 
 # ── cmd_sync ───────────────────────────────────────────────────────────────────
 
 def cmd_sync(args):
-    """Backfill historical sessions from Claude Code and Codex."""
+    """Backfill historical sessions from all supported agents (Claude Code, Codex, Antigravity, Cline, Copilot)."""
     dry_run = "--dry-run" in args
     agent_filter = None
     for a in args:
@@ -1497,7 +1894,7 @@ Commands:
   install         Install MCP server + hooks into all detected coding agents
   init [path]     Inject team context into a project for all detected agents
   status          Show installation status
-  sync            Backfill historical sessions from Claude Code and Codex
+  sync            Backfill historical sessions from all supported agents
   mcp-server      Run MCP stdio server (spawned automatically by agents)
 
 Examples:
