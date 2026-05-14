@@ -57,7 +57,7 @@ export default function Register() {
           tenant_id: data.tenant_id,
           role: data.role,
         }))
-        trackEvent(AUTH_EVENTS.SIGNUP_SUCCESS, { method: 'social', role: data.role })
+        trackEvent(AUTH_EVENTS.SIGNUP_COMPLETED, { method: 'social', role: data.role })
         identifyUser({ id: data.id, email: data.email, tenant_id: data.tenant_id, role: data.role, full_name: data.full_name })
         window.location.href = '/workbench'
       })
