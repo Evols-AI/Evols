@@ -40,26 +40,27 @@ export default function Context() {
   const [aiLoading, setAiLoading] = useState(false)
   const [selectedAiEntry, setSelectedAiEntry] = useState<any>(null)
 
+  // Run once on mount: auth check, initial data load
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login')
       return
     }
+    setUser(getCurrentUser())
+    loadContext()
+    loadConfiguredEntityTypes()
+  }, [])
 
-    const currentUser = getCurrentUser()
-    setUser(currentUser)
-
-    // Check URL params for tab
+  // Respond to URL tab param changes (shallow pushes from handleTabChange don't re-mount)
+  useEffect(() => {
+    if (!router.isReady) return
     const { tab } = router.query
     if (tab && ['sources', 'entities', 'insights', 'knowledge_graph', 'ai_sessions'].includes(tab as string)) {
       setSelectedView(tab as ViewType)
       if (tab === 'entities' || tab === 'knowledge_graph') loadGraphEntities()
       if (tab === 'ai_sessions') loadAiSessions()
     }
-
-    loadContext()
-    loadConfiguredEntityTypes()
-  }, [router])
+  }, [router.isReady, router.query.tab])
 
   // Poll LightRAG processing status for newly uploaded sources
   useEffect(() => {
@@ -143,11 +144,15 @@ export default function Context() {
       setContextSources(allSources.filter((s: any) => !s.source_group_id))
       setSourceGroups(groups)
 
-      // Re-derive which sources are still being processed by LightRAG.
-      // The DB status is set to COMPLETED immediately after submission (before
-      // LightRAG finishes), so we must ask LightRAG directly.
-      if (allSources.length > 0) {
-        const ids = allSources.map((s: any) => s.id).join(',')
+      // Only check LightRAG processing status for sources added in the last hour.
+      // The DB status field is set to COMPLETED immediately after submission (before
+      // LightRAG finishes), so we ask LightRAG directly — but only when it's likely
+      // still processing. Skipping this for old sources avoids a slow LightRAG
+      // /documents scan on every page load.
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+      const recentSources = allSources.filter((s: any) => new Date(s.created_at).getTime() > oneHourAgo)
+      if (recentSources.length > 0) {
+        const ids = recentSources.map((s: any) => s.id).join(',')
         try {
           const statusRes = await apiClient.get('/api/v1/graph/processing-status', {
             params: { source_ids: ids },
@@ -155,7 +160,7 @@ export default function Context() {
           })
           if (statusRes.status === 200) {
             const statuses: Record<string, string> = statusRes.data?.sources ?? {}
-            const inProgress = allSources
+            const inProgress = recentSources
               .map((s: any) => s.id)
               .filter((id: number) => {
                 const st = statuses[String(id)]

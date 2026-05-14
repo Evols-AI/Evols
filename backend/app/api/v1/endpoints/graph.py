@@ -210,36 +210,27 @@ async def _user_personal_paths(user_id: int, db: AsyncSession) -> set[str]:
     """
     Paths for data contributed by this specific user.
     Covers: context sources they uploaded, their PM-OS data, and their AI session entries.
+    All queries run in parallel.
     """
-    paths: set[str] = set()
+    from app.models.team_knowledge import KnowledgeEntry
 
-    # PM-OS data (always user-scoped)
-    for model, prefix in [
-        (WorkContext, "work_context"),
-        (MeetingNote, "meeting_note"),
-        (PMDecision, "pm_decision"),
-    ]:
-        r = await db.execute(select(model.id).where(model.user_id == user_id))
-        for (rid,) in r.all():
-            paths.add(f"{prefix}:{rid}")
-
-    # Context sources uploaded by this user
-    r = await db.execute(
-        select(ContextSource.id).where(ContextSource.user_id == user_id)
+    results = await asyncio.gather(
+        db.execute(select(WorkContext.id).where(WorkContext.user_id == user_id)),
+        db.execute(select(MeetingNote.id).where(MeetingNote.user_id == user_id)),
+        db.execute(select(PMDecision.id).where(PMDecision.user_id == user_id)),
+        db.execute(select(ContextSource.id).where(ContextSource.user_id == user_id)),
+        db.execute(select(KnowledgeEntry.id).where(KnowledgeEntry.user_id == user_id)),
+        return_exceptions=True,
     )
-    for (sid,) in r.all():
-        paths.add(f"context_source:{sid}")
 
-    # AI session knowledge entries authored by this user
-    try:
-        from app.models.team_knowledge import KnowledgeEntry
-        r = await db.execute(
-            select(KnowledgeEntry.id).where(KnowledgeEntry.user_id == user_id)
-        )
-        for (kid,) in r.all():
-            paths.add(f"knowledge_entry:{kid}")
-    except Exception:
-        pass
+    prefixes = ["work_context", "meeting_note", "pm_decision", "context_source", "knowledge_entry"]
+
+    paths: set[str] = set()
+    for prefix, result in zip(prefixes, results):
+        if isinstance(result, Exception):
+            continue
+        for (row_id,) in result.all():
+            paths.add(f"{prefix}:{row_id}")
 
     return paths
 
@@ -249,43 +240,33 @@ async def _tenant_file_paths(tenant_id: int, user_id: int, db: AsyncSession) -> 
     Build the set of file_path labels that belong to this tenant/user.
     LightRAG has no multi-tenancy — we scope at the proxy layer by filtering
     nodes/edges whose file_path was set by us during ingestion.
+
+    All DB queries run in parallel via asyncio.gather to minimise latency on
+    cache misses (was 6 sequential round-trips, now 1 concurrent batch).
     """
+    from app.models.team_knowledge import KnowledgeEntry
+
+    results = await asyncio.gather(
+        db.execute(select(ContextSource.id).where(ContextSource.tenant_id == tenant_id)),
+        db.execute(select(ExtractedEntity.id).where(ExtractedEntity.tenant_id == tenant_id)),
+        db.execute(select(WorkContext.id).where(WorkContext.user_id == user_id)),
+        db.execute(select(MeetingNote.id).where(MeetingNote.user_id == user_id)),
+        db.execute(select(PMDecision.id).where(PMDecision.user_id == user_id)),
+        db.execute(select(KnowledgeEntry.id).where(KnowledgeEntry.tenant_id == tenant_id)),
+        return_exceptions=True,
+    )
+
+    prefixes = [
+        "context_source", "entity", "work_context",
+        "meeting_note", "pm_decision", "knowledge_entry",
+    ]
+
     paths: set[str] = set()
-
-    # Context sources
-    r = await db.execute(select(ContextSource.id).where(ContextSource.tenant_id == tenant_id))
-    for (sid,) in r.all():
-        paths.add(f"context_source:{sid}")
-
-    # Extracted entities
-    r = await db.execute(select(ExtractedEntity.id).where(ExtractedEntity.tenant_id == tenant_id))
-    for (eid,) in r.all():
-        paths.add(f"entity:{eid}")
-
-
-    # Work context (user-scoped)
-    r = await db.execute(select(WorkContext.id).where(WorkContext.user_id == user_id))
-    for (wid,) in r.all():
-        paths.add(f"work_context:{wid}")
-
-    # Meeting notes (user-scoped)
-    r = await db.execute(select(MeetingNote.id).where(MeetingNote.user_id == user_id))
-    for (mid,) in r.all():
-        paths.add(f"meeting_note:{mid}")
-
-    # PM decisions (user-scoped)
-    r = await db.execute(select(PMDecision.id).where(PMDecision.user_id == user_id))
-    for (did,) in r.all():
-        paths.add(f"pm_decision:{did}")
-
-    # Team knowledge entries — import here to avoid circular deps
-    try:
-        from app.models.team_knowledge import KnowledgeEntry
-        r = await db.execute(select(KnowledgeEntry.id).where(KnowledgeEntry.tenant_id == tenant_id))
-        for (kid,) in r.all():
-            paths.add(f"knowledge_entry:{kid}")
-    except Exception:
-        pass
+    for prefix, result in zip(prefixes, results):
+        if isinstance(result, Exception):
+            continue
+        for (row_id,) in result.all():
+            paths.add(f"{prefix}:{row_id}")
 
     return paths
 
