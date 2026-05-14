@@ -168,13 +168,13 @@ export default function Login() {
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 
-      <div className={`min-h-screen flex flex-col transition-colors bg-background`}>
+      <div className={`min-h-screen flex flex-col transition-colors bg-background pt-16`}>
         <Header variant="landing" />
         <div className="flex-grow flex items-center justify-center px-6 py-12">
           <div className="grid lg:grid-cols-2 gap-12 items-center w-full max-w-6xl">
             {/* Left Column */}
             <div className="hidden lg:flex flex-col items-center justify-center">
-              <img src="/login.svg" alt="Login illustration" className="w-full max-w-md mb-10 drop-shadow-lg" />
+              <img src="/login.svg" alt="Login illustration" className="w-full max-w-xs mb-8 drop-shadow-lg" />
               <div className="text-center">
                 <h2 className={`text-3xl font-medium mb-4 text-foreground`}>
                   Welcome Back!
