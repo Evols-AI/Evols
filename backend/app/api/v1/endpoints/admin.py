@@ -7,7 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from pydantic import BaseModel, EmailStr
 
 from app.core.database import get_db
@@ -326,11 +326,55 @@ async def delete_tenant(
                 detail=f"Tenant has {user_count} users. Use force=true to delete anyway."
             )
     else:
-        # Force deletion: clean up related records first
-        # Delete jobs
-        await db.execute(
-            Job.__table__.delete().where(Job.tenant_id == tenant_id)
+        # Force deletion: delete all tenant-scoped records in dependency order
+        # to avoid FK constraint violations before deleting users and the tenant.
+        tenant_tables = [
+            # child tables that reference other tenant tables first
+            "entity_initiative_links",
+            "entity_duplicates",
+            "initiative_evidence",
+            "content_access_logs",
+            "extracted_entities",
+            "context_sources",
+            "source_groups",
+            "decision_option",
+            "decision",
+            "initiative",
+            "project",
+            "knowledge_sources",
+            "capabilities",
+            "knowledge_entries",
+            "knowledge_edges",
+            "quota_events",
+            "product_knowledge",
+            "account",
+            "prompt_execution",
+            "prompt",
+            "user_preference",
+            "user_skill_customizations",
+            "user_integrations",
+            "skill_memory",
+            "job",
+        ]
+        for table in tenant_tables:
+            await db.execute(text(f"DELETE FROM {table} WHERE tenant_id = :tid"), {"tid": tenant_id})
+
+        # Delete users in the tenant (clears FKs from users → tenant)
+        user_ids_result = await db.execute(
+            select(User.id).where(User.tenant_id == tenant_id)
         )
+        user_ids = [row[0] for row in user_ids_result.fetchall()]
+
+        if user_ids:
+            # Delete user-scoped records that have no tenant_id FK
+            for table in ("api_keys", "user_tenants", "tenant_invites"):
+                await db.execute(
+                    text(f"DELETE FROM {table} WHERE user_id = ANY(:uids)"),
+                    {"uids": user_ids},
+                )
+            await db.execute(
+                text("DELETE FROM users WHERE tenant_id = :tid"), {"tid": tenant_id}
+            )
 
     await db.delete(tenant)
     await db.commit()

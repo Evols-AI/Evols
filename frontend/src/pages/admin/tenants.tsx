@@ -82,8 +82,14 @@ export default function TenantsAdmin() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.detail || 'Failed to create tenant')
+        let errorMessage = 'Failed to create tenant'
+        try {
+          const data = await response.json()
+          errorMessage = data.detail || errorMessage
+        } catch {
+          errorMessage = `Server error (${response.status})`
+        }
+        throw new Error(errorMessage)
       }
 
       await loadTenants()
@@ -107,8 +113,14 @@ export default function TenantsAdmin() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.detail || 'Failed to delete tenant')
+        let errorMessage = 'Failed to delete tenant'
+        try {
+          const data = await response.json()
+          errorMessage = data.detail || errorMessage
+        } catch {
+          errorMessage = `Server error (${response.status})`
+        }
+        throw new Error(errorMessage)
       }
 
       await loadTenants()
