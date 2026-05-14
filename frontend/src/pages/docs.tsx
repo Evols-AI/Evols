@@ -294,7 +294,7 @@ export default function Docs() {
                     </Step>
                     <Step n={4} title="Install the Evols CLI and wire your coding agents">
                       <p>
-                        The Evols CLI wires a global MCP server and process-level hooks into every coding agent on your machine. Claude Code, Cursor, Zed, Codex, and Antigravity are detected and configured automatically.
+                        The Evols CLI wires a global MCP server and process-level hooks into every coding agent on your machine. Claude Code, Cursor, Zed, Codex, Antigravity, Cline, and GitHub Copilot are detected and configured automatically.
                       </p>
                       <p className="font-medium text-foreground">macOS / Linux</p>
                       <CodeBlock>{`# Install the CLI
@@ -342,15 +342,6 @@ evols init`}</CodeBlock>
                         ))}
                       </div>
                     </Step>
-                    <div className="mt-4 p-5 rounded-xl border border-primary/20 bg-primary/5">
-                      <h3 className="text-sm font-medium text-foreground mb-1">Ready to bring in your team?</h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Switch to <strong>Team Setup</strong> to invite teammates and start sharing the knowledge graph.
-                      </p>
-                      <button onClick={() => setQuickstartTab('team-setup')} className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                        Team Setup guide <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
                   </div>
                 )}
 
@@ -475,10 +466,12 @@ irm https://api.evols.ai/api/v1/install/script.ps1 | iex`}</CodeBlock>
 # Paste your evols_... API key when prompted`}</CodeBlock>
                     </Step>
                     <Step n={4} title="Install into your coding agents">
-                      <p>One command detects and wires up Claude Code, Cursor, Zed, and Codex automatically:</p>
+                      <p>One command detects and wires up Claude Code, Cursor, Zed, Codex, Antigravity, Cline, and GitHub Copilot automatically:</p>
                       <CodeBlock>{`evols install`}</CodeBlock>
                       <p>Restart your coding agent after this step, then verify:</p>
                       <CodeBlock>{`evols status`}</CodeBlock>
+                      <p>To backfill historical sessions from all your coding agents into the team knowledge graph:</p>
+                      <CodeBlock>{`evols sync`}</CodeBlock>
                       <p>You should see <code className="bg-muted px-1 py-0.5 rounded text-xs">✓ MCP installed</code> for each detected agent and all hooks registered.</p>
                     </Step>
                     <Step n={5} title="Initialise Evols in your project repos">
@@ -914,11 +907,12 @@ evols init`}</CodeBlock>
                   />
                   <FeatureDoc
                     title="Evols CLI"
-                    description="The Evols CLI wires MCP and hooks into every coding agent on your machine. Claude Code, Cursor, Zed, Codex, and Antigravity are detected and configured automatically."
+                    description="The Evols CLI wires MCP and hooks into every coding agent on your machine. Claude Code, Cursor, Zed, Codex, Antigravity, Cline, and GitHub Copilot are detected and configured automatically."
                     features={[
                       'Install: curl -fsSL https://api.evols.ai/api/v1/install/script | sh',
                       'Authenticate: evols login — enter your API key from Settings → Security',
                       'Wire all detected agents: evols install',
+                      'Backfill historical sessions into the team knowledge graph: evols sync',
                       'The MCP server (evols mcp-server) is spawned automatically by agents — no manual process required',
                     ]}
                   />

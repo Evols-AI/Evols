@@ -2,6 +2,22 @@
 
 All notable changes to Evols will be documented in this file.
 
+## [Unreleased] - 2026-05-13
+
+### Added
+
+- **Amplitude Analytics**: user behaviour tracking with deferred init (2s + `requestIdleCallback`), no session replay, 10s event batching. Requires `NEXT_PUBLIC_AMPLITUDE_API_KEY`. Silently no-ops without it.
+- **Typed event catalog**: `analytics-events.ts` covers auth, product, feedback, personas, roadmap, workbench, knowledge, settings, admin, error, and feature-adoption events.
+- **Login tracking**: `LOGIN_SUCCESS` (with role/tenant_id) and `LOGIN_FAILED` events; user identified in Amplitude on successful login.
+- **CLI `evols sync` command**: backfills historical sessions from all supported agents (Claude Code, Codex, Antigravity, Cline, GitHub Copilot) into the team knowledge graph.
+- **Cline and GitHub Copilot support** in `evols install`, `evols login`, `evols init`, `evols status`, and `evols sync`.
+
+### Fixed
+
+- **Knowledge page slow load**: `loadContext` now runs once on mount only — tab switches no longer trigger redundant API + LightRAG calls. LightRAG processing-status check is skipped for sources older than 1 hour.
+- **Backend graph cache miss latency**: all DB queries in `_tenant_file_paths` and `_user_personal_paths` now run in parallel via `asyncio.gather` (was 5–6 sequential round-trips).
+- **`refetchOnWindowFocus`** was silently disabled by a stale comment in `_app.tsx`; now correctly set to `false`.
+
 ## [1.2.0] - 2026-04-26
 
 ### Added — Team Knowledge Graph 🧠
