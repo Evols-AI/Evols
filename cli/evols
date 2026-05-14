@@ -6,6 +6,7 @@ Commands:
   evols install             — install global MCP server + hooks into all detected agents
   evols init [path]         — inject team context into a project for all detected agents
   evols status              — show what's installed and configured
+  evols sync                — backfill historical sessions from Claude Code and Codex
   evols mcp-server          — run the MCP stdio server (spawned automatically by agents)
 """
 
@@ -14,6 +15,15 @@ import json
 import shutil
 import urllib.request
 import urllib.parse
+import urllib.error
+import contextlib
+import errno
+import fcntl
+import os
+import sqlite3
+import time
+from dataclasses import dataclass, field
+from typing import Iterable, Iterator, Optional
 from pathlib import Path
 
 EVOLS_DIR = Path.home() / ".evols"
@@ -838,6 +848,637 @@ def cmd_status(args):
         print(f"  (none) — run evols init")
 
 
+# ── Sync engine (inlined from evols_sync/) ─────────────────────────────────────
+# All sync code is self-contained here so the single-file `evols` script works
+# without any companion packages.
+
+# ── Types ──────────────────────────────────────────────────────────────────────
+
+@dataclass
+class SessionRef:
+    agent: str
+    source_id: str
+    source_path: str
+    source_mtime: int
+    source_size: int = 0
+    cwd: Optional[str] = None
+
+
+@dataclass
+class ExtractedSession:
+    agent: str
+    source_session_id: str
+    transcript_text: str
+    started_at: Optional[str] = None
+    ended_at: Optional[str] = None
+    cwd: Optional[str] = None
+    model: Optional[str] = None
+    tokens_used: Optional[int] = None
+    files_read: list = field(default_factory=list)
+    files_modified: list = field(default_factory=list)
+    partial_transcript: bool = False
+    schema_version: str = "v1"
+
+    def to_payload(self) -> dict:
+        return {
+            "agent": self.agent,
+            "source_session_id": self.source_session_id,
+            "transcript_text": self.transcript_text,
+            "started_at": self.started_at,
+            "ended_at": self.ended_at,
+            "cwd": self.cwd,
+            "model": self.model,
+            "tokens_used": self.tokens_used,
+            "files_read": self.files_read,
+            "files_modified": self.files_modified,
+            "partial_transcript": self.partial_transcript,
+            "schema_version": self.schema_version,
+        }
+
+
+# ── Sync state (sqlite) ────────────────────────────────────────────────────────
+
+SYNC_DB_FILE   = EVOLS_DIR / "sync_state.sqlite"
+SYNC_QUEUE_DIR = EVOLS_DIR / "sync_queue"
+LOCKS_DIR      = EVOLS_DIR / "locks"
+LIVE_SESSION_STATE_FILE = EVOLS_DIR / "session_state.json"
+SEED_DONE_MARKER = EVOLS_DIR / ".sync_seed_done"
+
+_SYNC_SCHEMA = """
+CREATE TABLE IF NOT EXISTS synced_sessions (
+  agent           TEXT NOT NULL,
+  source_id       TEXT NOT NULL,
+  source_path     TEXT,
+  source_mtime    INTEGER NOT NULL,
+  source_hash     TEXT,
+  schema_version  TEXT,
+  evols_entry_id  INTEGER,
+  status          TEXT NOT NULL,
+  attempts        INTEGER DEFAULT 0,
+  last_error      TEXT,
+  first_synced_at INTEGER,
+  last_synced_at  INTEGER,
+  PRIMARY KEY (agent, source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_synced_source_id ON synced_sessions(source_id);
+CREATE TABLE IF NOT EXISTS sync_runs (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  started_at       INTEGER NOT NULL,
+  ended_at         INTEGER,
+  trigger          TEXT,
+  agent_filter     TEXT,
+  sessions_seen    INTEGER DEFAULT 0,
+  sessions_synced  INTEGER DEFAULT 0,
+  sessions_failed  INTEGER DEFAULT 0,
+  sessions_skipped INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS project_decisions (
+  project_path TEXT PRIMARY KEY,
+  decision     TEXT NOT NULL,
+  decided_at   INTEGER NOT NULL
+);
+"""
+
+
+def _sync_ensure_dirs():
+    EVOLS_DIR.mkdir(parents=True, exist_ok=True)
+    SYNC_QUEUE_DIR.mkdir(parents=True, exist_ok=True)
+    LOCKS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _sync_open_db() -> sqlite3.Connection:
+    _sync_ensure_dirs()
+    conn = sqlite3.connect(SYNC_DB_FILE)
+    conn.executescript(_SYNC_SCHEMA)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _sync_get_synced(conn, agent: str, source_id: str):
+    cur = conn.execute(
+        "SELECT * FROM synced_sessions WHERE agent=? AND source_id=?",
+        (agent, source_id),
+    )
+    return cur.fetchone()
+
+
+def _sync_upsert(conn, **fields):
+    now = int(time.time())
+    fields.setdefault("first_synced_at", now)
+    fields["last_synced_at"] = now
+    cols = list(fields.keys())
+    placeholders = ",".join("?" for _ in cols)
+    setters = ",".join(
+        f"{c}=excluded.{c}"
+        for c in cols
+        if c not in ("agent", "source_id", "first_synced_at")
+    )
+    sql = (
+        f"INSERT INTO synced_sessions ({','.join(cols)}) VALUES ({placeholders})\n"
+        f"ON CONFLICT(agent, source_id) DO UPDATE SET {setters}"
+    )
+    conn.execute(sql, [fields[c] for c in cols])
+    conn.commit()
+
+
+@contextlib.contextmanager
+def _session_lock(source_id: str) -> Iterator[Optional[int]]:
+    _sync_ensure_dirs()
+    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in source_id)[:200]
+    lock_path = LOCKS_DIR / f"{safe}.lock"
+    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as e:
+            if e.errno in (errno.EWOULDBLOCK, errno.EAGAIN):
+                yield None
+                return
+            raise
+        yield fd
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        except Exception:
+            pass
+        os.close(fd)
+
+
+def _is_live_session(source_id: str) -> bool:
+    if not LIVE_SESSION_STATE_FILE.exists():
+        return False
+    try:
+        state = json.loads(LIVE_SESSION_STATE_FILE.read_text())
+        return state.get("session_id") == source_id
+    except Exception:
+        return False
+
+
+# ── Backend client (inlined) ───────────────────────────────────────────────────
+
+class _ApiError(Exception):
+    def __init__(self, status: int, body: str):
+        super().__init__(f"HTTP {status}: {body[:200]}")
+        self.status = status
+
+
+class _EvolsClient:
+    def __init__(self, api_url: str, api_key: str, timeout: float = 15.0):
+        self.api_url = api_url.rstrip("/")
+        self.api_key = api_key
+        self.timeout = timeout
+        self._has_sessions_import: Optional[bool] = None
+        self._has_lookup: Optional[bool] = None
+
+    def _req(self, method: str, path: str, *, payload: Optional[dict] = None,
+             params: Optional[dict] = None) -> dict:
+        url = f"{self.api_url}{path}"
+        if params:
+            url = f"{url}?{urllib.parse.urlencode(params)}"
+        data = json.dumps(payload).encode() if payload is not None else None
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        if data is not None:
+            headers["Content-Type"] = "application/json"
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                body = resp.read()
+                return json.loads(body) if body else {}
+        except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="replace")
+            except Exception:
+                pass
+            raise _ApiError(e.code, body) from e
+
+    def supports_sessions_import(self) -> bool:
+        if self._has_sessions_import is not None:
+            return self._has_sessions_import
+        try:
+            self._req("POST", "/api/v1/team-knowledge/sessions/import", payload={})
+            self._has_sessions_import = True
+        except _ApiError as e:
+            self._has_sessions_import = e.status not in (404,)
+        except Exception:
+            self._has_sessions_import = False
+        return self._has_sessions_import
+
+    def import_session(self, payload: dict) -> tuple:
+        if self.supports_sessions_import():
+            try:
+                resp = self._req("POST", "/api/v1/team-knowledge/sessions/import", payload=payload)
+                return (
+                    resp.get("entry_id") or resp.get("id"),
+                    bool(resp.get("deduped", False)),
+                )
+            except _ApiError as e:
+                if e.status != 404:
+                    raise
+        legacy = {
+            "title": payload.get("title") or f"{payload.get('agent','session')} backfill",
+            "content": payload.get("transcript_text", "")[:8000],
+            "role": payload.get("role", "other"),
+            "session_type": "code",
+            "entry_type": "insight",
+            "tags": [f"agent:{payload.get('agent','unknown')}", "backfill"],
+            "source_session_id": payload.get("source_session_id"),
+            "session_tokens_used": payload.get("tokens_used") or 0,
+            "files_read": payload.get("files_read") or [],
+            "files_modified": payload.get("files_modified") or [],
+            "model": payload.get("model"),
+        }
+        resp = self._req("POST", "/api/v1/team-knowledge/entries", payload=legacy)
+        return resp.get("id"), False
+
+    def post_with_retry(self, payload: dict, max_attempts: int = 4) -> tuple:
+        delay = 1.0
+        last_err = None
+        for _ in range(max_attempts):
+            try:
+                return self.import_session(payload)
+            except _ApiError as e:
+                last_err = e
+                if e.status == 429 or 500 <= e.status < 600:
+                    time.sleep(delay)
+                    delay = min(delay * 2, 30.0)
+                    continue
+                raise
+            except Exception as e:
+                last_err = e
+                time.sleep(delay)
+                delay = min(delay * 2, 30.0)
+        if last_err:
+            raise last_err
+        return None, False
+
+    def iter_existing_entries(self, page_size: int = 100) -> Iterator[dict]:
+        cursor: Optional[str] = None
+        for _ in range(10_000):
+            params: dict = {"limit": page_size}
+            if cursor:
+                params["cursor"] = cursor
+            try:
+                resp = self._req("GET", "/api/v1/team-knowledge/entries", params=params)
+            except _ApiError as e:
+                if e.status in (404, 405):
+                    return
+                raise
+            items = resp if isinstance(resp, list) else (
+                resp.get("items") or resp.get("entries") or resp.get("results") or []
+            )
+            if not items:
+                return
+            for item in items:
+                yield item
+            next_cursor = (resp.get("next_cursor") or resp.get("cursor") or resp.get("next")) if not isinstance(resp, list) else None
+            if not next_cursor or next_cursor == cursor:
+                return
+            cursor = next_cursor
+
+
+# ── Extractors (inlined) ───────────────────────────────────────────────────────
+
+CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
+CODEX_DIR = Path.home() / ".codex"
+CODEX_SESSIONS_DIR = CODEX_DIR / "sessions"
+CODEX_SESSION_INDEX = CODEX_DIR / "session_index.jsonl"
+
+
+def _claude_slug_to_path(slug: str) -> Optional[str]:
+    if not slug.startswith("-"):
+        return None
+    return "/" + slug[1:].replace("-", "/")
+
+
+def _claude_discover() -> Iterable[SessionRef]:
+    if not CLAUDE_PROJECTS_DIR.is_dir():
+        return
+    for project_dir in CLAUDE_PROJECTS_DIR.iterdir():
+        if not project_dir.is_dir():
+            continue
+        cwd = _claude_slug_to_path(project_dir.name)
+        for jsonl in project_dir.glob("*.jsonl"):
+            try:
+                stat = jsonl.stat()
+            except OSError:
+                continue
+            yield SessionRef(
+                agent="claude",
+                source_id=jsonl.stem,
+                source_path=str(jsonl),
+                source_mtime=int(stat.st_mtime),
+                source_size=stat.st_size,
+                cwd=cwd,
+            )
+
+
+def _claude_extract(ref: SessionRef) -> Optional[ExtractedSession]:
+    path = Path(ref.source_path)
+    if not path.exists():
+        return None
+    text_lines, files_read, files_modified = [], set(), set()
+    per_message: dict = {}
+    no_id_totals = {"input_tokens": 0, "output_tokens": 0,
+                    "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
+    model = ""
+    started_at = ended_at = None
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                ts = entry.get("timestamp") or entry.get("ts")
+                if ts:
+                    started_at = started_at or ts
+                    ended_at = ts
+                msg = entry.get("message", {})
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+                usage = msg.get("usage", {})
+                if usage:
+                    m = msg.get("model", "")
+                    if m:
+                        model = m
+                    mid = msg.get("id")
+                    if mid:
+                        per_message[mid] = usage
+                    else:
+                        for k in no_id_totals:
+                            no_id_totals[k] += usage.get(k, 0)
+                if role == "user" and isinstance(content, str) and content.strip():
+                    text_lines.append(f"User: {content[:600]}")
+                elif role == "assistant":
+                    if isinstance(content, str) and content.strip():
+                        text_lines.append(f"Assistant: {content[:800]}")
+                    elif isinstance(content, list):
+                        for block in content:
+                            if not isinstance(block, dict):
+                                continue
+                            btype = block.get("type")
+                            if btype == "text":
+                                text_lines.append(f"Assistant: {block.get('text','')[:800]}")
+                            elif btype == "tool_use":
+                                name = block.get("name")
+                                inp = block.get("input", {})
+                                text_lines.append(f"Tool: {name}({json.dumps(inp)[:300]})")
+                                fpath = inp.get("file_path") or inp.get("filePath") or inp.get("path")
+                                if fpath:
+                                    if name in ("Read", "Glob", "Grep"):
+                                        files_read.add(fpath)
+                                    elif name in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
+                                        files_modified.add(fpath)
+    except Exception:
+        return None
+    if not text_lines:
+        return None
+    totals = dict(no_id_totals)
+    for u in per_message.values():
+        for k in totals:
+            totals[k] += u.get(k, 0)
+    tokens_used = (totals["input_tokens"] + totals["output_tokens"] +
+                   totals["cache_creation_input_tokens"]) or None
+    return ExtractedSession(
+        agent="claude",
+        source_session_id=ref.source_id,
+        transcript_text="\n".join(text_lines[-120:]),
+        started_at=started_at, ended_at=ended_at, cwd=ref.cwd,
+        model=model or None, tokens_used=tokens_used,
+        files_read=sorted(files_read), files_modified=sorted(files_modified),
+        schema_version="claude:1",
+    )
+
+
+def _codex_find_file(session_id: str) -> Optional[Path]:
+    if not CODEX_SESSIONS_DIR.is_dir():
+        return None
+    matches = list(CODEX_SESSIONS_DIR.rglob(f"rollout-*-{session_id}.jsonl"))
+    return matches[0] if matches else None
+
+
+def _codex_discover() -> Iterable[SessionRef]:
+    if not (CODEX_SESSIONS_DIR.is_dir() or CODEX_SESSION_INDEX.exists()):
+        return
+    seen: set = set()
+    if CODEX_SESSION_INDEX.exists():
+        try:
+            with open(CODEX_SESSION_INDEX, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except Exception:
+                        continue
+                    sid = entry.get("id")
+                    if not sid or sid in seen:
+                        continue
+                    seen.add(sid)
+                    path = _codex_find_file(sid)
+                    if not path:
+                        continue
+                    try:
+                        stat = path.stat()
+                    except OSError:
+                        continue
+                    yield SessionRef(
+                        agent="codex", source_id=sid, source_path=str(path),
+                        source_mtime=int(stat.st_mtime), source_size=stat.st_size,
+                    )
+        except Exception:
+            pass
+    if CODEX_SESSIONS_DIR.is_dir():
+        for path in CODEX_SESSIONS_DIR.rglob("rollout-*.jsonl"):
+            try:
+                parts = path.stem.split("-")
+                sid = "-".join(parts[-5:]) if len(parts) >= 5 else None
+                if not sid or sid in seen:
+                    continue
+                stat = path.stat()
+                seen.add(sid)
+                yield SessionRef(
+                    agent="codex", source_id=sid, source_path=str(path),
+                    source_mtime=int(stat.st_mtime), source_size=stat.st_size,
+                )
+            except OSError:
+                continue
+
+
+def _codex_extract(ref: SessionRef) -> Optional[ExtractedSession]:
+    path = Path(ref.source_path)
+    if not path.exists():
+        return None
+    text_lines, files_read, files_modified = [], set(), set()
+    cwd = model = started_at = ended_at = None
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                ts = rec.get("timestamp")
+                if ts:
+                    started_at = started_at or ts
+                    ended_at = ts
+                rtype = rec.get("type")
+                payload = rec.get("payload", {}) or {}
+                if rtype == "session_meta":
+                    cwd = payload.get("cwd") or cwd
+                    model = payload.get("model") or model
+                elif rtype == "turn_context":
+                    model = payload.get("model") or model
+                elif rtype == "response_item":
+                    ptype = payload.get("type")
+                    if ptype == "message":
+                        role = payload.get("role", "")
+                        content = payload.get("content") or []
+                        pieces = []
+                        if isinstance(content, list):
+                            for block in content:
+                                if isinstance(block, dict) and block.get("type") in ("input_text", "output_text", "text"):
+                                    t = block.get("text") or ""
+                                    if t:
+                                        pieces.append(t)
+                        elif isinstance(content, str):
+                            pieces.append(content)
+                        txt = " ".join(pieces).strip()
+                        if txt:
+                            prefix = "User" if role == "user" else ("Assistant" if role == "assistant" else None)
+                            if prefix:
+                                text_lines.append(f"{prefix}: {txt[:800]}")
+                    elif ptype == "function_call":
+                        name = payload.get("name", "")
+                        args_raw = payload.get("arguments") or ""
+                        try:
+                            args = json.loads(args_raw) if args_raw else {}
+                        except Exception:
+                            args = {}
+                        text_lines.append(f"Tool: {name}({json.dumps(args)[:300]})")
+    except Exception:
+        return None
+    if not text_lines:
+        return None
+    return ExtractedSession(
+        agent="codex",
+        source_session_id=ref.source_id,
+        transcript_text="\n".join(text_lines[-150:]),
+        started_at=started_at, ended_at=ended_at, cwd=cwd,
+        model=model, tokens_used=None,
+        files_read=sorted(files_read), files_modified=sorted(files_modified),
+        schema_version="codex:1",
+    )
+
+
+_EXTRACTORS = [
+    ("claude", _claude_discover, _claude_extract, CLAUDE_PROJECTS_DIR.is_dir if CLAUDE_PROJECTS_DIR.exists() else lambda: False),
+    ("codex",  _codex_discover,  _codex_extract,  lambda: CODEX_SESSIONS_DIR.is_dir() or CODEX_SESSION_INDEX.exists()),
+]
+
+
+# ── cmd_sync ───────────────────────────────────────────────────────────────────
+
+def cmd_sync(args):
+    """Backfill historical sessions from Claude Code and Codex."""
+    dry_run = "--dry-run" in args
+    agent_filter = None
+    for a in args:
+        if a.startswith("--agent="):
+            agent_filter = a.split("=", 1)[1]
+
+    cfg = load_config()
+    if not cfg:
+        print("Not logged in. Run: evols login")
+        sys.exit(1)
+
+    client = _EvolsClient(cfg["api_url"], cfg["api_key"])
+    conn = _sync_open_db()
+
+    # Seed: on first sync, pull already-uploaded entries so we don't re-ship them.
+    if not SEED_DONE_MARKER.exists():
+        print("First sync — seeding from backend to avoid duplicates...")
+        seeded = 0
+        try:
+            for entry in client.iter_existing_entries():
+                sid = entry.get("source_session_id")
+                agent = entry.get("agent") or "unknown"
+                if sid:
+                    existing = _sync_get_synced(conn, agent, sid)
+                    if not existing:
+                        _sync_upsert(conn, agent=agent, source_id=sid,
+                                     source_path=None, source_mtime=0,
+                                     status="seeded",
+                                     evols_entry_id=entry.get("id"))
+                        seeded += 1
+        except Exception as e:
+            print(f"  Warning: could not seed from backend: {e}")
+        SEED_DONE_MARKER.write_text(str(int(time.time())))
+        print(f"  Seeded {seeded} existing entries.")
+
+    total_seen = total_synced = total_skipped = total_failed = 0
+
+    for agent_name, discover_fn, extract_fn, is_present_fn in _EXTRACTORS:
+        if agent_filter and agent_name != agent_filter:
+            continue
+        if not is_present_fn():
+            continue
+        print(f"\nScanning {agent_name} sessions...")
+        for ref in discover_fn():
+            total_seen += 1
+            # Skip live session
+            if _is_live_session(ref.source_id):
+                total_skipped += 1
+                continue
+            # Check local db
+            row = _sync_get_synced(conn, ref.agent, ref.source_id)
+            if row and row["status"] in ("synced", "seeded"):
+                total_skipped += 1
+                continue
+            # Extract
+            session = extract_fn(ref)
+            if not session:
+                total_skipped += 1
+                continue
+            if dry_run:
+                print(f"  [dry-run] would sync: {ref.source_id[:16]}... ({agent_name})")
+                total_synced += 1
+                continue
+            # Upload
+            with _session_lock(ref.source_id) as lock_fd:
+                if lock_fd is None:
+                    total_skipped += 1
+                    continue
+                try:
+                    entry_id, deduped = client.post_with_retry(session.to_payload())
+                    status = "synced"
+                    _sync_upsert(conn, agent=ref.agent, source_id=ref.source_id,
+                                 source_path=ref.source_path, source_mtime=ref.source_mtime,
+                                 status=status, evols_entry_id=entry_id,
+                                 schema_version=session.schema_version)
+                    label = "deduped" if deduped else "synced"
+                    print(f"  ✓ {label}: {ref.source_id[:16]}...")
+                    total_synced += 1
+                except Exception as e:
+                    _sync_upsert(conn, agent=ref.agent, source_id=ref.source_id,
+                                 source_path=ref.source_path, source_mtime=ref.source_mtime,
+                                 status="failed", last_error=str(e)[:255],
+                                 attempts=(row["attempts"] + 1 if row else 1))
+                    print(f"  ✗ failed: {ref.source_id[:16]}... — {e}")
+                    total_failed += 1
+
+    print(f"\nSync complete: {total_synced} synced, {total_skipped} skipped, {total_failed} failed ({total_seen} total seen)")
+    conn.close()
+
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 COMMANDS = {
@@ -845,6 +1486,7 @@ COMMANDS = {
     "install":    cmd_install,
     "init":       cmd_init,
     "status":     cmd_status,
+    "sync":       cmd_sync,
     "mcp-server": cmd_mcp_server,
 }
 
@@ -855,12 +1497,15 @@ Commands:
   install         Install MCP server + hooks into all detected coding agents
   init [path]     Inject team context into a project for all detected agents
   status          Show installation status
+  sync            Backfill historical sessions from Claude Code and Codex
   mcp-server      Run MCP stdio server (spawned automatically by agents)
 
 Examples:
   evols login
   evols install
   evols init
+  evols sync
+  evols sync --dry-run
   evols status
 """
 
