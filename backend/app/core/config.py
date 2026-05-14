@@ -107,6 +107,14 @@ class Settings(BaseSettings):
     MICROSOFT_CLIENT_ID: Optional[str] = None
     MICROSOFT_CLIENT_SECRET: Optional[str] = None
 
+    # Social Login — Google OAuth2
+    GOOGLE_OAUTH_CLIENT_ID: str = ""
+    GOOGLE_OAUTH_CLIENT_SECRET: str = ""
+
+    # Social Login — GitHub OAuth
+    GITHUB_OAUTH_CLIENT_ID: str = ""
+    GITHUB_OAUTH_CLIENT_SECRET: str = ""
+
     # LightRAG PostgreSQL — direct connection for the temporal dedup job.
     # Defaults fall back to the POSTGRES_* vars used by LightRAG itself so that
     # single-host deployments don't need duplicate configuration.

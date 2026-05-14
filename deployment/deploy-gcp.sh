@@ -47,6 +47,11 @@ EVOLS_DOMAIN="${EVOLS_DOMAIN:-}"
 # ── Required secrets ──────────────────────────────────────────────────────────
 MONGO_URI="${MONGO_URI:?Set MONGO_URI in backend/.env.production}"
 OIDC_CLIENT_SECRET="${OIDC_CLIENT_SECRET:?Set OIDC_CLIENT_SECRET in backend/.env.production}"
+# Social login — client IDs are plain env vars; secrets are stored in Secret Manager
+GOOGLE_OAUTH_CLIENT_ID="${GOOGLE_OAUTH_CLIENT_ID:-}"
+GOOGLE_OAUTH_CLIENT_SECRET="${GOOGLE_OAUTH_CLIENT_SECRET:-}"
+GITHUB_OAUTH_CLIENT_ID="${GITHUB_OAUTH_CLIENT_ID:-}"
+GITHUB_OAUTH_CLIENT_SECRET="${GITHUB_OAUTH_CLIENT_SECRET:-}"
 SMTP_HOST="${SMTP_HOST:-smtp.zoho.com}"
 SMTP_PORT="${SMTP_PORT:-587}"
 SMTP_USER="${SMTP_USER:-info@evols.ai}"
@@ -104,6 +109,12 @@ PUBLIC_BASE="${EVOLS_DOMAIN:+https://${EVOLS_DOMAIN}}"
 echo "==> Storing secrets in Secret Manager..."
 store_secret "evols-smtp-password"   "${SMTP_PASSWORD}"
 store_secret "evols-lightrag-api-key" "${LIGHTRAG_API_KEY}"
+if [ -n "${GOOGLE_OAUTH_CLIENT_SECRET}" ]; then
+  store_secret "evols-google-oauth-client-secret" "${GOOGLE_OAUTH_CLIENT_SECRET}"
+fi
+if [ -n "${GITHUB_OAUTH_CLIENT_SECRET}" ]; then
+  store_secret "evols-github-oauth-client-secret" "${GITHUB_OAUTH_CLIENT_SECRET}"
+fi
 
 # Pre-clean any vars that were previously plain strings but are now secrets.
 # Cloud Run refuses to change a var's type in a single update — clearing them first
@@ -141,7 +152,9 @@ gcloud run deploy evols-backend \
   --set-env-vars "OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}" \
   --set-env-vars "LIGHTRAG_URL=https://evols-lightrag-kdqer5oyua-uc.a.run.app" \
   --set-env-vars "LIGHTRAG_TOKEN_SECRET=81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02" \
-  --set-secrets "SMTP_PASSWORD=evols-smtp-password:latest,LIGHTRAG_API_KEY=evols-lightrag-api-key:latest,FIELD_ENCRYPTION_KEY=evols-field-encryption-key:latest,ENCRYPTION_MASTER_SECRET=evols-encryption-master-secret:latest,AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest,AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest" \
+  --set-env-vars "GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}" \
+  --set-env-vars "GITHUB_OAUTH_CLIENT_ID=${GITHUB_OAUTH_CLIENT_ID}" \
+  --set-secrets "SMTP_PASSWORD=evols-smtp-password:latest,LIGHTRAG_API_KEY=evols-lightrag-api-key:latest,FIELD_ENCRYPTION_KEY=evols-field-encryption-key:latest,ENCRYPTION_MASTER_SECRET=evols-encryption-master-secret:latest,AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest,AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest$([ -n "${GOOGLE_OAUTH_CLIENT_SECRET}" ] && echo ",GOOGLE_OAUTH_CLIENT_SECRET=evols-google-oauth-client-secret:latest")$([ -n "${GITHUB_OAUTH_CLIENT_SECRET}" ] && echo ",GITHUB_OAUTH_CLIENT_SECRET=evols-github-oauth-client-secret:latest")" \
   --add-cloudsql-instances "${SQL_CONNECTION_NAME}" \
   --network default --subnet default \
   --vpc-egress private-ranges-only \
@@ -293,6 +306,7 @@ store_secret "workbench-jwt-refresh-secret"    "${JWT_REFRESH_SECRET}"
 store_secret "workbench-creds-key"             "${CREDS_KEY}"
 store_secret "workbench-creds-iv"              "${CREDS_IV}"
 store_secret "workbench-openid-session-secret" "${OPENID_SESSION_SECRET}"
+store_secret "workbench-oidc-client-secret"    "${OIDC_CLIENT_SECRET}"
 
 echo "==> Deploying evols-workbench..."
 gcloud run deploy evols-workbench \
@@ -305,8 +319,8 @@ gcloud run deploy evols-workbench \
   --memory=1Gi --cpu=1 \
   --min-instances=1 --max-instances=1 \
   --port=3080 \
-  --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,BASE_PATH=/workbench/app,APP_BASE_PATH=/workbench/app,ALLOW_REGISTRATION=false,ALLOW_EMAIL_LOGIN=false,EVOLS_BACKEND_URL=${PUBLIC_BASE},DOMAIN_CLIENT=${FRONTEND_BASE}/workbench/app,DOMAIN_SERVER=${FRONTEND_BASE},CONFIG_PATH=${LIBRECHAT_CONFIG_URL}" \
-  --set-secrets="MONGO_URI=workbench-mongo-uri:latest,JWT_SECRET=workbench-jwt-secret:latest,JWT_REFRESH_SECRET=workbench-jwt-refresh-secret:latest,CREDS_KEY=workbench-creds-key:latest,CREDS_IV=workbench-creds-iv:latest,OPENID_SESSION_SECRET=workbench-openid-session-secret:latest"
+  --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,BASE_PATH=/workbench/app,APP_BASE_PATH=/workbench/app,ALLOW_REGISTRATION=false,ALLOW_EMAIL_LOGIN=false,ALLOW_SOCIAL_LOGIN=true,ALLOW_SOCIAL_REGISTRATION=true,EVOLS_BACKEND_URL=${PUBLIC_BASE},DOMAIN_CLIENT=${FRONTEND_BASE}/workbench/app,DOMAIN_SERVER=${FRONTEND_BASE},CONFIG_PATH=${LIBRECHAT_CONFIG_URL},OPENID_ISSUER=${PUBLIC_BASE}/api/v1/oidc,OPENID_ALLOW_HTTP=false,OPENID_CLIENT_ID=evols-workbench,OPENID_AUTO_REDIRECT=true,OPENID_USE_PKCE=true,OPENID_BUTTON_LABEL=Sign in with Evols,OPENID_SCOPE=openid profile email,OPENID_CALLBACK_URL=/oauth/openid/callback,OPENID_POST_AUTH_REDIRECT=${FRONTEND_BASE}/workbench,OPENID_REUSE_TOKENS=false,TRUST_PROXY=1,NO_INDEX=true,CONSOLE_JSON=true,ENDPOINTS=agents,anthropic,openAI,google,assistants" \
+  --set-secrets="MONGO_URI=workbench-mongo-uri:latest,JWT_SECRET=workbench-jwt-secret:latest,JWT_REFRESH_SECRET=workbench-jwt-refresh-secret:latest,CREDS_KEY=workbench-creds-key:latest,CREDS_IV=workbench-creds-iv:latest,OPENID_SESSION_SECRET=workbench-openid-session-secret:latest,OPENID_CLIENT_SECRET=workbench-oidc-client-secret:latest"
 
 WORKBENCH_URL=$(gcloud run services describe evols-workbench \
   --region="${REGION}" --project="${PROJECT_ID}" \

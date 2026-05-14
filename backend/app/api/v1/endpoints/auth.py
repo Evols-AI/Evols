@@ -4,6 +4,7 @@ User registration, login, and token management
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -18,7 +19,10 @@ from app.schemas.auth import UserLogin, UserRegister, Token, VerificationPending
 from app.services.email_service import EmailService
 from sqlalchemy import select
 from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from urllib.parse import urlencode
 import secrets
+import httpx
 from uuid import uuid4
 from pydantic import BaseModel
 
@@ -552,3 +556,306 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
         email=user.email,
         full_name=user.full_name,
     )
+
+
+# ── Social Login (Google / GitHub) ────────────────────────────────────────────
+
+_SOCIAL_PROVIDERS = {
+    "google": {
+        "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "userinfo_url": "https://www.googleapis.com/oauth2/v3/userinfo",
+        "scopes": "openid email profile",
+        "client_id_key": "GOOGLE_OAUTH_CLIENT_ID",
+        "client_secret_key": "GOOGLE_OAUTH_CLIENT_SECRET",
+        "callback_path": "/api/v1/auth/social/google/callback",
+    },
+    "github": {
+        "auth_url": "https://github.com/login/oauth/authorize",
+        "token_url": "https://github.com/login/oauth/access_token",
+        "userinfo_url": "https://api.github.com/user",
+        "emails_url": "https://api.github.com/user/emails",
+        "scopes": "read:user user:email",
+        "client_id_key": "GITHUB_OAUTH_CLIENT_ID",
+        "client_secret_key": "GITHUB_OAUTH_CLIENT_SECRET",
+        "callback_path": "/api/v1/auth/social/github/callback",
+    },
+}
+
+
+def _get_provider_credentials(provider: str) -> tuple[str, str]:
+    """Return (client_id, client_secret) for the given provider, raising 501 if not configured."""
+    cfg = _SOCIAL_PROVIDERS[provider]
+    client_id = getattr(settings, cfg["client_id_key"], "")
+    client_secret = getattr(settings, cfg["client_secret_key"], "")
+    if not client_id or not client_secret:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail=f"{provider.title()} OAuth is not configured on this server.",
+        )
+    return client_id, client_secret
+
+
+def _build_state_token(provider: str, next_url: str = "") -> str:
+    """Create a short-lived JWT to use as the OAuth state parameter."""
+    payload = {
+        "sub": secrets.token_urlsafe(32),
+        "provider": provider,
+        "next": next_url,
+        "exp": datetime.utcnow() + timedelta(minutes=5),
+        "iat": datetime.utcnow(),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def _decode_state_token(state: str) -> dict:
+    """Validate the OAuth state JWT. Raises HTTPException on failure."""
+    try:
+        payload = jwt.decode(state, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OAuth state. Please try again.",
+        )
+
+
+@router.get("/social/{provider}")
+async def social_login_redirect(provider: str, next: str = ""):
+    """
+    Begin OAuth2 flow for the given provider (google or github).
+    Redirects the browser to the provider's authorization page.
+    """
+    if provider not in _SOCIAL_PROVIDERS:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown provider: {provider}")
+
+    client_id, _ = _get_provider_credentials(provider)
+    cfg = _SOCIAL_PROVIDERS[provider]
+
+    state = _build_state_token(provider, next_url=next)
+
+    # Build the callback URL from FRONTEND_URL so it matches the registered redirect URI
+    base = settings.FRONTEND_URL.rstrip("/")
+    # Callback is served by the backend — use the API path directly on the same origin
+    # In production the frontend and API share the same domain (evols.ai).
+    redirect_uri = f"{base}{cfg['callback_path']}"
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": cfg["scopes"],
+        "state": state,
+    }
+    if provider == "google":
+        params["access_type"] = "online"
+        params["prompt"] = "select_account"
+
+    auth_url = f"{cfg['auth_url']}?{urlencode(params)}"
+    return RedirectResponse(url=auth_url, status_code=302)
+
+
+@router.get("/social/{provider}/callback")
+async def social_login_callback(
+    provider: str,
+    code: str = "",
+    state: str = "",
+    error: str = "",
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    OAuth2 callback endpoint.
+    Validates state, exchanges code for access token, fetches user profile,
+    finds-or-creates the Evols user + tenant, issues an Evols JWT,
+    then redirects to {FRONTEND_URL}/?social_token={jwt}.
+    """
+    if provider not in _SOCIAL_PROVIDERS:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown provider: {provider}")
+
+    frontend_url = settings.FRONTEND_URL.rstrip("/")
+
+    if error:
+        return RedirectResponse(url=f"{frontend_url}/login?error={error}", status_code=302)
+
+    if not code or not state:
+        return RedirectResponse(url=f"{frontend_url}/login?error=missing_params", status_code=302)
+
+    # Validate state
+    state_payload = _decode_state_token(state)
+    if state_payload.get("provider") != provider:
+        return RedirectResponse(url=f"{frontend_url}/login?error=state_mismatch", status_code=302)
+
+    next_url = state_payload.get("next") or ""
+
+    client_id, client_secret = _get_provider_credentials(provider)
+    cfg = _SOCIAL_PROVIDERS[provider]
+
+    base = frontend_url
+    redirect_uri = f"{base}{cfg['callback_path']}"
+
+    # Exchange code for access token
+    async with httpx.AsyncClient(timeout=15) as client:
+        token_resp = await client.post(
+            cfg["token_url"],
+            data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+            headers={"Accept": "application/json"},
+        )
+
+    if token_resp.status_code != 200:
+        return RedirectResponse(url=f"{frontend_url}/login?error=token_exchange_failed", status_code=302)
+
+    token_data = token_resp.json()
+    access_token_value = token_data.get("access_token")
+    if not access_token_value:
+        return RedirectResponse(url=f"{frontend_url}/login?error=no_access_token", status_code=302)
+
+    # Fetch user profile
+    auth_headers = {"Authorization": f"Bearer {access_token_value}"}
+    async with httpx.AsyncClient(timeout=15) as client:
+        profile_resp = await client.get(cfg["userinfo_url"], headers=auth_headers)
+
+    if profile_resp.status_code != 200:
+        return RedirectResponse(url=f"{frontend_url}/login?error=profile_fetch_failed", status_code=302)
+
+    profile = profile_resp.json()
+
+    if provider == "google":
+        email = (profile.get("email") or "").lower().strip()
+        full_name = profile.get("name") or profile.get("given_name") or email.split("@")[0]
+        is_verified = profile.get("email_verified", False)
+    else:
+        # GitHub: primary email may not be in /user, fetch from /user/emails
+        email = (profile.get("email") or "").lower().strip()
+        full_name = profile.get("name") or profile.get("login") or ""
+        if not email:
+            async with httpx.AsyncClient(timeout=15) as client:
+                emails_resp = await client.get(cfg["emails_url"], headers=auth_headers)
+            if emails_resp.status_code == 200:
+                for entry in emails_resp.json():
+                    if entry.get("primary") and entry.get("verified"):
+                        email = entry["email"].lower().strip()
+                        break
+        is_verified = True  # GitHub only returns verified emails
+
+    if not email:
+        return RedirectResponse(url=f"{frontend_url}/login?error=no_email", status_code=302)
+
+    # Find or create user + tenant (mirrors the logic in register / verify_email)
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if user:
+        if not user.is_active:
+            return RedirectResponse(url=f"{frontend_url}/login?error=account_deactivated", status_code=302)
+        # Update last login
+        user.last_login_at = datetime.utcnow()
+        await db.commit()
+    else:
+        # Auto-create user + tenant using the same domain logic as register/verify_email
+        email_domain = email.split("@")[1].lower()
+        public_domains = {
+            "gmail.com", "yahoo.com", "outlook.com", "hotmail.com",
+            "icloud.com", "protonmail.com",
+        }
+
+        if email_domain in public_domains:
+            # Personal workspace
+            user_prefix = email.split("@")[0].replace(".", "-").replace("_", "-")
+            uuid_suffix = str(uuid4())[:8]
+            tenant_name = f"{full_name}'s Workspace" if full_name else f"{user_prefix}'s Workspace"
+            tenant_slug = f"{user_prefix}-{uuid_suffix}"
+            tenant_domain = None
+            join_existing = False
+        else:
+            # Company domain — join existing or create new
+            result = await db.execute(select(Tenant).where(Tenant.domain == email_domain))
+            existing_tenant = result.scalar_one_or_none()
+            if existing_tenant:
+                join_existing = True
+                existing_tenant_id = existing_tenant.id
+                tenant_name = existing_tenant.name
+                tenant_slug = existing_tenant.slug
+                tenant_domain = existing_tenant.domain
+            else:
+                join_existing = False
+                company_name = email_domain.split(".")[0].title()
+                tenant_name = company_name
+                tenant_slug = email_domain.replace(".", "-")
+                tenant_domain = email_domain
+
+        if join_existing:
+            tenant = await db.get(Tenant, existing_tenant_id)
+            new_user = User(
+                email=email,
+                hashed_password="",  # No password for social users
+                full_name=full_name,
+                tenant_id=tenant.id,
+                role=UserRole.USER,
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(new_user)
+            await db.flush()
+            user_tenant = UserTenant(
+                user_id=new_user.id,
+                tenant_id=tenant.id,
+                role=UserRole.USER.value,
+                is_active=True,
+            )
+            db.add(user_tenant)
+        else:
+            tenant = Tenant(
+                name=tenant_name,
+                slug=tenant_slug,
+                domain=tenant_domain,
+                is_active=True,
+                is_trial=True,
+                plan_type="free",
+            )
+            db.add(tenant)
+            await db.flush()
+            new_user = User(
+                email=email,
+                hashed_password="",  # No password for social users
+                full_name=full_name,
+                tenant_id=tenant.id,
+                role=UserRole.TENANT_ADMIN,
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(new_user)
+            await db.flush()
+            user_tenant = UserTenant(
+                user_id=new_user.id,
+                tenant_id=tenant.id,
+                role=UserRole.TENANT_ADMIN.value,
+                is_active=True,
+            )
+            db.add(user_tenant)
+
+        await db.commit()
+        await db.refresh(new_user)
+        user = new_user
+
+    # Issue Evols JWT
+    evols_token = create_access_token(
+        data={
+            "user_id": user.id,
+            "email": user.email,
+            "tenant_id": user.tenant_id,
+            "role": user.role.value,
+        }
+    )
+
+    # Redirect to the login page — it detects ?social_token= and exchanges it for a session
+    redirect_params = {"social_token": evols_token}
+    if next_url:
+        redirect_params["next"] = next_url
+    redirect_target = f"{frontend_url}/login?{urlencode(redirect_params)}"
+    return RedirectResponse(url=redirect_target, status_code=302)
