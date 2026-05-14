@@ -7,6 +7,8 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { isAuthenticated } from '@/utils/auth'
 import { useTheme } from '@/contexts/ThemeContext'
+import { trackEvent, identifyUser } from '@/lib/analytics'
+import { AUTH_EVENTS } from '@/lib/analytics-events'
 
 export default function Login() {
   const router = useRouter()
@@ -69,6 +71,18 @@ export default function Login() {
           tenant_id: data.tenant_id,
           role: data.role,
         }))
+        trackEvent(AUTH_EVENTS.LOGIN_SUCCESS, {
+          method: 'email',
+          role: data.role,
+          tenant_id: data.tenant_id,
+        })
+        identifyUser({
+          id: data.user_id,
+          email: data.email,
+          tenant_id: data.tenant_id,
+          role: data.role,
+          full_name: data.full_name,
+        })
         if (isOidcCallback && oidcRedirectUri) {
           const callbackParams = new URLSearchParams({ token: data.access_token, redirect_uri: oidcRedirectUri })
           if (oidcState) callbackParams.set('state', oidcState)
@@ -83,6 +97,9 @@ export default function Login() {
           window.location.href = nextUrl || '/workbench'
         }
       } else {
+        trackEvent(AUTH_EVENTS.LOGIN_FAILED, {
+          error: data.detail || 'Invalid credentials',
+        })
         setError(data.detail || 'Login failed. Please check your credentials.')
       }
     } catch (err) {

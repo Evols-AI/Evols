@@ -137,8 +137,33 @@ export default function Settings() {
 
   // Graph extraction settings state
   type EntityEntry = { name: string; definition: string | null }
-  const [entityTypes, setEntityTypes] = useState<EntityEntry[]>([])
-  const [entityAttributes, setEntityAttributes] = useState<EntityEntry[]>([])
+  const DEFAULT_ENTITY_TYPES: EntityEntry[] = [
+    { name: 'Person', definition: 'An individual human identified by name, role, or relationship to the team or product.' },
+    { name: 'Organization', definition: 'A company, institution, or group that acts as a customer, partner, or stakeholder.' },
+    { name: 'Product', definition: 'A software product, service, or platform being built, sold, or evaluated.' },
+    { name: 'Feature', definition: 'A specific capability or function of a product, requested or already implemented.' },
+    { name: 'PainPoint', definition: 'A problem, frustration, or obstacle experienced by a customer or user.' },
+    { name: 'FeatureRequest', definition: 'An explicit ask from a customer or stakeholder for a new or changed product capability.' },
+    { name: 'Persona', definition: 'A named archetype representing a segment of users or buyers with shared goals and behaviours.' },
+    { name: 'Competitor', definition: 'A company or product competing in the same market space.' },
+    { name: 'BusinessGoal', definition: 'A strategic objective or KPI the team or company is working toward.' },
+    { name: 'Metric', definition: 'A quantitative measure used to track performance, usage, or health of a product or team.' },
+    { name: 'Decision', definition: 'A resolved choice made by the team with documented reasoning and tradeoffs.' },
+    { name: 'Meeting', definition: 'A recorded synchronous interaction between team members or with customers.' },
+    { name: 'Project', definition: 'An active initiative or workstream with defined scope and milestones.' },
+    { name: 'Technology', definition: 'A tool, framework, language, or infrastructure component used or evaluated.' },
+    { name: 'Market', definition: 'A target customer segment, vertical, or geographic region the product serves.' },
+    { name: 'Task', definition: 'A unit of work or action item assigned to a person or team.' },
+  ]
+  const DEFAULT_ENTITY_ATTRIBUTES: EntityEntry[] = [
+    { name: 'sentiment', definition: 'Emotional tone toward the entity: positive, neutral, or negative.' },
+    { name: 'urgency', definition: 'How time-sensitive the mention is: low, medium, or high.' },
+    { name: 'business_impact', definition: 'Estimated impact on business outcomes: low, medium, or high.' },
+    { name: 'context_snippet', definition: 'A short verbatim quote from the source text that best captures this entity.' },
+    { name: 'confidence', definition: 'Extraction confidence score between 0 and 1.' },
+  ]
+  const [entityTypes, setEntityTypes] = useState<EntityEntry[]>(DEFAULT_ENTITY_TYPES)
+  const [entityAttributes, setEntityAttributes] = useState<EntityEntry[]>(DEFAULT_ENTITY_ATTRIBUTES)
   const [newTypeName, setNewTypeName] = useState('')
   const [newTypeDefinition, setNewTypeDefinition] = useState('')
   const [newAttrName, setNewAttrName] = useState('')
@@ -479,10 +504,11 @@ export default function Settings() {
     try {
       setLoadingGraphExtraction(true)
       const response = await api.getGraphExtractionSettings()
-      setEntityTypes(response.data.entity_types ?? [])
-      setEntityAttributes(response.data.entity_attributes ?? [])
+      if (response.data.entity_types?.length) setEntityTypes(response.data.entity_types)
+      if (response.data.entity_attributes?.length) setEntityAttributes(response.data.entity_attributes)
     } catch (error) {
       console.error('Failed to load graph extraction settings:', error)
+      // Keep defaults already in state — do not zero out
     } finally {
       setLoadingGraphExtraction(false)
     }
@@ -642,6 +668,7 @@ export default function Settings() {
   }
 
   return (
+    <>
     <div className="min-h-screen">
       <Header user={user} currentPage="settings" />
       <div className="page-container">
@@ -2228,16 +2255,6 @@ export default function Settings() {
                 </div>
               )}
 
-              {/* Invite Modal */}
-              {showInviteModal && (
-                <InviteModal
-                  onClose={() => setShowInviteModal(false)}
-                  onSuccess={() => {
-                    setShowInviteModal(false)
-                    loadInvites()
-                  }}
-                />
-              )}
             </div>
           )}
 
@@ -2249,6 +2266,18 @@ export default function Settings() {
       </div>
     </div>
     </div>
+
+      {/* Invite Modal — rendered outside .card to avoid backdrop-filter stacking context clipping fixed position */}
+      {showInviteModal && (
+        <InviteModal
+          onClose={() => setShowInviteModal(false)}
+          onSuccess={() => {
+            setShowInviteModal(false)
+            loadInvites()
+          }}
+        />
+      )}
+    </>
   )
 }
 

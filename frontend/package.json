@@ -13,6 +13,7 @@
     "kill-port": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true"
   },
   "dependencies": {
+    "@amplitude/analytics-browser": "^2.42.2",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-dialog": "^1.0.5",

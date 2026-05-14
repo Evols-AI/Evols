@@ -15,7 +15,15 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   id: 'build-image'
   waitFor: ['audit-dependencies']
-  args: ['build', '--build-arg', 'NEXT_PUBLIC_API_URL=${_API_URL}', '-t', '${_TAG}', '-f', 'deployment/frontend.Dockerfile', '.']
+  args:
+    - 'build'
+    - '--build-arg'
+    - 'NEXT_PUBLIC_API_URL=${_API_URL}'
+    - '-t'
+    - '${_TAG}'
+    - '-f'
+    - 'deployment/frontend.Dockerfile'
+    - '.'
 
 images:
 - '${_TAG}'

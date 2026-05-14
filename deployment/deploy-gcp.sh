@@ -11,13 +11,8 @@
 #   3. Evols backend deployed (or deploy in same run)
 #
 # Usage:
-#   export MONGO_URI="mongodb+srv://..."
-#   export OIDC_CLIENT_SECRET="..."
-#   export AWS_ACCESS_KEY_ID="..."
-#   export AWS_SECRET_ACCESS_KEY="..."
-#   export SMTP_PASSWORD="..."              # Zoho/SMTP password for transactional email
-#   export EVOLS_DOMAIN="evols.ai"          # omit to use the backend Cloud Run URL
-#   export LIGHTRAG_API_KEY="lr_..."        # optional, has default
+#   Secrets are auto-loaded from backend/.env.production.
+#   Env vars already exported in the calling shell take precedence.
 #   ./deployment/deploy-gcp.sh PROJECT_ID [REGION]
 
 set -euo pipefail
@@ -26,17 +21,36 @@ PROJECT_ID=${1:?Usage: ./deployment/deploy-gcp.sh PROJECT_ID [REGION]}
 REGION=${2:-us-central1}
 REPOSITORY="evols-repo"
 IMAGE_PREFIX="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}"
-EVOLS_DOMAIN="${EVOLS_DOMAIN:-}"
 WORKBENCH_DIR="${WORKBENCH_DIR:-../evols-workbench}"
 SKIP_BUILD="${SKIP_BUILD:-false}"
 
+# ── Auto-load backend/.env.production (source of truth for all secrets) ───────
+# Env vars already exported in the shell take precedence over the file.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_PROD="${SCRIPT_DIR}/../backend/.env.production"
+if [ -f "${ENV_PROD}" ]; then
+  echo "==> Loading secrets from backend/.env.production"
+  while IFS= read -r line || [ -n "${line}" ]; do
+    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// }" ]] && continue
+    key="${line%%=*}"
+    val="${line#*=}"
+    if [ -z "${!key+x}" ]; then
+      export "${key}=${val}"
+    fi
+  done < "${ENV_PROD}"
+fi
+
+# EVOLS_DOMAIN can be overridden via env but defaults to value in .env.production
+EVOLS_DOMAIN="${EVOLS_DOMAIN:-}"
+
 # ── Required secrets ──────────────────────────────────────────────────────────
-MONGO_URI="${MONGO_URI:?Set MONGO_URI}"
-OIDC_CLIENT_SECRET="${OIDC_CLIENT_SECRET:?Set OIDC_CLIENT_SECRET}"
+MONGO_URI="${MONGO_URI:?Set MONGO_URI in backend/.env.production}"
+OIDC_CLIENT_SECRET="${OIDC_CLIENT_SECRET:?Set OIDC_CLIENT_SECRET in backend/.env.production}"
 SMTP_HOST="${SMTP_HOST:-smtp.zoho.com}"
 SMTP_PORT="${SMTP_PORT:-587}"
 SMTP_USER="${SMTP_USER:-info@evols.ai}"
-SMTP_PASSWORD="${SMTP_PASSWORD:?Set SMTP_PASSWORD (Zoho/SMTP password for transactional email)}"
+SMTP_PASSWORD="${SMTP_PASSWORD:?Set SMTP_PASSWORD in backend/.env.production}"
 EMAIL_FROM="${EMAIL_FROM:-info@evols.ai}"
 LIGHTRAG_API_KEY="${LIGHTRAG_API_KEY:-lr_6c7e3b0a348fe6f206cf83cd794a908f751e2f07bee8c997}"
 # FIELD_ENCRYPTION_KEY: stable Fernet key stored in Secret Manager. Falls back to env var.
@@ -54,11 +68,13 @@ if [ -z "${ENCRYPTION_MASTER_SECRET:-}" ]; then
   ENCRYPTION_MASTER_SECRET=$(gcloud secrets versions access latest --secret=evols-encryption-master-secret --project="${PROJECT_ID}" 2>/dev/null || true)
 fi
 ENCRYPTION_MASTER_SECRET="${ENCRYPTION_MASTER_SECRET:?ENCRYPTION_MASTER_SECRET not set. Create the secret: python3 -c 'import secrets; print(secrets.token_urlsafe(32))' | gcloud secrets create evols-encryption-master-secret --data-file=-}"
-JWT_SECRET="${JWT_SECRET:-$(openssl rand -hex 32)}"
-JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET:-$(openssl rand -hex 32)}"
-CREDS_KEY="${CREDS_KEY:-$(openssl rand -hex 32)}"
-CREDS_IV="${CREDS_IV:-$(openssl rand -hex 16)}"
-OPENID_SESSION_SECRET="${OPENID_SESSION_SECRET:-$(openssl rand -hex 32)}"
+# Stable workbench secrets — read from .env.production so redeployments reuse the same values.
+# Falls back to generating new randoms only on first deploy (before the file has them).
+JWT_SECRET="${WORKBENCH_JWT_SECRET:-${JWT_SECRET:-$(openssl rand -hex 32)}}"
+JWT_REFRESH_SECRET="${WORKBENCH_JWT_REFRESH_SECRET:-${JWT_REFRESH_SECRET:-$(openssl rand -hex 32)}}"
+CREDS_KEY="${WORKBENCH_CREDS_KEY:-${CREDS_KEY:-$(openssl rand -hex 32)}}"
+CREDS_IV="${WORKBENCH_CREDS_IV:-${CREDS_IV:-$(openssl rand -hex 16)}}"
+OPENID_SESSION_SECRET="${WORKBENCH_OPENID_SESSION_SECRET:-${OPENID_SESSION_SECRET:-$(openssl rand -hex 32)}}"
 
 store_secret() {
   local name="$1" value="$2"
@@ -85,6 +101,19 @@ gcloud builds submit --config=deployment/cloudbuild-backend.yaml \
 # PUBLIC_BASE is set here if EVOLS_DOMAIN is known; updated after backend deploy if not
 PUBLIC_BASE="${EVOLS_DOMAIN:+https://${EVOLS_DOMAIN}}"
 
+echo "==> Storing secrets in Secret Manager..."
+store_secret "evols-smtp-password"   "${SMTP_PASSWORD}"
+store_secret "evols-lightrag-api-key" "${LIGHTRAG_API_KEY}"
+
+# Pre-clean any vars that were previously plain strings but are now secrets.
+# Cloud Run refuses to change a var's type in a single update — clearing them first
+# prevents new revisions from being created then immediately retired.
+echo "==> Pre-cleaning legacy plain-text vars that are now secrets..."
+gcloud run services update evols-backend \
+  --region "${REGION}" --platform managed \
+  --remove-env-vars "SMTP_PASSWORD,LIGHTRAG_API_KEY,OIDC_ISSUER,OIDC_CLIENT_ID,OIDC_CLIENT_SECRET" \
+  --project "${PROJECT_ID}" 2>/dev/null || true
+
 echo "==> Deploying evols-backend..."
 SQL_CONNECTION_NAME=$(gcloud sql instances describe evols-postgres \
   --format='value(connectionName)' --project "${PROJECT_ID}")
@@ -102,7 +131,6 @@ gcloud run deploy evols-backend \
   --set-env-vars "SMTP_HOST=${SMTP_HOST}" \
   --set-env-vars "SMTP_PORT=${SMTP_PORT}" \
   --set-env-vars "SMTP_USER=${SMTP_USER}" \
-  --set-env-vars "SMTP_PASSWORD=${SMTP_PASSWORD}" \
   --set-env-vars "EMAIL_FROM=${EMAIL_FROM}" \
   --set-env-vars "TAVILY_API_KEY=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" \
   --set-env-vars "EMBEDDING_PROVIDER=aws_bedrock" \
@@ -112,9 +140,8 @@ gcloud run deploy evols-backend \
   --set-env-vars "OIDC_CLIENT_ID=evols-workbench" \
   --set-env-vars "OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}" \
   --set-env-vars "LIGHTRAG_URL=https://evols-lightrag-kdqer5oyua-uc.a.run.app" \
-  --set-env-vars "LIGHTRAG_API_KEY=${LIGHTRAG_API_KEY:?Set LIGHTRAG_API_KEY}" \
   --set-env-vars "LIGHTRAG_TOKEN_SECRET=81cedc8e5042e71ccfb779dee55a8480d9e92f76080b1ccd8e34d7356a5b1b02" \
-  --set-secrets "FIELD_ENCRYPTION_KEY=evols-field-encryption-key:latest,ENCRYPTION_MASTER_SECRET=evols-encryption-master-secret:latest,AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest,AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest" \
+  --set-secrets "SMTP_PASSWORD=evols-smtp-password:latest,LIGHTRAG_API_KEY=evols-lightrag-api-key:latest,FIELD_ENCRYPTION_KEY=evols-field-encryption-key:latest,ENCRYPTION_MASTER_SECRET=evols-encryption-master-secret:latest,AWS_ACCESS_KEY_ID=evols-aws-access-key-id:latest,AWS_SECRET_ACCESS_KEY=evols-aws-secret-access-key:latest" \
   --add-cloudsql-instances "${SQL_CONNECTION_NAME}" \
   --network default --subnet default \
   --vpc-egress private-ranges-only \
@@ -127,9 +154,8 @@ echo "Backend URL: ${BACKEND_URL}"
 # Fall back to backend Cloud Run URL if no custom domain was set
 PUBLIC_BASE="${PUBLIC_BASE:-${BACKEND_URL}}"
 
-# Now that PUBLIC_BASE is resolved, patch OIDC_ISSUER on the backend service.
-# FRONTEND_URL must point at the user-facing frontend (evols.ai), not the backend,
-# because OIDC authorize redirects the browser to ${FRONTEND_URL}/login.
+# Patch FRONTEND_URL on the backend now that PUBLIC_BASE is resolved.
+# FRONTEND_URL must point at the user-facing frontend (evols.ai), not the backend.
 FRONTEND_BASE="${EVOLS_DOMAIN:+https://${EVOLS_DOMAIN}}"
 FRONTEND_BASE="${FRONTEND_BASE:-${BACKEND_URL}}"
 echo "==> Patching OIDC_ISSUER and FRONTEND_URL on evols-backend..."
@@ -262,7 +288,6 @@ LIBRECHAT_CONFIG_URL="https://storage.googleapis.com/${LIBRECHAT_CONFIG_BUCKET}/
 
 echo "==> Storing workbench secrets..."
 store_secret "workbench-mongo-uri"             "${MONGO_URI}"
-store_secret "workbench-oidc-client-secret"    "${OIDC_CLIENT_SECRET}"
 store_secret "workbench-jwt-secret"            "${JWT_SECRET}"
 store_secret "workbench-jwt-refresh-secret"    "${JWT_REFRESH_SECRET}"
 store_secret "workbench-creds-key"             "${CREDS_KEY}"
@@ -280,8 +305,8 @@ gcloud run deploy evols-workbench \
   --memory=1Gi --cpu=1 \
   --min-instances=1 --max-instances=1 \
   --port=3080 \
-  --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,BASE_PATH=/workbench/app,APP_BASE_PATH=/workbench/app,ALLOW_REGISTRATION=false,ALLOW_EMAIL_LOGIN=false,ALLOW_SOCIAL_LOGIN=true,ALLOW_SOCIAL_REGISTRATION=true,OPENID_ISSUER=${PUBLIC_BASE}/api/v1/oidc,OPENID_CLIENT_ID=evols-workbench,OPENID_SCOPE=openid profile email,OPENID_CALLBACK_URL=/workbench/app/oauth/openid/callback,OPENID_BUTTON_LABEL=Sign in with Evols,EVOLS_BACKEND_URL=${PUBLIC_BASE},DOMAIN_CLIENT=${FRONTEND_BASE}/workbench/app,DOMAIN_SERVER=${FRONTEND_BASE},CONFIG_PATH=${LIBRECHAT_CONFIG_URL}" \
-  --set-secrets="MONGO_URI=workbench-mongo-uri:latest,OPENID_CLIENT_SECRET=workbench-oidc-client-secret:latest,JWT_SECRET=workbench-jwt-secret:latest,JWT_REFRESH_SECRET=workbench-jwt-refresh-secret:latest,CREDS_KEY=workbench-creds-key:latest,CREDS_IV=workbench-creds-iv:latest,OPENID_SESSION_SECRET=workbench-openid-session-secret:latest"
+  --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,BASE_PATH=/workbench/app,APP_BASE_PATH=/workbench/app,ALLOW_REGISTRATION=false,ALLOW_EMAIL_LOGIN=false,EVOLS_BACKEND_URL=${PUBLIC_BASE},DOMAIN_CLIENT=${FRONTEND_BASE}/workbench/app,DOMAIN_SERVER=${FRONTEND_BASE},CONFIG_PATH=${LIBRECHAT_CONFIG_URL}" \
+  --set-secrets="MONGO_URI=workbench-mongo-uri:latest,JWT_SECRET=workbench-jwt-secret:latest,JWT_REFRESH_SECRET=workbench-jwt-refresh-secret:latest,CREDS_KEY=workbench-creds-key:latest,CREDS_IV=workbench-creds-iv:latest,OPENID_SESSION_SECRET=workbench-openid-session-secret:latest"
 
 WORKBENCH_URL=$(gcloud run services describe evols-workbench \
   --region="${REGION}" --project="${PROJECT_ID}" \
