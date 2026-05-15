@@ -16,17 +16,20 @@ type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | '
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini' | 'groq' | 'mistral' | 'cohere' | 'together_ai' | 'ollama' | 'deepseek' | 'xai' | 'openrouter'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
-// Providers that have native embedding support in embedding_service.py.
-// Anthropic and Google Gemini have no embedding API — the system falls back to
-// local sentence_transformers which uses different vector dimensions and will
-// silently break LightRAG semantic search if an existing tenant switches to them.
-const EMBEDDING_SUPPORTED: LLMProvider[] = ['openai', 'azure_openai', 'aws_bedrock']
+// Providers that have a native embeddings API (same key works for LLM + embeddings).
+// Anthropic has no embeddings API — when selected, the user must provide a separate
+// embedding provider and key.
+const EMBEDDING_NATIVE: LLMProvider[] = ['openai', 'azure_openai', 'aws_bedrock', 'google_gemini']
+
+type EmbeddingProvider = 'openai' | 'google_gemini' | 'aws_bedrock'
 
 interface LLMConfig {
   provider: LLMProvider
   api_key?: string
   model?: string
   embedding_model?: string
+  embedding_provider?: EmbeddingProvider
+  embedding_api_key?: string
   endpoint?: string
   deployment_name?: string
   api_version?: string
@@ -245,7 +248,7 @@ export default function Settings() {
         setLLMConfig({ provider: 'openai', api_key: '', model: 'gpt-5.4', embedding_model: 'text-embedding-3-large' })
         break
       case 'anthropic':
-        setLLMConfig({ provider: 'anthropic', api_key: '', model: 'claude-sonnet-4-6' })
+        setLLMConfig({ provider: 'anthropic', api_key: '', model: 'claude-sonnet-4-6', embedding_provider: 'openai', embedding_api_key: '' })
         break
       case 'azure_openai':
         setLLMConfig({ provider: 'azure_openai', api_key: '', endpoint: '', deployment_name: '', api_version: '2024-02-01' })
@@ -974,14 +977,56 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* Embedding warning for providers without native embedding support */}
-              {!EMBEDDING_SUPPORTED.includes(llmProvider) && (
+              {/* Anthropic: requires a separate embedding provider */}
+              {llmProvider === 'anthropic' && (
+                <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-3">
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    <strong>Embeddings required for knowledge graph:</strong> Anthropic does not provide an embeddings API. Choose a provider below for semantic search.
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Embedding Provider *</label>
+                    <div className="relative">
+                      <select
+                        value={llmConfig.embedding_provider || 'openai'}
+                        onChange={(e) => setLLMConfig({ ...llmConfig, embedding_provider: e.target.value as EmbeddingProvider, embedding_api_key: '' })}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground appearance-none cursor-pointer focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                      >
+                        <option value="openai">OpenAI</option>
+                        <option value="google_gemini">Google Gemini</option>
+                        <option value="aws_bedrock">AWS Bedrock</option>
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                  {(llmConfig.embedding_provider || 'openai') !== 'aws_bedrock' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        {(llmConfig.embedding_provider || 'openai') === 'google_gemini' ? 'Gemini API Key *' : 'OpenAI API Key *'}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          placeholder={(llmConfig.embedding_provider || 'openai') === 'google_gemini' ? 'AIza...' : 'sk-...'}
+                          value={llmConfig.embedding_api_key || ''}
+                          onChange={(e) => setLLMConfig({ ...llmConfig, embedding_api_key: e.target.value })}
+                          className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:ring-2 focus:ring-ring/50 focus:border-ring"
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">Used only for generating embeddings for the knowledge graph.</p>
+                    </div>
+                  )}
+                  {(llmConfig.embedding_provider || 'openai') === 'aws_bedrock' && (
+                    <p className="text-xs text-muted-foreground">AWS Bedrock will use the same credentials configured in the Bedrock section below. Switch your LLM provider to AWS Bedrock to configure those credentials, then switch back to Anthropic.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Warning for other providers without native embedding support */}
+              {!EMBEDDING_NATIVE.includes(llmProvider) && llmProvider !== 'anthropic' && (
                 <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                   <p className="text-sm text-amber-600 dark:text-amber-400">
-                    <strong>⚠ Limited embedding support:</strong> {({'anthropic': 'Anthropic', 'google_gemini': 'Google Gemini', 'groq': 'Groq', 'mistral': 'Mistral', 'cohere': 'Cohere', 'together_ai': 'Together AI', 'deepseek': 'DeepSeek', 'xai': 'xAI', 'openrouter': 'OpenRouter', 'ollama': 'Ollama'} as Record<string, string>)[llmProvider] ?? llmProvider} does not provide an embeddings API compatible with Evols.
-                    Evols will fall back to a local sentence-transformers model for semantic search, which uses a different vector dimension than OpenAI or Bedrock.
-                    If you have existing knowledge data indexed under a different provider, switching here will break semantic search until you re-index.
-                    For full embedding support, use OpenAI, Azure OpenAI, or AWS Bedrock.
+                    <strong>⚠ No embedding support:</strong> {({'groq': 'Groq', 'mistral': 'Mistral', 'cohere': 'Cohere', 'together_ai': 'Together AI', 'deepseek': 'DeepSeek', 'xai': 'xAI', 'openrouter': 'OpenRouter', 'ollama': 'Ollama'} as Record<string, string>)[llmProvider] ?? llmProvider} does not provide an embeddings API. Knowledge graph semantic search will not work.
+                    For full support, use OpenAI, Google Gemini, AWS Bedrock, or Anthropic with a separate embedding key.
                   </p>
                 </div>
               )}

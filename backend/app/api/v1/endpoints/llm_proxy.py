@@ -97,14 +97,19 @@ async def _get_user_for_proxy(request: Request, db: AsyncSession) -> User:
     """
     # Service key auth — accepts both X-Evols-Service-Key header and Bearer token
     # (LightRAG sends api_key as Bearer token; other internal services may use the header)
+    # Only treat the Bearer token as a service key when X-Evols-User-Id is absent AND
+    # the token actually matches the known service key — never reject based on a
+    # non-matching Bearer token because LibreChat sends apiKey="placeholder" as Bearer.
     svc_key = _service_key()
     service_key = request.headers.get("X-Evols-Service-Key", "").strip()
     if not service_key:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer ") and svc_key:
-            candidate = auth_header[7:]
-            if candidate == svc_key:
-                service_key = candidate
+        user_id_present = bool(request.headers.get("X-Evols-User-Id", "").strip())
+        if not user_id_present:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer ") and svc_key:
+                candidate = auth_header[7:]
+                if candidate == svc_key:
+                    service_key = candidate
     if service_key:
         if not svc_key or service_key != svc_key:
             raise HTTPException(status_code=401, detail="Invalid service key")
@@ -558,3 +563,296 @@ async def proxy_bedrock(
         ]
 
     return JSONResponse(openai_response)
+
+
+# ── Auto-routing proxy ────────────────────────────────────────────────────────
+# Reads the tenant's BYOK provider at request time and dispatches to the
+# correct upstream.  The Evols AI agent uses this endpoint so it works for
+# any tenant regardless of which provider they've configured.
+
+# Must be registered before /auto/{path:path} catch-all.
+@router.api_route("/auto/embeddings", methods=["POST", "OPTIONS"])
+@router.api_route("/auto/v1/embeddings", methods=["POST", "OPTIONS"])
+async def proxy_auto_embeddings(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Auto-routing embeddings — uses the tenant's BYOK key to call the matching
+    provider's embeddings API and returns an OpenAI-compatible response.
+    All providers are requested at 1024 dimensions to match LightRAG's EMBEDDING_DIM.
+
+    Provider mapping:
+      aws_bedrock   → Titan Embeddings V2 (native Bedrock, 1024-dim)
+      openai        → text-embedding-3-small with dimensions=1024
+      google_gemini → text-embedding-004 with outputDimensionality=1024 (Gemini REST API)
+      anthropic     → text-embedding-3-small via OpenAI (Anthropic has no embeddings API)
+    """
+    if request.method == "OPTIONS":
+        return JSONResponse({}, status_code=200)
+
+    user = await _get_user_for_proxy(request, db)
+    tenant_id = await _get_tenant_id_for_proxy(user)
+
+    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = result.scalar_one_or_none()
+    if not tenant or not tenant.llm_config:
+        raise HTTPException(
+            status_code=422,
+            detail="No LLM configuration found. Go to Settings → LLM Settings to add your API key.",
+        )
+
+    config = decrypt_llm_config(tenant.llm_config)
+    provider = config.get("provider", "")
+    api_key = config.get("api_key", "")
+
+    body = await request.json()
+    raw_input = body.get("input", "")
+    inputs: list[str] = [raw_input] if isinstance(raw_input, str) else list(raw_input)
+
+    if provider == "aws_bedrock":
+        import boto3
+
+        region = config.get("region", "us-east-1")
+        access_key_id = config.get("access_key_id")
+        secret_access_key = config.get("secret_access_key")
+        session_token = config.get("session_token")
+        bedrock_model = "amazon.titan-embed-text-v2:0"
+
+        def _embed_one(text: str) -> tuple[list[float], int]:
+            _client = boto3.client(
+                "bedrock-runtime",
+                region_name=region,
+                aws_access_key_id=access_key_id,
+                aws_secret_access_key=secret_access_key,
+                aws_session_token=session_token,
+            )
+            resp = _client.invoke_model(
+                modelId=bedrock_model,
+                contentType="application/json",
+                accept="application/json",
+                body=json.dumps({"inputText": text, "dimensions": 1024, "normalize": True}),
+            )
+            data = json.loads(resp["body"].read())
+            return data["embedding"], data.get("inputTextTokenCount", 0)
+
+        try:
+            futures = [_BEDROCK_POOL.submit(_embed_one, t) for t in inputs]
+            results_list = [f.result(timeout=120) for f in futures]
+            embeddings = [r[0] for r in results_list]
+            total_tokens = sum(r[1] for r in results_list)
+        except Exception as e:
+            logger.error(f"[auto embeddings bedrock] {e}")
+            raise HTTPException(status_code=502, detail=f"Bedrock embeddings error: {e}")
+
+        return JSONResponse({
+            "object": "list",
+            "data": [{"object": "embedding", "index": i, "embedding": emb} for i, emb in enumerate(embeddings)],
+            "model": bedrock_model,
+            "usage": {"prompt_tokens": total_tokens, "total_tokens": total_tokens},
+        })
+
+    if provider == "openai":
+        if not api_key:
+            raise HTTPException(status_code=422, detail="OpenAI API key not configured.")
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/embeddings",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": "text-embedding-3-small", "input": inputs, "dimensions": 1024},
+            )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"OpenAI embeddings error: {resp.text[:200]}")
+        return JSONResponse(resp.json())
+
+    if provider == "google_gemini":
+        if not api_key:
+            raise HTTPException(status_code=422, detail="Gemini API key not configured.")
+        # Gemini embeddings are not OpenAI-compatible — call their REST API directly.
+        # text-embedding-004 supports outputDimensionality up to 768; use 768 and note the
+        # mismatch with LightRAG's 1024 expectation.
+        # gemini-embedding-001 supports up to 3072 dims and can be reduced to 1024.
+        embedding_model = "gemini-embedding-001"
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{embedding_model}:batchEmbedContents",
+                headers={"Content-Type": "application/json"},
+                params={"key": api_key},
+                json={
+                    "requests": [
+                        {
+                            "model": f"models/{embedding_model}",
+                            "content": {"parts": [{"text": t}]},
+                            "outputDimensionality": 1024,
+                        }
+                        for t in inputs
+                    ]
+                },
+            )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Gemini embeddings error: {resp.text[:200]}")
+        data = resp.json()
+        embeddings = [e["values"] for e in data.get("embeddings", [])]
+        total_tokens = sum(len(t.split()) for t in inputs)  # Gemini doesn't return token counts
+        return JSONResponse({
+            "object": "list",
+            "data": [{"object": "embedding", "index": i, "embedding": emb} for i, emb in enumerate(embeddings)],
+            "model": embedding_model,
+            "usage": {"prompt_tokens": total_tokens, "total_tokens": total_tokens},
+        })
+
+    if provider == "anthropic":
+        # Anthropic has no native embeddings API. Use the tenant's separately configured
+        # embedding_provider and embedding_api_key (set in Settings → LLM Settings).
+        emb_provider = config.get("embedding_provider", "")
+        emb_key = config.get("embedding_api_key", "")
+        if not emb_provider or not emb_key:
+            raise HTTPException(
+                status_code=422,
+                detail="Anthropic does not provide an embeddings API. Go to Settings → LLM Settings and configure an Embedding Provider (OpenAI or Gemini) with its API key.",
+            )
+        if emb_provider == "openai":
+            async with httpx.AsyncClient(timeout=120) as client:
+                resp = await client.post(
+                    "https://api.openai.com/v1/embeddings",
+                    headers={"Authorization": f"Bearer {emb_key}", "Content-Type": "application/json"},
+                    json={"model": "text-embedding-3-small", "input": inputs, "dimensions": 1024},
+                )
+            if resp.status_code != 200:
+                raise HTTPException(status_code=502, detail=f"OpenAI embeddings error: {resp.text[:200]}")
+            return JSONResponse(resp.json())
+        if emb_provider == "google_gemini":
+            embedding_model = "gemini-embedding-001"
+            async with httpx.AsyncClient(timeout=120) as client:
+                resp = await client.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{embedding_model}:batchEmbedContents",
+                    headers={"Content-Type": "application/json"},
+                    params={"key": emb_key},
+                    json={
+                        "requests": [
+                            {"model": f"models/{embedding_model}", "content": {"parts": [{"text": t}]}, "outputDimensionality": 1024}
+                            for t in inputs
+                        ]
+                    },
+                )
+            if resp.status_code != 200:
+                raise HTTPException(status_code=502, detail=f"Gemini embeddings error: {resp.text[:200]}")
+            data = resp.json()
+            embeddings = [e["values"] for e in data.get("embeddings", [])]
+            return JSONResponse({
+                "object": "list",
+                "data": [{"object": "embedding", "index": i, "embedding": emb} for i, emb in enumerate(embeddings)],
+                "model": embedding_model,
+                "usage": {"prompt_tokens": sum(len(t.split()) for t in inputs), "total_tokens": sum(len(t.split()) for t in inputs)},
+            })
+        raise HTTPException(status_code=422, detail=f"Unsupported embedding provider '{emb_provider}'.")
+
+    raise HTTPException(
+        status_code=422,
+        detail=f"Unsupported provider '{provider}' for embeddings.",
+    )
+
+
+@router.api_route("/auto/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+async def proxy_auto(
+    path: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Auto-routing proxy — reads the tenant's BYOK LLM config and forwards to
+    the appropriate provider.  Supports anthropic, openai, google_gemini, and
+    aws_bedrock.  Returns 422 if no LLM config is set for the tenant.
+    """
+    if request.method == "OPTIONS":
+        return JSONResponse({}, status_code=200)
+
+    user = await _get_user_for_proxy(request, db)
+    tenant_id = await _get_tenant_id_for_proxy(user)
+
+    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = result.scalar_one_or_none()
+    if not tenant or not tenant.llm_config:
+        raise HTTPException(
+            status_code=422,
+            detail="No LLM configuration found. Go to Settings → LLM Settings to add your API key.",
+        )
+
+    config = decrypt_llm_config(tenant.llm_config)
+    provider = config.get("provider", "")
+
+    # Bedrock is handled natively (no OpenAI-compatible REST endpoint)
+    if provider == "aws_bedrock":
+        body = await request.json()
+        messages = body.get("messages", [])
+        model = body.get("model", config.get("model_id", "us.anthropic.claude-sonnet-4-6"))
+        model = normalize_bedrock_model(model)
+        temperature = float(body.get("temperature", 0.7))
+        max_tokens = int(body.get("max_tokens", 4096))
+        tools = body.get("tools")
+        tool_choice = body.get("tool_choice")
+        stream = body.get("stream", False)
+
+        llm_config = LLMConfig(
+            provider="aws_bedrock",
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            aws_region=config.get("region", "us-east-1"),
+            aws_access_key_id=config.get("access_key_id"),
+            aws_secret_access_key=config.get("secret_access_key"),
+            aws_session_token=config.get("session_token"),
+        )
+        service = LLMService(llm_config, enable_cache=False)
+
+        if stream:
+            response = await service.generate(messages=messages, tools=tools, tool_choice=tool_choice)
+            cid = f"chatcmpl-{uuid.uuid4().hex}"
+
+            def _chunk(delta: dict, finish_reason=None) -> str:
+                return "data: " + json.dumps({
+                    "id": cid, "object": "chat.completion.chunk", "model": model,
+                    "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}],
+                }) + "\n\n"
+
+            async def sse_stream():
+                yield _chunk({"role": "assistant"})
+                if response.tool_calls:
+                    for i, tc in enumerate(response.tool_calls):
+                        yield _chunk({"tool_calls": [{"index": i, "id": tc.id, "type": "function", "function": {"name": tc.function["name"], "arguments": ""}}]})
+                        yield _chunk({"tool_calls": [{"index": i, "function": {"arguments": tc.function.get("arguments", "{}")}}]})
+                    yield _chunk({}, finish_reason="tool_calls")
+                else:
+                    if response.content:
+                        yield _chunk({"content": response.content})
+                    yield _chunk({}, finish_reason="stop")
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(sse_stream(), media_type="text/event-stream")
+
+        response = await service.generate(messages=messages, tools=tools, tool_choice=tool_choice)
+        openai_response = {
+            "id": f"chatcmpl-{uuid.uuid4().hex}", "object": "chat.completion", "model": model,
+            "choices": [{"index": 0, "message": {"role": "assistant", "content": response.content}, "finish_reason": response.finish_reason}],
+            "usage": response.usage,
+        }
+        if response.tool_calls:
+            openai_response["choices"][0]["message"]["tool_calls"] = [
+                {"id": tc.id, "type": "function", "function": tc.function} for tc in response.tool_calls
+            ]
+        return JSONResponse(openai_response)
+
+    # OpenAI-compatible providers: forward to the correct upstream
+    provider_map = {
+        "anthropic":    "anthropic",
+        "openai":       "openai",
+        "google_gemini": "gemini",
+    }
+    upstream_provider = provider_map.get(provider)
+    if not upstream_provider:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported provider '{provider}'. Supported: anthropic, openai, google_gemini, aws_bedrock.",
+        )
+
+    return await _proxy(request, upstream_provider, path, db, tenant_id)

@@ -210,13 +210,37 @@ def end_run(
     conn.commit()
 
 
-def seed_marker_exists() -> bool:
-    return SEED_DONE_MARKER.exists()
+def _api_key_fingerprint(api_key: str) -> str:
+    """Short deterministic fingerprint of the API key — not a secret, just an identity marker."""
+    import hashlib
+    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
 
 
-def mark_seed_done() -> None:
+def seed_marker_exists(api_key: str = "") -> bool:
+    """Return True only if the seed was done for this specific API key."""
+    if not SEED_DONE_MARKER.exists():
+        return False
+    if not api_key:
+        return True
+    try:
+        content = SEED_DONE_MARKER.read_text().strip()
+        # Legacy marker (just a timestamp) — treat as stale when key is known
+        if content.isdigit():
+            return False
+        # New format: "<timestamp>:<fingerprint>"
+        stored_fp = content.split(":", 1)[1] if ":" in content else ""
+        return stored_fp == _api_key_fingerprint(api_key)
+    except Exception:
+        return False
+
+
+def mark_seed_done(api_key: str = "") -> None:
     ensure_dirs()
-    SEED_DONE_MARKER.write_text(str(int(time.time())))
+    ts = str(int(time.time()))
+    if api_key:
+        SEED_DONE_MARKER.write_text(f"{ts}:{_api_key_fingerprint(api_key)}")
+    else:
+        SEED_DONE_MARKER.write_text(ts)
 
 
 # ── Project decisions (privacy: opt-in/out per project) ───────────────────────

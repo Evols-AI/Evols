@@ -61,6 +61,15 @@ class SchedulerService:
             replace_existing=True
         )
 
+        # Retry failed LightRAG ingestions every 30 minutes
+        self.scheduler.add_job(
+            self.retry_failed_lightrag_ingestions,
+            IntervalTrigger(minutes=30),
+            id='retry_failed_ingestions',
+            name='Retry Failed LightRAG Ingestions',
+            replace_existing=True
+        )
+
     def shutdown(self):
         """Shutdown the scheduler"""
         self.scheduler.shutdown()
@@ -194,6 +203,43 @@ class SchedulerService:
             logger.info(f"Temporal dedup job completed: {result}")
         except Exception as e:
             logger.error(f"Error in temporal dedup job: {e}")
+
+    async def retry_failed_lightrag_ingestions(self):
+        """Re-push context sources that failed or are stuck in pending LightRAG ingestion."""
+        try:
+            from sqlalchemy import or_
+            from app.models.context import ContextSource, ContextProcessingStatus
+
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(ContextSource).where(
+                        or_(
+                            ContextSource.status == ContextProcessingStatus.FAILED,
+                            ContextSource.status == ContextProcessingStatus.PENDING,
+                        )
+                    ).limit(20)
+                )
+                sources = result.scalars().all()
+
+                if not sources:
+                    return
+
+                logger.info(f"Retrying LightRAG ingestion for {len(sources)} source(s)")
+                for source in sources:
+                    try:
+                        from app.services.lightrag_ingestion_service import ingest_context_source, load_tenant_graph_config
+                        cfg = await load_tenant_graph_config(source.tenant_id, db)
+                        ok = await ingest_context_source(source, tenant_config=cfg)
+                        if ok:
+                            source.status = ContextProcessingStatus.COMPLETED
+                            await db.commit()
+                            logger.info(f"Retry succeeded for context source {source.id}")
+                        else:
+                            logger.warning(f"Retry returned False for source {source.id}")
+                    except Exception as e:
+                        logger.warning(f"Retry failed for source {source.id}: {e}")
+        except Exception as e:
+            logger.error(f"Error in retry_failed_lightrag_ingestions: {e}")
 
 
 # Global scheduler instance
