@@ -10,9 +10,9 @@ import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
 import { Loading } from '@/components/PageContainer'
-import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare, Volume2, Database } from 'lucide-react'
+import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare } from 'lucide-react'
 
-type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'chat' | 'speech' | 'data_controls'
+type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'chat'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini' | 'groq' | 'mistral' | 'cohere' | 'together_ai' | 'ollama' | 'deepseek' | 'xai' | 'openrouter'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -93,9 +93,11 @@ export default function Settings() {
 
     // Handle ?tab= query parameter
     if (router.query.tab && typeof router.query.tab === 'string') {
-      const tabParam = router.query.tab as Tab
-      if (['profile', 'security', 'notifications', 'llm', 'data_refresh', 'team', 'chat', 'speech', 'data_controls'].includes(tabParam)) {
-        setActiveTab(tabParam)
+      const tabParam = router.query.tab as string
+      // Redirect legacy speech/data_controls URLs to the unified chat tab
+      const resolvedTab = (tabParam === 'speech' || tabParam === 'data_controls') ? 'chat' : tabParam as Tab
+      if (['profile', 'security', 'notifications', 'llm', 'data_refresh', 'team', 'chat'].includes(resolvedTab)) {
+        setActiveTab(resolvedTab)
       }
     }
   }, [router.query.tab])
@@ -199,8 +201,6 @@ export default function Settings() {
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
     { id: 'data_refresh' as Tab, label: 'Data Refresh', icon: RefreshCw },
     { id: 'chat' as Tab, label: 'Chat', icon: MessageSquare },
-    { id: 'speech' as Tab, label: 'Speech', icon: Volume2 },
-    { id: 'data_controls' as Tab, label: 'Data Controls', icon: Database },
     ...(user?.role === 'TENANT_ADMIN' ? [{ id: 'team' as Tab, label: 'Team', icon: Users }] : []),
   ]
 
@@ -2304,8 +2304,8 @@ export default function Settings() {
           )}
 
           {/* Chat Settings Tab */}
-          {(activeTab === 'chat' || activeTab === 'speech' || activeTab === 'data_controls') && (
-            <LibreChatSettingsTab tab={activeTab} />
+          {activeTab === 'chat' && (
+            <ChatSettingsTab />
           )}
         </div>
       </div>
@@ -2326,13 +2326,46 @@ export default function Settings() {
   )
 }
 
-const LIBRECHAT_PANEL_TAB: Record<string, string> = {
+type ChatPanel = 'chat' | 'speech' | 'data_controls'
+
+const CHAT_PANELS: { id: ChatPanel; label: string }[] = [
+  { id: 'chat', label: 'Chat' },
+  { id: 'speech', label: 'Speech' },
+  { id: 'data_controls', label: 'Data Controls' },
+]
+
+const LIBRECHAT_PANEL_TAB: Record<ChatPanel, string> = {
   chat: 'chat',
   speech: 'speech',
   data_controls: 'data',
 }
 
-function LibreChatSettingsTab({ tab }: { tab: 'chat' | 'speech' | 'data_controls' }) {
+function ChatSettingsTab() {
+  const [activePanel, setActivePanel] = useState<ChatPanel>('chat')
+
+  return (
+    <div>
+      <div className="flex gap-1 mb-4 border-b border-border">
+        {CHAT_PANELS.map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => setActivePanel(id)}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activePanel === id
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <LibreChatSettingsTab tab={activePanel} />
+    </div>
+  )
+}
+
+function LibreChatSettingsTab({ tab }: { tab: ChatPanel }) {
   const { theme } = useTheme()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const panelTab = LIBRECHAT_PANEL_TAB[tab]
