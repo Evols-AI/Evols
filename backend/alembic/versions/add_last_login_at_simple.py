@@ -16,8 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add last_login_at column to users table
-    op.add_column('users', sa.Column('last_login_at', sa.DateTime(), nullable=True))
+    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP")
 
 
 def downgrade() -> None:

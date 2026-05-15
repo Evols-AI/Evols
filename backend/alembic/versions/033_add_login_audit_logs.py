@@ -15,25 +15,26 @@ depends_on = None
 
 
 def upgrade():
-    op.create_table(
-        'login_audit_logs',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('email', sa.String(255), nullable=False),
-        sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
-        sa.Column('method', sa.String(32), nullable=False),
-        sa.Column('success', sa.Boolean(), nullable=False),
-        sa.Column('failure_reason', sa.String(255), nullable=True),
-        sa.Column('ip_address', sa.String(64), nullable=True),
-        sa.Column('user_agent', sa.String(512), nullable=True),
-        sa.Column('timestamp', sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(), nullable=True, server_default=sa.func.now()),
-        sa.PrimaryKeyConstraint('id'),
-    )
-    op.create_index('ix_login_audit_logs_email', 'login_audit_logs', ['email'])
-    op.create_index('ix_login_audit_logs_user_id', 'login_audit_logs', ['user_id'])
-    op.create_index('ix_login_audit_logs_success', 'login_audit_logs', ['success'])
-    op.create_index('ix_login_audit_logs_timestamp', 'login_audit_logs', ['timestamp'])
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS login_audit_logs (
+            id SERIAL NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            method VARCHAR(32) NOT NULL,
+            success BOOLEAN NOT NULL,
+            failure_reason VARCHAR(255),
+            ip_address VARCHAR(64),
+            user_agent VARCHAR(512),
+            timestamp TIMESTAMP NOT NULL DEFAULT now(),
+            created_at TIMESTAMP DEFAULT now(),
+            updated_at TIMESTAMP DEFAULT now(),
+            PRIMARY KEY (id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_login_audit_logs_email ON login_audit_logs (email)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_login_audit_logs_user_id ON login_audit_logs (user_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_login_audit_logs_success ON login_audit_logs (success)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_login_audit_logs_timestamp ON login_audit_logs (timestamp)")
 
 
 def downgrade():

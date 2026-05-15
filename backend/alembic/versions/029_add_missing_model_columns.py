@@ -19,19 +19,20 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # knowledge_entries
-    op.add_column('knowledge_entries', sa.Column('content_hash', sa.String(16), nullable=True))
-    op.add_column('knowledge_entries', sa.Column('files_read', sa.JSON(), nullable=True))
-    op.add_column('knowledge_entries', sa.Column('files_modified', sa.JSON(), nullable=True))
-    op.add_column('knowledge_entries', sa.Column('discovery_tokens', sa.Integer(), nullable=True))
-    op.add_column('knowledge_entries', sa.Column('model', sa.String(100), nullable=True))
+    # knowledge_entries — columns were manually applied 2026-05-04; IF NOT EXISTS makes this safe to re-run
+    op.execute("ALTER TABLE knowledge_entries ADD COLUMN IF NOT EXISTS content_hash VARCHAR(16)")
+    op.execute("ALTER TABLE knowledge_entries ADD COLUMN IF NOT EXISTS files_read JSON")
+    op.execute("ALTER TABLE knowledge_entries ADD COLUMN IF NOT EXISTS files_modified JSON")
+    op.execute("ALTER TABLE knowledge_entries ADD COLUMN IF NOT EXISTS discovery_tokens INTEGER")
+    op.execute("ALTER TABLE knowledge_entries ADD COLUMN IF NOT EXISTS model VARCHAR(100)")
 
     # quota_events
-    op.add_column('quota_events', sa.Column('event_category', sa.Enum('creation', 'retrieval', 'mixed', name='eventcategory'), nullable=False, server_default='creation'))
-    op.add_column('quota_events', sa.Column('tokens_invested', sa.Integer(), nullable=False, server_default='0'))
-    op.add_column('quota_events', sa.Column('actual_savings', sa.Integer(), nullable=False, server_default='0'))
-    op.add_column('quota_events', sa.Column('model', sa.String(100), nullable=True))
-    op.add_column('quota_events', sa.Column('cost_usd', sa.Float(), nullable=True))
+    op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'eventcategory') THEN CREATE TYPE eventcategory AS ENUM ('creation', 'retrieval', 'mixed'); END IF; END $$")
+    op.execute("ALTER TABLE quota_events ADD COLUMN IF NOT EXISTS event_category eventcategory NOT NULL DEFAULT 'creation'")
+    op.execute("ALTER TABLE quota_events ADD COLUMN IF NOT EXISTS tokens_invested INTEGER NOT NULL DEFAULT 0")
+    op.execute("ALTER TABLE quota_events ADD COLUMN IF NOT EXISTS actual_savings INTEGER NOT NULL DEFAULT 0")
+    op.execute("ALTER TABLE quota_events ADD COLUMN IF NOT EXISTS model VARCHAR(100)")
+    op.execute("ALTER TABLE quota_events ADD COLUMN IF NOT EXISTS cost_usd FLOAT")
 
 
 def downgrade() -> None:

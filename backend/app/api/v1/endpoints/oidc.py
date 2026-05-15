@@ -432,7 +432,7 @@ async def exchange_one_time_token(
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
-    issuer = f"{getattr(settings, 'OIDC_ISSUER', '').rstrip('/') or '/api/v1/oidc'}"
+    issuer = (getattr(settings, 'OIDC_ISSUER', None) or '').rstrip('/') or '/api/v1/oidc'
     now = datetime.utcnow()
     client_id = _client_id()
 

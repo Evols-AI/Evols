@@ -17,8 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add name column to work_context table
-    op.add_column('work_context', sa.Column('name', sa.String(length=255), nullable=True))
+    op.execute("ALTER TABLE work_context ADD COLUMN IF NOT EXISTS name VARCHAR(255)")
 
 
 def downgrade() -> None:

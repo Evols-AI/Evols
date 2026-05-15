@@ -49,6 +49,7 @@ export default function VerifyEmail() {
         setStatus('success')
         setTimeout(() => {
           setRedirecting(true)
+          sessionStorage.setItem('evols_just_logged_in', '1')
           router.push('/workbench')
         }, 2000)
       } else {

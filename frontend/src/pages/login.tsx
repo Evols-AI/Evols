@@ -71,6 +71,7 @@ export default function Login() {
           // checkAuth effect can auto-complete the OIDC handshake transparently
           window.location.href = nextUrl
         } else {
+          sessionStorage.setItem('evols_just_logged_in', '1')
           window.location.href = '/workbench'
         }
       })
@@ -156,6 +157,7 @@ export default function Login() {
         if (data.role === 'SUPER_ADMIN') {
           window.location.href = '/admin/tenants'
         } else {
+          sessionStorage.setItem('evols_just_logged_in', '1')
           window.location.href = nextUrl || '/workbench'
         }
       } else {

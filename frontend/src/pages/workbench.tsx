@@ -21,6 +21,7 @@ import { apiClient } from '@/services/api'
 import Header from '@/components/Header'
 import { Loading } from '@/components/PageContainer'
 import { useTheme } from '@/contexts/ThemeContext'
+import OnboardingModal, { shouldShowOnboarding } from '@/components/OnboardingModal'
 
 export default function Workbench() {
   const router = useRouter()
@@ -28,6 +29,7 @@ export default function Workbench() {
   const [user, setUser] = useState<{ full_name?: string; email?: string } | null>(null)
   const [iframeSrc, setIframeSrc] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   // ── Auth guard + resolve iframe URL ───────────────────────────────────────
@@ -40,24 +42,32 @@ export default function Workbench() {
     const stored = localStorage.getItem('user')
     if (stored) setUser(JSON.parse(stored))
 
-    const devUrl = process.env.NEXT_PUBLIC_LIBRECHAT_URL
-    if (devUrl) {
-      setIframeSrc(`${devUrl}/c/new`)
-      return
+    // Only show onboarding immediately after login/register — consume the flag once
+    const justLoggedIn = sessionStorage.getItem('evols_just_logged_in')
+    if (justLoggedIn) {
+      sessionStorage.removeItem('evols_just_logged_in')
+      setShowOnboarding(shouldShowOnboarding())
     }
+
+    const devUrl = process.env.NEXT_PUBLIC_LIBRECHAT_URL
 
     async function mintToken() {
       try {
         const res = await apiClient.post('/api/v1/oidc/one-time-token', {})
         const { token } = res.data
-        // Exchange the OTT from the top-level frame (not inside the iframe) so the
-        // auth cookie is set on evols.ai before the iframe loads — eliminates the
-        // race condition where the iframe redirects before the cookie is persisted.
-        await fetch(`/workbench/app/api/auth/evols-ott?ott=${encodeURIComponent(token)}`, {
-          credentials: 'include',
-          redirect: 'follow',
-        })
-        setIframeSrc('/workbench/app/')
+        if (devUrl) {
+          // In dev LibreChat is cross-origin (3080 vs 3000) so a credentialed fetch
+          // would be blocked by CORS. Instead, load the OTT exchange URL directly as
+          // the iframe src — LibreChat handles the cookie same-origin and redirects to /c/new.
+          setIframeSrc(`${devUrl}/api/auth/evols-ott?ott=${encodeURIComponent(token)}`)
+        } else {
+          // In prod LibreChat is proxied under the same origin so a credentialed fetch works.
+          await fetch(`/workbench/app/api/auth/evols-ott?ott=${encodeURIComponent(token)}`, {
+            credentials: 'include',
+            redirect: 'follow',
+          })
+          setIframeSrc('/workbench/app/')
+        }
       } catch (e) {
         console.error('Failed to mint one-time token', e)
         setError('Could not load the Workbench. Please refresh the page.')
@@ -73,7 +83,9 @@ export default function Workbench() {
     const iframe = iframeRef.current
     if (!iframe) return
 
-    const iframeOrigin = process.env.NEXT_PUBLIC_LIBRECHAT_URL || window.location.origin
+    const iframeOrigin = process.env.NEXT_PUBLIC_LIBRECHAT_URL
+      ? new URL(process.env.NEXT_PUBLIC_LIBRECHAT_URL).origin
+      : window.location.origin
 
     const sendTheme = () => {
       iframe.contentWindow?.postMessage(
@@ -147,6 +159,10 @@ export default function Workbench() {
           )}
         </div>
       </div>
+
+      {showOnboarding && (
+        <OnboardingModal onClose={() => setShowOnboarding(false)} />
+      )}
     </>
   )
 }

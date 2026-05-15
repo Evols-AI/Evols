@@ -17,176 +17,99 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create work_context table
-    op.create_table(
-        'work_context',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('title', sa.String(length=255), nullable=True),
-        sa.Column('team', sa.String(length=255), nullable=True),
-        sa.Column('team_description', sa.Text(), nullable=True),
-        sa.Column('manager_name', sa.String(length=255), nullable=True),
-        sa.Column('manager_title', sa.String(length=255), nullable=True),
-        sa.Column('team_size', sa.Integer(), nullable=True),
-        sa.Column('team_composition', sa.Text(), nullable=True),
-        sa.Column('recent_changes', sa.Text(), nullable=True),
-        sa.Column('working_hours', sa.String(length=255), nullable=True),
-        sa.Column('communication_style', sa.Text(), nullable=True),
-        sa.Column('biggest_time_sink', sa.Text(), nullable=True),
-        sa.Column('protected_time', sa.Text(), nullable=True),
-        sa.Column('capacity_status', sa.Enum('sustainable', 'stretched', 'overloaded', 'unsustainable', name='capacitystatus'), nullable=True),
-        sa.Column('capacity_factors', sa.Text(), nullable=True),
-        sa.Column('signals', sa.JSON(), nullable=True),
-        sa.Column('career_story', sa.Text(), nullable=True),
-        sa.Column('impact_moments', sa.JSON(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('user_id')
-    )
-    op.create_index(op.f('ix_work_context_user_id'), 'work_context', ['user_id'], unique=False)
+    # All tables below were manually applied. CREATE TABLE IF NOT EXISTS makes this safe to re-run.
+    op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'capacitystatus') THEN CREATE TYPE capacitystatus AS ENUM ('sustainable', 'stretched', 'overloaded', 'unsustainable'); END IF; END $$")
+    op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'projectstatus') THEN CREATE TYPE projectstatus AS ENUM ('green', 'yellow', 'red', 'completed', 'paused'); END IF; END $$")
+    op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'projectrole') THEN CREATE TYPE projectrole AS ENUM ('owner', 'contributor', 'advisor'); END IF; END $$")
+    op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'decisioncategory') THEN CREATE TYPE decisioncategory AS ENUM ('product', 'technical', 'organizational', 'career', 'process', 'stakeholder'); END IF; END $$")
+    op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'taskpriority') THEN CREATE TYPE taskpriority AS ENUM ('critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog'); END IF; END $$")
+    op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'taskstatus') THEN CREATE TYPE taskstatus AS ENUM ('todo', 'in_progress', 'blocked', 'completed', 'dropped', 'delegated'); END IF; END $$")
+    op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'meetingtype') THEN CREATE TYPE meetingtype AS ENUM ('one_on_one_manager', 'one_on_one_peer', 'one_on_one_direct_report', 'team_sync', 'stakeholder', 'planning', 'review', 'other'); END IF; END $$")
 
-    # Create active_projects table
-    op.create_table(
-        'active_projects',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('work_context_id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('status', sa.Enum('green', 'yellow', 'red', 'completed', 'paused', name='projectstatus'), nullable=False),
-        sa.Column('next_milestone', sa.String(length=500), nullable=True),
-        sa.Column('next_milestone_date', sa.DateTime(), nullable=True),
-        sa.Column('role', sa.Enum('owner', 'contributor', 'advisor', name='projectrole'), nullable=False),
-        sa.Column('key_stakeholders', sa.JSON(), nullable=True),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['work_context_id'], ['work_context.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_active_projects_user_id'), 'active_projects', ['user_id'], unique=False)
-    op.create_index(op.f('ix_active_projects_work_context_id'), 'active_projects', ['work_context_id'], unique=False)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS work_context (
+            id SERIAL NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title VARCHAR(255), team VARCHAR(255), team_description TEXT, manager_name VARCHAR(255),
+            manager_title VARCHAR(255), team_size INTEGER, team_composition TEXT, recent_changes TEXT,
+            working_hours VARCHAR(255), communication_style TEXT, biggest_time_sink TEXT, protected_time TEXT,
+            capacity_status capacitystatus, capacity_factors TEXT, signals JSON, career_story TEXT,
+            impact_moments JSON, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL,
+            PRIMARY KEY (id), UNIQUE (user_id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_work_context_user_id ON work_context (user_id)")
 
-    # Create key_relationships table
-    op.create_table(
-        'key_relationships',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('work_context_id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('role', sa.String(length=255), nullable=True),
-        sa.Column('relationship_type', sa.String(length=50), nullable=True),
-        sa.Column('cares_about', sa.Text(), nullable=True),
-        sa.Column('current_dynamic', sa.Text(), nullable=True),
-        sa.Column('communication_preference', sa.Text(), nullable=True),
-        sa.Column('investment_needed', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['work_context_id'], ['work_context.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_key_relationships_user_id'), 'key_relationships', ['user_id'], unique=False)
-    op.create_index(op.f('ix_key_relationships_work_context_id'), 'key_relationships', ['work_context_id'], unique=False)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS active_projects (
+            id SERIAL NOT NULL, work_context_id INTEGER NOT NULL REFERENCES work_context(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, name VARCHAR(255) NOT NULL,
+            status projectstatus NOT NULL, next_milestone VARCHAR(500), next_milestone_date TIMESTAMP,
+            role projectrole NOT NULL, key_stakeholders JSON, notes TEXT,
+            created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL, PRIMARY KEY (id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_active_projects_user_id ON active_projects (user_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_active_projects_work_context_id ON active_projects (work_context_id)")
 
-    # Create pm_decisions table
-    op.create_table(
-        'pm_decisions',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('product_id', sa.Integer(), nullable=True),
-        sa.Column('decision_number', sa.Integer(), nullable=False),
-        sa.Column('title', sa.String(length=500), nullable=False),
-        sa.Column('category', sa.Enum('product', 'technical', 'organizational', 'career', 'process', 'stakeholder', name='decisioncategory'), nullable=False),
-        sa.Column('context', sa.Text(), nullable=False),
-        sa.Column('options_considered', sa.JSON(), nullable=False),
-        sa.Column('decision', sa.Text(), nullable=False),
-        sa.Column('reasoning', sa.Text(), nullable=False),
-        sa.Column('tradeoffs', sa.Text(), nullable=True),
-        sa.Column('stakeholders', sa.JSON(), nullable=True),
-        sa.Column('expected_outcome', sa.Text(), nullable=True),
-        sa.Column('actual_outcome', sa.Text(), nullable=True),
-        sa.Column('lessons', sa.Text(), nullable=True),
-        sa.Column('decision_date', sa.DateTime(), nullable=False),
-        sa.Column('review_date', sa.DateTime(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_pm_decisions_product_id'), 'pm_decisions', ['product_id'], unique=False)
-    op.create_index(op.f('ix_pm_decisions_user_id'), 'pm_decisions', ['user_id'], unique=False)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS key_relationships (
+            id SERIAL NOT NULL, work_context_id INTEGER NOT NULL REFERENCES work_context(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, name VARCHAR(255) NOT NULL,
+            role VARCHAR(255), relationship_type VARCHAR(50), cares_about TEXT, current_dynamic TEXT,
+            communication_preference TEXT, investment_needed TEXT,
+            created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL, PRIMARY KEY (id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_key_relationships_user_id ON key_relationships (user_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_key_relationships_work_context_id ON key_relationships (work_context_id)")
 
-    # Create tasks table
-    op.create_table(
-        'tasks',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('product_id', sa.Integer(), nullable=True),
-        sa.Column('title', sa.String(length=500), nullable=False),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('priority', sa.Enum('critical', 'high_leverage', 'stakeholder', 'sweep', 'backlog', name='taskpriority'), nullable=False),
-        sa.Column('status', sa.Enum('todo', 'in_progress', 'blocked', 'completed', 'dropped', 'delegated', name='taskstatus'), nullable=False),
-        sa.Column('deadline', sa.DateTime(), nullable=True),
-        sa.Column('why_critical', sa.Text(), nullable=True),
-        sa.Column('impact', sa.Text(), nullable=True),
-        sa.Column('stakeholder_name', sa.String(length=255), nullable=True),
-        sa.Column('stakeholder_reason', sa.Text(), nullable=True),
-        sa.Column('source', sa.String(length=255), nullable=True),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('completed_at', sa.DateTime(), nullable=True),
-        sa.Column('outcome', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_tasks_product_id'), 'tasks', ['product_id'], unique=False)
-    op.create_index(op.f('ix_tasks_user_id'), 'tasks', ['user_id'], unique=False)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS pm_decisions (
+            id SERIAL NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, decision_number INTEGER NOT NULL,
+            title VARCHAR(500) NOT NULL, category decisioncategory NOT NULL, context TEXT NOT NULL,
+            options_considered JSON NOT NULL, decision TEXT NOT NULL, reasoning TEXT NOT NULL,
+            tradeoffs TEXT, stakeholders JSON, expected_outcome TEXT, actual_outcome TEXT, lessons TEXT,
+            decision_date TIMESTAMP NOT NULL, review_date TIMESTAMP,
+            created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL, PRIMARY KEY (id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_pm_decisions_product_id ON pm_decisions (product_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_pm_decisions_user_id ON pm_decisions (user_id)")
 
-    # Create weekly_focus table
-    op.create_table(
-        'weekly_focus',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('week_start_date', sa.DateTime(), nullable=False),
-        sa.Column('focus_1', sa.String(length=500), nullable=True),
-        sa.Column('focus_2', sa.String(length=500), nullable=True),
-        sa.Column('focus_3', sa.String(length=500), nullable=True),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_weekly_focus_user_id'), 'weekly_focus', ['user_id'], unique=False)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id SERIAL NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, title VARCHAR(500) NOT NULL,
+            description TEXT, priority taskpriority NOT NULL, status taskstatus NOT NULL,
+            deadline TIMESTAMP, why_critical TEXT, impact TEXT, stakeholder_name VARCHAR(255),
+            stakeholder_reason TEXT, source VARCHAR(255), notes TEXT, completed_at TIMESTAMP, outcome TEXT,
+            created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL, PRIMARY KEY (id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_tasks_product_id ON tasks (product_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_tasks_user_id ON tasks (user_id)")
 
-    # Create meeting_notes table
-    op.create_table(
-        'meeting_notes',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('title', sa.String(length=500), nullable=False),
-        sa.Column('meeting_type', sa.Enum('one_on_one_manager', 'one_on_one_peer', 'one_on_one_direct_report', 'team_sync', 'stakeholder', 'planning', 'review', 'other', name='meetingtype'), nullable=False),
-        sa.Column('meeting_date', sa.DateTime(), nullable=False),
-        sa.Column('attendees', sa.JSON(), nullable=True),
-        sa.Column('prep_notes', sa.Text(), nullable=True),
-        sa.Column('agenda', sa.JSON(), nullable=True),
-        sa.Column('discussion_topics', sa.JSON(), nullable=True),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('action_items', sa.JSON(), nullable=True),
-        sa.Column('decisions', sa.JSON(), nullable=True),
-        sa.Column('follow_ups', sa.JSON(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_meeting_notes_user_id'), 'meeting_notes', ['user_id'], unique=False)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS weekly_focus (
+            id SERIAL NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            week_start_date TIMESTAMP NOT NULL, focus_1 VARCHAR(500), focus_2 VARCHAR(500),
+            focus_3 VARCHAR(500), notes TEXT, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL,
+            PRIMARY KEY (id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_weekly_focus_user_id ON weekly_focus (user_id)")
+
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS meeting_notes (
+            id SERIAL NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title VARCHAR(500) NOT NULL, meeting_type meetingtype NOT NULL, meeting_date TIMESTAMP NOT NULL,
+            attendees JSON, prep_notes TEXT, agenda JSON, discussion_topics JSON, notes TEXT,
+            action_items JSON, decisions JSON, follow_ups JSON,
+            created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL, PRIMARY KEY (id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_meeting_notes_user_id ON meeting_notes (user_id)")
 
 
 def downgrade() -> None:

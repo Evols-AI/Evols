@@ -17,12 +17,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add skill_name column to messages table
-    # This allows file-based skills to be identified by name instead of database ID
-    op.add_column('messages', sa.Column('skill_name', sa.String(length=255), nullable=True))
-
-    # Add index for faster lookups
-    op.create_index(op.f('ix_messages_skill_name'), 'messages', ['skill_name'], unique=False)
+    op.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS skill_name VARCHAR(255)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_messages_skill_name ON messages (skill_name)")
 
 
 def downgrade() -> None:

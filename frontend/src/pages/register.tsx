@@ -121,6 +121,7 @@ export default function Register() {
           tenant_id: data.tenant_id,
           role: data.role,
         }))
+        sessionStorage.setItem('evols_just_logged_in', '1')
         router.push('/workbench')
       } else if (response.status === 202) {
         setVerificationPending(true)

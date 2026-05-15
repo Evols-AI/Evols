@@ -17,25 +17,24 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create user_skill_customizations table
-    op.create_table('user_skill_customizations',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('tenant_id', sa.Integer(), nullable=False),
-        sa.Column('skill_name', sa.String(length=255), nullable=False),
-        sa.Column('custom_instructions', sa.Text(), nullable=True),
-        sa.Column('custom_context', sa.Text(), nullable=True),
-        sa.Column('output_format_preferences', sa.Text(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_user_skill_customizations_skill_name'), 'user_skill_customizations', ['skill_name'], unique=False)
-    op.create_index(op.f('ix_user_skill_customizations_user_id'), 'user_skill_customizations', ['user_id'], unique=False)
-    op.create_index('ix_user_skill_customizations_user_skill_active', 'user_skill_customizations', ['user_id', 'skill_name', 'is_active'], unique=False)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS user_skill_customizations (
+            id SERIAL NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+            skill_name VARCHAR(255) NOT NULL,
+            custom_instructions TEXT,
+            custom_context TEXT,
+            output_format_preferences TEXT,
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            created_at TIMESTAMP NOT NULL DEFAULT now(),
+            updated_at TIMESTAMP NOT NULL DEFAULT now(),
+            PRIMARY KEY (id)
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_user_skill_customizations_skill_name ON user_skill_customizations (skill_name)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_user_skill_customizations_user_id ON user_skill_customizations (user_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_user_skill_customizations_user_skill_active ON user_skill_customizations (user_id, skill_name, is_active)")
 
 
 def downgrade() -> None:
