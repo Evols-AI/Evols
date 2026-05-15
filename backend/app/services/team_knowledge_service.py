@@ -151,6 +151,7 @@ class TeamKnowledgeService:
         files_modified: Optional[List[str]] = None,
         model: Optional[str] = None,
         llm_config: Optional[Dict] = None,
+        source: Optional[str] = None,
     ) -> KnowledgeEntry:
         """
         Add a new knowledge entry to the team graph.
@@ -196,6 +197,7 @@ class TeamKnowledgeService:
         entry = KnowledgeEntry(
             tenant_id=tenant_id,
             user_id=user_id,
+            source=source or "claude-code",
             role=EntryRole(role) if role in EntryRole._value2member_map_ else EntryRole.OTHER,
             session_type=SessionType(session_type) if session_type in SessionType._value2member_map_ else SessionType.OTHER,
             entry_type=EntryType(entry_type) if entry_type in EntryType._value2member_map_ else EntryType.INSIGHT,

@@ -291,6 +291,17 @@ def extract_transcript_text(transcript_path: str) -> str:
 _last_extracted_knowledge: dict | None = None
 
 
+def detect_source_tool() -> str:
+    """
+    Return the agent name baked in at install time via --agent=<name> in the hook command.
+    Falls back to "claude-code" if the flag is absent (legacy installs).
+    """
+    for arg in sys.argv[1:]:
+        if arg.startswith("--agent="):
+            return arg.split("=", 1)[1].strip()
+    return "claude-code"
+
+
 def auto_sync_knowledge(api_url, api_key, session_id, transcript_text, token_count, plan_type,
                         files_read=None, files_modified=None, discovery_tokens=0, model=""):
     """
@@ -368,6 +379,7 @@ def auto_sync_knowledge(api_url, api_key, session_id, transcript_text, token_cou
             "files_read": files_read or [],
             "files_modified": files_modified or [],
             "model": model or None,
+            "source": detect_source_tool(),
         }
 
         sync_req = urllib.request.Request(
@@ -410,6 +422,7 @@ def fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, token
         "files_read": files_read or [],
         "files_modified": files_modified or [],
         "model": model or None,
+        "source": detect_source_tool(),
     }
 
     try:

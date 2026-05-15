@@ -36,6 +36,7 @@ class AddEntryRequest(BaseModel):
     files_read: Optional[List[str]] = Field(None, description="File paths read during the session")
     files_modified: Optional[List[str]] = Field(None, description="File paths written or edited during the session")
     model: Optional[str] = Field(None, description="Claude model ID that produced this entry")
+    source: Optional[str] = Field(None, description="Tool that generated this entry (e.g. claude-code, codex, antigravity, cline, cursor)")
 
 
 class EntryResponse(BaseModel):
@@ -149,6 +150,7 @@ async def add_knowledge_entry(
         files_modified=request.files_modified,
         model=request.model,
         llm_config=llm_config,
+        source=request.source,
     )
 
     # Auto-record a creation quota event when token counts are provided.
@@ -297,6 +299,7 @@ async def auto_sync_session(
         files_read=request.files_read,
         files_modified=request.files_modified,
         model=request.model,
+        source=request.tool_name or None,
         llm_config=llm_config,
     )
 

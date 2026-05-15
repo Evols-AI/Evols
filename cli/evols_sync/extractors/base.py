@@ -51,6 +51,7 @@ class ExtractedSession:
     def to_payload(self) -> dict:
         return {
             "agent": self.agent,
+            "source": self.agent,
             "source_session_id": self.source_session_id,
             "transcript_text": self.transcript_text,
             "started_at": self.started_at,

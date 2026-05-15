@@ -308,8 +308,8 @@ def install_claude_hooks(cfg: dict):
     hooks["PreToolUse"] = [{"matcher": "Bash|WebFetch|Agent", "hooks": [{"type": "command", "command": f"{py} {hd}/pre_tool_use.py"}]}]
     hooks["PostToolUse"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/post_tool_use.py"}]}]
     hooks["PreCompact"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/pre_compact.py"}]}]
-    hooks["Stop"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/stop.py"}]}]
-    hooks["StopFailure"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/stop.py --failure"}]}]
+    hooks["Stop"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/stop.py --agent=claude-code"}]}]
+    hooks["StopFailure"] = [{"matcher": "", "hooks": [{"type": "command", "command": f"{py} {hd}/stop.py --agent=claude-code --failure"}]}]
 
     path.write_text(json.dumps(s, indent=2) + "\n")
     print(f"  ✓ Claude Code: hooks registered (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, Stop)")
@@ -344,7 +344,7 @@ def install_cursor_hooks(cfg: dict):
     hooks["preCompact"]         = [{"command": f"{py} {hd}/pre_compact.py"}]
 
     # Stop — sync session knowledge on completion
-    hooks["stop"]               = [{"command": f"{py} {hd}/stop.py"}]
+    hooks["stop"]               = [{"command": f"{py} {hd}/stop.py --agent=cursor"}]
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(s, indent=2) + "\n")
@@ -385,7 +385,7 @@ def install_codex_hooks(cfg: dict):
         f'\n[[hooks.Stop]]\n'
         f'\n[[hooks.Stop.hooks]]\n'
         f'type = "command"\n'
-        f'command = "{py} {hd}/stop.py"\n'
+        f'command = "{py} {hd}/stop.py --agent=codex"\n'
     )
 
     # Remove array-of-tables hook entries but preserve [hooks.state] section
@@ -436,7 +436,7 @@ def install_antigravity_hooks(cfg: dict):
     # Context compaction
     hooks["preCompact"]         = [{"command": f"{py} {hd}/pre_compact.py"}]
     # Stop
-    hooks["stop"]               = [{"command": f"{py} {hd}/stop.py"}]
+    hooks["stop"]               = [{"command": f"{py} {hd}/stop.py --agent=antigravity"}]
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(s, indent=2) + "\n")
@@ -974,6 +974,7 @@ class ExtractedSession:
     def to_payload(self) -> dict:
         return {
             "agent": self.agent,
+            "source": self.agent,
             "source_session_id": self.source_session_id,
             "transcript_text": self.transcript_text,
             "started_at": self.started_at,
@@ -1179,6 +1180,7 @@ class _EvolsClient:
             "files_read": payload.get("files_read") or [],
             "files_modified": payload.get("files_modified") or [],
             "model": payload.get("model"),
+            "source": payload.get("source") or payload.get("agent") or "unknown",
         }
         resp = self._req("POST", "/api/v1/team-knowledge/entries", payload=legacy)
         return resp.get("id"), False
@@ -1800,9 +1802,26 @@ def cmd_sync(args):
     client = _EvolsClient(cfg["api_url"], cfg["api_key"])
     conn = _sync_open_db()
 
-    # Seed: on first sync, pull already-uploaded entries so we don't re-ship them.
-    if not SEED_DONE_MARKER.exists():
-        print("First sync — seeding from backend to avoid duplicates...")
+    # Seed: on first sync for this account, pull already-uploaded entries so we
+    # don't re-ship them.  The marker is keyed to the API key fingerprint so
+    # switching accounts always triggers a fresh seed.
+    import hashlib as _hashlib
+    _api_fp = _hashlib.sha256(cfg["api_key"].encode()).hexdigest()[:16]
+
+    def _seed_marker_valid() -> bool:
+        if not SEED_DONE_MARKER.exists():
+            return False
+        try:
+            content = SEED_DONE_MARKER.read_text().strip()
+            if content.isdigit():
+                return False  # legacy marker, treat as stale
+            stored_fp = content.split(":", 1)[1] if ":" in content else ""
+            return stored_fp == _api_fp
+        except Exception:
+            return False
+
+    if not _seed_marker_valid():
+        print("Seeding from backend to avoid duplicates (new account or first sync)...")
         seeded = 0
         try:
             for entry in client.iter_existing_entries():
@@ -1818,7 +1837,7 @@ def cmd_sync(args):
                         seeded += 1
         except Exception as e:
             print(f"  Warning: could not seed from backend: {e}")
-        SEED_DONE_MARKER.write_text(str(int(time.time())))
+        SEED_DONE_MARKER.write_text(f"{int(time.time())}:{_api_fp}")
         print(f"  Seeded {seeded} existing entries.")
 
     total_seen = total_synced = total_skipped = total_failed = 0

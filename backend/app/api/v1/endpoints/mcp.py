@@ -180,6 +180,10 @@ TOOLS = [
                     "type": "integer",
                     "description": "Exact token count from the session (for accurate ROI tracking)",
                 },
+                "source_tool": {
+                    "type": "string",
+                    "description": "Name of the tool or agent this context was generated in (e.g. claude-code, codex, antigravity, cursor, cline). Auto-detected when omitted.",
+                },
             },
             "required": ["title", "content"],
         },
@@ -210,6 +214,10 @@ TOOLS = [
                     "type": "string",
                     "description": "Type: insight, decision, artifact, research_finding, pattern, context",
                     "default": "insight",
+                },
+                "source_tool": {
+                    "type": "string",
+                    "description": "Name of the tool or agent this context was generated in (e.g. claude-code, codex, antigravity, cursor, cline). Auto-detected when omitted.",
                 },
             },
             "required": ["title", "content"],
@@ -805,6 +813,7 @@ async def _call_tool(
             product_area=args.get("product_area"),
             session_tokens_used=args.get("session_tokens_used"),
             llm_config=llm_config,
+            source=args.get("source_tool") or None,
         )
 
         # Auto-create quota event if session_tokens_used was provided

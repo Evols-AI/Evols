@@ -140,6 +140,7 @@ class EvolsClient:
             "files_read": payload.get("files_read") or [],
             "files_modified": payload.get("files_modified") or [],
             "model": payload.get("model"),
+            "source": payload.get("source") or payload.get("agent") or "unknown",
         }
 
     # ── Pull (seed + per-session pre-flight) ─────────────────────────────────
