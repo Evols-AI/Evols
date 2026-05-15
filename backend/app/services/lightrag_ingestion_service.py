@@ -148,7 +148,7 @@ async def _insert_texts(
         body["entity_attribute_definitions"] = entity_attribute_definitions
     try:
         headers = await lightrag_auth_headers()
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=300) as client:
             resp = await client.post(
                 f"{url}/documents/texts",
                 json=body,

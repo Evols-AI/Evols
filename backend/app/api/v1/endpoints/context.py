@@ -45,6 +45,43 @@ async def _push_raw_to_lightrag(
         logger.warning(f"LightRAG raw push failed ({source_label}): {e}")
 
 
+async def _background_ingest_source(
+    source_id: int,
+    content: str,
+    tenant_id: int,
+    retention_policy: str,
+) -> None:
+    """Run LightRAG ingestion and retention policy in the background after upload response is sent."""
+    from app.core.database import AsyncSessionLocal
+    from app.services.retention_service import RetentionPolicyService
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(ContextSource).where(ContextSource.id == source_id)
+        )
+        source = result.scalar_one_or_none()
+        if not source:
+            logger.warning(f"_background_ingest_source: source {source_id} not found")
+            return
+
+        try:
+            await _push_raw_to_lightrag(
+                content, f"context_source:{source_id}",
+                tenant_id=tenant_id, db=db,
+            )
+            retention_service = RetentionPolicyService(db)
+            await retention_service.apply_retention_policy(
+                source, policy=retention_policy, encrypt_if_needed=True
+            )
+            source.status = ContextProcessingStatus.COMPLETED
+        except Exception as e:
+            logger.error(f"Background ingestion failed for source {source_id}: {e}", exc_info=True)
+            source.status = ContextProcessingStatus.FAILED
+            source.error_message = str(e)
+
+        await db.commit()
+
+
 # ===================================
 # Schemas
 # ===================================
@@ -348,11 +385,11 @@ def _parse_csv_row_to_source_fields(row: dict, source_type_enum: ContextSourceTy
 
 @router.post("/sources/upload")
 async def upload_context_file(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     name: str = Form(...),
     description: Optional[str] = Form(None),
     source_type: str = Form("csv_survey"),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -478,36 +515,24 @@ async def upload_context_file(
                         db.add(new_source)
                         await db.flush()  # Get ID without committing
 
-                        # Push raw content to LightRAG for graph extraction (single LLM pass)
-                        await _push_raw_to_lightrag(
-                            parsed_fields['content'],
-                            f"context_source:{new_source.id}",
-                            tenant_id=current_user.tenant_id, db=db,
-                        )
-
-                        # Apply retention policy and mark completed
-                        try:
-                            from app.services.retention_service import RetentionPolicyService
-                            retention_service = RetentionPolicyService(db)
-                            await retention_service.apply_retention_policy(
-                                new_source,
-                                policy=retention_policy,
-                                encrypt_if_needed=True
-                            )
-                            new_source.status = ContextProcessingStatus.COMPLETED
-                        except Exception as e:
-                            extraction_errors.append(f"Row {row_num}: {str(e)}")
-                            new_source.status = ContextProcessingStatus.FAILED
-                            new_source.error_message = str(e)
-
                         created_sources.append(new_source)
 
                     except Exception as e:
                         extraction_errors.append(f"Row {row_num}: {str(e)}")
                         continue
 
-                # Commit all sources at once
+                # Commit all sources at once so IDs are stable before background tasks run
                 await db.commit()
+
+                # Schedule background ingestion + retention for each source
+                for src in created_sources:
+                    background_tasks.add_task(
+                        _background_ingest_source,
+                        source_id=src.id,
+                        content=src.content or "",
+                        tenant_id=current_user.tenant_id,
+                        retention_policy=retention_policy,
+                    )
 
                 # Return summary
                 return {
@@ -570,30 +595,15 @@ async def upload_context_file(
         await db.commit()
         await db.refresh(new_source)
 
-        # Push raw content to LightRAG for graph extraction (single LLM pass)
-        await _push_raw_to_lightrag(
-            content_text, f"context_source:{new_source.id}",
-            tenant_id=current_user.tenant_id, db=db,
+        # Schedule LightRAG ingestion + retention in the background so the modal
+        # closes immediately. The source stays PENDING; the card spinner polls until done.
+        background_tasks.add_task(
+            _background_ingest_source,
+            source_id=new_source.id,
+            content=content_text,
+            tenant_id=current_user.tenant_id,
+            retention_policy=retention_policy,
         )
-
-        # Apply retention policy and mark completed
-        try:
-            from app.services.retention_service import RetentionPolicyService
-            retention_service = RetentionPolicyService(db)
-            await retention_service.apply_retention_policy(
-                new_source,
-                policy=retention_policy,
-                encrypt_if_needed=True
-            )
-            new_source.status = ContextProcessingStatus.COMPLETED
-            await db.commit()
-            await db.refresh(new_source)
-        except Exception as e:
-            error_msg = f"Failed to apply retention policy: {str(e)}"
-            new_source.status = ContextProcessingStatus.FAILED
-            new_source.error_message = error_msg
-            await db.commit()
-            await db.refresh(new_source)
 
         return ContextSourceResponse(
             id=new_source.id,

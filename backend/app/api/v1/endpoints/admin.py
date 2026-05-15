@@ -326,27 +326,36 @@ async def delete_tenant(
                 detail=f"Tenant has {user_count} users. Use force=true to delete anyway."
             )
     else:
-        # Force deletion: delete all tenant-scoped records in dependency order
-        # to avoid FK constraint violations before deleting users and the tenant.
+        # Force deletion: delete all tenant-scoped records in dependency order.
+        # Break circular FKs on context_sources before deleting child tables.
+        await db.execute(
+            text("UPDATE context_sources SET source_group_id = NULL, duplicate_of_id = NULL WHERE tenant_id = :tid"),
+            {"tid": tenant_id},
+        )
+        # theme_initiative references initiative but has no tenant_id column
+        await db.execute(
+            text("DELETE FROM theme_initiative WHERE initiative_id IN (SELECT id FROM initiative WHERE tenant_id = :tid)"),
+            {"tid": tenant_id},
+        )
         tenant_tables = [
-            # child tables that reference other tenant tables first
             "entity_initiative_links",
             "entity_duplicates",
             "initiative_evidence",
+            "project",
+            "decision_option",
             "content_access_logs",
             "extracted_entities",
-            "context_sources",
             "source_groups",
-            "decision_option",
+            "context_sources",
             "decision",
             "initiative",
-            "project",
-            "knowledge_sources",
             "capabilities",
+            "knowledge_sources",
             "knowledge_entries",
             "knowledge_edges",
             "quota_events",
             "product_knowledge",
+            "feedback",
             "account",
             "prompt_execution",
             "prompt",
@@ -354,7 +363,14 @@ async def delete_tenant(
             "user_skill_customizations",
             "user_integrations",
             "skill_memory",
+            "skill_experiments",
+            "custom_skills",
+            "persona",
+            "theme",
+            "conversations",
             "job",
+            "tenant_invites",
+            "user_tenants",
         ]
         for table in tenant_tables:
             await db.execute(text(f"DELETE FROM {table} WHERE tenant_id = :tid"), {"tid": tenant_id})
@@ -366,8 +382,10 @@ async def delete_tenant(
         user_ids = [row[0] for row in user_ids_result.fetchall()]
 
         if user_ids:
-            # Delete user-scoped records that have no tenant_id FK
-            for table in ("api_keys", "user_tenants", "tenant_invites"):
+            # Delete user-scoped tables without a tenant_id FK
+            for table in ("api_keys", "active_projects", "key_relationships", "meeting_notes",
+                          "pm_decisions", "skill_session_evaluations", "tasks",
+                          "weekly_focus", "work_context", "user_tenants"):
                 await db.execute(
                     text(f"DELETE FROM {table} WHERE user_id = ANY(:uids)"),
                     {"uids": user_ids},
