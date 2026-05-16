@@ -146,8 +146,8 @@ gcloud run deploy evols-backend \
   --set-env-vars "TAVILY_API_KEY=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" \
   --set-env-vars "EMBEDDING_PROVIDER=aws_bedrock" \
   --set-env-vars "UNIFIED_PM_OS_PATH=./resources/unified-pm-os" \
-  --set-env-vars "FRONTEND_URL=${PUBLIC_BASE}" \
-  --set-env-vars "OIDC_ISSUER=SET_AFTER_BACKEND_DEPLOY" \
+  --set-env-vars "FRONTEND_URL=https://${EVOLS_DOMAIN}" \
+  --set-env-vars "OIDC_ISSUER=${OIDC_ISSUER:-https://${EVOLS_DOMAIN}/api/v1/oidc}" \
   --set-env-vars "OIDC_CLIENT_ID=evols-workbench" \
   --set-env-vars "OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}" \
   --set-env-vars "LIGHTRAG_URL=https://evols-lightrag-kdqer5oyua-uc.a.run.app" \
@@ -167,15 +167,6 @@ echo "Backend URL: ${BACKEND_URL}"
 # Fall back to backend Cloud Run URL if no custom domain was set
 PUBLIC_BASE="${PUBLIC_BASE:-${BACKEND_URL}}"
 
-# Patch FRONTEND_URL on the backend now that PUBLIC_BASE is resolved.
-# FRONTEND_URL must point at the user-facing frontend (evols.ai), not the backend.
-FRONTEND_BASE="${EVOLS_DOMAIN:+https://${EVOLS_DOMAIN}}"
-FRONTEND_BASE="${FRONTEND_BASE:-${BACKEND_URL}}"
-echo "==> Patching OIDC_ISSUER and FRONTEND_URL on evols-backend..."
-gcloud run services update evols-backend \
-  --region "${REGION}" --platform managed \
-  --update-env-vars "OIDC_ISSUER=${PUBLIC_BASE}/api/v1/oidc,FRONTEND_URL=${FRONTEND_BASE}" \
-  --project "${PROJECT_ID}"
 
 # ── 1b. LightRAG — build custom image + deploy ────────────────────────────────
 # We maintain a patched LightRAG image (evols-lightrag) that adds ENTITY_ATTRIBUTES
