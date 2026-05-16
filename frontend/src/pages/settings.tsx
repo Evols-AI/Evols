@@ -12,7 +12,7 @@ import Header from '@/components/Header'
 import { Loading } from '@/components/PageContainer'
 import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare } from 'lucide-react'
 
-type Tab = 'profile' | 'security' | 'notifications' | 'llm' | 'data_refresh' | 'team' | 'chat'
+type Tab = 'profile' | 'security' | 'llm' | 'data_refresh' | 'team' | 'chat'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini' | 'groq' | 'mistral' | 'cohere' | 'together_ai' | 'ollama' | 'deepseek' | 'xai' | 'openrouter'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -96,7 +96,7 @@ export default function Settings() {
       const tabParam = router.query.tab as string
       // Redirect legacy speech/data_controls URLs to the unified chat tab
       const resolvedTab = (tabParam === 'speech' || tabParam === 'data_controls') ? 'chat' : tabParam as Tab
-      if (['profile', 'security', 'notifications', 'llm', 'data_refresh', 'team', 'chat'].includes(resolvedTab)) {
+      if (['profile', 'security', 'llm', 'data_refresh', 'team', 'chat'].includes(resolvedTab)) {
         setActiveTab(resolvedTab)
       }
     }
@@ -119,17 +119,6 @@ export default function Settings() {
 
   // Security state
   const [passwordData, setPasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' })
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
-
-  // Notifications state
-  const [notificationSettings, setNotificationSettings] = useState({
-    email_notifications: true,
-    push_notifications: false,
-    feedback_alerts: true,
-    theme_updates: true,
-    decision_reminders: true,
-    weekly_digest: false,
-  })
 
   // Knowledge source refresh state
   const [knowledgeRefreshEnabled, setKnowledgeRefreshEnabled] = useState(false)
@@ -197,7 +186,6 @@ export default function Settings() {
   const tabs = [
     { id: 'profile' as Tab, label: 'Profile', icon: User },
     { id: 'security' as Tab, label: 'Security', icon: Shield },
-    // { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
     { id: 'data_refresh' as Tab, label: 'Data Refresh', icon: RefreshCw },
     { id: 'chat' as Tab, label: 'Chat', icon: MessageSquare },
@@ -741,23 +729,6 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Appearance tab - Temporarily hidden
-          {activeTab === 'appearance' && (
-            <div className="max-w-2xl">
-              <h3 className="text-lg mb-4 text-foreground">Theme Preferences</h3>
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                <div>
-                  <p className="font-medium text-foreground">Dark Mode</p>
-                  <p className="text-sm text-muted-foreground">Toggle between light and dark theme</p>
-                </div>
-                <button onClick={toggleTheme} className={`relative inline-flex h-6 w-11 items-center rounded-full ${theme === 'dark' ? 'bg-primary' : 'bg-muted'}`}>
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-card ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-              </div>
-            </div>
-          )}
-          */}
-
           {activeTab === 'security' && (
             <div className="max-w-2xl space-y-8">
               <div>
@@ -792,21 +763,6 @@ export default function Settings() {
                   </button>
                 </div>
               </div>
-              {/* Two-Factor Authentication - Coming soon
-              <div>
-                <h3 className="text-lg mb-4 text-foreground">Two-Factor Authentication</h3>
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Enable 2FA</p>
-                    <p className="text-sm text-muted-foreground">Add extra security layer to your account</p>
-                  </div>
-                  <button onClick={() => setTwoFactorEnabled(!twoFactorEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full ${twoFactorEnabled ? 'bg-primary' : 'bg-muted'}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-card ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                </div>
-              </div>
-              */}
-
               {/* API Keys */}
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -915,23 +871,6 @@ export default function Settings() {
                     }}
                   />
                 )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'notifications' && (
-            <div className="max-w-2xl">
-              <h3 className="text-lg mb-4 text-foreground">Notification Preferences</h3>
-              <div className="space-y-3">
-                {Object.entries({ email_notifications: 'Email Notifications', push_notifications: 'Push Notifications', feedback_alerts: 'Feedback Alerts', theme_updates: 'Theme Updates', decision_reminders: 'Decision Reminders', weekly_digest: 'Weekly Digest' }).map(([key, label]) => (
-                  <div key={key} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                    <p className="text-foreground">{label}</p>
-                    <button onClick={() => setNotificationSettings({ ...notificationSettings, [key]: !notificationSettings[key as keyof typeof notificationSettings] })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings[key as keyof typeof notificationSettings] ? 'bg-primary' : 'bg-muted'}`}>
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-card ${notificationSettings[key as keyof typeof notificationSettings] ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                  </div>
-                ))}
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/85 transition-colors mt-4">Save Preferences</button>
               </div>
             </div>
           )}

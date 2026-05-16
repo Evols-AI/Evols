@@ -147,7 +147,7 @@ export default function TenantsAdmin() {
           </div>
           <p className="text-muted-foreground mb-4">{error}</p>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/workbench')}
             className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:bg-primary/85"
           >
             Go to Dashboard

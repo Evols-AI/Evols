@@ -13,9 +13,7 @@ import { PageContainer, PageHeader, Card, Loading } from '@/components/PageConta
 import TaskModal from '@/components/work-context/TaskModal'
 import DecisionModal from '@/components/work-context/DecisionModal'
 import WeeklyFocusModal from '@/components/work-context/WeeklyFocusModal'
-import StrategyTab from '@/components/context/StrategyTab'
-
-type TabType = 'overview' | 'tasks' | 'decisions' | 'meetings' | 'weekly-focus' | 'strategy'
+type TabType = 'overview' | 'tasks' | 'decisions'
 type GraphTask = { id: string; name: string; description: string }
 
 export default function WorkContext() {
@@ -51,7 +49,7 @@ export default function WorkContext() {
     const currentUser = getCurrentUser()
     setUser(currentUser)
     const { tab } = router.query
-    if (tab && ['overview','tasks','decisions','meetings','weekly-focus','strategy'].includes(tab as string)) {
+    if (tab && ['overview','tasks','decisions'].includes(tab as string)) {
       setSelectedTab(tab as TabType)
     }
     loadData()
@@ -622,39 +620,6 @@ export default function WorkContext() {
             )}
           </div>
         )}
-
-        {/* ── Weekly Focus Tab ──────────────────────────────────── */}
-        {selectedTab === 'weekly-focus' && weeklyFocus && (
-          <Card padding="md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-medium text-foreground">
-                Week of {new Date(weeklyFocus.week_start_date).toLocaleDateString()}
-              </h3>
-              <button onClick={() => setWeeklyFocusModalOpen(true)} className="btn-primary flex items-center gap-2">
-                <Edit className="w-4 h-4" />Edit
-              </button>
-            </div>
-            <div className="space-y-4">
-              {['focus_1', 'focus_2', 'focus_3'].map((key, i) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Focus #{i + 1}</label>
-                  <div className="text-sm text-foreground">
-                    {weeklyFocus[key] || <span className="text-muted-foreground/60 italic">Not set</span>}
-                  </div>
-                </div>
-              ))}
-              {weeklyFocus.notes && (
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Notes</label>
-                  <div className="text-sm text-muted-foreground">{weeklyFocus.notes}</div>
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
-
-        {/* ── Strategy Docs Tab ─────────────────────────────────── */}
-        {selectedTab === 'strategy' && <StrategyTab />}
 
       </PageContainer>
 

@@ -15,7 +15,7 @@ import Header from '@/components/Header'
 import { PageContainer, Card, EmptyState, Loading } from '@/components/PageContainer'
 const KnowledgeGraphTab = dynamic(() => import('@/components/context/KnowledgeGraphTab'), { ssr: false })
 
-type ViewType = 'sources' | 'entities' | 'insights' | 'knowledge_graph' | 'ai_sessions'
+type ViewType = 'sources' | 'entities' | 'knowledge_graph' | 'ai_sessions'
 
 export default function Context() {
   const router = useRouter()
@@ -55,7 +55,7 @@ export default function Context() {
   useEffect(() => {
     if (!router.isReady) return
     const { tab } = router.query
-    if (tab && ['sources', 'entities', 'insights', 'knowledge_graph', 'ai_sessions'].includes(tab as string)) {
+    if (tab && ['sources', 'entities', 'knowledge_graph', 'ai_sessions'].includes(tab as string)) {
       setSelectedView(tab as ViewType)
       if (tab === 'entities' || tab === 'knowledge_graph') loadGraphEntities()
       if (tab === 'ai_sessions') loadAiSessions()
@@ -477,9 +477,7 @@ export default function Context() {
                   days={aiDays}
                   onEntryClick={handleAiEntryClick}
                 />
-              ) : (
-                <InsightsView sources={contextSources} entities={graphEntities} />
-              )}
+              ) : null}
             </>
           )}
         </PageContainer>
@@ -1092,72 +1090,6 @@ function MergeEntitiesModal({
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function InsightsView({ sources, entities }: { sources: any[]; entities: any[] }) {
-  return (
-    <div className="space-y-6">
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <Database className="w-8 h-8 text-primary" />
-              <span className="text-3xl">{sources.length}</span>
-            </div>
-            <p className="text-sm text-muted">Context Sources</p>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="w-8 h-8 text-chart-1" />
-              <span className="text-3xl">
-                {entities.filter(e => e.entity_type === 'persona').length}
-              </span>
-            </div>
-            <p className="text-sm text-muted">Personas</p>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <AlertCircle className="w-8 h-8 text-destructive" />
-              <span className="text-3xl">
-                {entities.filter(e => e.entity_type === 'pain_point').length}
-              </span>
-            </div>
-            <p className="text-sm text-muted">Pain Points</p>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <Zap className="w-8 h-8 text-chart-4" />
-              <span className="text-3xl">
-                {entities.filter(e => e.entity_type === 'product_capability').length}
-              </span>
-            </div>
-            <p className="text-sm text-muted">Capabilities</p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Coming Soon */}
-      <Card>
-        <div className="p-12 text-center">
-          <Zap className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-xl mb-2">AI-Powered Insights Coming Soon</h3>
-          <p className="text-muted max-w-2xl mx-auto">
-            Get automatic trend analysis, sentiment tracking, opportunity identification, and strategic recommendations based on your context data
-          </p>
-        </div>
-      </Card>
     </div>
   )
 }
