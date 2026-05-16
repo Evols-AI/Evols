@@ -10,6 +10,7 @@ GET /api/v1/install/script
   Usage: curl -fsSL https://api.evols.ai/api/v1/install/script | sh
 """
 
+import re
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response, PlainTextResponse
@@ -17,6 +18,9 @@ from fastapi.responses import Response, PlainTextResponse
 router = APIRouter()
 
 CLI_DIR = Path("/app/cli")
+HOOKS_DIR = CLI_DIR / "hooks"
+
+_ALLOWED_HOOK = re.compile(r'^[a-z_]+\.py$')
 
 
 @router.get("/cli", tags=["Install"])
@@ -29,6 +33,21 @@ async def download_cli():
         content=path.read_bytes(),
         media_type="text/x-python",
         headers={"Content-Disposition": 'attachment; filename="evols"'},
+    )
+
+
+@router.get("/hooks/{filename}", tags=["Install"])
+async def download_hook(filename: str):
+    """Download a single hook script by name. No authentication required."""
+    if not _ALLOWED_HOOK.match(filename):
+        raise HTTPException(status_code=400, detail="Invalid hook filename.")
+    path = HOOKS_DIR / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Hook '{filename}' not found.")
+    return Response(
+        content=path.read_bytes(),
+        media_type="text/x-python",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

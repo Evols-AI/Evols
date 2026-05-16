@@ -52,11 +52,6 @@ MCP_TOOLS = [
     f"get_skill_details_mcp_{_MCP_SERVER}",
     f"get_work_context_summary_mcp_{_MCP_SERVER}",
     f"get_personas_mcp_{_MCP_SERVER}",
-    f"get_themes_mcp_{_MCP_SERVER}",
-    f"get_feedback_items_mcp_{_MCP_SERVER}",
-    f"get_product_strategy_mcp_{_MCP_SERVER}",
-    f"get_customer_segments_mcp_{_MCP_SERVER}",
-    f"get_competitive_landscape_mcp_{_MCP_SERVER}",
     f"get_features_mcp_{_MCP_SERVER}",
     f"get_past_skill_work_mcp_{_MCP_SERVER}",
 ]
@@ -82,11 +77,6 @@ You have access to a library of AI skills. Each skill provides expert instructio
 
 - `get_work_context_summary` — user's role, projects, tasks, and priorities
 - `get_personas` — customer persona profiles
-- `get_themes` — clustered feedback themes
-- `get_feedback_items` — raw customer feedback
-- `get_product_strategy` — product vision and strategic bets
-- `get_customer_segments` — customer segment definitions
-- `get_competitive_landscape` — competitive analysis
 - `get_features` — product initiatives and RICE scores
 - `get_past_skill_work` — prior AI-generated analyses and documents
 

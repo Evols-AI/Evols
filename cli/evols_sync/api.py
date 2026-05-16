@@ -32,10 +32,6 @@ class EvolsClient:
         self.api_url = api_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
-        # Probed once and cached. /sessions/import is preferred (server-side
-        # extraction + idempotent upsert); /team-knowledge/entries is the
-        # current hook path.
-        self._has_sessions_import: Optional[bool] = None
         self._has_lookup_endpoint: Optional[bool] = None
 
     # ── HTTP plumbing ─────────────────────────────────────────────────────────
@@ -66,24 +62,6 @@ class EvolsClient:
 
     # ── Capability probing ───────────────────────────────────────────────────
 
-    def supports_sessions_import(self) -> bool:
-        """Probe once: does the backend implement POST /sessions/import?
-
-        We do an OPTIONS-ish probe via a HEAD-style empty POST and inspect
-        the status. 404 → fallback. 405/422 → endpoint exists, just not
-        with our empty body. Anything else 2xx/4xx is treated as 'present'.
-        """
-        if self._has_sessions_import is not None:
-            return self._has_sessions_import
-        try:
-            self._req("POST", "/api/v1/team-knowledge/sessions/import", payload={})
-            self._has_sessions_import = True
-        except ApiError as e:
-            self._has_sessions_import = e.status not in (404,)
-        except Exception:
-            self._has_sessions_import = False
-        return self._has_sessions_import
-
     def supports_lookup(self) -> bool:
         """GET /entries?source_session_id=<id> — used as a per-session pre-flight."""
         if self._has_lookup_endpoint is not None:
@@ -103,45 +81,19 @@ class EvolsClient:
 
     def import_session(self, payload: dict) -> tuple[Optional[int], bool]:
         """Returns (entry_id, deduped). entry_id may be None on failure."""
-        # Prefer the new endpoint when present
-        if self.supports_sessions_import():
-            try:
-                resp = self._req("POST", "/api/v1/team-knowledge/sessions/import", payload=payload)
-                return (
-                    resp.get("entry_id") or resp.get("id"),
-                    bool(resp.get("deduped", False)),
-                )
-            except ApiError as e:
-                # 404 means probe lied; fall through to legacy path.
-                if e.status != 404:
-                    raise
-
-        # Legacy fallback — the same shape stop.py uses today.
-        legacy_payload = self._to_legacy_entry(payload)
-        resp = self._req("POST", "/api/v1/team-knowledge/entries", payload=legacy_payload)
-        return resp.get("id"), False
-
-    @staticmethod
-    def _to_legacy_entry(payload: dict) -> dict:
-        """Map an import-session payload onto the legacy /entries shape.
-
-        Matches the shape POSTed by hooks/stop.py::auto_sync_knowledge.
-        """
-        return {
-            "title": payload.get("title") or f"{payload.get('agent', 'session')} backfill: {payload.get('source_session_id', '')[:12]}",
-            "content": payload.get("content") or payload.get("transcript_text", "")[:8000],
-            "role": payload.get("role", "other"),
-            "session_type": "code",
-            "entry_type": payload.get("entry_type", "insight"),
-            "tags": payload.get("tags") or [f"agent:{payload.get('agent','unknown')}", "backfill"],
-            "product_area": payload.get("product_area"),
+        auto_sync_payload = {
+            "session_text": payload.get("transcript_text", "")[:8000],
             "source_session_id": payload.get("source_session_id"),
             "session_tokens_used": payload.get("tokens_used") or 0,
             "files_read": payload.get("files_read") or [],
             "files_modified": payload.get("files_modified") or [],
             "model": payload.get("model"),
-            "source": payload.get("source") or payload.get("agent") or "unknown",
+            "tool_name": payload.get("source") or payload.get("agent") or "unknown",
         }
+        resp = self._req("POST", "/api/v1/team-knowledge/auto-sync", payload=auto_sync_payload)
+        entry_id = resp.get("entry_id")
+        skipped = resp.get("skipped", False)
+        return entry_id, skipped
 
     # ── Pull (seed + per-session pre-flight) ─────────────────────────────────
 

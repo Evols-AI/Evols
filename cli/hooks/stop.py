@@ -5,7 +5,7 @@ Runs when a Claude Code session ends (normally or due to rate limit).
 - Reads EXACT token counts from the transcript JSONL (API usage fields)
 - Syncs quota event to Evols API
 - Displays token savings summary to user
-- Auto-syncs session knowledge via Haiku summarization of transcript
+- Auto-syncs session knowledge via on-device LLM or server-side BYOK extraction
 """
 
 import sys
@@ -15,6 +15,14 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 from datetime import datetime
+
+# Import shared extraction logic — hooks dir is alongside this script
+sys.path.insert(0, str(Path(__file__).parent))
+from knowledge_extract import (  # noqa: E402
+    is_worthwhile_transcript,
+    try_local_llm_extraction,
+    build_structured_payload,
+)
 
 EVOLS_DIR = Path.home() / ".evols"
 CONFIG_FILE = EVOLS_DIR / "config.json"
@@ -63,70 +71,6 @@ def load_config():
 
     return {"api_url": api_url, "api_key": api_key, "plan_type": plan_type}
 
-
-def load_lightrag_config() -> dict | None:
-    """Load LightRAG connection details from env or ~/.evols/config.json."""
-    url = os.environ.get("LIGHTRAG_URL") or os.environ.get("CLAUDE_PLUGIN_OPTION_LIGHTRAG_URL", "")
-    api_key = os.environ.get("LIGHTRAG_API_KEY") or os.environ.get("CLAUDE_PLUGIN_OPTION_LIGHTRAG_API_KEY", "")
-    if url:
-        return {"url": url.rstrip("/"), "api_key": api_key}
-    config_file = Path.home() / ".evols" / "config.json"
-    if config_file.exists():
-        try:
-            with open(config_file) as f:
-                cfg = json.load(f)
-            lr_url = cfg.get("lightrag_url", "")
-            if lr_url:
-                return {"url": lr_url.rstrip("/"), "api_key": cfg.get("lightrag_api_key", "")}
-        except Exception:
-            pass
-    return None
-
-
-def get_lightrag_jwt(lightrag_cfg: dict) -> str:
-    """Exchange API key for a JWT via /login (form-encoded). Caches in session_state."""
-    import urllib.parse
-    try:
-        state_path = SESSION_STATE_FILE
-        if state_path.exists():
-            state = json.loads(state_path.read_text())
-            cached = state.get("lightrag_jwt", "")
-            if cached:
-                return cached
-        api_key = lightrag_cfg.get("api_key", "")
-        if not api_key:
-            return ""
-        data = urllib.parse.urlencode({"username": "evols", "password": api_key}).encode()
-        req = urllib.request.Request(f"{lightrag_cfg['url']}/login", data=data, method="POST")
-        resp = urllib.request.urlopen(req, timeout=5)
-        token = json.loads(resp.read()).get("access_token", "")
-        if token and state_path.exists():
-            state = json.loads(state_path.read_text())
-            state["lightrag_jwt"] = token
-            state_path.write_text(json.dumps(state))
-        return token
-    except Exception:
-        return ""
-
-
-def forward_summary_to_lightrag(lightrag_cfg: dict, title: str, content: str, session_id: str) -> None:
-    """POST a session summary document to LightRAG."""
-    text = f"# {title}\n\n{content}"
-    payload = json.dumps({"text": text, "file_source": f"session_summary/{session_id}"}).encode("utf-8")
-    token = get_lightrag_jwt(lightrag_cfg)
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    try:
-        req = urllib.request.Request(
-            f"{lightrag_cfg['url']}/documents/text",
-            data=payload,
-            headers=headers,
-            method="POST",
-        )
-        urllib.request.urlopen(req, timeout=8)
-    except Exception:
-        pass
 
 
 _FALLBACK_PRICING = {
@@ -287,10 +231,6 @@ def extract_transcript_text(transcript_path: str) -> str:
     return "\n".join(lines_out[-60:])  # Last 60 turns to stay within context
 
 
-# Module-level slot so callers can access the last extracted knowledge dict
-_last_extracted_knowledge: dict | None = None
-
-
 def detect_source_tool() -> str:
     """
     Return the agent name baked in at install time via --agent=<name> in the hook command.
@@ -305,136 +245,57 @@ def detect_source_tool() -> str:
 def auto_sync_knowledge(api_url, api_key, session_id, transcript_text, token_count, plan_type,
                         files_read=None, files_modified=None, discovery_tokens=0, model=""):
     """
-    Call Anthropic API (Haiku) to extract structured knowledge from the session,
-    then POST it to the team knowledge graph.
-    Also stores the extracted dict in _last_extracted_knowledge for LightRAG forwarding.
+    Extract and sync session knowledge. Tries on-device LLM first (Apple Foundation Models,
+    then Phi Silica), falls back to server-side extraction via /auto-sync which uses the
+    tenant's BYOK LLM config.
     """
-    global _last_extracted_knowledge
-    _last_extracted_knowledge = None
+    extracted = try_local_llm_extraction(transcript_text)
+    if extracted:
+        # Local extraction succeeded — POST structured entry directly
+        try:
+            sync_payload = build_structured_payload(
+                extracted,
+                source_session_id=session_id,
+                session_tokens_used=token_count,
+                files_read=files_read,
+                files_modified=files_modified,
+                model=model,
+                source=detect_source_tool(),
+                discovery_tokens=discovery_tokens or None,
+            )
+            req = urllib.request.Request(
+                f"{api_url.rstrip('/')}/api/v1/team-knowledge/entries",
+                data=json.dumps(sync_payload).encode("utf-8"),
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                entry = json.loads(resp.read())
+                return entry.get("id")
+        except Exception:
+            pass  # fall through to server-side
 
+    # Server-side extraction via BYOK LLM config
     try:
-        import urllib.request
-
-        prompt = (
-            "You are extracting team knowledge from an AI coding session transcript.\n\n"
-            "Given the session below, extract a knowledge entry with:\n"
-            "- title: one-line description of what was accomplished (max 80 chars)\n"
-            "- content: problem statement, approach taken, key decisions, outcome (3-8 sentences)\n"
-            "- entry_type: one of: insight, decision, artifact, research_finding, pattern, context\n"
-            "- tags: 2-5 comma-separated keywords\n"
-            "- product_area: the product/code area affected (or empty string)\n\n"
-            "If the session is trivial (e.g. just questions, no real work), respond with: SKIP\n\n"
-            f"Session transcript:\n{transcript_text}\n\n"
-            "Respond ONLY with a JSON object with keys: title, content, entry_type, tags, product_area"
-        )
-
-        payload = {
-            "model": "claude-haiku-4-5-20251001",
-            "max_tokens": 512,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-
-        # Get API key from Anthropic env var (available in Claude Code sessions)
-        anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
-        if not anthropic_key:
-            return fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, token_count, files_read, files_modified, model)
-
-        req = urllib.request.Request(
-            "https://api.anthropic.com/v1/messages",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "x-api-key": anthropic_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            result = json.loads(resp.read())
-
-        raw = result.get("content", [{}])[0].get("text", "").strip()
-        if raw == "SKIP" or not raw:
-            return None
-
-        # Strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        extracted = json.loads(raw.strip())
-        _last_extracted_knowledge = extracted
-
-        # POST to Evols API
         sync_payload = {
-            "title": extracted.get("title", "Untitled session"),
-            "content": extracted.get("content", ""),
-            "role": "other",
-            "session_type": "code",
-            "entry_type": extracted.get("entry_type", "insight"),
-            "tags": [t.strip() for t in extracted.get("tags", "").split(",") if t.strip()],
-            "product_area": extracted.get("product_area") or None,
+            "session_text": transcript_text,
             "source_session_id": session_id,
             "session_tokens_used": token_count,
             "discovery_tokens": discovery_tokens or None,
             "files_read": files_read or [],
             "files_modified": files_modified or [],
             "model": model or None,
-            "source": detect_source_tool(),
+            "tool_name": detect_source_tool(),
         }
-
-        sync_req = urllib.request.Request(
-            f"{api_url.rstrip('/')}/api/v1/team-knowledge/entries",
+        req = urllib.request.Request(
+            f"{api_url.rstrip('/')}/api/v1/team-knowledge/auto-sync",
             data=json.dumps(sync_payload).encode("utf-8"),
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(sync_req, timeout=10) as resp:
-            entry = json.loads(resp.read())
-            return entry.get("id")
-
-    except Exception:
-        return fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, token_count, files_read, files_modified, model)
-
-
-def fallback_sync_knowledge(api_url, api_key, session_id, transcript_text, token_count,
-                            files_read, files_modified, model):
-    """Simple rule-based knowledge sync when LLM extraction is unavailable."""
-    lines = transcript_text.split("\n")
-    # Try to find a meaningful title from user prompts or assistant summaries
-    title = "Session sync (fallback)"
-    for line in lines:
-        if line.startswith("User:"):
-            title = line[5:].strip()[:80]
-            break
-
-    # Construct content from last few turns
-    content = f"Session {session_id} synced via fallback (LLM extraction unavailable).\n\nTranscript snippet:\n" + transcript_text[-800:]
-
-    sync_payload = {
-        "title": title,
-        "content": content,
-        "role": "other",
-        "session_type": "code",
-        "entry_type": "insight",
-        "tags": ["fallback", "auto-sync"],
-        "source_session_id": session_id,
-        "session_tokens_used": token_count,
-        "files_read": files_read or [],
-        "files_modified": files_modified or [],
-        "model": model or None,
-        "source": detect_source_tool(),
-    }
-
-    try:
-        sync_req = urllib.request.Request(
-            f"{api_url.rstrip('/')}/api/v1/team-knowledge/entries",
-            data=json.dumps(sync_payload).encode("utf-8"),
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(sync_req, timeout=10) as resp:
-            entry = json.loads(resp.read())
-            return entry.get("id")
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            result = json.loads(resp.read())
+            return result.get("entry_id")
     except Exception:
         return None
 
@@ -564,27 +425,16 @@ def main():
     except Exception:
         pass
 
-    # ── Auto-sync knowledge via Haiku (run first so we know if new knowledge was created) ──
+    # ── Auto-sync knowledge via backend server-side extraction ────────
     synced_entry_id = None
-    extracted_knowledge = None
-    if not is_failure and transcript_path and total_tokens > 500:
+    if not is_failure and transcript_path:
         transcript_text = extract_transcript_text(transcript_path)
-        if transcript_text:
+        if transcript_text and is_worthwhile_transcript(transcript_text, total_tokens):
             synced_entry_id = auto_sync_knowledge(
                 api_url, api_key, session_id, transcript_text, total_tokens, plan_type,
                 files_read=files_read, files_modified=files_modified,
                 discovery_tokens=discovery_tokens, model=model,
             )
-            extracted_knowledge = _last_extracted_knowledge
-
-    # ── Forward session summary to LightRAG knowledge graph ────────
-    if extracted_knowledge and not is_failure:
-        lightrag_cfg = load_lightrag_config()
-        if lightrag_cfg:
-            title = extracted_knowledge.get("title", f"Session {session_id}")
-            content = extracted_knowledge.get("content", "")
-            if content:
-                forward_summary_to_lightrag(lightrag_cfg, title, content, session_id)
 
     # ── Sync quota event to API ────────────────────────────────────
     # tokens_created: the full session cost is the investment when new knowledge was synced.

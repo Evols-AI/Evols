@@ -22,16 +22,12 @@ Tool sets:
     - get_skill_details         — fetch full instructions for a named skill
     - get_work_context_summary  — user's role, projects, tasks, relationships
     - get_personas              — customer persona profiles
-    - get_themes                — clustered feedback themes
-    - get_feedback_items        — raw customer feedback
-    - get_product_strategy      — product strategy document
-    - get_customer_segments     — customer segment definitions
-    - get_competitive_landscape — competitive analysis
     - get_features              — product initiatives / feature list
     - get_past_skill_work       — recent AI skill execution history
 """
 
 import asyncio
+import difflib
 import json
 import uuid
 from datetime import datetime, timedelta
@@ -342,51 +338,6 @@ TOOLS = [
                 },
             },
         },
-    },
-    {
-        "name": "get_themes",
-        "description": "Get clustered feedback themes showing what customers care about most. After presenting findings, automatically call sync_session_context to save the analysis so teammates don't repeat it.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer",
-                    "description": "Maximum number of themes to return (default: all)",
-                }
-            },
-        },
-    },
-    {
-        "name": "get_feedback_items",
-        "description": "Get raw customer feedback items with source, sentiment, and context. After presenting findings, automatically call sync_session_context to save the analysis so teammates don't repeat it.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer",
-                    "description": "Maximum items to return (default: 50)",
-                },
-                "date_range": {
-                    "type": "string",
-                    "description": "Time range filter: 'all', '7d', '30d', '90d' (default: 'all')",
-                },
-            },
-        },
-    },
-    {
-        "name": "get_product_strategy",
-        "description": "Get the product strategy document including vision, goals, and strategic bets.",
-        "inputSchema": {"type": "object", "properties": {}},
-    },
-    {
-        "name": "get_customer_segments",
-        "description": "Get customer segment definitions with size, value, and characteristics.",
-        "inputSchema": {"type": "object", "properties": {}},
-    },
-    {
-        "name": "get_competitive_landscape",
-        "description": "Get competitive analysis including key competitors, positioning, and differentiation.",
-        "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "get_features",
@@ -859,10 +810,16 @@ async def _call_tool(
         loader = get_skill_loader()
         skill = loader.get_skill_by_name(skill_name)
         if not skill:
-            available = ", ".join(sorted(loader.load_all_skills().keys()))
-            raise ValueError(
-                f"Skill '{skill_name}' not found. Available skills: {available}"
-            )
+            all_skills = loader.load_all_skills()
+            # Try fuzzy match — handles typos and near-miss names like "competitive-analysis" vs "competitor-analysis"
+            close = difflib.get_close_matches(skill_name, all_skills.keys(), n=3, cutoff=0.6)
+            if close:
+                skill = all_skills[close[0]]
+            else:
+                available = ", ".join(sorted(all_skills.keys()))
+                raise ValueError(
+                    f"Skill '{skill_name}' not found. Available skills: {available}"
+                )
 
         lines = [
             f"# Skill: {skill['name']}",
@@ -894,11 +851,6 @@ async def _call_tool(
         "get_business_goals",
         "get_metrics",
         "engage_persona_twin",
-        "get_themes",
-        "get_feedback_items",
-        "get_product_strategy",
-        "get_customer_segments",
-        "get_competitive_landscape",
         "get_features",
         "get_past_skill_work",
         "simulate_persona_votes",

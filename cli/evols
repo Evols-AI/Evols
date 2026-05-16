@@ -8,6 +8,7 @@ Commands:
   evols status              — show what's installed and configured
   evols sync                — backfill historical sessions from all supported agents
   evols mcp-server          — run the MCP stdio server (spawned automatically by agents)
+  evols version             — print the CLI version
 """
 
 import sys
@@ -33,6 +34,7 @@ BIN_DIR = EVOLS_DIR / "bin"
 CLI_PATH = Path(__file__).resolve()
 
 EVOLS_API_URL_DEFAULT = "https://api.evols.ai"
+EVOLS_VERSION = "1.2.0"
 
 
 # ── Agent detection ────────────────────────────────────────────────────────────
@@ -472,40 +474,57 @@ def install_cli_binary():
     print(f"  ✓ CLI binary updated ({dest})")
 
 
+HOOK_FILES = [
+    "session_start.py", "user_prompt_submit.py", "pre_tool_use.py",
+    "post_tool_use.py", "pre_compact.py", "stop.py", "knowledge_extract.py",
+]
+
+
 def install_hooks():
     """Copy hook scripts to ~/.evols/hooks/.
-    Source: cli/hooks/ alongside this script (repo layout),
-    or ~/.evols/hooks/ if already installed (deployed layout).
+
+    Repo layout: hooks/ is a sibling of this script — copy directly.
+    Deployed layout (~/.evols/bin/evols): fetch fresh hooks from the server so
+    that re-running `evols install` always updates them to the latest version.
     """
     HOOKS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # In repo layout: hooks/ is a sibling of this script
-    # In deployed layout (~/.evols/bin/evols): hooks are already at ~/.evols/hooks/
     src_dir = CLI_PATH.parent / "hooks"
-    if not src_dir.exists():
-        # Already deployed — hooks should already be in HOOKS_DIR
-        existing = list(HOOKS_DIR.glob("*.py"))
-        if existing:
-            print(f"  ✓ Hooks already installed ({len(existing)} scripts in {HOOKS_DIR})")
+    if src_dir.exists():
+        # Repo layout — copy from local source
+        copied = []
+        for fname in HOOK_FILES:
+            src = src_dir / fname
+            if src.exists():
+                shutil.copy2(src, HOOKS_DIR / fname)
+                copied.append(fname)
+        if copied:
+            print(f"  ✓ Hooks installed: {', '.join(copied)}")
         else:
-            print(f"  ✗ No hooks found. Re-run install from the evols repo or re-download the CLI.")
+            print(f"  ✗ No hooks found in {src_dir}")
         return
 
-    hook_files = [
-        "session_start.py", "user_prompt_submit.py", "pre_tool_use.py",
-        "post_tool_use.py", "pre_compact.py", "stop.py",
-    ]
-    copied = []
-    for fname in hook_files:
-        src = src_dir / fname
-        if src.exists():
-            shutil.copy2(src, HOOKS_DIR / fname)
-            copied.append(fname)
+    # Deployed layout — fetch from server so installs always get latest hooks
+    cfg = load_config()
+    api_base = (cfg.get("api_url") if cfg else None) or EVOLS_API_URL_DEFAULT
+    fetched, failed = [], []
+    for fname in HOOK_FILES:
+        url = f"{api_base.rstrip('/')}/api/v1/install/hooks/{fname}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": f"evols-cli/{EVOLS_VERSION}"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                content = resp.read()
+            dest = HOOKS_DIR / fname
+            dest.write_bytes(content)
+            dest.chmod(0o755)
+            fetched.append(fname)
+        except Exception:
+            failed.append(fname)
 
-    if copied:
-        print(f"  ✓ Hooks installed: {', '.join(copied)}")
-    else:
-        print(f"  ✗ No hooks found in {src_dir}")
+    if fetched:
+        print(f"  ✓ Hooks updated from server: {', '.join(fetched)}")
+    if failed:
+        print(f"  ✗ Failed to fetch hooks (will use existing if present): {', '.join(failed)}")
 
 
 # ── CLAUDE.md template ─────────────────────────────────────────────────────────
@@ -711,6 +730,10 @@ def cmd_mcp_server(args):
 
 
 # ── CLI commands ───────────────────────────────────────────────────────────────
+
+def cmd_version(args):
+    print(f"evols {EVOLS_VERSION}")
+
 
 def cmd_login(args):
     print("Evols Login")
@@ -943,6 +966,194 @@ def cmd_status(args):
 # ── Sync engine (inlined from evols_sync/) ─────────────────────────────────────
 # All sync code is self-contained here so the single-file `evols` script works
 # without any companion packages.
+
+# ── Knowledge extraction (inlined from hooks/knowledge_extract.py) ─────────────
+# Keep in sync with evols/cli/hooks/knowledge_extract.py — edit that file first.
+
+_EVOLS_MCP_NAMES = {
+    "mcp__evols__check_redundancy", "mcp__evols__get_relevant_context",
+    "mcp__evols__sync_subtask_context", "mcp__evols__sync_session_context",
+    "mcp__evols__get_team_context", "mcp__evols__get_work_context_summary",
+    "mcp__evols__get_skill_details", "mcp__evols__simulate_persona_votes",
+    "mcp__evols__get_personas", "mcp__evols__get_features",
+    "mcp__evols__get_pain_points", "mcp__evols__get_metrics",
+    "mcp__evols__link_to_product",
+}
+
+
+def _is_worthwhile_transcript(transcript_text: str, total_tokens: int) -> bool:
+    if total_tokens < 800:
+        return False
+    lines = transcript_text.split("\n")
+    user_lines = [l for l in lines if l.startswith("User:")]
+    tool_lines = [l for l in lines if l.startswith("Tool:")]
+    assistant_lines = [l for l in lines if l.startswith("Assistant:")]
+    if not any(len(l) > 20 for l in user_lines):
+        return False
+    if tool_lines:
+        non_evols = [l for l in tool_lines if not any(n in l for n in _EVOLS_MCP_NAMES)]
+        if not non_evols:
+            return False
+    assistant_chars = sum(max(0, len(l) - len("Assistant: ")) for l in assistant_lines)
+    return assistant_chars >= 300
+
+
+_KE_PROMPT = """You are extracting team knowledge from an AI session transcript.
+
+Given the session below, extract a knowledge entry with:
+- title: one-line description of what was accomplished (max 80 chars)
+- content: problem statement, approach taken, key decisions, outcome (3-8 sentences)
+- entry_type: one of: insight, decision, artifact, research_finding, pattern, context
+- tags: 2-5 comma-separated keywords
+- product_area: the product/code area affected (or empty string)
+
+If the session is trivial (e.g. just questions, no real work done), respond with: SKIP
+
+Session:
+{transcript}
+
+Respond ONLY with a JSON object with keys: title, content, entry_type, tags, product_area"""
+
+
+def _ke_parse(raw: str) -> Optional[dict]:
+    try:
+        text = raw.strip()
+        if text == "SKIP" or not text:
+            return None
+        if text.startswith("```"):
+            parts = text.split("```")
+            text = parts[1].lstrip("json").strip() if len(parts) >= 2 else text
+        return json.loads(text)
+    except Exception:
+        return None
+
+
+def _ke_try_apple(prompt: str) -> Optional[dict]:
+    import platform, subprocess, tempfile
+    if platform.system() != "Darwin":
+        return None
+    try:
+        if int(platform.release().split(".")[0]) < 25:
+            return None
+    except Exception:
+        return None
+    swift_code = """
+import FoundationModels
+import Foundation
+
+let promptText = ProcessInfo.processInfo.environment["EVOLS_PROMPT"] ?? ""
+guard !promptText.isEmpty else { exit(0) }
+
+let session = LanguageModelSession()
+guard await session.availability == .available else { exit(0) }
+
+do {
+    let response = try await session.respond(to: promptText)
+    print(response.content)
+} catch {
+    exit(1)
+}
+"""
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".swift", mode="w", delete=False) as f:
+            f.write(swift_code)
+            tmp = f.name
+        env = os.environ.copy()
+        env["EVOLS_PROMPT"] = prompt
+        result = subprocess.run(["swift", tmp], capture_output=True, text=True, timeout=20, env=env)
+        return _ke_parse(result.stdout.strip()) if result.stdout.strip() else None
+    except Exception:
+        return None
+    finally:
+        if tmp:
+            try: os.unlink(tmp)
+            except Exception: pass
+
+
+def _ke_try_phi_silica(prompt: str) -> Optional[dict]:
+    import platform, subprocess, tempfile
+    if platform.system() != "Windows":
+        return None
+    csharp_code = r"""
+using System;
+using System.Threading.Tasks;
+using Microsoft.Windows.AI.Generative;
+
+class EvolsExtract {
+    static async Task Main() {
+        string promptText = Environment.GetEnvironmentVariable("EVOLS_PROMPT") ?? "";
+        if (string.IsNullOrEmpty(promptText)) return;
+        if (!LanguageModel.IsAvailable()) return;
+        using var model = await LanguageModel.CreateAsync();
+        var result = await model.GenerateResponseAsync(promptText);
+        Console.Write(result.Response);
+    }
+}
+"""
+    tmp_cs = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".cs", mode="w", delete=False, encoding="utf-8") as f:
+            f.write(csharp_code)
+            tmp_cs = f.name
+        env = os.environ.copy()
+        env["EVOLS_PROMPT"] = prompt
+        result = subprocess.run(["dotnet-script", tmp_cs], capture_output=True, text=True, timeout=30, env=env)
+        if result.returncode != 0:
+            exe = tmp_cs.replace(".cs", ".exe")
+            if subprocess.run(["csc", f"/out:{exe}", tmp_cs], capture_output=True, timeout=15).returncode != 0:
+                return None
+            result = subprocess.run([exe], capture_output=True, text=True, timeout=30, env=env)
+        return _ke_parse(result.stdout.strip()) if result.stdout.strip() else None
+    except Exception:
+        return None
+    finally:
+        if tmp_cs:
+            try: os.unlink(tmp_cs)
+            except Exception: pass
+
+
+def _ke_try_local(transcript_text: str) -> Optional[dict]:
+    prompt = _KE_PROMPT.format(transcript=transcript_text[:4000])
+    return _ke_try_apple(prompt) or _ke_try_phi_silica(prompt)
+
+
+def _ke_build_payload(
+    extracted: dict,
+    *,
+    source_session_id: str,
+    session_tokens_used: int = 0,
+    files_read: Optional[list] = None,
+    files_modified: Optional[list] = None,
+    model: Optional[str] = None,
+    source: str = "unknown",
+    discovery_tokens: Optional[int] = None,
+) -> dict:
+    tags_raw = extracted.get("tags", "")
+    tags = (
+        [t.strip() for t in tags_raw.split(",") if t.strip()]
+        if isinstance(tags_raw, str)
+        else (tags_raw or [])
+    )
+    payload: dict = {
+        "title": extracted.get("title") or "Untitled session",
+        "content": extracted.get("content", ""),
+        "role": "other",
+        "session_type": "code",
+        "entry_type": extracted.get("entry_type") or "insight",
+        "tags": tags,
+        "product_area": extracted.get("product_area") or None,
+        "source_session_id": source_session_id,
+        "session_tokens_used": session_tokens_used,
+        "files_read": files_read or [],
+        "files_modified": files_modified or [],
+        "model": model or None,
+        "source": source,
+    }
+    if discovery_tokens:
+        payload["discovery_tokens"] = discovery_tokens
+    return payload
+
 
 # ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -1864,21 +2075,48 @@ def cmd_sync(args):
             if not session:
                 total_skipped += 1
                 continue
+            # Noise filter — skip trivial sessions before paying for upload/LLM
+            tokens_hint = session.tokens_used or 0
+            if not _is_worthwhile_transcript(session.transcript_text, tokens_hint):
+                total_skipped += 1
+                continue
             if dry_run:
                 print(f"  [dry-run] would sync: {ref.source_id[:16]}... ({agent_name})")
                 total_synced += 1
                 continue
-            # Upload
+            # Upload — try local extraction first, then server-side BYOK
             with _session_lock(ref.source_id) as lock_fd:
                 if lock_fd is None:
                     total_skipped += 1
                     continue
                 try:
-                    entry_id, deduped = client.post_with_retry(session.to_payload())
-                    status = "synced"
+                    payload = session.to_payload()
+                    local = _ke_try_local(session.transcript_text)
+                    if local:
+                        structured_payload = _ke_build_payload(
+                            local,
+                            source_session_id=payload.get("source_session_id", ""),
+                            session_tokens_used=payload.get("tokens_used") or 0,
+                            files_read=payload.get("files_read"),
+                            files_modified=payload.get("files_modified"),
+                            model=payload.get("model"),
+                            source=payload.get("source") or payload.get("agent") or "unknown",
+                        )
+                        req = urllib.request.Request(
+                            f"{cfg['api_url'].rstrip('/')}/api/v1/team-knowledge/entries",
+                            data=json.dumps(structured_payload).encode("utf-8"),
+                            headers={"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json"},
+                            method="POST",
+                        )
+                        with urllib.request.urlopen(req, timeout=10) as resp:
+                            entry_resp = json.loads(resp.read())
+                        entry_id = entry_resp.get("id")
+                        deduped = False
+                    else:
+                        entry_id, deduped = client.post_with_retry(payload)
                     _sync_upsert(conn, agent=ref.agent, source_id=ref.source_id,
                                  source_path=ref.source_path, source_mtime=ref.source_mtime,
-                                 status=status, evols_entry_id=entry_id,
+                                 status="synced", evols_entry_id=entry_id,
                                  schema_version=session.schema_version)
                     label = "deduped" if deduped else "synced"
                     print(f"  ✓ {label}: {ref.source_id[:16]}...")
@@ -1904,6 +2142,7 @@ COMMANDS = {
     "status":     cmd_status,
     "sync":       cmd_sync,
     "mcp-server": cmd_mcp_server,
+    "version":    cmd_version,
 }
 
 USAGE = """Usage: evols <command> [args]
@@ -1915,6 +2154,7 @@ Commands:
   status          Show installation status
   sync            Backfill historical sessions from all supported agents
   mcp-server      Run MCP stdio server (spawned automatically by agents)
+  version         Print the CLI version
 
 Examples:
   evols login
@@ -1923,12 +2163,16 @@ Examples:
   evols sync
   evols sync --dry-run
   evols status
+  evols version
 """
 
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
         print(USAGE)
+        sys.exit(0)
+    if sys.argv[1] in ("--version", "-V"):
+        cmd_version([])
         sys.exit(0)
     command = sys.argv[1]
     if command not in COMMANDS:
