@@ -1,5 +1,6 @@
 import '@/styles/globals.css'
 import type { AppProps } from 'next/app'
+import Head from 'next/head'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
@@ -79,12 +80,17 @@ export default function App({ Component, pageProps }: AppProps) {
   }, [router])
 
   return (
-    <div className={`${exletusSans.variable}`}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <Component {...pageProps} />
-        </ThemeProvider>
-      </QueryClientProvider>
-    </div>
+    <>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      <div className={`${exletusSans.variable}`}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <Component {...pageProps} />
+          </ThemeProvider>
+        </QueryClientProvider>
+      </div>
+    </>
   )
 }

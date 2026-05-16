@@ -10,6 +10,8 @@ tags: [AI Strategy, Team AI, Product]
 
 ![Team AI](https://miro.medium.com/v2/resize:fit:1400/format:webp/0*MY2HoyCaMToiqTvi.png)
 
+> **Key Takeaway:** Every major productivity category follows the same arc — individual tools first, then a coordination layer that becomes the defensible platform. Email begat Slack. Code editors begat GitHub. AI coding tools are mid-transition: the individual layer (Claude Code, Cursor, Copilot) is mature, but the multiplayer coordination layer that teams need has not been built yet. That layer — shared context, redundancy detection, collective quota visibility — is the next category.
+
 Every major productivity category follows the same arc. First come tools for individuals, tools that help one person do their job faster, smarter, or with less friction. Then, as those tools become standard, teams realize the tools don’t talk to each other. A coordination layer has to be built. That layer eventually becomes the platform that everyone depends on.
 
 Email begat shared inboxes and Slack. Word processors begat Google Docs and real-time collaboration. Code editors begat Git, then GitHub, then pull requests and team workflows. The individual tool came first; the team infrastructure came second. And it is the team infrastructure that becomes the defensible business, not the individual tool.

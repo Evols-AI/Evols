@@ -10,6 +10,8 @@ tags: [AI Quality, Documentation, Product Management]
 
 ![AI-Generated Docs Are Productivity Theater](https://cdn-images-1.medium.com/max/1600/1*tnGGbKs0xqe4R-PBLlkjvA.png)
 
+> **Key Takeaway:** AI-generated documents look complete because their structure is correct, but 27–78% of AI task completions are "corrupt successes" — outputs that pass surface evaluation while missing the decisions that make them actionable. The fix is not better prompting; it is learning to distinguish structural completeness from substantive completeness before acting on AI output.
+
 There is a specific kind of document that has become common on technical teams in 2026. It has clear headers. It uses professional language. It is appropriately long. It has bullet points in all the right places. It looks, at a glance, like someone did serious work.
 
 Then someone tries to act on it and discovers: the document describes the situation without making any decisions about it. Or it makes decisions without explaining the reasoning. Or it covers the straightforward cases and leaves the hard ones as "open questions." Or it is accurate in a generic sense but misses the five codebase-specific constraints that would make any of its recommendations actually work.

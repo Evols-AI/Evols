@@ -98,6 +98,29 @@ const FEATURES = [
   },
 ]
 
+const FAQS = [
+  {
+    q: 'What is Evols AI?',
+    a: 'Evols is a team AI brain that gives every member shared context across Claude Code, Cursor, Zed, and other AI coding tools. It eliminates duplicate work, provides zero cold start for new teammates, and shows collective AI quota usage in real time.',
+  },
+  {
+    q: 'How does Evols reduce AI token costs?',
+    a: 'Evols stores AI session outputs in a shared knowledge graph. Instead of each teammate compiling the same context from scratch, they retrieve it at approximately 8× fewer tokens per session — cutting redundant usage across the whole team.',
+  },
+  {
+    q: 'What AI coding tools does Evols work with?',
+    a: 'Evols works with Claude Code, Cursor, Zed, GitHub Copilot (Kiro), Cline, and Codex via a single CLI install that registers MCP server hooks automatically.',
+  },
+  {
+    q: 'What is the AI handoff tax?',
+    a: 'The handoff tax is the wasted time when context built in one AI session cannot transfer to the next person. A developer\'s findings, decisions, and reasoning disappear when the session closes — forcing every teammate to start from scratch and compile the same tokens over and over.',
+  },
+  {
+    q: 'How do I install Evols for my team?',
+    a: 'Run: curl -fsSL https://api.evols.ai/api/v1/install/script | sh, then evols login and evols install. Hooks and MCP server are registered automatically into Claude Code, Cursor, and Zed.',
+  },
+]
+
 const TESTIMONIALS = [
   {
     quote: 'I think there is room here for an incredible new product instead of a hacky collection of scripts.',
@@ -158,20 +181,110 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Evols AI - The Team AI Operating System</title>
-        <meta name="description" content="Evols eliminates the handoff tax. Every AI session your team runs compounds into shared intelligence — zero cold start, no duplicate work, full quota visibility." />
-        <meta property="og:title" content="Evols AI — The Team AI Operating System" />
-        <meta property="og:description" content="Turn every AI session into team intelligence. One CLI install activates everything." />
+        <title>Evols AI — Team AI Brain for Claude Code, Cursor &amp; Zed</title>
+        <meta name="description" content="Evols gives your team a shared AI brain. Zero cold start, no duplicate work, full quota visibility. One CLI install for Claude Code, Cursor, Zed, Codex, and Cline." />
+        <link rel="canonical" href="https://evols.ai" />
+        <meta property="og:title" content="Evols AI — Team AI Brain for Claude Code, Cursor &amp; Zed" />
+        <meta property="og:description" content="Evols gives your team a shared AI brain. Zero cold start, no duplicate work, full quota visibility. One CLI install activates everything." />
+        <meta property="og:url" content="https://evols.ai" />
+        <meta property="og:image" content="https://evols.ai/api/og?title=Evols+AI&description=The+team+AI+brain+for+every+AI+session" />
+        <meta name="twitter:title" content="Evols AI — Team AI Brain for Claude Code, Cursor &amp; Zed" />
+        <meta name="twitter:description" content="Evols gives your team a shared AI brain. Zero cold start, no duplicate work, full quota visibility." />
+        <meta name="twitter:image" content="https://evols.ai/api/og?title=Evols+AI&description=The+team+AI+brain+for+every+AI+session" />
         <meta name="robots" content="index, follow" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          "name": "Evols AI",
-          "applicationCategory": "BusinessApplication",
-          "operatingSystem": "Web",
-          "offers": { "@type": "Offer", "price": "49", "priceCurrency": "USD" },
-          "description": "The team AI operating system.",
-          "url": "https://evols.ai",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "name": "Evols AI",
+              "url": "https://evols.ai",
+              "logo": "https://evols.ai/favicon.svg",
+              "foundingDate": "2026",
+              "founder": { "@type": "Person", "name": "Akshay Saraswat" },
+              "sameAs": [
+                "https://x.com/EvolsAI",
+                "https://github.com/evols-ai",
+                "https://www.linkedin.com/company/116584015"
+              ]
+            },
+            {
+              "@type": "SoftwareApplication",
+              "name": "Evols",
+              "applicationCategory": "DeveloperApplication",
+              "operatingSystem": "Web, macOS, Linux, Windows",
+              "description": "Team AI brain for Claude Code, Cursor, and Zed. Shared knowledge graph, redundancy detection, and quota visibility across your entire team.",
+              "url": "https://evols.ai",
+              "offers": {
+                "@type": "Offer",
+                "price": "49",
+                "priceCurrency": "USD",
+                "priceSpecification": {
+                  "@type": "UnitPriceSpecification",
+                  "billingIncrement": "month"
+                }
+              },
+              "creator": { "@type": "Organization", "name": "Evols AI" }
+            },
+            {
+              "@type": "WebSite",
+              "url": "https://evols.ai",
+              "name": "Evols AI",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                  "@type": "EntryPoint",
+                  "urlTemplate": "https://evols.ai/blog?q={search_term_string}"
+                },
+                "query-input": "required name=search_term_string"
+              }
+            },
+            {
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "What is Evols AI?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Evols is a team AI brain that gives every member shared context across Claude Code, Cursor, Zed, and other AI coding tools. It eliminates duplicate work, provides zero cold start for new teammates, and shows collective AI quota usage in real time."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "How does Evols reduce AI token costs?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Evols stores AI session outputs in a shared knowledge graph. Instead of each teammate compiling the same context from scratch, they retrieve it at approximately 8× fewer tokens per session."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What AI coding tools does Evols work with?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Evols works with Claude Code, Cursor, Zed, GitHub Copilot (Kiro), Cline, and Codex via a single CLI install that registers MCP server hooks automatically."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What is the AI handoff tax?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The handoff tax is the wasted time when context built in one AI session cannot transfer to the next person. A developer's findings, decisions, and reasoning disappear when the session closes, forcing every teammate to start from scratch — compiling the same tokens over and over."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "How do I install Evols for my team?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Run: curl -fsSL https://api.evols.ai/api/v1/install/script | sh, then evols login and evols install. Hooks and MCP server are registered automatically into Claude Code, Cursor, and Zed."
+                  }
+                }
+              ]
+            }
+          ]
         })}} />
       </Head>
 
@@ -409,6 +522,32 @@ export default function Home() {
                 </SpotlightCard>
               </motion.div>
             ))}
+          </div>
+        </section>
+
+        {/* ── FAQ ── */}
+        <section id="faq" className={`py-28 ${bgAlt} border-y ${border} transition-colors duration-300`}>
+          <div className="max-w-3xl mx-auto px-6">
+            <div className="text-center mb-14">
+              <SectionLabel dark={dark} border={border} textFaint={textFaint}>FAQ</SectionLabel>
+              <h2 className={`text-4xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.08] mb-5 ${text}`}>
+                Common questions
+              </h2>
+            </div>
+
+            <div className="space-y-3">
+              {FAQS.map((faq, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
+                  <SpotlightCard>
+                    <div className="p-6">
+                      <h3 className={`text-base font-medium tracking-[-0.02em] mb-2 ${text}`}>{faq.q}</h3>
+                      <p className={`text-sm ${textFaint} leading-relaxed`}>{faq.a}</p>
+                    </div>
+                  </SpotlightCard>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </section>
 

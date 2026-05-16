@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FaLinkedin, FaGithub } from 'react-icons/fa'
+import { FaLinkedin, FaGithub, FaXTwitter } from 'react-icons/fa6'
 import { LogoWordmark } from '@/components/Logo'
 
 const COLUMNS = [
@@ -8,6 +8,7 @@ const COLUMNS = [
     links: [
       { label: 'Docs', href: '/docs' },
       { label: 'Blog', href: '/blog' },
+      { label: 'Glossary', href: '/glossary' },
       { label: 'Support', href: '/support' },
     ],
   },
@@ -16,6 +17,7 @@ const COLUMNS = [
     links: [
       { label: 'LinkedIn', href: 'https://www.linkedin.com/company/116584015', external: true, icon: FaLinkedin },
       { label: 'GitHub', href: 'https://github.com/evols-ai', external: true, icon: FaGithub },
+      { label: 'X (Twitter)', href: 'https://x.com/EvolsAI', external: true, icon: FaXTwitter },
     ],
   },
   {

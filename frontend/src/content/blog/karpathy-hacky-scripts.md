@@ -10,6 +10,8 @@ tags: [AI Tools, Knowledge Management, Developer Tools]
 
 ![The gap between what exists and what should exist](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*X7JXd0FzsVwcRLqi0Vpa-g.png)
 
+> **Key Takeaway:** When Andrej Karpathy described his LLM knowledge workflow as "a hacky collection of scripts" and said "there is room here for an incredible new product," he identified a specific architectural gap: AI tools that help individuals accumulate knowledge but have no mechanism for sharing, searching, or building on that knowledge across sessions or teammates. The product that fills this gap is not a better note-taking tool — it is a knowledge layer that sits between AI sessions and the team.
+
 In early April 2026, Andrej Karpathy posted an observation on X that got shared extensively in developer circles. He described a personal workflow he'd been building: raw data collected from multiple sources, compiled by an LLM into a markdown wiki, then operated on by various CLI tools to do Q&A and incrementally enhance the wiki over time, all viewable in Obsidian, with the LLM handling nearly all writing and editing.
 
 The part that stuck was how he characterized it: "a hacky collection of scripts." And the part that followed: "I think there is room here for an incredible new product."

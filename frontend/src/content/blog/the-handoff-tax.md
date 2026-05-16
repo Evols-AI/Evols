@@ -10,6 +10,8 @@ tags: [AI Productivity, Engineering, Team AI]
 
 ![The Handoff Tax](https://cdn-images-1.medium.com/max/1600/1*adZb_4-InXvjClSviKIIiw.png)
 
+> **Key Takeaway:** The widely cited 55% individual productivity gain from AI coding tools does not account for what happens after the task ends. DORA 2024 found that individual speed gains coexist with declining team delivery stability. The hidden cost is the handoff tax: context built in one AI session cannot transfer to the next person or role, so every handoff (dev → QA, dev → code review, sprint → sprint) requires expensive context reconstruction from scratch.
+
 There is a number that gets cited in nearly every enterprise AI presentation right now: developers who use AI coding tools complete tasks 55% faster. It comes from a GitHub study. It has appeared in board decks, in procurement justifications, in analyst reports. It is, in the strict sense of what it measured, accurate.
 
 Here is what it didn't measure: what happens after the task is done.

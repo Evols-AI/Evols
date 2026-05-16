@@ -8,7 +8,9 @@ readingTime: 12 min read
 tags: [AI Costs, Team AI, Engineering]
 ---
 
-![Token exhasution is a team problem](https://cdn-images-1.medium.com/max/1600/1*wRUoLBzrna1EMley2WNL1Q.png)
+![Token exhaustion is a team problem](https://cdn-images-1.medium.com/max/1600/1*wRUoLBzrna1EMley2WNL1Q.png)
+
+> **Key Takeaway:** When GitHub's rate-limiting bug was fixed in March 2026, developers discovered they had been hitting AI token caps all along. Token exhaustion is not an individual discipline problem — it is a team visibility problem. No current AI tool shows managers or teams their collective AI capacity in real time, which means quota either burns mid-task or expires unused. Teams need quota visibility at the team level, not the individual level.
 
 In March 2026, GitHub's developer community forums lit up. Developers across the world discovered that their Copilot sessions were hitting rate limits mid-task (sometimes on the first prompt of the morning). The complaints were immediate and specific. One user reported being rate-limited after "one single unit test." Another wrote: "I just woke up and started my workday, and I've already triggered the usage limit." A third: "These rate limit changes are too drastic. I'm finding it nearly impossible to work efficiently anymore."
 

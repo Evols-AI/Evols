@@ -10,6 +10,8 @@ tags: [Team AI, Coordination, Engineering]
 
 ![The Hidden Coordination Tax of Async AI Work](https://cdn-images-1.medium.com/max/1600/1*VqGw9Y3jP7KjqdBYB6WatQ.png)
 
+> **Key Takeaway:** AI tools make individuals faster but make teams less coordinated. When individual work is completed in an hour instead of a day, the natural coordination windows (standups, Slack check-ins, PR mentions) that kept teams aligned are no longer fast enough to prevent duplicate work and context loss at handoff. The result is a hidden coordination tax that grows as AI tools improve.
+
 A scenario that is now common enough to be mundane: two engineers on a team are both working on an infrastructure problem. They don't know the other is working on it. They each spend a few hours with AI assistance, investigating the issue, building a mental model, developing a solution. They both write code. One of them opens a pull request on Thursday. The other opens theirs on Friday and discovers in the review that the work has been duplicated.
 
 The immediate reaction is coordination failure: someone should have checked. This is true. But the more structurally important observation is: this kind of failure is predictable, systematic, and getting more common as AI tools make it cheaper and faster to do work independently.

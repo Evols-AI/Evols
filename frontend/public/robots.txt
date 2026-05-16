@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-setup
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /context
+Disallow: /knowledge
+Disallow: /work-context
+Disallow: /settings
+Disallow: /skills
+Disallow: /workbench
+
+Sitemap: https://evols.ai/sitemap.xml

@@ -50,18 +50,59 @@ export default function BlogPostPage({ post }: Props) {
   return (
     <>
       <Head>
-        <title>{post.title} - Evols Blog</title>
+        <title>{post.title} — Evols Blog</title>
         <meta name="description" content={post.description} />
         <link rel="canonical" href={canonicalUrl} />
         <meta property="og:title" content={post.title} />
         <meta property="og:description" content={post.description} />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:image" content={`https://evols.ai/api/og?title=${encodeURIComponent(post.title)}&description=${encodeURIComponent(post.description)}`} />
         <meta property="article:published_time" content={post.date} />
         <meta property="article:author" content={post.author} />
+        <meta name="twitter:title" content={post.title} />
+        <meta name="twitter:description" content={post.description} />
+        <meta name="twitter:image" content={`https://evols.ai/api/og?title=${encodeURIComponent(post.title)}&description=${encodeURIComponent(post.description)}`} />
         {post.tags.map(tag => (
           <meta key={tag} property="article:tag" content={tag} />
         ))}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "BlogPosting",
+              "headline": post.title,
+              "description": post.description,
+              "datePublished": post.date,
+              "dateModified": post.date,
+              "url": canonicalUrl,
+              "image": `https://evols.ai/api/og?title=${encodeURIComponent(post.title)}&description=${encodeURIComponent(post.description)}`,
+              "author": {
+                "@type": "Person",
+                "name": post.author,
+                "jobTitle": post.authorRole ?? undefined,
+                "url": "https://evols.ai/blog",
+                "sameAs": ["https://www.linkedin.com/company/116584015"]
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "Evols AI",
+                "url": "https://evols.ai",
+                "logo": { "@type": "ImageObject", "url": "https://evols.ai/favicon.svg" }
+              },
+              "mainEntityOfPage": { "@type": "WebPage", "@id": canonicalUrl },
+              "keywords": post.tags.join(', ')
+            },
+            {
+              "@type": "BreadcrumbList",
+              "itemListElement": [
+                { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://evols.ai" },
+                { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://evols.ai/blog" },
+                { "@type": "ListItem", "position": 3, "name": post.title, "item": canonicalUrl }
+              ]
+            }
+          ]
+        })}} />
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 

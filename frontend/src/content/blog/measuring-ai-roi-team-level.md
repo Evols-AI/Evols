@@ -10,6 +10,8 @@ tags: [ROI, AI Strategy, Leadership]
 
 ![How to Measure the ROI of AI Tooling at the Team Level (Not the Individual Level)](https://cdn-images-1.medium.com/max/1600/1*CHl2aVKtqjW8T14KCczV-A.png)
 
+> **Key Takeaway:** The widely cited 55.8% individual productivity gain from AI coding tools measures the wrong unit for an ROI decision. 59% of leaders cannot quantify AI gains — not because they are not measuring, but because they are measuring at the individual level when the costs and compounding failures happen at the team level. Team-level ROI requires tracking duplicate work, integration friction, context reconstruction costs, and quota efficiency alongside individual speed gains.
+
 GitHub's most-cited productivity study found that developers with Copilot access completed a specific coding task 55.8% faster than those without. This number has appeared in hundreds of ROI justification documents, board presentations, and procurement decisions. It is methodologically sound for what it measured: 95 developers, a single JavaScript task, a controlled experimental design.
 
 It is also almost completely useless for evaluating whether your AI tooling investment is producing value for your team.

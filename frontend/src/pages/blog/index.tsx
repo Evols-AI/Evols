@@ -23,9 +23,15 @@ export default function BlogIndex({ posts }: Props) {
   return (
     <>
       <Head>
-        <title>Blog - Evols</title>
-        <meta name="description" content="Insights on AI for product teams, knowledge management, and the future of product management." />
+        <title>Blog — Evols AI | Team AI, Knowledge Management &amp; AI Productivity</title>
+        <meta name="description" content="Research-backed insights on team AI coordination, the handoff tax, token costs, and what good looks like when AI actually knows your team's context." />
         <link rel="canonical" href="https://evols.ai/blog" />
+        <meta property="og:title" content="Evols Blog — Team AI, Knowledge Management &amp; AI Productivity" />
+        <meta property="og:description" content="Research-backed insights on team AI coordination, the handoff tax, token costs, and what good looks like when AI actually knows your team's context." />
+        <meta property="og:url" content="https://evols.ai/blog" />
+        <meta property="og:image" content="https://evols.ai/api/og?title=Evols+Blog&description=Team+AI%2C+knowledge+management%2C+and+AI+productivity+insights" />
+        <meta name="twitter:title" content="Evols Blog — Team AI &amp; AI Productivity" />
+        <meta name="twitter:image" content="https://evols.ai/api/og?title=Evols+Blog&description=Team+AI%2C+knowledge+management%2C+and+AI+productivity+insights" />
         <style>{`h1,h2,h3,h4,h5,h6{font-family:'Syne',system-ui,sans-serif!important}`}</style>
       </Head>
 

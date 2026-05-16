@@ -10,6 +10,8 @@ tags: [Onboarding, Knowledge Management, Team AI]
 
 ![The Onboarding Cold Start Problem: Why New Teammates Still Start From Zero in AI-Native Teams](https://cdn-images-1.medium.com/max/1600/1*tzFlvQSEA-LXvgcKO1UBEw.png)
 
+> **Key Takeaway:** AI tools cut time-to-first-PR roughly in half for new developers, but that speed improvement coexists with a persistent context gap. Generic AI knowledge (from training data) transfers via AI tools; organizational knowledge (past decisions, failed approaches, architectural constraints specific to your codebase) does not. New teammates in AI-native teams still start cold on everything that matters most — and no current AI tool closes that gap without a shared team knowledge layer.
+
 In 2024, a well-known study from NBER (Brynjolfsson, Li, and Raymond, one of the more rigorous empirical analyses of AI productivity gains) found that AI tools helped novice workers improve their performance by 34%, while having minimal or slightly negative effects on top performers. The mechanism was interesting: the AI was effectively redistributing institutional knowledge from experienced workers to newer ones. The knowledge existed in the system (encoded in the model's training data from prior interactions), and the AI was making it available to people who didn't have it yet.
 
 The finding is frequently cited as evidence that AI tools democratize expertise and accelerate onboarding. The interpretation is optimistic. The implication is mostly correct. But there's a subtlety worth dwelling on.
