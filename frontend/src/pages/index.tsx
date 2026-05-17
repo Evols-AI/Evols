@@ -12,6 +12,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import SpotlightCard from '@/components/SpotlightCard'
+import HeroBridgeBackground from '@/components/HeroBridgeBackground'
 
 
 const PROBLEMS = [
@@ -299,13 +300,7 @@ export default function Home() {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] blur-[120px] rounded-full bg-primary/10" />
             <div className={`absolute top-20 left-1/4 w-[400px] h-[300px] blur-[100px] rounded-full ${dark ? 'bg-primary/5' : 'bg-primary/[0.07]'}`} />
           </div>
-          <div className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage: dark
-                ? 'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)'
-                : 'linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)',
-              backgroundSize: '60px 60px',
-            }} />
+          <HeroBridgeBackground dark={dark} />
 
           <motion.div style={{ opacity: heroOpacity, y: heroY }}
             className="relative max-w-4xl mx-auto px-6 text-center">
@@ -320,14 +315,13 @@ export default function Home() {
 
             <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}
               className="text-5xl md:text-7xl font-medium tracking-[-0.03em] leading-[1.04] mb-6 text-balance">
-              The team brain<br />
+              Shared brain<br />
               <span style={{ color: lav }}>for every AI session</span>
             </motion.h1>
 
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.1 }}
               className={`text-lg md:text-xl ${textMuted} max-w-2xl mx-auto mb-10 leading-relaxed tracking-[-0.01em]`}>
-              Evols turns every AI session your team runs into shared, compounding intelligence →
-              zero cold start, no duplicate work, full quota visibility.
+              Zero cold start. No duplicate work. No wasted AI spend.
             </motion.p>
 
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.15 }}
@@ -446,7 +440,7 @@ export default function Home() {
                 One install. Everything connects.
               </h2>
               <p className={`${textFaint} max-w-xl mx-auto text-base leading-relaxed`}>
-                The Evols CLI bundles hooks, MCP server, and team context — no manual configuration.
+                No manual configuration. Evols configures hooks, MCP server, skills and team context.
               </p>
             </div>
 
@@ -623,7 +617,7 @@ export default function Home() {
                   <span className={textMuted}>your team already knows</span>
                 </h2>
                 <p className={`${textFaint} text-lg mb-10 leading-relaxed`}>
-                  Every session should compound into shared intelligence — not disappear when the window closes.
+                  Sessions should compound, not disappear.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <Link href="/register"
