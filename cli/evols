@@ -696,6 +696,19 @@ def cmd_mcp_server(args):
 
         elif method == "tools/call":
             try:
+                # For check_redundancy: try local OS model expansion before sending
+                # to backend. Backend's _expand_query_intent handles it as fallback
+                # when no OS model is available.
+                tool_name = params.get("name", "")
+                if tool_name == "mcp__evols__check_redundancy":
+                    args = params.get("arguments", {})
+                    task_desc = args.get("task_description", "")
+                    if task_desc:
+                        expanded = _expand_query_local(task_desc)
+                        if expanded:
+                            params = dict(params)
+                            params["arguments"] = dict(args, task_description=expanded)
+
                 result = api_post("/api/v1/mcp", {
                     "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": params,
                 })
@@ -1116,6 +1129,117 @@ class EvolsExtract {
 def _ke_try_local(transcript_text: str) -> Optional[dict]:
     prompt = _KE_PROMPT.format(transcript=transcript_text[:4000])
     return _ke_try_apple(prompt) or _ke_try_phi_silica(prompt)
+
+
+def _os_raw_text(prompt: str) -> Optional[str]:
+    """
+    Run a prompt through the on-device OS LLM and return the raw text response.
+    Used for tasks that need plain text output (not JSON extraction).
+    Returns None if no OS model is available.
+    """
+    import platform, subprocess, tempfile
+    system = platform.system()
+
+    if system == "Darwin":
+        try:
+            if int(platform.release().split(".")[0]) < 25:
+                return None
+        except Exception:
+            return None
+        swift_code = """
+import FoundationModels
+import Foundation
+
+let promptText = ProcessInfo.processInfo.environment["EVOLS_PROMPT"] ?? ""
+guard !promptText.isEmpty else { exit(0) }
+
+let session = LanguageModelSession()
+guard await session.availability == .available else { exit(0) }
+
+do {
+    let response = try await session.respond(to: promptText)
+    print(response.content)
+} catch {
+    exit(1)
+}
+"""
+        tmp = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".swift", mode="w", delete=False) as f:
+                f.write(swift_code)
+                tmp = f.name
+            env = os.environ.copy()
+            env["EVOLS_PROMPT"] = prompt
+            result = subprocess.run(["swift", tmp], capture_output=True, text=True, timeout=20, env=env)
+            return result.stdout.strip() or None
+        except Exception:
+            return None
+        finally:
+            if tmp:
+                try: os.unlink(tmp)
+                except Exception: pass
+
+    elif system == "Windows":
+        csharp_code = r"""
+using System;
+using System.Threading.Tasks;
+using Microsoft.Windows.AI.Generative;
+
+class EvolsExpand {
+    static async Task Main() {
+        string promptText = Environment.GetEnvironmentVariable("EVOLS_PROMPT") ?? "";
+        if (string.IsNullOrEmpty(promptText)) return;
+        if (!LanguageModel.IsAvailable()) return;
+        using var model = await LanguageModel.CreateAsync();
+        var result = await model.GenerateResponseAsync(promptText);
+        Console.Write(result.Response);
+    }
+}
+"""
+        tmp_cs = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".cs", mode="w", delete=False, encoding="utf-8") as f:
+                f.write(csharp_code)
+                tmp_cs = f.name
+            env = os.environ.copy()
+            env["EVOLS_PROMPT"] = prompt
+            result = subprocess.run(["dotnet-script", tmp_cs], capture_output=True, text=True, timeout=30, env=env)
+            if result.returncode != 0:
+                exe = tmp_cs.replace(".cs", ".exe")
+                if subprocess.run(["csc", f"/out:{exe}", tmp_cs], capture_output=True, timeout=15).returncode != 0:
+                    return None
+                result = subprocess.run([exe], capture_output=True, text=True, timeout=30, env=env)
+            return result.stdout.strip() or None
+        except Exception:
+            return None
+        finally:
+            if tmp_cs:
+                try: os.unlink(tmp_cs)
+                except Exception: pass
+
+    return None
+
+
+def _expand_query_local(query: str) -> Optional[str]:
+    """
+    Expand a short query into a semantic intent description using the on-device OS LLM.
+    Returns expanded text (query + description) or None if no OS model available.
+    Only expands short queries — longer ones carry enough signal already.
+    """
+    if len(query.split()) >= 12:
+        return None
+    prompt = (
+        "Convert this short query into a 1-2 sentence description of the topic, "
+        "task, or research area it represents. Focus on semantic intent and expected "
+        "output type (e.g. research, analysis, bug fix, feature design). "
+        "Do NOT answer the query — only describe what it is about.\n\n"
+        f"Query: {query}\n\n"
+        "Description:"
+    )
+    expanded = _os_raw_text(prompt)
+    if expanded:
+        return f"{query}\n\n{expanded}"
+    return None
 
 
 def _ke_build_payload(
