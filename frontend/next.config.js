@@ -12,6 +12,10 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' },
     ],
   },
+  async redirects() {
+    if (process.env.NEXT_PUBLIC_IS_HOSTED === 'true') return [];
+    return [{ source: '/', destination: '/login', permanent: false }];
+  },
 }
 
 module.exports = nextConfig
