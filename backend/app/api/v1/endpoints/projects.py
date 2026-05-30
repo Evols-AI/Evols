@@ -10,8 +10,9 @@ from sqlalchemy import select, and_
 import logging
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_tenant_id
+from app.core.dependencies import get_current_tenant_id, get_current_user
 from app.models.project import Project, ProjectStatus, ProjectEffort
+from app.models.user import User
 from app.schemas.project import (
     ProjectCreate,
     ProjectUpdate,
@@ -130,6 +131,7 @@ async def generate_projects_async(
     request: ProjectGenerateRequest,
     db: AsyncSession = Depends(get_db),
     tenant_id: int = Depends(get_current_tenant_id),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Auto-generate projects asynchronously - returns immediately with job_id
@@ -141,43 +143,27 @@ async def generate_projects_async(
     """
     from app.models.job import JobType
     from app.services.background_task_service import BackgroundTaskService
-    from app.core.config import settings
+    from app.workers.dispatch import dispatch_job
 
     try:
         logger.info(f"[Projects API] Starting async project generation for tenant {tenant_id}")
 
-        # Create background job
+        input_params = {"initiative_ids": request.initiative_ids}
+
+        # Create background job (owned by the requesting user so completion
+        # notifications can be addressed to them).
         job = await BackgroundTaskService.create_job(
             tenant_id=tenant_id,
-            user_id=None,
+            user_id=current_user.id,
             job_type=JobType.PROJECT_GENERATION,
-            input_params={"initiative_ids": request.initiative_ids},
+            input_params=input_params,
             db=db
         )
 
         logger.info(f"[Projects API] Created async generation job {job.job_uuid}")
 
-        # Choose task queue based on configuration
-        if settings.USE_CELERY:
-            # Production: Use Celery (durable, survives restarts)
-            from app.workers.project_tasks import generate_projects_task
-            generate_projects_task.delay(
-                str(job.job_uuid),
-                tenant_id,
-                request.initiative_ids
-            )
-            logger.info(f"[Projects API] Dispatched to Celery: {job.job_uuid}")
-        else:
-            # Development: Use asyncio (non-durable, simpler)
-            from app.workers.project_worker import generate_projects_background
-            BackgroundTaskService.run_in_background(
-                generate_projects_background(
-                    str(job.job_uuid),
-                    tenant_id,
-                    request.initiative_ids
-                )
-            )
-            logger.info(f"[Projects API] Running with asyncio (dev mode): {job.job_uuid}")
+        # Dispatch via the shared registry (Celery in prod, asyncio in dev).
+        dispatch_job(JobType.PROJECT_GENERATION, str(job.job_uuid), tenant_id, input_params)
 
         return {
             "success": True,
