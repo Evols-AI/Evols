@@ -766,3 +766,157 @@ body::before {
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * AI Primitives — supporting styles
+ * Used by frontend/src/components/ui/AIPrimitives.tsx and AskEvolsDock.tsx
+ *
+ * Solid colors only — uses the existing primary/border/muted tokens, never
+ * adds new colors and never introduces gradients.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+@layer components {
+  /* AIThinking — three bouncing dots */
+  .ai-thinking-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 9999px;
+    background: hsl(var(--primary));
+    display: inline-block;
+    animation: ai-thinking-bounce 1.1s ease-in-out infinite;
+  }
+
+  @keyframes ai-thinking-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40%           { transform: translateY(-3px); opacity: 1; }
+  }
+
+  /* AIShimmer — gentle text opacity pulse while streaming.
+     Intentionally uses opacity (not a gradient) so the effect honors the
+     "no AI-slop gradients" rule. */
+  .ai-shimmer {
+    color: hsl(var(--foreground));
+    animation: ai-shimmer-pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes ai-shimmer-pulse {
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 1; }
+  }
+
+  /* AIStreamLine — a thin progress line that breathes */
+  .ai-stream-line {
+    height: 2px;
+    width: 100%;
+    border-radius: 9999px;
+    background: hsl(var(--primary) / 0.35);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ai-stream-line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: hsl(var(--primary));
+    border-radius: 9999px;
+    animation: ai-stream-pulse 1.4s ease-in-out infinite;
+    transform-origin: left;
+  }
+
+  @keyframes ai-stream-pulse {
+    0%   { transform: scaleX(0); opacity: 0.6; }
+    50%  { transform: scaleX(0.8); opacity: 1; }
+    100% { transform: scaleX(1); opacity: 0; }
+  }
+
+  /* ToolUseChip — slow ring pulse when running */
+  .tool-chip-running {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+    animation: tool-chip-ring 1.6s ease-out infinite;
+  }
+
+  @keyframes tool-chip-ring {
+    0%   { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.35); }
+    100% { box-shadow: 0 0 0 6px hsl(var(--primary) / 0); }
+  }
+
+  /* ThinkingSurface — tinted border when active */
+  .thinking-surface-active {
+    border-color: hsl(var(--primary) / 0.45) !important;
+    box-shadow:
+      0 1px 2px 0 rgb(0 0 0 / 0.05),
+      0 0 0 1px hsl(var(--primary) / 0.18);
+  }
+
+  /* Halo — soft ring around an icon/avatar.
+     Uses a single primary color drawn as concentric rings via box-shadow on a
+     ::before circle. No gradient. */
+  .halo-ring {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .halo-ring::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--primary) / 0.35);
+    box-shadow:
+      0 0 0 3px hsl(var(--primary) / 0.10),
+      0 0 16px 0 hsl(var(--primary) / 0.18);
+    pointer-events: none;
+  }
+
+  /* ── AskEvolsDock ──────────────────────────────────────────────────────── */
+  .ask-evols-dock-wrapper {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 50;
+    max-width: calc(100vw - 2.5rem);
+  }
+
+  .ask-evols-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 9999px;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow:
+      0 4px 12px -4px rgb(0 0 0 / 0.15),
+      0 0 0 1px hsl(var(--border) / 0.1);
+    transition: all 200ms ease;
+    cursor: pointer;
+  }
+
+  .ask-evols-pill:hover {
+    border-color: hsl(var(--primary) / 0.4);
+    box-shadow:
+      0 6px 18px -4px rgb(0 0 0 / 0.18),
+      0 0 0 1px hsl(var(--primary) / 0.2);
+    transform: translateY(-1px);
+  }
+
+  .ask-evols-composer {
+    width: min(28rem, calc(100vw - 2.5rem));
+    box-shadow:
+      0 12px 32px -8px rgb(0 0 0 / 0.25),
+      0 0 0 1px hsl(var(--border) / 0.2);
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .ai-thinking-dot,
+    .ai-shimmer,
+    .ai-stream-line::after,
+    .tool-chip-running {
+      animation: none !important;
+    }
+  }
+}
+
