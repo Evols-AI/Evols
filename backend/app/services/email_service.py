@@ -306,3 +306,85 @@ If you didn't request this, you can ignore this email.
         """
 
         EmailService._send_email(to_email, subject, html_body)
+
+    @staticmethod
+    def send_job_notification_email(
+        to_email: str,
+        job_type: str,
+        status: str,
+        message: Optional[str] = None,
+        result: Optional[dict] = None,
+        frontend_url: Optional[str] = None,
+    ):
+        """
+        Notify a user that one of their background jobs finished.
+
+        Args:
+            to_email: User's email address
+            job_type: Raw JobType value, e.g. "PROJECT_GENERATION"
+            status: Raw JobStatus value, e.g. "completed" or "failed"
+            message: Optional human-readable job message
+            result: Optional job result payload (used for a short summary)
+            frontend_url: Base frontend URL (falls back to settings)
+        """
+        base_url = frontend_url or settings.FRONTEND_URL
+        jobs_url = f"{base_url}/jobs"
+
+        pretty_type = job_type.replace("_", " ").title()
+        succeeded = status == "completed"
+        headline = "finished" if succeeded else f"{status}"
+        accent = "#4F46E5" if succeeded else "#dc2626"
+
+        # Prefer the job's own message; otherwise summarize the result dict.
+        detail = message
+        if not detail and isinstance(result, dict):
+            detail = result.get("message")
+        detail_html = (
+            f'<div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">'
+            f'<p style="margin: 0;">{detail}</p></div>'
+            if detail else ""
+        )
+        detail_text = f"\n{detail}\n" if detail else ""
+
+        subject = f"Your {pretty_type} job {headline} - Evols"
+
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: {accent};">Your {pretty_type} job {headline}</h2>
+
+                <p>Your background <strong>{pretty_type}</strong> job has {headline}.</p>
+
+                {detail_html}
+
+                <div style="margin: 30px 0;">
+                    <a href="{jobs_url}"
+                       style="background-color: {accent}; color: white; padding: 12px 30px;
+                              text-decoration: none; border-radius: 5px; display: inline-block;">
+                        View job history
+                    </a>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                <p style="color: #999; font-size: 12px;">
+                    You're receiving this because you enabled job completion notifications.
+                    You can turn them off in Settings &rarr; Notifications.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+
+        text_body = f"""Your {pretty_type} job {headline}
+
+Your background {pretty_type} job has {headline}.
+{detail_text}
+View job history: {jobs_url}
+
+You're receiving this because you enabled job completion notifications.
+You can turn them off in Settings -> Notifications.
+"""
+
+        EmailService._send_email(to_email, subject, html_body, text_body)

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, ShieldCheck, LifeBuoy, Sparkles, UsersRound, Zap, Briefcase, Brain } from 'lucide-react'
+import { Moon, Sun, Settings, Users, ChevronDown, LogOut, Shield, ShieldCheck, LifeBuoy, Sparkles, UsersRound, Zap, Briefcase, Brain, Activity } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { LogoWordmark } from '@/components/Logo'
 import { useState, useRef, useEffect } from 'react'
@@ -53,6 +53,7 @@ export default function Header({ user, currentPage, variant = 'app' }: HeaderPro
     { href: '/context', label: 'Knowledge', key: 'context', icon: Brain },
     { href: '/work-context', label: 'Work Context', key: 'work-context', icon: Briefcase },
     { href: '/skills', label: 'Skills', key: 'skills', icon: Zap },
+    { href: '/jobs', label: 'Jobs', key: 'jobs', icon: Activity },
   ]
 
   const adminNavItems = [

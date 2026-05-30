@@ -84,6 +84,13 @@ export const api = {
   // Jobs (progress tracking)
   getJob: (jobId: string) => apiClient.get(`/api/v1/jobs/${jobId}`),
   listJobs: (params?: any) => apiClient.get('/api/v1/jobs/', { params }),
+  retryJob: (jobId: string) => apiClient.post(`/api/v1/jobs/${jobId}/retry`),
+  cancelJob: (jobId: string) => apiClient.delete(`/api/v1/jobs/${jobId}`),
+
+  // Notification preferences
+  getNotificationPreferences: () => apiClient.get('/api/v1/users/me/notification-preferences'),
+  updateNotificationPreferences: (data: { notify_on_job_completion: boolean }) =>
+    apiClient.put('/api/v1/users/me/notification-preferences', data),
 
   // Decision Briefs
   generateBrief: (decisionId: number) => apiClient.post(`/api/v1/decisions/${decisionId}/brief`),

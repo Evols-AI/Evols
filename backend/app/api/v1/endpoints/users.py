@@ -370,6 +370,47 @@ async def change_my_password(
     return {"message": "Password changed successfully"}
 
 
+class NotificationPreferences(BaseModel):
+    """User notification preferences (stored in User.preferences JSON)."""
+    notify_on_job_completion: bool = False
+
+
+@router.get("/me/notification-preferences", response_model=NotificationPreferences)
+async def get_my_notification_preferences(
+    current_user: User = Depends(get_current_user),
+):
+    """Get the current user's notification preferences."""
+    prefs = current_user.preferences or {}
+    return NotificationPreferences(
+        notify_on_job_completion=bool(prefs.get("notify_on_job_completion", False)),
+    )
+
+
+@router.put("/me/notification-preferences", response_model=NotificationPreferences)
+async def update_my_notification_preferences(
+    data: NotificationPreferences,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update the current user's notification preferences.
+
+    Reassigns the whole preferences dict (rather than mutating in place) so
+    SQLAlchemy detects the change on the JSON column.
+    """
+    current_user.preferences = {
+        **(current_user.preferences or {}),
+        "notify_on_job_completion": data.notify_on_job_completion,
+    }
+    await db.commit()
+    await db.refresh(current_user)
+
+    prefs = current_user.preferences or {}
+    return NotificationPreferences(
+        notify_on_job_completion=bool(prefs.get("notify_on_job_completion", False)),
+    )
+
+
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: int,

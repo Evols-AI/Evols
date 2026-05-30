@@ -97,6 +97,7 @@ class BackgroundTaskService:
                 job.mark_completed(result_data)
                 await db.commit()
                 logger.info(f"[BackgroundTask] Job {job_uuid} completed")
+                await BackgroundTaskService._maybe_notify(job, db)
 
     @staticmethod
     async def mark_job_failed(job_uuid: str, error_message: str):
@@ -111,6 +112,49 @@ class BackgroundTaskService:
                 job.mark_failed(error_message)
                 await db.commit()
                 logger.error(f"[BackgroundTask] Job {job_uuid} failed: {error_message}")
+                await BackgroundTaskService._maybe_notify(job, db)
+
+    @staticmethod
+    async def _maybe_notify(job: Job, db: AsyncSession):
+        """
+        Send a best-effort 'job finished' email to the job's owner, if they
+        opted in (User.preferences.notify_on_job_completion).
+
+        Must never raise — a notification failure can't be allowed to affect
+        job status. The synchronous SMTP send is offloaded to a thread so it
+        doesn't block the event loop.
+        """
+        try:
+            if not job.user_id:
+                return
+
+            # Imported here to avoid import cycles at module load.
+            from app.models.user import User
+            from app.services.email_service import EmailService
+            from app.core.config import settings
+
+            res = await db.execute(select(User).where(User.id == job.user_id))
+            user = res.scalar_one_or_none()
+            if not user or not user.email:
+                return
+
+            prefs = user.preferences or {}
+            if not prefs.get("notify_on_job_completion"):
+                return
+
+            await asyncio.to_thread(
+                EmailService.send_job_notification_email,
+                user.email,
+                job.job_type.value,
+                job.status.value,
+                job.message,
+                job.result,
+                settings.FRONTEND_URL,
+            )
+            logger.info(f"[BackgroundTask] Sent job-completion email for {job.job_uuid} to {user.email}")
+        except Exception as e:
+            # Notifications are best-effort; swallow everything.
+            logger.warning(f"[BackgroundTask] Job notification email skipped for {job.job_uuid}: {e}")
 
     @staticmethod
     def run_in_background(coro):

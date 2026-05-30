@@ -10,9 +10,9 @@ import { getCurrentUser, isAuthenticated } from '@/utils/auth'
 import { useRouter } from 'next/router'
 import Header from '@/components/Header'
 import { Loading } from '@/components/PageContainer'
-import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare } from 'lucide-react'
+import { User, Shield, Bot, Eye, EyeOff, ChevronDown, RefreshCw, Users, Plus, Trash2, Mail, Clock, CheckCircle, XCircle, Send, AlertCircle, Copy, Check, Key, MessageSquare, Bell } from 'lucide-react'
 
-type Tab = 'profile' | 'security' | 'llm' | 'data_refresh' | 'team' | 'chat'
+type Tab = 'profile' | 'security' | 'llm' | 'data_refresh' | 'team' | 'chat' | 'notifications'
 type LLMProvider = 'openai' | 'anthropic' | 'azure_openai' | 'aws_bedrock' | 'google_gemini' | 'groq' | 'mistral' | 'cohere' | 'together_ai' | 'ollama' | 'deepseek' | 'xai' | 'openrouter'
 type AWSAuthMethod = 'api_key' | 'credentials'
 
@@ -129,6 +129,10 @@ export default function Settings() {
   const [lastKnowledgeRefreshDate, setLastKnowledgeRefreshDate] = useState<string | null>(null)
   const [savingKnowledgeRefresh, setSavingKnowledgeRefresh] = useState(false)
 
+  // Notification preferences state
+  const [notifyOnJobCompletion, setNotifyOnJobCompletion] = useState(false)
+  const [savingNotifications, setSavingNotifications] = useState(false)
+
   // Graph extraction settings state
   type EntityEntry = { name: string; definition: string | null }
   const DEFAULT_ENTITY_TYPES: EntityEntry[] = [
@@ -188,6 +192,7 @@ export default function Settings() {
     { id: 'security' as Tab, label: 'Security', icon: Shield },
     { id: 'llm' as Tab, label: 'LLM Settings', icon: Bot },
     { id: 'data_refresh' as Tab, label: 'Data Refresh', icon: RefreshCw },
+    { id: 'notifications' as Tab, label: 'Notifications', icon: Bell },
     { id: 'chat' as Tab, label: 'Chat', icon: MessageSquare },
     ...(user?.role === 'TENANT_ADMIN' ? [{ id: 'team' as Tab, label: 'Team', icon: Users }] : []),
   ]
@@ -204,8 +209,31 @@ export default function Settings() {
       loadInvites()
     } else if (activeTab === 'security') {
       loadApiKeys()
+    } else if (activeTab === 'notifications') {
+      loadNotificationPreferences()
     }
   }, [activeTab])
+
+  const loadNotificationPreferences = async () => {
+    try {
+      const response = await api.getNotificationPreferences()
+      setNotifyOnJobCompletion(!!response.data?.notify_on_job_completion)
+    } catch (error) {
+      console.log('Could not load notification preferences')
+    }
+  }
+
+  const handleSaveNotificationPreferences = async () => {
+    try {
+      setSavingNotifications(true)
+      await api.updateNotificationPreferences({ notify_on_job_completion: notifyOnJobCompletion })
+      await loadNotificationPreferences()
+    } catch (error) {
+      alert('Failed to save notification preferences. Please try again.')
+    } finally {
+      setSavingNotifications(false)
+    }
+  }
 
   const loadCurrentLLMSettings = async () => {
     try {
@@ -1972,6 +2000,54 @@ export default function Settings() {
                     {savingGraphExtraction ? 'Saving...' : 'Save Extraction Settings'}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-medium text-foreground">Notifications</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Choose when Evols should email you. Background jobs (like project
+                  generation) run asynchronously and can take a while — get a note when they finish.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-5">
+                <label className="flex items-start justify-between gap-4 cursor-pointer">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 p-2 rounded-lg bg-primary/10">
+                      <Bell className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-foreground">
+                        Email me when background jobs finish
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5 max-w-md">
+                        We&apos;ll send a short email when one of your jobs completes or fails,
+                        with a link to the job history. Off by default.
+                      </div>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyOnJobCompletion}
+                    onChange={(e) => setNotifyOnJobCompletion(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveNotificationPreferences}
+                  disabled={savingNotifications}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground rounded-lg bg-primary hover:bg-primary/85 disabled:opacity-50 transition-colors"
+                >
+                  {savingNotifications ? 'Saving…' : 'Save preferences'}
+                </button>
               </div>
             </div>
           )}
