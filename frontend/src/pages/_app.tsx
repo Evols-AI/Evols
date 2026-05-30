@@ -7,6 +7,7 @@ import { useRouter } from 'next/router'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Expletus_Sans } from 'next/font/google'
 import { analytics, identifyUser, trackPage } from '@/lib/analytics'
+import AskEvolsDock from '@/components/ui/AskEvolsDock'
 
 
 const exletusSans = Expletus_Sans({
@@ -88,6 +89,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <Component {...pageProps} />
+            <AskEvolsDock />
           </ThemeProvider>
         </QueryClientProvider>
       </div>
